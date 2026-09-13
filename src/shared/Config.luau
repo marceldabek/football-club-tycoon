@@ -93,6 +93,16 @@ Config.AwayKits = {
 
 Config.ClubName = "Your Club" -- TEMP: club naming flow is undecided
 Config.HomeKit = Color3.fromRGB(200, 40, 50) -- TEMP: kit customisation later
+Config.SeatColor = Color3.fromRGB(200, 40, 50) -- TEMP: seat colour customisation later (M4 §4)
+-- Fictional pitch-side sponsors for the ad boards. Purely decorative for now.
+Config.Sponsors = {
+	{ text = "BLOXBANK", bg = Color3.fromRGB(20, 60, 140), fg = Color3.new(1, 1, 1) },
+	{ text = "SUNDAY PIES", bg = Color3.fromRGB(230, 200, 60), fg = Color3.fromRGB(40, 30, 10) },
+	{ text = "KICKR SPORTS", bg = Color3.fromRGB(240, 240, 240), fg = Color3.fromRGB(20, 20, 20) },
+	{ text = "OAKHOLLOW MOTORS", bg = Color3.fromRGB(40, 40, 40), fg = Color3.fromRGB(240, 200, 60) },
+	{ text = "FIZZ COLA", bg = Color3.fromRGB(200, 30, 40), fg = Color3.new(1, 1, 1) },
+	{ text = "NOOB ENERGY", bg = Color3.fromRGB(60, 180, 90), fg = Color3.fromRGB(10, 30, 15) },
+}
 -- Fixed seed so the home squad's names stay the same match to match, so the
 -- player can start recognising them. Real persistent squads arrive in Milestone 3.
 Config.HomeSquadSeed = 1

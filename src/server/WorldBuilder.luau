@@ -83,8 +83,23 @@ local function buildPitch(parent: Instance)
 	pitch.Name = "Pitch"
 	pitch.Parent = parent
 
-	box("Grass", Vector3.new(PITCH_W, 1, PITCH_L), Vector3.new(0, GROUND_Y + 0.5, 0),
-		Color3.fromRGB(75, 140, 60), Enum.Material.Grass, pitch)
+	-- mowing stripes: alternating shades across the length
+	local stripes = 14
+	local stripeL = PITCH_L / stripes
+	local light, dark = Color3.fromRGB(88, 150, 66), Color3.fromRGB(72, 132, 56)
+	for i = 1, stripes do
+		local z = -PITCH_L / 2 + stripeL * (i - 0.5)
+		box(("Stripe%d"):format(i), Vector3.new(PITCH_W, 1, stripeL + 0.02), Vector3.new(0, GROUND_Y + 0.5, z),
+			if i % 2 == 0 then light else dark, Enum.Material.Grass, pitch)
+	end
+	-- worn goalmouths and centre circle: thin dusty patches just above the grass
+	local worn = Color3.fromRGB(120, 130, 70)
+	for _, zSign in { -1, 1 } do
+		local patch = box("Goalmouth", Vector3.new(30, 0.08, 14), Vector3.new(0, GROUND_Y + 1.02, zSign * (PITCH_L / 2 - 8)), worn, Enum.Material.Sand, pitch)
+		patch.Transparency = 0.45
+	end
+	local centreWear = box("CentreWear", Vector3.new(16, 0.08, 16), Vector3.new(0, GROUND_Y + 1.02, 0), worn, Enum.Material.Sand, pitch)
+	centreWear.Transparency = 0.6
 
 	local lineY = GROUND_Y + 1.05
 	local lineW = 1
@@ -107,29 +122,47 @@ local function buildPitch(parent: Instance)
 		end
 	end
 
+	-- goal areas (5.5m deep, 18.3m wide -> ~15 x 50 studs)
+	local sixD, sixW = 15, 50
+	for _, zSign in { -1, 1 } do
+		local edgeZ = zSign * (PITCH_L / 2)
+		local innerZ = edgeZ - zSign * sixD
+		box("SixFront", Vector3.new(sixW, 0.1, lineW), Vector3.new(0, lineY, innerZ), white, nil, pitch)
+		for _, xSign in { -1, 1 } do
+			box("SixSide", Vector3.new(lineW, 0.1, sixD), Vector3.new(xSign * sixW / 2, lineY, (edgeZ + innerZ) / 2), white, nil, pitch)
+		end
+	end
+
 	-- centre spot, penalty spots (11m -> ~30 studs from the goal line)
 	box("CentreSpot", Vector3.new(2, 0.1, 2), Vector3.new(0, lineY, 0), white, nil, pitch)
 	for _, zSign in { -1, 1 } do
 		box("PenaltySpot", Vector3.new(2, 0.1, 2), Vector3.new(0, lineY, zSign * (PITCH_L / 2 - 30)), white, nil, pitch)
 	end
 
-	-- centre circle (9.15m -> 25 studs) as a ring of short segments
-	local circleR, segments = 25, 28
-	for i = 1, segments do
-		local a0 = (i - 1) / segments * math.pi * 2
-		local a1 = i / segments * math.pi * 2
-		local mid = (a0 + a1) / 2
-		local segLen = circleR * (a1 - a0) + 0.4
-		-- segment lies along the tangent: yaw of -mid - 90deg maps the part's X axis onto (-sin, cos)
-		local seg = part({
-			Name = "CentreCircle",
-			Size = Vector3.new(segLen, 0.1, lineW),
-			CFrame = CFrame.new(math.cos(mid) * circleR, lineY, math.sin(mid) * circleR) * CFrame.Angles(0, -mid - math.pi / 2, 0),
-			Color = white,
-			Parent = pitch,
-		})
-		seg.Material = Enum.Material.SmoothPlastic
+	-- arcs as rings of short segments: segment lies along the tangent
+	local function arc(name: string, cx: number, cz: number, radius: number, fromAngle: number, toAngle: number, segments: number)
+		for i = 1, segments do
+			local a0 = fromAngle + (toAngle - fromAngle) * (i - 1) / segments
+			local a1 = fromAngle + (toAngle - fromAngle) * i / segments
+			local mid = (a0 + a1) / 2
+			local segLen = radius * (a1 - a0) + 0.4
+			part({
+				Name = name,
+				Size = Vector3.new(segLen, 0.1, lineW),
+				CFrame = CFrame.new(cx + math.cos(mid) * radius, lineY, cz + math.sin(mid) * radius) * CFrame.Angles(0, -mid - math.pi / 2, 0),
+				Color = white,
+				Material = Enum.Material.SmoothPlastic,
+				Parent = pitch,
+			})
+		end
 	end
+	-- centre circle (9.15m -> 25 studs)
+	arc("CentreCircle", 0, 0, 25, 0, math.pi * 2, 28)
+	-- penalty arcs: the part of the 25-stud circle round the spot that lies outside the box
+	-- box front is 15 studs from the spot; cos(a) = 15/25 -> the D spans ±53 degrees about the pitch axis
+	local half = math.acos(15 / 25)
+	arc("ArcNorth", 0, -(PITCH_L / 2 - 30), 25, math.pi / 2 - half, math.pi / 2 + half, 10)
+	arc("ArcSouth", 0, PITCH_L / 2 - 30, 25, -math.pi / 2 - half, -math.pi / 2 + half, 10)
 
 	-- corner flags
 	for _, zSign in { -1, 1 } do
@@ -166,6 +199,144 @@ local function buildPitch(parent: Instance)
 			net("NetSide", Vector3.new(0.2, goalH, netDepth), Vector3.new(xSign * goalW / 2, netY, netZ))
 		end
 	end
+end
+
+-- Pitch-side advertising boards with fictional sponsors. Gaps at the fence
+-- gaps (walkout path) and where the dugouts sit.
+local BOARD_H = 3
+local DUGOUT_Z = { 18, 40 } -- dugouts occupy |z| in this range on the west side
+
+local function sponsorBoard(parent: Instance, cframe: CFrame, length: number, index: number)
+	local sponsor = Config.Sponsors[((index - 1) % #Config.Sponsors) + 1]
+	local board = part({
+		Name = "AdBoard",
+		Size = Vector3.new(length, BOARD_H, 0.6),
+		CFrame = cframe,
+		Color = sponsor.bg,
+		Material = Enum.Material.SmoothPlastic,
+		Parent = parent,
+	})
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 20
+	gui.LightInfluence = 1
+	gui.Parent = board
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.GothamBlack
+	label.TextScaled = true
+	label.TextColor3 = sponsor.fg
+	label.Text = sponsor.text
+	label.Parent = gui
+	local pad = Instance.new("UIPadding")
+	pad.PaddingTop = UDim.new(0.12, 0)
+	pad.PaddingBottom = UDim.new(0.12, 0)
+	pad.Parent = label
+	return board
+end
+
+local function buildAdBoards(parent: Instance)
+	local boards = Instance.new("Model")
+	boards.Name = "AdBoards"
+	boards.Parent = parent
+	local y = GROUND_Y + BOARD_H / 2
+	local offset = 2.6 -- outside the touchline, inside the fence
+	local segLen = 24
+	local index = 0
+	-- side boards, facing the pitch
+	for _, xSign in { -1, 1 } do
+		local x = xSign * (PITCH_W / 2 + offset)
+		local count = math.floor(PITCH_L / segLen)
+		for i = 1, count do
+			local z = -PITCH_L / 2 + segLen * (i - 0.5)
+			local inGap = math.abs(z) < FENCE_GAP / 2 + segLen / 2
+			local inDugout = xSign < 0 and math.abs(z) > DUGOUT_Z[1] - segLen / 2 and math.abs(z) < DUGOUT_Z[2] + segLen / 2
+			if inGap or inDugout then
+				continue
+			end
+			index += 1
+			-- Front (-Z of the part) must face the pitch: yaw so that -Z points toward x = 0
+			local yaw = if xSign < 0 then -math.pi / 2 else math.pi / 2
+			sponsorBoard(boards, CFrame.new(x, y, z) * CFrame.Angles(0, yaw, 0), segLen - 1, index)
+		end
+	end
+	-- end boards behind the nets
+	for _, zSign in { -1, 1 } do
+		local z = zSign * (PITCH_L / 2 + 8.5)
+		local count = math.floor(PITCH_W / segLen)
+		for i = 1, count do
+			local x = -PITCH_W / 2 + segLen * (i - 0.5)
+			index += 1
+			-- Front (-Z local) toward the pitch: north boards face +Z, south boards face -Z
+			local yaw = if zSign < 0 then math.pi else 0
+			sponsorBoard(boards, CFrame.new(x, y, z) * CFrame.Angles(0, yaw, 0), segLen - 1, index)
+		end
+	end
+end
+
+-- Two dugouts on the west touchline: bench under a perspex shelter.
+local function buildDugouts(parent: Instance)
+	local dugouts = Instance.new("Model")
+	dugouts.Name = "Dugouts"
+	dugouts.Parent = parent
+	local x = -(PITCH_W / 2 + 3.2)
+	for _, zSign in { -1, 1 } do
+		local zc = zSign * (DUGOUT_Z[1] + DUGOUT_Z[2]) / 2
+		local len = DUGOUT_Z[2] - DUGOUT_Z[1]
+		box("Bench", Vector3.new(2, 1.6, len - 2), Vector3.new(x - 0.5, GROUND_Y + 0.8, zc), Color3.fromRGB(50, 50, 55), Enum.Material.Plastic, dugouts)
+		box("BenchBack", Vector3.new(0.4, 3.5, len - 2), Vector3.new(x - 1.6, GROUND_Y + 1.75, zc), Color3.fromRGB(50, 50, 55), Enum.Material.Plastic, dugouts)
+		local roof = box("Shelter", Vector3.new(4.5, 0.3, len), Vector3.new(x - 0.2, GROUND_Y + 5.5, zc), Color3.fromRGB(180, 210, 230), Enum.Material.Glass, dugouts)
+		roof.Transparency = 0.35
+		for _, zEnd in { -1, 1 } do
+			local side = box("Side", Vector3.new(4.5, 5.2, 0.3), Vector3.new(x - 0.2, GROUND_Y + 2.7, zc + zEnd * (len / 2 - 0.15)), Color3.fromRGB(180, 210, 230), Enum.Material.Glass, dugouts)
+			side.Transparency = 0.35
+		end
+		box("Frame", Vector3.new(0.4, 5.5, 0.4), Vector3.new(x - 2.3, GROUND_Y + 2.75, zc + len / 2 - 0.3), Color3.fromRGB(90, 90, 95), Enum.Material.Metal, dugouts)
+		box("Frame", Vector3.new(0.4, 5.5, 0.4), Vector3.new(x - 2.3, GROUND_Y + 2.75, zc - len / 2 + 0.3), Color3.fromRGB(90, 90, 95), Enum.Material.Metal, dugouts)
+	end
+end
+
+-- Arch over the west fence gap where the teams walk out, with the club name.
+local function buildTunnel(parent: Instance): TextLabel
+	local tunnel = Instance.new("Model")
+	tunnel.Name = "Tunnel"
+	tunnel.Parent = parent
+	local x = -(FENCE_X + 0.5)
+	local h = 9
+	local w = FENCE_GAP + 4
+	local colour = Config.HomeKit
+	for _, zSign in { -1, 1 } do
+		box("Pillar", Vector3.new(1.4, h, 1.4), Vector3.new(x, GROUND_Y + h / 2, zSign * (w / 2)), colour, Enum.Material.SmoothPlastic, tunnel)
+	end
+	local header = box("Header", Vector3.new(1.4, 2.6, w + 1.4), Vector3.new(x, GROUND_Y + h + 1.3, 0), colour, Enum.Material.SmoothPlastic, tunnel)
+	-- name plate facing the pitch (+X side of the header)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Right
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 24
+	gui.LightInfluence = 0.8
+	gui.Parent = header
+	local label = Instance.new("TextLabel")
+	label.Name = "ClubName"
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.GothamBlack
+	label.TextScaled = true
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.Text = "CLUB"
+	label.Parent = gui
+	local pad = Instance.new("UIPadding")
+	pad.PaddingTop = UDim.new(0.15, 0)
+	pad.PaddingBottom = UDim.new(0.15, 0)
+	pad.PaddingLeft = UDim.new(0.05, 0)
+	pad.PaddingRight = UDim.new(0.05, 0)
+	pad.Parent = label
+	-- a strip of paving from the office door through the arch to the touchline
+	local pathLen = 40 + CONCOURSE + FENCE_OFFSET
+	box("Path", Vector3.new(pathLen, 0.2, 6), Vector3.new(x - pathLen / 2 + FENCE_OFFSET + 1, GROUND_Y + 0.1, 0), Color3.fromRGB(150, 145, 135), Enum.Material.Cobblestone, tunnel)
+	return label
 end
 
 local function buildFence(parent: Instance)
@@ -345,20 +516,84 @@ function WorldBuilder.buildStand(level: number)
 
 	local spec = standSpec(level)
 	local length, rows, stepDepth, stepHeight = spec.length, spec.rows, STEP_DEPTH, spec.stepHeight
-	local stepColor = level == 1 and Color3.fromRGB(150, 150, 150) or Color3.fromRGB(190, 190, 190)
+	local stepColor = level == 1 and Color3.fromRGB(150, 150, 150) or Color3.fromRGB(175, 175, 172)
 	local stepMat = level == 1 and Enum.Material.Metal or Enum.Material.Concrete
+
+	-- seating is split into sections with a stepped aisle between each
+	local sectionLen = 26
+	local aisleW = 3
+	local sections = math.max(1, math.floor((length + aisleW) / (sectionLen + aisleW)))
+	local usedLen = sections * sectionLen + (sections - 1) * aisleW
+	local startZ = -usedLen / 2
 
 	for i = 1, rows do
 		local height = stepHeight * i
+		local rowX = STAND_X + stepDepth * (i - 1) + stepDepth / 2
 		box(("Row%d"):format(i), Vector3.new(stepDepth, height, length),
-			Vector3.new(STAND_X + stepDepth * (i - 1) + stepDepth / 2, GROUND_Y + height / 2, 0),
+			Vector3.new(rowX, GROUND_Y + height / 2, 0),
 			stepColor, stepMat, stand)
 		if level >= 2 then
-			-- seat blocks along each row
-			local seatColor = Color3.fromRGB(30, 80, 200) -- TEMP: seat colour customisation later
-			box(("Seats%d"):format(i), Vector3.new(1.5, 1, length - 2),
-				Vector3.new(STAND_X + stepDepth * (i - 1) + stepDepth - 0.75, GROUND_Y + height + 0.5, 0),
-				seatColor, Enum.Material.Plastic, stand)
+			-- seat blocks per section; an alternate shade every other section so the
+			-- seating reads as blocks rather than one long strip
+			for s = 1, sections do
+				local z = startZ + (s - 1) * (sectionLen + aisleW) + sectionLen / 2
+				local colour = if s % 2 == 0 then Config.SeatColor:Lerp(Color3.new(1, 1, 1), 0.25) else Config.SeatColor
+				local seat = box(("Seats%d_%d"):format(i, s), Vector3.new(1.6, 1.1, sectionLen),
+					Vector3.new(STAND_X + stepDepth * (i - 1) + stepDepth - 0.8, GROUND_Y + height + 0.55, z),
+					colour, Enum.Material.Plastic, stand)
+				seat.CanCollide = false
+				-- seat back, a thinner lip behind each row
+				local back = box(("SeatBack%d_%d"):format(i, s), Vector3.new(0.3, 1.6, sectionLen),
+					Vector3.new(STAND_X + stepDepth * (i - 1) + stepDepth - 0.15, GROUND_Y + height + 0.8, z),
+					colour, Enum.Material.Plastic, stand)
+				back.CanCollide = false
+			end
+			-- aisle treads between sections, lighter so they read as steps
+			for s = 1, sections - 1 do
+				local z = startZ + s * (sectionLen + aisleW) - aisleW / 2
+				local tread = box(("Aisle%d_%d"):format(i, s), Vector3.new(stepDepth, 0.2, aisleW),
+					Vector3.new(rowX, GROUND_Y + height + 0.1, z), Color3.fromRGB(215, 215, 210), Enum.Material.Concrete, stand)
+				tread.CanCollide = false
+			end
+		else
+			-- level 1: a plank bench along each bleacher row
+			box(("Bench%d"):format(i), Vector3.new(1.8, 0.4, length - 2),
+				Vector3.new(STAND_X + stepDepth * (i - 1) + stepDepth - 0.9, GROUND_Y + height + 0.2, 0),
+				Color3.fromRGB(150, 110, 70), Enum.Material.WoodPlanks, stand)
+		end
+	end
+
+	-- front wall with the club name, and a railing along the top of it
+	local frontH = if level == 1 then 1.2 else 2.6
+	local frontWall = box("FrontWall", Vector3.new(0.8, frontH, length), Vector3.new(STAND_X - 0.4, GROUND_Y + frontH / 2, 0),
+		if level == 1 then Color3.fromRGB(120, 120, 120) else Config.HomeKit, if level == 1 then Enum.Material.Metal else Enum.Material.SmoothPlastic, stand)
+	if level >= 2 then
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = "NameGui"
+		gui.Face = Enum.NormalId.Left -- -X, toward the pitch
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 16
+		gui.LightInfluence = 0.9
+		gui.Parent = frontWall
+		local label = Instance.new("TextLabel")
+		label.Name = "ClubName"
+		label.Size = UDim2.fromScale(1, 1)
+		label.BackgroundTransparency = 1
+		label.Font = Enum.Font.GothamBlack
+		label.TextScaled = true
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.TextTransparency = 0.15
+		label.Text = "" -- WorldBuilder.setClubName fills it
+		label.Parent = gui
+		local pad = Instance.new("UIPadding")
+		pad.PaddingTop = UDim.new(0.2, 0)
+		pad.PaddingBottom = UDim.new(0.2, 0)
+		pad.Parent = label
+		local rail = box("Rail", Vector3.new(0.3, 0.3, length), Vector3.new(STAND_X - 0.4, GROUND_Y + frontH + 1.1, 0), Color3.fromRGB(200, 200, 205), Enum.Material.Metal, stand)
+		rail.CanCollide = false
+		for i = 0, math.floor(length / 8) do
+			local post = box("RailPost", Vector3.new(0.25, 1.1, 0.25), Vector3.new(STAND_X - 0.4, GROUND_Y + frontH + 0.55, -length / 2 + i * 8), Color3.fromRGB(200, 200, 205), Enum.Material.Metal, stand)
+			post.CanCollide = false
 		end
 	end
 
@@ -368,6 +603,19 @@ function WorldBuilder.buildStand(level: number)
 		box("BackWall", Vector3.new(1, wallH, length),
 			Vector3.new(backX, GROUND_Y + wallH / 2, 0),
 			Color3.fromRGB(200, 200, 200), Enum.Material.Concrete, stand)
+		-- end walls close the sides off
+		for _, zSign in { -1, 1 } do
+			local depth = stepDepth * rows + 1
+			local wedge = Instance.new("WedgePart")
+			wedge.Name = "EndWall"
+			wedge.Anchored = true
+			wedge.Size = Vector3.new(0.8, wallH - 4, depth)
+			-- slope rises toward the back wall (+X)
+			wedge.CFrame = CFrame.new(STAND_X + depth / 2, GROUND_Y + (wallH - 4) / 2, zSign * (length / 2 + 0.4)) * CFrame.Angles(0, -math.pi / 2, 0)
+			wedge.Color = Color3.fromRGB(200, 200, 200)
+			wedge.Material = Enum.Material.Concrete
+			wedge.Parent = stand
+		end
 		if spec.roof then
 			-- cantilever roof over the seats, held by pillars along the back wall
 			local roofY = GROUND_Y + wallH + 6
@@ -392,6 +640,10 @@ function WorldBuilder.buildStand(level: number)
 	-- the persistent upgrade sign stands in front of the stand, beside the east fence gap
 	local sign = club:FindFirstChild("StandSign") :: Part
 	sign.CFrame = CFrame.new(STAND_X - 2, GROUND_Y + 2, FENCE_GAP / 2 + 6)
+	local state = ReplicatedStorage:FindFirstChild("ClubState")
+	if state then
+		WorldBuilder.setClubName((state:GetAttribute("ClubName") :: string?) or Config.ClubName)
+	end
 end
 
 -- TEMP crowd palette: mostly home colours with some neutrals.
@@ -403,9 +655,15 @@ local CROWD_COLORS = {
 	Color3.fromRGB(70, 90, 130),
 	Color3.fromRGB(220, 200, 150),
 }
+local SKIN_TONES = {
+	Color3.fromRGB(240, 200, 170),
+	Color3.fromRGB(200, 150, 110),
+	Color3.fromRGB(150, 100, 70),
+	Color3.fromRGB(100, 65, 45),
+}
 local FAN_SPACING = 2.2
--- Part budget for a full house (mobile). Bigger stands space the blocks out.
-local MAX_FAN_BLOCKS = 800
+-- Fan budget for a full house (mobile); each fan is two parts.
+local MAX_FAN_BLOCKS = 500
 
 -- Fills the stand with simple block fans at a density matching attendance.
 -- One block stands for several fans, so a full house means every slot filled.
@@ -432,9 +690,24 @@ function WorldBuilder.buildCrowd(standLevel: number, attendance: number, capacit
 				continue
 			end
 			local z = -spec.length / 2 + 1 + spacing * (i - 0.5)
-			local fan = box("Fan", Vector3.new(1.3, 2.2, 1.1), Vector3.new(x, top + 1.1, z),
+			-- seated fan: torso block plus a head; a little height jitter so rows do not look stamped
+			local bodyH = 1.5 + rng:NextNumber(-0.15, 0.15)
+			local fan = box("Fan", Vector3.new(1.2, bodyH, 1.0), Vector3.new(x, top + 0.9 + bodyH / 2, z),
 				CROWD_COLORS[rng:NextInteger(1, #CROWD_COLORS)], Enum.Material.SmoothPlastic, crowd)
 			fan.CanCollide = false
+			fan.CastShadow = false
+			local head = part({
+				Name = "Head",
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.new(0.9, 0.9, 0.9),
+				CFrame = CFrame.new(x, top + 0.9 + bodyH + 0.45, z),
+				Color = SKIN_TONES[rng:NextInteger(1, #SKIN_TONES)],
+				Material = Enum.Material.SmoothPlastic,
+				CanCollide = false,
+				CastShadow = false,
+				Parent = crowd,
+			})
+			head.Name = "Head"
 			count += 1
 		end
 	end
@@ -502,50 +775,20 @@ export type World = {
 	amenityPrompt: ProximityPrompt,
 }
 
--- Turns the default checkered baseplate into rough grassland and gives the
--- sky some depth. Cheap, no assets.
-local function dressSurroundings()
-	local baseplate = workspace:FindFirstChild("Baseplate")
-	if baseplate and baseplate:IsA("BasePart") then
-		baseplate.Color = Color3.fromRGB(96, 128, 70)
-		baseplate.Material = Enum.Material.Grass
-		local texture = baseplate:FindFirstChildOfClass("Texture")
-		if texture then
-			texture:Destroy()
+-- Every place the club's name is painted in the world (tunnel arch, stand wall).
+function WorldBuilder.setClubName(name: string)
+	local club = workspace:FindFirstChild("Club")
+	if not club then
+		return
+	end
+	for _, d in club:GetDescendants() do
+		if d:IsA("TextLabel") and d.Name == "ClubName" then
+			d.Text = string.upper(name)
 		end
-	end
-
-	local Lighting = game:GetService("Lighting")
-	Lighting.ClockTime = 14.5
-	Lighting.Brightness = 2.2
-	Lighting.GlobalShadows = true
-	Lighting.EnvironmentDiffuseScale = 0.5
-	Lighting.EnvironmentSpecularScale = 0.5
-	Lighting.OutdoorAmbient = Color3.fromRGB(140, 150, 160)
-	if not Lighting:FindFirstChildOfClass("Sky") then
-		local sky = Instance.new("Sky") -- default skybox textures, nothing to load
-		sky.Parent = Lighting
-	end
-	if not Lighting:FindFirstChildOfClass("Atmosphere") then
-		local atmosphere = Instance.new("Atmosphere")
-		atmosphere.Density = 0.32
-		atmosphere.Offset = 0.2
-		atmosphere.Color = Color3.fromRGB(199, 208, 220)
-		atmosphere.Decay = Color3.fromRGB(110, 120, 140)
-		atmosphere.Glare = 0.2
-		atmosphere.Haze = 1.2
-		atmosphere.Parent = Lighting
-	end
-	if not Lighting:FindFirstChildOfClass("SunRaysEffect") then
-		local rays = Instance.new("SunRaysEffect")
-		rays.Intensity = 0.06
-		rays.Spread = 0.6
-		rays.Parent = Lighting
 	end
 end
 
 function WorldBuilder.build(standLevel: number, amenityLevel: number?): World
-	dressSurroundings()
 	local existing = workspace:FindFirstChild("Club")
 	if existing then
 		existing:Destroy()
@@ -561,12 +804,19 @@ function WorldBuilder.build(standLevel: number, amenityLevel: number?): World
 
 	buildPitch(club)
 	buildFence(club)
+	buildAdBoards(club)
+	buildDugouts(club)
+	buildTunnel(club)
 	buildOffice(club)
 	local matchdayPrompt = buildMatchdayBoard(club)
 	local standPrompt = buildStandSign(club)
 	local amenityPrompt = buildAmenitySign(club)
 	WorldBuilder.buildStand(standLevel)
 	WorldBuilder.buildAmenity(amenityLevel or 0)
+	local state = ReplicatedStorage:FindFirstChild("ClubState")
+	if state then
+		WorldBuilder.setClubName((state:GetAttribute("ClubName") :: string?) or Config.ClubName)
+	end
 
 	return {
 		model = club,

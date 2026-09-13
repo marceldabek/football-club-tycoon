@@ -11,6 +11,7 @@ local ProximityPromptService = game:GetService("ProximityPromptService")
 local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Theme = require(script.Parent.Theme)
 
 local player = Players.LocalPlayer
 local state = ReplicatedStorage:WaitForChild("ClubState")
@@ -41,12 +42,7 @@ type Club = {
 
 local ROLE_ORDER = { "GK", "DEF", "DEF", "DEF", "DEF", "MID", "MID", "MID", "MID", "FWD", "FWD" }
 
-local function money(n: number): string
-	local s = tostring(math.floor(n))
-	local withCommas = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
-	withCommas = withCommas:gsub("^,", "")
-	return "£" .. withCommas
-end
+local money = Theme.money
 
 local function get(key: string): any
 	return state:GetAttribute(key)
@@ -69,106 +65,77 @@ end
 
 -- ---------------------------------------------------------------- widgets
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "ClubPanel"
-gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
-gui.DisplayOrder = 5
+local gui = Theme.screenGui("ClubPanel", 5)
 gui.Parent = player:WaitForChild("PlayerGui")
 
-local PANEL_BG = Color3.fromRGB(22, 27, 34)
-local ROW_BG = Color3.fromRGB(34, 41, 50)
-local ROW_ALT = Color3.fromRGB(40, 48, 58)
-local ACCENT = Color3.fromRGB(255, 210, 90)
-local GREEN = Color3.fromRGB(70, 170, 90)
-local RED = Color3.fromRGB(200, 70, 70)
-local GREY = Color3.fromRGB(150, 150, 150)
-
-local function corner(inst: Instance, r: number)
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, r)
-	c.Parent = inst
-end
+local PANEL_BG = Theme.colors.bg
+local ROW_BG = Theme.colors.bg2
+local ROW_ALT = Theme.colors.bg3
+local ACCENT = Theme.colors.accent
+local GREEN = Theme.colors.good
+local RED = Theme.colors.bad
+local GREY = Theme.colors.muted
 
 local function label(parent: Instance, text: string, props: { [string]: any }?): TextLabel
-	local l = Instance.new("TextLabel")
-	l.BackgroundTransparency = 1
-	l.Font = Enum.Font.Gotham
-	l.TextColor3 = Color3.new(1, 1, 1)
-	l.TextSize = 16
-	l.TextXAlignment = Enum.TextXAlignment.Left
-	l.Text = text
-	l.Size = UDim2.new(1, 0, 0, 24)
-	if props then
-		for k, v in props do
-			(l :: any)[k] = v
-		end
-	end
-	l.Parent = parent
-	return l
+	return Theme.text(parent, text, "body", props)
 end
 
+-- Colour picks the variant so the call sites read the same as before.
 local function button(parent: Instance, text: string, color: Color3, props: { [string]: any }?): TextButton
-	local b = Instance.new("TextButton")
-	b.BackgroundColor3 = color
-	b.Font = Enum.Font.GothamBold
-	b.TextColor3 = Color3.new(1, 1, 1)
-	b.TextSize = 15
-	b.Text = text
-	b.AutoButtonColor = true
-	b.Size = UDim2.fromOffset(160, 32)
+	local variant: Theme.ButtonVariant = "secondary"
+	if color == GREEN then
+		variant = "primary"
+	elseif color == RED or color == Color3.fromRGB(90, 60, 60) then
+		variant = "danger"
+	elseif color == Theme.colors.info then
+		variant = "info"
+	end
+	local merged: { [string]: any } = { Size = UDim2.fromOffset(160, 32) }
 	if props then
 		for k, v in props do
-			(b :: any)[k] = v
+			merged[k] = v
 		end
 	end
-	corner(b, 6)
-	b.Parent = parent
-	return b
+	return Theme.button(parent, text, variant, merged)
 end
 
-local panel = Instance.new("Frame")
-panel.Name = "Panel"
-panel.Size = UDim2.new(0.86, 0, 0.8, 0)
-panel.Position = UDim2.fromScale(0.5, 0.52)
-panel.AnchorPoint = Vector2.new(0.5, 0.5)
-panel.BackgroundColor3 = PANEL_BG
-panel.BorderSizePixel = 0
-panel.Visible = false
-panel.Parent = gui
-corner(panel, 12)
+local panel = Theme.panel(gui, "Panel", {
+	Size = UDim2.new(0.86, 0, 0.8, 0),
+	Position = UDim2.fromScale(0.5, 0.52),
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Visible = false,
+})
 local sizeLimit = Instance.new("UISizeConstraint")
-sizeLimit.MaxSize = Vector2.new(720, 520)
+sizeLimit.MaxSize = Vector2.new(760, 540)
 sizeLimit.Parent = panel
 
-local title = label(panel, "CLUB OFFICE", {
-	Font = Enum.Font.GothamBold,
-	TextSize = 22,
-	TextColor3 = ACCENT,
-	Position = UDim2.fromOffset(16, 10),
-	Size = UDim2.new(1, -120, 0, 30),
+local title = Theme.text(panel, "CLUB OFFICE", "display", {
+	TextSize = 24,
+	Position = UDim2.fromOffset(18, 12),
+	Size = UDim2.new(1, -300, 0, 30),
 })
 
-local closeButton = button(panel, "X", Color3.fromRGB(70, 70, 80), {
+local closeButton = button(panel, "✕", Color3.fromRGB(70, 70, 80), {
 	Name = "Close",
 	Size = UDim2.fromOffset(36, 30),
-	Position = UDim2.new(1, -46, 0, 10),
+	Position = UDim2.new(1, -46, 0, 12),
 })
 
-local cashLine = label(panel, "", {
-	Position = UDim2.new(1, -260, 0, 14),
-	Size = UDim2.fromOffset(200, 24),
+local cashLine = Theme.pill(panel, "CashLine", {
+	Position = UDim2.new(1, -56, 0, 10),
+	AnchorPoint = Vector2.new(1, 0),
+	Size = UDim2.fromOffset(170, 34),
 	TextXAlignment = Enum.TextXAlignment.Right,
-	TextColor3 = Color3.fromRGB(120, 230, 120),
-	Font = Enum.Font.GothamBold,
+	TextColor3 = Theme.colors.cash,
+	BackgroundColor3 = Theme.colors.bg2,
 })
 
 -- tabs
 local tabs = Instance.new("Frame")
 tabs.Name = "Tabs"
 tabs.BackgroundTransparency = 1
-tabs.Position = UDim2.fromOffset(16, 48)
-tabs.Size = UDim2.new(1, -32, 0, 34)
+tabs.Position = UDim2.fromOffset(18, 52)
+tabs.Size = UDim2.new(1, -36, 0, 34)
 tabs.Parent = panel
 local tabLayout = Instance.new("UIListLayout")
 tabLayout.FillDirection = Enum.FillDirection.Horizontal
@@ -178,8 +145,8 @@ tabLayout.Parent = tabs
 
 local content = Instance.new("ScrollingFrame")
 content.Name = "Content"
-content.Position = UDim2.fromOffset(16, 90)
-content.Size = UDim2.new(1, -32, 1, -104)
+content.Position = UDim2.fromOffset(18, 96)
+content.Size = UDim2.new(1, -36, 1, -110)
 content.BackgroundTransparency = 1
 content.BorderSizePixel = 0
 content.ScrollBarThickness = 6
@@ -198,7 +165,7 @@ local tabButtons: { [string]: TextButton } = {}
 local render: () -> ()
 
 for i, name in { "Squad", "League", "History", "Scouting", "Staff" } do
-	local b = button(tabs, name:upper(), ROW_BG, { Name = name .. "Tab", Size = UDim2.fromOffset(120, 32), LayoutOrder = i })
+	local b = button(tabs, name:upper(), ROW_BG, { Name = name .. "Tab", Size = UDim2.fromOffset(118, 32), LayoutOrder = i, TextSize = 14 })
 	tabButtons[name] = b
 	b.Activated:Connect(function()
 		currentTab = name
@@ -248,7 +215,7 @@ local function row(alt: boolean): Frame
 	f.BackgroundColor3 = if alt then ROW_ALT else ROW_BG
 	f.BorderSizePixel = 0
 	f.LayoutOrder = nextOrder()
-	corner(f, 6)
+	Theme.corner(f, 6)
 	f.Parent = content
 	return f
 end
@@ -280,7 +247,7 @@ local function playerRow(p: Player, slotLabel: string, alt: boolean, club: Club,
 	local f = row(alt)
 	local isSelected = selectedId == p.id
 	if isSelected then
-		f.BackgroundColor3 = Color3.fromRGB(80, 70, 30)
+		f.BackgroundColor3 = Theme.colors.selected
 	end
 	local hit = Instance.new("TextButton")
 	hit.BackgroundTransparency = 1
@@ -477,7 +444,7 @@ local function renderLeague()
 	for i, r in rows do
 		local f = row(i % 2 == 0)
 		if r.isPlayer then
-			f.BackgroundColor3 = Color3.fromRGB(70, 60, 25)
+			f.BackgroundColor3 = Theme.colors.playerRow
 		end
 		local posColor = if i <= promo then Color3.fromRGB(120, 230, 120) elseif i > #rows - releg then Color3.fromRGB(240, 110, 110) else Color3.new(1, 1, 1)
 		cell(f, tostring(r.position), 10, 30, { TextColor3 = posColor, Font = Enum.Font.GothamBold })
@@ -579,8 +546,8 @@ render = function()
 	order = 0
 	cashLine.Text = money(get("Cash") or 0)
 	for name, b in tabButtons do
-		b.BackgroundColor3 = if name == currentTab then ACCENT else ROW_BG
-		b.TextColor3 = if name == currentTab then Color3.fromRGB(30, 30, 30) else Color3.new(1, 1, 1)
+		b.BackgroundColor3 = if name == currentTab then ACCENT else Theme.colors.bg3
+		b.TextColor3 = if name == currentTab then Theme.colors.bg else Theme.colors.text
 	end
 	local club = loadClub()
 	if not club then
@@ -626,11 +593,11 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt,
 end)
 
 -- CLUB button (top-left under cash), handy on mobile and away from the office
-local openButton = button(gui, "CLUB", Color3.fromRGB(40, 50, 65), {
+local openButton = button(gui, "CLUB OFFICE", Theme.colors.info, {
 	Name = "Open",
-	Size = UDim2.fromOffset(90, 32),
+	Size = UDim2.fromOffset(140, 34),
 	Position = UDim2.fromOffset(20, 96),
-	TextSize = 16,
+	TextSize = 15,
 })
 openButton.Activated:Connect(function()
 	setOpen(not panel.Visible)

@@ -105,6 +105,13 @@ dbg:Invoke("wipe")               -- throw the club away and start fresh
   panel → History tab; trophy shelf in the office. Visitors (a second player in the same
   server) can watch but not manage.
 
+- Look pass: `Scenery` (lighting grade, dusk + floodlights on matchday, terrain hills, clouds,
+  trees, distant town), pitch dressing (mowing stripes, six-yard boxes, penalty arcs, worn
+  goalmouths, sponsor ad boards, dugouts, tunnel arch with the club name), sectioned stands
+  with aisles, railings and a club-name wall, seated crowd with heads. One `Theme` module
+  styles every client screen. Set *Lighting → Technology* to **Future** in Studio by hand
+  (not scriptable) for the shadows the grade was tuned for.
+
 All economy numbers in `src/shared/Config.luau` are TEMP placeholders.
 
 ## Persistence in Studio

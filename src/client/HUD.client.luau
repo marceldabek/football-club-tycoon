@@ -1,12 +1,15 @@
 --!strict
--- Lightweight HUD: cash, scoreboard during matches, post-match summary, hints.
--- Built in code so it lives in git. Deliberately plain for Milestone 1.
+-- Lightweight HUD: cash, season line, hints, scoreboard and tactics during
+-- matches, post-match / season / welcome cards, loading cover, toasts.
+-- Every widget comes from Theme so the whole game shares one look.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Theme = require(script.Parent.Theme)
+local MatchAudio = require(script.Parent.MatchAudio)
 
 local player = Players.LocalPlayer
 local state = ReplicatedStorage:WaitForChild("ClubState")
@@ -15,86 +18,44 @@ local summaryEvent = remotes:WaitForChild("MatchSummary") :: RemoteEvent
 local toastEvent = remotes:WaitForChild("Toast") :: RemoteEvent
 local tacticEvent = remotes:WaitForChild("Tactic") :: RemoteEvent
 
-local function money(n: number): string
-	local s = tostring(math.floor(n))
-	local withCommas = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
-	withCommas = withCommas:gsub("^,", "")
-	return "£" .. withCommas
-end
+local money, ordinal, rich = Theme.money, Theme.ordinal, Theme.rich
+local C = Theme.colors
 
 local function get(key: string): any
 	return state:GetAttribute(key)
 end
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "TycoonHUD"
-gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
+local gui = Theme.screenGui("TycoonHUD", 1)
 gui.Parent = player:WaitForChild("PlayerGui")
 
-local function makeLabel(name: string, parent: Instance, props: { [string]: any }): TextLabel
-	local label = Instance.new("TextLabel")
-	label.Name = name
-	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.GothamBold
-	label.TextColor3 = Color3.new(1, 1, 1)
-	label.TextStrokeTransparency = 0.4
-	label.TextScaled = true
-	for k, v in props do
-		(label :: any)[k] = v
-	end
-	label.Parent = parent
-	return label
-end
+-- ------------------------------------------------------------ top-left stack
 
-local function makePanel(name: string, size: UDim2, position: UDim2): Frame
-	local frame = Instance.new("Frame")
-	frame.Name = name
-	frame.Size = size
-	frame.Position = position
-	frame.AnchorPoint = Vector2.new(0.5, 0.5)
-	frame.BackgroundColor3 = Color3.fromRGB(20, 25, 30)
-	frame.BackgroundTransparency = 0.15
-	frame.BorderSizePixel = 0
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 10)
-	corner.Parent = frame
-	frame.Parent = gui
-	return frame
-end
-
--- Cash (top-left)
-local cashLabel = makeLabel("Cash", gui, {
-	Size = UDim2.fromOffset(220, 40),
+local cashLabel = Theme.pill(gui, "Cash", {
+	Size = UDim2.fromOffset(220, 38),
 	Position = UDim2.fromOffset(20, 50),
 	TextXAlignment = Enum.TextXAlignment.Left,
-	TextColor3 = Color3.fromRGB(120, 230, 120),
+	TextSize = 20,
+	TextColor3 = C.cash,
 })
 
--- Season line (under the CLUB button)
-local seasonLabel = makeLabel("Season", gui, {
-	Size = UDim2.fromOffset(520, 22),
-	Position = UDim2.fromOffset(20, 134),
-	TextXAlignment = Enum.TextXAlignment.Left,
-	TextScaled = false,
-	TextSize = 16,
-	TextColor3 = Color3.fromRGB(220, 220, 220),
+-- (the CLUB button lives in ClubPanel at y = 96)
+
+local seasonLabel = Theme.text(gui, "", "muted", {
+	Name = "Season",
+	Size = UDim2.fromOffset(560, 22),
+	Position = UDim2.fromOffset(24, 136),
+	Font = Theme.fonts.bold,
+	TextSize = 15,
+	TextStrokeTransparency = 0.6,
 })
-local function ordinal(n: number): string
-	local suffix = "th"
-	local last = n % 10
-	if n % 100 < 11 or n % 100 > 13 then
-		suffix = if last == 1 then "st" elseif last == 2 then "nd" elseif last == 3 then "rd" else "th"
-	end
-	return ("%d%s"):format(n, suffix)
-end
+
 local function refreshSeason()
 	local round, rounds = get("Round") or 0, get("Rounds") or 10
 	local division = get("DivisionName") or ""
 	if round == 0 then
-		seasonLabel.Text = ("%s  ·  Season %d  ·  Match 1 of %d next"):format(division, get("Season") or 1, rounds)
+		seasonLabel.Text = ("%s   ·   Season %d   ·   Match 1 of %d next"):format(division, get("Season") or 1, rounds)
 	else
-		seasonLabel.Text = ("%s  ·  Match %d of %d played  ·  %s"):format(division, round, rounds, ordinal(get("Position") or 1))
+		seasonLabel.Text = ("%s   ·   Match %d of %d played   ·   %s"):format(division, round, rounds, ordinal(get("Position") or 1))
 	end
 end
 for _, key in { "Round", "Position", "DivisionName", "Season" } do
@@ -102,43 +63,18 @@ for _, key in { "Round", "Position", "DivisionName", "Season" } do
 end
 refreshSeason()
 
--- Hint (bottom-centre)
-local hintLabel = makeLabel("Hint", gui, {
-	Size = UDim2.new(0.6, 0, 0, 30),
-	Position = UDim2.new(0.5, 0, 1, -40),
-	AnchorPoint = Vector2.new(0.5, 1),
-	TextColor3 = Color3.fromRGB(255, 230, 150),
-})
+-- --------------------------------------------------------------- top-right
 
--- Scoreboard (top-centre, only during matches)
-local scoreboard = makePanel("Scoreboard", UDim2.fromOffset(420, 60), UDim2.new(0.5, 0, 0, 70))
-local scoreLabel = makeLabel("Score", scoreboard, { Size = UDim2.new(1, -20, 0.6, 0), Position = UDim2.fromOffset(10, 2) })
-local clockLabel = makeLabel("Clock", scoreboard, {
-	Size = UDim2.new(1, -20, 0.35, 0),
-	Position = UDim2.new(0, 10, 0.62, 0),
-	TextColor3 = Color3.fromRGB(200, 200, 200),
+local musicButton = Theme.button(gui, "", "ghost", {
+	Name = "MusicToggle",
+	Size = UDim2.fromOffset(130, 34),
+	Position = UDim2.new(1, -20, 0, 52),
+	AnchorPoint = Vector2.new(1, 0),
 })
-scoreboard.Visible = false
-
--- Music switch (top-right, always available)
-local MatchAudio = require(script.Parent.MatchAudio)
-local musicButton = Instance.new("TextButton")
-musicButton.Name = "MusicToggle"
-musicButton.Size = UDim2.fromOffset(130, 32)
-musicButton.Position = UDim2.new(1, -20, 0, 70) -- clear of the Roblox top bar
-musicButton.AnchorPoint = Vector2.new(1, 0)
-musicButton.BackgroundColor3 = Color3.fromRGB(20, 25, 30)
-musicButton.BackgroundTransparency = 0.3
-musicButton.Font = Enum.Font.GothamBold
-musicButton.TextSize = 16
-musicButton.TextColor3 = Color3.new(1, 1, 1)
-musicButton.Parent = gui
-local musicCorner = Instance.new("UICorner")
-musicCorner.CornerRadius = UDim.new(0, 8)
-musicCorner.Parent = musicButton
 local function refreshMusicButton()
-	musicButton.Text = MatchAudio.isMusicEnabled() and "♪ Music: On" or "♪ Music: Off"
-	musicButton.TextColor3 = MatchAudio.isMusicEnabled() and Color3.new(1, 1, 1) or Color3.fromRGB(160, 160, 160)
+	local on = MatchAudio.isMusicEnabled()
+	musicButton.Text = on and "♪  Music on" or "♪  Music off"
+	musicButton.TextColor3 = on and C.text or C.muted
 end
 musicButton.Activated:Connect(function()
 	MatchAudio.setMusicEnabled(not MatchAudio.isMusicEnabled())
@@ -146,22 +82,63 @@ musicButton.Activated:Connect(function()
 end)
 refreshMusicButton()
 
--- Matchday banner (PreMatch only)
-local banner = makePanel("Banner", UDim2.fromOffset(520, 90), UDim2.new(0.5, 0, 0, 90))
-local bannerTitle = makeLabel("Title", banner, {
-	Size = UDim2.new(1, -20, 0.45, 0),
-	Position = UDim2.fromOffset(10, 6),
-	TextColor3 = Color3.fromRGB(255, 230, 150),
+-- -------------------------------------------------------------- top-centre
+
+-- Scoreboard (Match only): club names either side of the score, clock below
+local scoreboard = Theme.panel(gui, "Scoreboard", {
+	Size = UDim2.fromOffset(460, 68),
+	Position = UDim2.new(0.5, 0, 0, 44),
+	AnchorPoint = Vector2.new(0.5, 0),
+	Visible = false,
 })
-bannerTitle.Text = "MATCHDAY"
-local bannerBody = makeLabel("Body", banner, { Size = UDim2.new(1, -20, 0.45, 0), Position = UDim2.new(0, 10, 0.5, 0) })
-banner.Visible = false
+local scoreLabel = Theme.text(scoreboard, "", "body", {
+	Name = "Score",
+	Size = UDim2.new(1, -24, 0, 34),
+	Position = UDim2.fromOffset(12, 6),
+	Font = Theme.fonts.display,
+	TextSize = 24,
+	TextXAlignment = Enum.TextXAlignment.Center,
+})
+local clockLabel = Theme.text(scoreboard, "", "muted", {
+	Name = "Clock",
+	Size = UDim2.new(1, -24, 0, 20),
+	Position = UDim2.fromOffset(12, 42),
+	Font = Theme.fonts.bold,
+	TextSize = 15,
+	TextXAlignment = Enum.TextXAlignment.Center,
+})
+
+-- Matchday banner (PreMatch only)
+local banner = Theme.panel(gui, "Banner", {
+	Size = UDim2.fromOffset(520, 84),
+	Position = UDim2.new(0.5, 0, 0, 60),
+	AnchorPoint = Vector2.new(0.5, 0),
+	Visible = false,
+})
+Theme.text(banner, "MATCHDAY", "display", {
+	Name = "Title",
+	Size = UDim2.new(1, -24, 0, 36),
+	Position = UDim2.fromOffset(12, 8),
+	TextXAlignment = Enum.TextXAlignment.Center,
+})
+local bannerBody = Theme.text(banner, "", "body", {
+	Name = "Body",
+	Size = UDim2.new(1, -24, 0, 26),
+	Position = UDim2.fromOffset(12, 46),
+	Font = Theme.fonts.bold,
+	TextSize = 17,
+	TextXAlignment = Enum.TextXAlignment.Center,
+})
 
 -- Big centre flash (GOAL! / KICK-OFF / FULL TIME)
-local flashLabel = makeLabel("Flash", gui, {
+local flashLabel = Theme.text(gui, "", "display", {
+	Name = "Flash",
 	Size = UDim2.new(0.6, 0, 0, 90),
 	Position = UDim2.fromScale(0.5, 0.3),
 	AnchorPoint = Vector2.new(0.5, 0.5),
+	TextScaled = true,
+	TextXAlignment = Enum.TextXAlignment.Center,
+	TextStrokeTransparency = 0.5,
 	Visible = false,
 })
 local flashToken = 0
@@ -178,35 +155,33 @@ local function flash(text: string, color: Color3, seconds: number)
 	end)
 end
 
--- Tactics (bottom-right, Match only). Attack / Defend toggle back to Balanced.
-local tactics = makePanel("Tactics", UDim2.fromOffset(170, 160), UDim2.new(1, -105, 1, -110))
-tactics.Visible = false
-local function makeButton(name: string, y: number, color: Color3): TextButton
-	local b = Instance.new("TextButton")
-	b.Name = name
-	b.Size = UDim2.new(1, -20, 0, 42)
-	b.Position = UDim2.new(0, 10, 0, y)
-	b.BackgroundColor3 = color
-	b.Font = Enum.Font.GothamBold
-	b.TextSize = 18
-	b.TextColor3 = Color3.new(1, 1, 1)
-	b.Text = name:upper()
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
-	corner.Parent = b
-	b.Parent = tactics
-	return b
+-- ------------------------------------------------------------ bottom-right
+
+-- Tactics (Match only). Attack / Defend toggle back to Balanced.
+local tactics = Theme.panel(gui, "Tactics", {
+	Size = UDim2.fromOffset(180, 166),
+	Position = UDim2.new(1, -20, 1, -30),
+	AnchorPoint = Vector2.new(1, 1),
+	Visible = false,
+})
+local function tacticButton(name: string, y: number, variant: Theme.ButtonVariant): TextButton
+	return Theme.button(tactics, name:upper(), variant, {
+		Name = name,
+		Size = UDim2.new(1, -20, 0, 42),
+		Position = UDim2.fromOffset(10, y),
+		TextSize = 17,
+	})
 end
-local attackButton = makeButton("Attack", 10, Color3.fromRGB(200, 60, 60))
-local defendButton = makeButton("Defend", 58, Color3.fromRGB(60, 100, 200))
-local subButton = makeButton("Sub", 106, Color3.fromRGB(90, 90, 90))
+local attackButton = tacticButton("Attack", 10, "danger")
+local defendButton = tacticButton("Defend", 60, "info")
+local subButton = tacticButton("Sub", 110, "secondary")
 
 local function refreshTacticButtons()
 	local current = get("Tactic") or "Balanced"
 	for _, pair in { { attackButton, "Attack" }, { defendButton, "Defend" } } do
 		local button, name = pair[1] :: TextButton, pair[2] :: string
 		local active = current == name
-		button.BackgroundTransparency = active and 0 or 0.55
+		button.BackgroundTransparency = active and 0 or 0.6
 		button.Text = active and (name:upper() .. "  ✓") or name:upper()
 	end
 	local subs = HttpService:JSONDecode(get("Subs") or "[]")
@@ -222,82 +197,41 @@ subButton.Activated:Connect(function()
 	tacticEvent:FireServer("Sub")
 end)
 
--- Post-match summary (centre)
-local summary = makePanel("Summary", UDim2.fromOffset(460, 440), UDim2.fromScale(0.5, 0.5))
-summary.Visible = false
-local summaryTitle = makeLabel("Title", summary, { Size = UDim2.new(1, -20, 0, 44), Position = UDim2.fromOffset(10, 10) })
-local summaryBody = makeLabel("Body", summary, {
-	Size = UDim2.new(1, -40, 1, -130),
-	Position = UDim2.fromOffset(20, 60),
-	Font = Enum.Font.Gotham,
-	TextScaled = false,
-	TextSize = 18,
-	TextXAlignment = Enum.TextXAlignment.Left,
-	TextYAlignment = Enum.TextYAlignment.Top,
-	RichText = true,
-})
-local continueButton = Instance.new("TextButton")
-continueButton.Name = "Continue"
-continueButton.Size = UDim2.fromOffset(200, 44)
-continueButton.Position = UDim2.new(0.5, 0, 1, -16)
-continueButton.AnchorPoint = Vector2.new(0.5, 1)
-continueButton.BackgroundColor3 = Color3.fromRGB(60, 160, 80)
-continueButton.Font = Enum.Font.GothamBold
-continueButton.TextSize = 20
-continueButton.TextColor3 = Color3.new(1, 1, 1)
-continueButton.Text = "Continue"
-continueButton.Parent = summary
-local btnCorner = Instance.new("UICorner")
-btnCorner.CornerRadius = UDim.new(0, 8)
-btnCorner.Parent = continueButton
--- Season-over panel, shown after the final match's summary is dismissed
-local seasonPanel = makePanel("SeasonOver", UDim2.fromOffset(460, 320), UDim2.fromScale(0.5, 0.5))
-seasonPanel.Visible = false
-local seasonTitle = makeLabel("Title", seasonPanel, {
-	Size = UDim2.new(1, -20, 0, 44),
-	Position = UDim2.fromOffset(10, 10),
-	TextColor3 = Color3.fromRGB(255, 230, 150),
-})
-local seasonBody = makeLabel("Body", seasonPanel, {
-	Size = UDim2.new(1, -40, 1, -130),
-	Position = UDim2.fromOffset(20, 60),
-	Font = Enum.Font.Gotham,
-	TextScaled = false,
-	TextSize = 18,
-	TextXAlignment = Enum.TextXAlignment.Left,
-	TextYAlignment = Enum.TextYAlignment.Top,
-	RichText = true,
-})
-local seasonContinue = continueButton:Clone()
-seasonContinue.Text = "Next season"
-seasonContinue.Parent = seasonPanel
+-- ------------------------------------------------------------------- cards
+
+local summary = Theme.card(gui, "Summary", "", UDim2.fromOffset(480, 470))
+local summaryContinue = summary.addButton("Continue", "primary")
+
+local seasonCard = Theme.card(gui, "SeasonOver", "SEASON OVER", UDim2.fromOffset(480, 330))
+local seasonContinue = seasonCard.addButton("Next season", "primary")
 seasonContinue.Activated:Connect(function()
-	seasonPanel.Visible = false
+	seasonCard.frame.Visible = false
 end)
+
 local pendingSeason: any = nil
 local function showSeason(data)
-	seasonTitle.Text = ("SEASON %d OVER"):format(data.season)
+	seasonCard.title.Text = ("SEASON %d OVER"):format(data.season)
 	local headline
 	if data.outcome == "Promoted" then
-		headline = ("<font color=\"#80ff80\"><b>PROMOTED to the %s!</b></font>"):format(data.nextDivision)
+		headline = rich(("PROMOTED to the %s!"):format(data.nextDivision), C.good, true)
 	elseif data.outcome == "Relegated" then
-		headline = ("<font color=\"#ff8080\"><b>Relegated to the %s.</b></font>"):format(data.nextDivision)
+		headline = rich(("Relegated to the %s."):format(data.nextDivision), C.bad, true)
 	elseif data.outcome == "Champions" then
-		headline = "<font color=\"#ffe066\"><b>CHAMPIONS of the top flight!</b></font>"
+		headline = rich("CHAMPIONS of the top flight!", C.accent, true)
 	else
 		headline = ("Staying in the %s."):format(data.nextDivision)
 	end
-	seasonBody.Text = table.concat({
+	seasonCard.body.Text = table.concat({
 		("Finished <b>%s</b> in the %s."):format(ordinal(data.position), data.division),
 		headline,
 		"",
-		("Prize money: <b>%s</b>"):format(money(data.prize)),
+		("Prize money: %s"):format(rich(money(data.prize), C.cash, true)),
 		"Every player is a year older. New fixtures are ready.",
 	}, "\n")
-	seasonPanel.Visible = true
+	seasonCard.frame.Visible = true
 end
-continueButton.Activated:Connect(function()
-	summary.Visible = false
+summaryContinue.Activated:Connect(function()
+	summary.frame.Visible = false
 	if pendingSeason then
 		local data = pendingSeason
 		pendingSeason = nil
@@ -305,48 +239,11 @@ continueButton.Activated:Connect(function()
 	end
 end)
 
--- Loading cover: the club is being fetched for the owner; nothing else is real yet
-local loadingCover = Instance.new("Frame")
-loadingCover.Name = "Loading"
-loadingCover.Size = UDim2.fromScale(1, 1)
-loadingCover.BackgroundColor3 = Color3.fromRGB(12, 16, 20)
-loadingCover.BorderSizePixel = 0
-loadingCover.ZIndex = 20
-loadingCover.Visible = false
-loadingCover.Parent = gui
-local loadingLabel = makeLabel("Text", loadingCover, {
-	Size = UDim2.new(0.6, 0, 0, 40),
-	Position = UDim2.fromScale(0.5, 0.5),
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	ZIndex = 21,
-	TextColor3 = Color3.fromRGB(255, 230, 150),
-})
-loadingLabel.Text = "Loading your club…"
-
 -- Welcome back (returning owner, once per visit)
-local welcome = makePanel("Welcome", UDim2.fromOffset(460, 300), UDim2.fromScale(0.5, 0.45))
-welcome.Visible = false
-local welcomeTitle = makeLabel("Title", welcome, {
-	Size = UDim2.new(1, -20, 0, 44),
-	Position = UDim2.fromOffset(10, 10),
-	TextColor3 = Color3.fromRGB(255, 230, 150),
-})
-welcomeTitle.Text = "WELCOME BACK"
-local welcomeBody = makeLabel("Body", welcome, {
-	Size = UDim2.new(1, -40, 1, -130),
-	Position = UDim2.fromOffset(20, 60),
-	Font = Enum.Font.Gotham,
-	TextScaled = false,
-	TextSize = 18,
-	TextXAlignment = Enum.TextXAlignment.Left,
-	TextYAlignment = Enum.TextYAlignment.Top,
-	RichText = true,
-})
-local welcomeContinue = continueButton:Clone()
-welcomeContinue.Text = "Let's go"
-welcomeContinue.Parent = welcome
-welcomeContinue.Activated:Connect(function()
-	welcome.Visible = false
+local welcome = Theme.card(gui, "Welcome", "WELCOME BACK", UDim2.fromOffset(480, 320), UDim2.fromScale(0.5, 0.45))
+local welcomeGo = welcome.addButton("Let's go", "primary")
+welcomeGo.Activated:Connect(function()
+	welcome.frame.Visible = false
 end)
 local welcomeDecided = false
 local function maybeWelcome()
@@ -359,44 +256,83 @@ local function maybeWelcome()
 	end
 	local round, rounds = get("Round") or 0, get("Rounds") or 10
 	local nextOpp = get("NextOpponent") or ""
-	welcomeBody.Text = table.concat({
-		("<b>%s</b>"):format(get("ClubName") or "Your club"),
+	welcome.body.Text = table.concat({
+		rich(get("ClubName") or "Your club", C.accent, true),
 		("%s  ·  Season %d"):format(get("DivisionName") or "", get("Season") or 1),
 		if round > 0 then ("Currently %s after %d of %d matches."):format(ordinal(get("Position") or 1), round, rounds) else "A new season is about to start.",
 		if nextOpp ~= "" then ("Next up: <b>%s</b>"):format(nextOpp) else "",
 		"",
 		("Record: %d played, %d won, %d drawn, %d lost"):format(get("MatchesPlayed") or 0, get("Wins") or 0, get("Draws") or 0, get("Losses") or 0),
-		("Club cash: <b>%s</b>"):format(money(get("Cash") or 0)),
+		("Club cash: %s"):format(rich(money(get("Cash") or 0), C.cash, true)),
 	}, "\n")
-	welcome.Visible = true
+	welcome.frame.Visible = true
 end
 
-local function refreshLoading()
-	local loading = get("Phase") == "Loading"
-	loadingCover.Visible = loading
-	cashLabel.Visible = not loading
-	seasonLabel.Visible = not loading
-	if not loading then
-		maybeWelcome()
-	end
-end
-state:GetAttributeChangedSignal("Phase"):Connect(refreshLoading)
-refreshLoading()
+-- Loading cover: the club is being fetched for the owner; nothing else is real yet
+local loadingCover = Instance.new("Frame")
+loadingCover.Name = "Loading"
+loadingCover.Size = UDim2.fromScale(1, 1)
+loadingCover.BackgroundColor3 = C.bg
+loadingCover.BorderSizePixel = 0
+loadingCover.ZIndex = 20
+loadingCover.Visible = false
+loadingCover.Parent = gui
+Theme.text(loadingCover, "FOOTBALL CLUB TYCOON", "display", {
+	Size = UDim2.new(0.8, 0, 0, 44),
+	Position = UDim2.fromScale(0.5, 0.44),
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	TextSize = 34,
+	TextXAlignment = Enum.TextXAlignment.Center,
+	ZIndex = 21,
+})
+Theme.text(loadingCover, "Loading your club…", "muted", {
+	Name = "Text",
+	Size = UDim2.new(0.8, 0, 0, 30),
+	Position = UDim2.fromScale(0.5, 0.52),
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	TextSize = 18,
+	TextXAlignment = Enum.TextXAlignment.Center,
+	ZIndex = 21,
+})
 
--- Toast (just above the hint)
-local toastLabel = makeLabel("Toast", gui, {
-	Size = UDim2.new(0.6, 0, 0, 30),
-	Position = UDim2.new(0.5, 0, 1, -80),
+-- ----------------------------------------------------------- bottom-centre
+
+local hintLabel = Theme.pill(gui, "Hint", {
+	Size = UDim2.new(0.6, 0, 0, 36),
+	Position = UDim2.new(0.5, 0, 1, -28),
 	AnchorPoint = Vector2.new(0.5, 1),
-	TextColor3 = Color3.fromRGB(255, 120, 120),
+	TextColor3 = C.accent,
+	TextXAlignment = Enum.TextXAlignment.Center,
+	TextScaled = true,
+})
+local hintSize = Instance.new("UITextSizeConstraint")
+hintSize.MaxTextSize = 17
+hintSize.Parent = hintLabel
+local hintWidth = Instance.new("UISizeConstraint")
+hintWidth.MaxSize = Vector2.new(760, 36)
+hintWidth.Parent = hintLabel
+
+local toastLabel = Theme.pill(gui, "Toast", {
+	Size = UDim2.new(0.6, 0, 0, 36),
+	Position = UDim2.new(0.5, 0, 1, -72),
+	AnchorPoint = Vector2.new(0.5, 1),
+	TextColor3 = C.bad,
+	TextXAlignment = Enum.TextXAlignment.Center,
+	TextScaled = true,
 	Visible = false,
 })
+local toastSize = Instance.new("UITextSizeConstraint")
+toastSize.MaxTextSize = 17
+toastSize.Parent = toastLabel
+local toastWidth = Instance.new("UISizeConstraint")
+toastWidth.MaxSize = Vector2.new(760, 36)
+toastWidth.Parent = toastLabel
 local toastToken = 0
 local function showToast(message: string, color: Color3?)
 	toastToken += 1
 	local myToken = toastToken
 	toastLabel.Text = message
-	toastLabel.TextColor3 = color or Color3.fromRGB(255, 120, 120)
+	toastLabel.TextColor3 = color or C.bad
 	toastLabel.Visible = true
 	task.delay(2.5, function()
 		if toastToken == myToken then
@@ -405,8 +341,10 @@ local function showToast(message: string, color: Color3?)
 	end)
 end
 toastEvent.OnClientEvent:Connect(function(message: string, ok: boolean?)
-	showToast(message, if ok then Color3.fromRGB(150, 230, 150) else nil)
+	showToast(message, if ok then C.good else nil)
 end)
+
+-- ---------------------------------------------------------------- refreshes
 
 local function refreshHint()
 	local phase = get("Phase")
@@ -451,26 +389,27 @@ local function refreshScoreboard()
 	if not inMatch then
 		return
 	end
-	scoreLabel.Text = ("%s  %d - %d  %s"):format(get("ClubName") or "Home", get("HomeGoals") or 0, get("AwayGoals") or 0, get("Opponent") or "Away")
+	scoreLabel.Text = ("%s   %d - %d   %s"):format(get("ClubName") or "Home", get("HomeGoals") or 0, get("AwayGoals") or 0, get("Opponent") or "Away")
 	local total = get("TimeLeft") or 0
 	-- show a football minute rather than raw seconds; the real clock is hidden
 	local elapsedFrac = 1 - (total / math.max(get("MatchDuration") or 90, 1))
 	local minute = math.clamp(math.floor(elapsedFrac * 90), 0, 90)
-	clockLabel.Text = ("%d'"):format(minute)
+	clockLabel.Text = ("%d'   ·   %s"):format(minute, if minute < 45 then "First half" else "Second half")
 	if minute >= 45 and lastMinute < 45 then
-		flash("HALF TIME", Color3.new(1, 1, 1), 2)
+		flash("HALF TIME", C.text, 2)
 	end
 	lastMinute = minute
 end
 
-for _, key in { "Cash" } do
-	state:GetAttributeChangedSignal(key):Connect(refreshCash)
-end
-for _, key in { "Phase", "HomeGoals", "AwayGoals", "TimeLeft", "Opponent" } do
-	state:GetAttributeChangedSignal(key):Connect(refreshScoreboard)
-end
-for _, key in { "Phase", "MatchesPlayed", "StandLevel", "ScoutLevel", "AmenityLevel", "Round", "NeedsName" } do
-	state:GetAttributeChangedSignal(key):Connect(refreshHint)
+local function refreshLoading()
+	local loading = get("Phase") == "Loading"
+	loadingCover.Visible = loading
+	cashLabel.Visible = not loading
+	seasonLabel.Visible = not loading
+	musicButton.Visible = not loading
+	if not loading then
+		maybeWelcome()
+	end
 end
 
 local function refreshPhasePanels()
@@ -478,20 +417,30 @@ local function refreshPhasePanels()
 	banner.Visible = phase == "PreMatch"
 	tactics.Visible = phase == "Match"
 	if phase == "PreMatch" then
-		summary.Visible = false -- a lingering summary must never cover the next match
-		seasonPanel.Visible = false
+		summary.frame.Visible = false -- a lingering card must never cover the next match
+		seasonCard.frame.Visible = false
+		welcome.frame.Visible = false
 		bannerBody.Text = ("%s  vs  %s   ·   Match %d of %d"):format(get("ClubName") or "Home", get("Opponent") or "Away", (get("Round") or 0) + 1, get("Rounds") or 10)
 	end
 end
+
+state:GetAttributeChangedSignal("Cash"):Connect(refreshCash)
+for _, key in { "Phase", "HomeGoals", "AwayGoals", "TimeLeft", "Opponent" } do
+	state:GetAttributeChangedSignal(key):Connect(refreshScoreboard)
+end
+for _, key in { "Phase", "MatchesPlayed", "StandLevel", "ScoutLevel", "AmenityLevel", "Round", "NeedsName" } do
+	state:GetAttributeChangedSignal(key):Connect(refreshHint)
+end
+state:GetAttributeChangedSignal("Phase"):Connect(refreshLoading)
 
 local lastPhase = get("Phase")
 state:GetAttributeChangedSignal("Phase"):Connect(function()
 	local phase = get("Phase")
 	if lastPhase == "Match" and phase == "Manage" then
-		flash("FULL TIME", Color3.new(1, 1, 1), 3)
+		flash("FULL TIME", C.text, 3)
 	elseif phase == "Match" then
 		lastMinute = 0
-		flash("KICK-OFF", Color3.new(1, 1, 1), 1.5)
+		flash("KICK-OFF", C.text, 1.5)
 	end
 	lastPhase = phase
 	refreshPhasePanels()
@@ -505,9 +454,9 @@ local function onGoal(team: string)
 		return
 	end
 	if team == "Home" then
-		flash("GOAL!", Color3.fromRGB(255, 230, 80), 2.5)
+		flash("GOAL!", C.accent, 2.5)
 	else
-		flash(("%s score"):format(get("Opponent") or "They"), Color3.fromRGB(255, 120, 120), 2.5)
+		flash(("%s score"):format(get("Opponent") or "They"), C.bad, 2.5)
 	end
 end
 -- Goals only ever go up during a match; the reset to 0 at kickoff is ignored.
@@ -533,26 +482,26 @@ state:GetAttributeChangedSignal("Subs"):Connect(function()
 	local squad = HttpService:JSONDecode(raw).home.squad
 	local outP, inP = squad[sub.out], squad[sub["in"]]
 	if outP and inP then
-		showToast(("SUB: %d %s on, %d %s off"):format(inP.number, inP.name, outP.number, outP.name), Color3.fromRGB(150, 220, 255))
+		showToast(("SUB: %d %s on, %d %s off"):format(inP.number, inP.name, outP.number, outP.name), C.info)
 	end
 end)
 
-refreshPhasePanels()
-refreshTacticButtons()
-
 summaryEvent.OnClientEvent:Connect(function(data)
 	local outcomeText = data.outcome == "Win" and "WIN" or (data.outcome == "Draw" and "DRAW" or "LOSS")
-	summaryTitle.Text = ("%s  %d - %d  %s   (%s)"):format(get("ClubName") or "Home", data.homeGoals, data.awayGoals, data.opponent, outcomeText)
+	local outcomeColor = data.outcome == "Win" and C.good or (data.outcome == "Draw" and C.muted or C.bad)
+	summary.title.Text = ("%d - %d   %s"):format(data.homeGoals, data.awayGoals, outcomeText)
+	summary.title.TextColor3 = outcomeColor
 	local lines = {}
+	table.insert(lines, ("<b>%s</b>  vs  <b>%s</b>"):format(get("ClubName") or "Home", data.opponent))
 	if data.scorers and #data.scorers > 0 then
-		table.insert(lines, ("<font color=\"#ffe066\">Scorers: %s</font>"):format(table.concat(data.scorers, ", ")))
+		table.insert(lines, rich("Scorers: " .. table.concat(data.scorers, ", "), C.accent))
 	end
 	if data.position and data.division then
 		table.insert(lines, ("League: <b>%s</b> in the %s after %d of %d"):format(ordinal(data.position), data.division, data.round, data.rounds))
 	end
 	table.insert(lines, ("Attendance: <b>%d</b> / %d seats"):format(data.attendance, data.capacity))
 	if data.turnedAway > 0 then
-		table.insert(lines, ("<font color=\"#ff8080\">Fans turned away: <b>%d</b></font>"):format(data.turnedAway))
+		table.insert(lines, rich(("Fans turned away: %d"):format(data.turnedAway), C.bad))
 	end
 	table.insert(lines, "")
 	table.insert(lines, ("Ticket revenue: %s"):format(money(data.ticketRevenue)))
@@ -560,24 +509,27 @@ summaryEvent.OnClientEvent:Connect(function(data)
 		table.insert(lines, ("Concessions: %s"):format(money(data.concessionRevenue)))
 	end
 	table.insert(lines, ("Result bonus: %s"):format(money(data.resultBonus)))
-	table.insert(lines, ("<b>Total earned: %s</b>"):format(money(data.total)))
+	table.insert(lines, ("Total earned: %s"):format(rich(money(data.total), C.cash, true)))
 	table.insert(lines, "")
-	table.insert(lines, ("Club cash: <b>%s</b>"):format(money(data.cash)))
+	table.insert(lines, ("Club cash: %s"):format(rich(money(data.cash), C.cash, true)))
 	if data.news and #data.news > 0 then
 		table.insert(lines, "")
 		for i, line in data.news do
 			if i > 4 then
-				table.insert(lines, ("<font color=\"#a0a0a0\">…and %d more</font>"):format(#data.news - 4))
+				table.insert(lines, rich(("…and %d more"):format(#data.news - 4), C.muted))
 				break
 			end
-			table.insert(lines, ("<font color=\"#9fd3ff\">%s</font>"):format(line))
+			table.insert(lines, rich(line, C.info))
 		end
 	end
-	summaryBody.Text = table.concat(lines, "\n")
-	summary.Visible = true
+	summary.body.Text = table.concat(lines, "\n")
+	summary.frame.Visible = true
 	pendingSeason = data.season
 end)
 
 refreshCash()
 refreshScoreboard()
 refreshHint()
+refreshLoading()
+refreshPhasePanels()
+refreshTacticButtons()

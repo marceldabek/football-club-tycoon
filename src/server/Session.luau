@@ -19,6 +19,7 @@ local ClubService = require(script.Parent.ClubService)
 local SeasonService = require(script.Parent.SeasonService)
 local HistoryService = require(script.Parent.HistoryService)
 local SaveService = require(script.Parent.SaveService)
+local Scenery = require(script.Parent.Scenery)
 
 local Session = {}
 
@@ -145,9 +146,11 @@ function Session.refreshPromptLock()
 	if not w then
 		return
 	end
-	local managing = ClubState.get("Phase") == "Manage"
+	local phase = ClubState.get("Phase")
+	local managing = phase == "Manage"
 	w.matchdayPrompt.Enabled = managing
 	UpgradeService.refreshPrompt()
+	Scenery.setMatchday(phase == "PreMatch" or phase == "Match")
 end
 
 -- Every save goes through here so the stamps the saver writes stay in step.
@@ -234,6 +237,7 @@ local function applyName(player: Player, requested: unknown)
 	ClubState.set("ClubName", final)
 	ClubState.set("NeedsName", false)
 	SeasonService.renameClub(final)
+	WorldBuilder.setClubName(final)
 	Session.saveNow()
 	toast(player, ("Welcome to %s!"):format(final), true)
 end
@@ -255,6 +259,7 @@ function Session.start()
 	HistoryService.init()
 	SeasonService.init()
 	remote("ClubName").OnServerEvent:Connect(applyName)
+	Scenery.setup() -- lighting, horizon and floodlights exist while the club loads
 
 	local backend, kind = SaveService.autoBackend(Config.Save.storeName)
 	backendKind = kind
