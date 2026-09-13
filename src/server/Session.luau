@@ -301,7 +301,11 @@ function Session.start()
 	ClubState.onDirty = function()
 		saver:markDirty()
 	end
+	-- the prompts follow the phase; listen before the flip to Manage so the
+	-- matchday board and upgrade signs come on at boot, not at the next change
+	ClubState.Folder:GetAttributeChangedSignal("Phase"):Connect(Session.refreshPromptLock)
 	ClubState.set("Phase", "Manage")
+	Session.refreshPromptLock()
 	print(("[FCT] %s profile for %s (%s): %s, %d matches played"):format(
 		if isNew then "new" else "loaded", owner.Name, backendKind, profile.clubName, profile.matchesPlayed))
 
@@ -320,8 +324,6 @@ function Session.start()
 	MatchService.onSettled = function()
 		Session.saveNow()
 	end
-
-	ClubState.Folder:GetAttributeChangedSignal("Phase"):Connect(Session.refreshPromptLock)
 
 	Players.PlayerRemoving:Connect(function(player)
 		if player.UserId == ownerId then
