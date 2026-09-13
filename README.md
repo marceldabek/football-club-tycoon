@@ -10,8 +10,16 @@ src/server/   Server modules + entry script              -> ServerScriptService.
 src/client/   Client scripts                             -> StarterPlayer.StarterPlayerScripts.Client
 ```
 
-`default.project.json` maps these folders for Rojo 7. Until Rojo is installed, scripts are
-pushed into Studio through the Roblox Studio MCP; the files on disk are the source of truth.
+`default.project.json` maps these folders for Rojo 7 (pinned in `aftman.toml`). The files on
+disk are the source of truth.
+
+## Working in Studio
+
+```powershell
+aftman install      # once, installs rojo
+rojo plugin install # once, installs the Studio plugin
+rojo serve          # every session, then click Connect in the Rojo plugin inside Studio
+```
 
 ## Status
 
