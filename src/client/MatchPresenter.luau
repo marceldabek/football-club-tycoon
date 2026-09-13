@@ -17,7 +17,7 @@ local MatchAudio = require(script.Parent.MatchAudio)
 local Presenter = {}
 Presenter.__index = Presenter
 
-type Player = { name: string, number: number, role: string }
+type Player = { name: string, number: number, role: string, look: number? }
 type Event = { minute: number, team: Pitch.Team, type: string, scorer: number? }
 export type Timeline = {
 	events: { Event },
@@ -141,7 +141,7 @@ function Presenter.new(timeline: Timeline, duration: number): Presenter
 		}
 		for idx = 1, #Pitch.ROLES do
 			local p = data.squad[idx]
-			team.players[idx] = Footballer.new(folder, idx == 1 and team.keeperKit or kit, p.number, p.name, Pitch.TUNNEL)
+			team.players[idx] = Footballer.new(folder, idx == 1 and team.keeperKit or kit, p.number, p.name, Pitch.TUNNEL, p.look, idx == 1)
 		end
 		self.teams[teamName] = team
 	end
@@ -551,7 +551,7 @@ function Presenter.applySubs(self: Presenter, subs: { { out: number, ["in"]: num
 			task.delay(8, function()
 				outgoing:destroy()
 			end)
-			local fb = Footballer.new(self.folder, team.kit, incoming.number, incoming.name, Pitch.TUNNEL)
+			local fb = Footballer.new(self.folder, team.kit, incoming.number, incoming.name, Pitch.TUNNEL, incoming.look, false)
 			fb:setTarget(team.slots[sub.out])
 			team.players[sub.out] = fb
 		end

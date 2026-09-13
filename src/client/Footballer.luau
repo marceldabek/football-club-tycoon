@@ -1,31 +1,48 @@
 --!strict
--- A footballer made of primitive parts with procedural run / kick / celebrate /
--- dive poses. No animation assets, so nothing can fail to load. Every part is
--- anchored and repositioned each frame with BulkMoveTo.
--- TEMP: swap for real rigs + animations once the match loop is proven fun.
+-- An R15 footballer built on the client from a HumanoidDescription (see
+-- Appearance.luau), driven kinematically: only the HumanoidRootPart is anchored
+-- and every other part hangs off it through Motor6Ds, so writing one CFrame per
+-- frame moves the whole rig. Roblox-owned idle / walk / run / celebrate tracks
+-- play through an Animator; kick and dive are procedural joint overrides.
+--
+-- Public interface matches BlockFootballer, which is the fallback when the rig
+-- cannot be built (no network, description fetch failure).
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Appearance = require(ReplicatedStorage.Shared.Appearance)
+local BlockFootballer = require(script.Parent.BlockFootballer)
 
 local Footballer = {}
 Footballer.__index = Footballer
-
-local TORSO = Vector3.new(2, 2.2, 1)
-local HEAD = 1.2
-local LEG = Vector3.new(0.7, 2, 0.7)
-local ARM = Vector3.new(0.6, 2, 0.6)
-local SKIN = Color3.fromRGB(230, 190, 150) -- TEMP: single tone for now
 
 export type Pose = "idle" | "kick" | "celebrate" | "dive"
 
 export type Footballer = typeof(setmetatable(
 	{} :: {
-		model: Model,
-		parts: { BasePart },
+		model: Model?,
+		root: BasePart?,
+		head: BasePart?,
+		hipHeight: number,
+		tracks: { [string]: AnimationTrack },
+		current: string?,
+		celebrateTrack: AnimationTrack?,
+		joints: { [string]: Motor6D },
+		rigReady: boolean,
+		dead: boolean,
+		fallback: BlockFootballer.BlockFootballer?,
+		parent: Instance,
+		kit: Color3,
+		isKeeper: boolean,
+		lookSeed: number,
 		position: Vector3,
 		yaw: number,
 		target: Vector3?,
 		speed: number,
 		velocity: Vector3,
 		moving: boolean,
-		phase: number,
 		pose: Pose,
 		poseT: number,
 		diveDir: number,
@@ -33,30 +50,26 @@ export type Footballer = typeof(setmetatable(
 		jitter: Vector3,
 		number: number,
 		name: string,
+		tagVisible: boolean,
 	},
 	Footballer
 ))
 
+-- Roblox-owned animation assets (playable from any experience).
+local ANIM = { idle = 507766388, walk = 507777826, run = 507767714 }
+local CELEBRATE = { 507770677, 507771019, 507770453 } -- cheer, dance, point
+-- TEMP tuning
+local WALK_MAX = 15 -- studs/s; faster than this plays the run track
+local WALK_ANIM_SPEED = 8 -- studs/s at which the walk track plays at 1x
+local RUN_ANIM_SPEED = 16 -- studs/s at which the run track plays at 1x
 local POSE_LENGTH: { [Pose]: number } = { idle = 0, kick = 0.4, celebrate = 2.5, dive = 1.3 }
+local KEEPER_SHORTS = Color3.fromRGB(25, 25, 25)
 
-local function part(name: string, size: Vector3, color: Color3, parent: Instance): Part
-	local p = Instance.new("Part")
-	p.Name = name
-	p.Size = size
-	p.Color = color
-	p.Material = Enum.Material.SmoothPlastic
-	p.Anchored = true
-	p.CanCollide = false
-	p.CanQuery = false
-	p.CanTouch = false
-	p.CastShadow = false
-	p.TopSurface = Enum.SurfaceType.Smooth
-	p.BottomSurface = Enum.SurfaceType.Smooth
-	p.Parent = parent
-	return p
-end
+local warnedFallback = false
+-- every live footballer, for the shared procedural-pose step
+local live: { [Footballer]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 
-local function numberFace(torso: Part, face: Enum.NormalId, number: number)
+local function numberFace(torso: BasePart, face: Enum.NormalId, number: number)
 	local gui = Instance.new("SurfaceGui")
 	gui.Face = face
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
@@ -73,11 +86,11 @@ local function numberFace(torso: Part, face: Enum.NormalId, number: number)
 	label.Parent = gui
 end
 
-local function nameTag(head: Part, number: number, name: string)
+local function nameTag(head: BasePart, number: number, name: string): BillboardGui
 	local billboard = Instance.new("BillboardGui")
 	billboard.Size = UDim2.fromOffset(140, 22)
 	billboard.Name = "NameTag"
-	billboard.StudsOffset = Vector3.new(0, 1.6, 0)
+	billboard.StudsOffset = Vector3.new(0, 1.9, 0)
 	billboard.MaxDistance = 60
 	billboard.AlwaysOnTop = false
 	billboard.Parent = head
@@ -90,35 +103,121 @@ local function nameTag(head: Part, number: number, name: string)
 	label.TextStrokeTransparency = 0.3
 	label.Text = ("%d %s"):format(number, name)
 	label.Parent = billboard
+	return billboard
 end
 
-function Footballer.new(parent: Instance, kit: Color3, number: number, name: string, position: Vector3): Footballer
-	local model = Instance.new("Model")
-	model.Name = ("%d %s"):format(number, name)
-	local shorts = kit:Lerp(Color3.new(0, 0, 0), 0.55)
+-- New rigs come with AnimationConstraint joints (physics driven). Swap each for
+-- an equivalent Motor6D so the rig follows its anchored root kinematically and
+-- the Animator still drives it. Returns the joints by name.
+local function toMotor6D(model: Model): { [string]: Motor6D }
+	local joints: { [string]: Motor6D } = {}
+	for _, d in model:GetDescendants() do
+		if d:IsA("AnimationConstraint") then
+			local a0, a1 = d.Attachment0, d.Attachment1
+			if a0 and a1 and a0.Parent and a1.Parent then
+				local motor = Instance.new("Motor6D")
+				motor.Name = d.Name
+				motor.Part0 = a0.Parent :: BasePart
+				motor.Part1 = a1.Parent :: BasePart
+				motor.C0 = a0.CFrame
+				motor.C1 = a1.CFrame
+				motor.Parent = a1.Parent
+				joints[d.Name] = motor
+			end
+			d:Destroy()
+		elseif d:IsA("Motor6D") then
+			joints[d.Name] = d
+		elseif d:IsA("BallSocketConstraint") or d:IsA("NoCollisionConstraint") then
+			d:Destroy()
+		end
+	end
+	return joints
+end
 
-	local torso = part("Torso", TORSO, kit, model)
-	local head = part("Head", Vector3.new(HEAD, HEAD, HEAD), SKIN, model)
-	head.Shape = Enum.PartType.Ball
-	local legL = part("LegL", LEG, shorts, model)
-	local legR = part("LegR", LEG, shorts, model)
-	local armL = part("ArmL", ARM, kit, model)
-	local armR = part("ArmR", ARM, kit, model)
-	numberFace(torso, Enum.NormalId.Back, number)
-	numberFace(torso, Enum.NormalId.Front, number)
-	nameTag(head, number, name)
-	model.Parent = parent
+local function buildRig(self: Footballer)
+	local look = Appearance.fromSeed(self.lookSeed)
+	local desc = Appearance.toDescription(look)
+	local model = Players:CreateHumanoidModelFromDescription(desc, Enum.HumanoidRigType.R15)
+	desc:Destroy()
+	if self.dead then
+		model:Destroy()
+		return
+	end
+	local animate = model:FindFirstChild("Animate")
+	if animate then
+		animate:Destroy()
+	end
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.CanCollide = false
+			d.CanQuery = false
+			d.CanTouch = false
+			d.CastShadow = false
+			d.Massless = true
+		end
+	end
+	local hum = model:FindFirstChildOfClass("Humanoid") :: Humanoid
+	hum.EvaluateStateMachine = false
+	hum.BreakJointsOnDeath = false
+	hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	local shorts = if self.isKeeper then KEEPER_SHORTS else self.kit:Lerp(Color3.new(0, 0, 0), 0.55)
+	Appearance.applyKit(model, look, self.kit, shorts, self.kit)
 
+	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart
+	local head = model:FindFirstChild("Head") :: BasePart
+	local torso = model:FindFirstChild("UpperTorso") :: BasePart
+	local joints = toMotor6D(model)
+	root.Anchored = true
+	numberFace(torso, Enum.NormalId.Back, self.number)
+	numberFace(torso, Enum.NormalId.Front, self.number)
+	local tag = nameTag(head, self.number, self.name)
+	tag.Enabled = self.tagVisible
+
+	-- the model must be in the DataModel before tracks load, or they play at zero weight
+	model.Name = ("%d %s"):format(self.number, self.name)
+	model.Parent = self.parent
+	local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
+	for name, id in ANIM do
+		local anim = Instance.new("Animation")
+		anim.AnimationId = "rbxassetid://" .. id
+		local track = animator:LoadAnimation(anim)
+		track.Priority = Enum.AnimationPriority.Core
+		track.Looped = true
+		self.tracks[name] = track
+	end
+
+	self.model = model
+	self.root = root
+	self.head = head
+	self.joints = joints
+	self.hipHeight = hum.HipHeight + root.Size.Y / 2
+	self.rigReady = true
+	self:update(0)
+end
+
+function Footballer.new(parent: Instance, kit: Color3, number: number, name: string, position: Vector3, look: number?, isKeeper: boolean?): Footballer
 	local self = setmetatable({
-		model = model,
-		parts = { torso, head, legL, legR, armL, armR },
+		model = nil,
+		root = nil,
+		head = nil,
+		hipHeight = 3.2,
+		tracks = {},
+		current = nil,
+		celebrateTrack = nil,
+		joints = {},
+		rigReady = false,
+		dead = false,
+		fallback = nil,
+		parent = parent,
+		kit = kit,
+		isKeeper = isKeeper == true,
+		lookSeed = look or number,
 		position = position,
 		yaw = 0,
 		target = nil,
 		speed = 22,
 		velocity = Vector3.zero,
 		moving = false,
-		phase = 0,
 		pose = "idle" :: Pose,
 		poseT = 0,
 		diveDir = 1,
@@ -126,8 +225,22 @@ function Footballer.new(parent: Instance, kit: Color3, number: number, name: str
 		jitter = Vector3.new(math.random() * 8 - 4, 0, math.random() * 8 - 4),
 		number = number,
 		name = name,
-	}, Footballer)
-	self:update(0)
+		tagVisible = true,
+	}, Footballer) :: any
+
+	live[self] = true
+	task.spawn(function()
+		local ok, err = pcall(buildRig, self)
+		if not ok and not self.dead then
+			if not warnedFallback then
+				warnedFallback = true
+				warn("[FCT] R15 rig build failed, using block rigs: " .. tostring(err))
+			end
+			local block = BlockFootballer.new(parent, kit, number, name, self.position)
+			block:setTagVisible(self.tagVisible)
+			self.fallback = block
+		end
+	end)
 	return self
 end
 
@@ -138,13 +251,22 @@ end
 function Footballer.teleport(self: Footballer, position: Vector3)
 	self.position = position
 	self.target = nil
+	self.velocity = Vector3.zero
+	if self.fallback then
+		self.fallback:teleport(position)
+	end
 	self:update(0)
 end
 
 function Footballer.setTagVisible(self: Footballer, visible: boolean)
-	local tag = self.parts[2]:FindFirstChild("NameTag")
+	self.tagVisible = visible
+	local head = self.head
+	local tag = head and head:FindFirstChild("NameTag")
 	if tag then
 		(tag :: BillboardGui).Enabled = visible
+	end
+	if self.fallback then
+		self.fallback:setTagVisible(visible)
 	end
 end
 
@@ -152,6 +274,9 @@ function Footballer.face(self: Footballer, point: Vector3)
 	local d = point - self.position
 	if d.X ~= 0 or d.Z ~= 0 then
 		self.yaw = math.atan2(-d.X, -d.Z)
+	end
+	if self.fallback then
+		self.fallback:face(point)
 	end
 end
 
@@ -162,22 +287,77 @@ end
 
 function Footballer.kick(self: Footballer)
 	setPose(self, "kick")
+	if self.fallback then
+		self.fallback:kick()
+	end
 end
 
 function Footballer.celebrate(self: Footballer)
 	setPose(self, "celebrate")
+	if self.fallback then
+		self.fallback:celebrate()
+		return
+	end
+	local model = self.model
+	local hum = model and model:FindFirstChildOfClass("Humanoid")
+	local animator = hum and hum:FindFirstChildOfClass("Animator")
+	if not animator then
+		return
+	end
+	local anim = Instance.new("Animation")
+	anim.AnimationId = "rbxassetid://" .. CELEBRATE[math.random(1, #CELEBRATE)]
+	local ok, track = pcall(animator.LoadAnimation, animator, anim)
+	if ok then
+		track.Priority = Enum.AnimationPriority.Action
+		track.Looped = true
+		track:Play(0.1)
+		self.celebrateTrack = track
+	end
 end
 
 -- dir: -1 dives to the player's left, 1 to the right.
 function Footballer.dive(self: Footballer, dir: number)
 	self.diveDir = dir >= 0 and 1 or -1
 	setPose(self, "dive")
+	if self.fallback then
+		self.fallback:dive(dir)
+	end
 end
 
--- Advances movement and pose timers, then writes all part CFrames.
+local function playTrack(self: Footballer, name: string, speed: number)
+	local track = self.tracks[name]
+	if not track then
+		return
+	end
+	if self.current ~= name then
+		for other, t in self.tracks do
+			if other ~= name and t.IsPlaying then
+				t:Stop(0.2)
+			end
+		end
+		track:Play(0.2)
+		self.current = name
+	end
+	track:AdjustSpeed(speed)
+end
+
+-- Advances movement and pose timers, then writes the root CFrame and picks
+-- the locomotion track.
 function Footballer.update(self: Footballer, dt: number)
-	-- Velocity with acceleration and ease-out, so players lean into runs and
-	-- slow into position instead of stopping dead.
+	local fallback = self.fallback
+	if fallback then
+		fallback.target = self.target
+		fallback.speed = self.speed
+		fallback.busy = self.busy
+		fallback.jitter = self.jitter
+		fallback:update(dt)
+		self.position = fallback.position
+		self.yaw = fallback.yaw
+		self.velocity = fallback.velocity
+		self.moving = fallback.moving
+		return
+	end
+
 	local target = self.target
 	local desired = Vector3.zero
 	if target then
@@ -197,7 +377,6 @@ function Footballer.update(self: Footballer, dt: number)
 			self.position += step
 		end
 		self.yaw = math.atan2(-self.velocity.X, -self.velocity.Z)
-		self.phase += dt * (speedNow * 0.55)
 	end
 	self.moving = speedNow > 1.5
 
@@ -205,47 +384,76 @@ function Footballer.update(self: Footballer, dt: number)
 		self.poseT += dt
 		if self.poseT >= POSE_LENGTH[self.pose] then
 			self.pose = "idle"
+			local track = self.celebrateTrack
+			if track then
+				track:Stop(0.2)
+				self.celebrateTrack = nil
+			end
 		end
 	end
 
-	local amp = math.clamp(self.velocity.Magnitude / 22, 0, 1) * 0.7
-	local swing = self.moving and math.sin(self.phase) * amp or 0
-	local legLA, legRA = swing, -swing
-	local armLA, armRA = -swing * 0.8, swing * 0.8
-	local bob = self.moving and math.abs(math.sin(self.phase)) * 0.15 or 0
-	local tilt = 0
-	local lift = 0
+	if not self.rigReady then
+		return
+	end
+	local root = self.root :: BasePart
 
-	if self.pose == "kick" then
-		legRA = 1.4 * math.sin(math.min(self.poseT / POSE_LENGTH.kick, 1) * math.pi)
-	elseif self.pose == "celebrate" then
-		armLA, armRA = math.pi - 0.3, math.pi - 0.3
-		bob = math.abs(math.sin(self.poseT * 9)) * 1.2
-	elseif self.pose == "dive" then
+	local tilt, lift = 0, 0
+	if self.pose == "dive" then
 		local k = math.min(self.poseT / 0.25, 1)
 		tilt = self.diveDir * 1.35 * k
 		lift = -1.6 * k
-		armLA, armRA = math.pi / 2, math.pi / 2
 	end
-
-	local torsoCenterY = LEG.Y + TORSO.Y / 2 + bob + lift
-	local root = CFrame.new(self.position + Vector3.new(0, torsoCenterY, 0))
+	root.CFrame = CFrame.new(self.position + Vector3.new(0, self.hipHeight + lift, 0))
 		* CFrame.Angles(0, self.yaw, 0)
 		* CFrame.Angles(0, 0, tilt)
 
-	local cframes = {
-		root,
-		root * CFrame.new(0, TORSO.Y / 2 + HEAD / 2, 0),
-		root * CFrame.new(-0.5, -TORSO.Y / 2, 0) * CFrame.Angles(legLA, 0, 0) * CFrame.new(0, -LEG.Y / 2, 0),
-		root * CFrame.new(0.5, -TORSO.Y / 2, 0) * CFrame.Angles(legRA, 0, 0) * CFrame.new(0, -LEG.Y / 2, 0),
-		root * CFrame.new(-(TORSO.X / 2 + ARM.X / 2), TORSO.Y / 2 - 0.2, 0) * CFrame.Angles(armLA, 0, 0) * CFrame.new(0, -ARM.Y / 2, 0),
-		root * CFrame.new(TORSO.X / 2 + ARM.X / 2, TORSO.Y / 2 - 0.2, 0) * CFrame.Angles(armRA, 0, 0) * CFrame.new(0, -ARM.Y / 2, 0),
-	}
-	workspace:BulkMoveTo(self.parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
+	if self.pose == "celebrate" or self.pose == "dive" then
+		playTrack(self, "idle", 1)
+	elseif speedNow < 1.5 then
+		playTrack(self, "idle", 1)
+	elseif speedNow <= WALK_MAX then
+		playTrack(self, "walk", math.max(speedNow / WALK_ANIM_SPEED, 0.5))
+	else
+		playTrack(self, "run", math.max(speedNow / RUN_ANIM_SPEED, 0.6))
+	end
 end
 
+-- Procedural overrides written after the Animator each frame: kick swings the
+-- right leg, dive throws both arms up.
+RunService.Stepped:Connect(function()
+	for fb in live do
+		if not fb.rigReady or fb.dead then
+			continue
+		end
+		if fb.pose == "kick" then
+			local hip = fb.joints.RightHip
+			if hip then
+				local k = math.min(fb.poseT / POSE_LENGTH.kick, 1)
+				hip.Transform = CFrame.Angles(-1.5 * math.sin(k * math.pi), 0, 0)
+			end
+		elseif fb.pose == "dive" then
+			local k = math.min(fb.poseT / 0.25, 1)
+			for _, name in { "LeftShoulder", "RightShoulder" } do
+				local shoulder = fb.joints[name]
+				if shoulder then
+					shoulder.Transform = CFrame.Angles(-2.6 * k, 0, 0)
+				end
+			end
+		end
+	end
+end)
+
 function Footballer.destroy(self: Footballer)
-	self.model:Destroy()
+	self.dead = true
+	live[self] = nil
+	if self.model then
+		self.model:Destroy()
+		self.model = nil
+	end
+	if self.fallback then
+		self.fallback:destroy()
+		self.fallback = nil
+	end
 end
 
 return Footballer
