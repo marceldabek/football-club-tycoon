@@ -52,19 +52,33 @@ local function oneShot(id: string, volume: number)
 	sound:Play()
 end
 
--- Background music: shuffled playlist, one track after another.
+-- Background music: shuffled playlist, one track after another. Volume moves
+-- with a fade so the match duck and the post-match restore are never a jump.
+local TweenService = game:GetService("TweenService")
 local music: Sound? = nil
 local playlistToken = 0
+local ducked = false
+local enabled = true
+
+local function targetVolume(): number
+	return ducked and Config.MusicMatchVolume or Config.MusicVolume
+end
+
+local function fadeTo(volume: number, seconds: number)
+	if music then
+		TweenService:Create(music, TweenInfo.new(seconds, Enum.EasingStyle.Sine), { Volume = volume }):Play()
+	end
+end
 
 local function nextTrack(token: number, lastId: string?)
-	if token ~= playlistToken or #Config.Music == 0 then
+	if token ~= playlistToken or #Config.Music == 0 or not enabled then
 		return
 	end
 	local id = Config.Music[math.random(1, #Config.Music)]
 	if #Config.Music > 1 and id == lastId then
 		return nextTrack(token, lastId) -- pick a different one
 	end
-	local sound = make(id, false, Config.MusicVolume)
+	local sound = make(id, false, 0)
 	if not sound then
 		return
 	end
@@ -77,10 +91,14 @@ local function nextTrack(token: number, lastId: string?)
 		end
 	end)
 	sound:Play()
+	fadeTo(targetVolume(), 2)
 end
 
 function MatchAudio.startMusic()
-	if music then
+	if music and not music.Parent then
+		music = nil -- destroyed from outside; start fresh
+	end
+	if music or not enabled then
 		return
 	end
 	playlistToken += 1
@@ -96,11 +114,24 @@ function MatchAudio.stopMusic()
 	end
 end
 
--- Lower the music under the crowd during a match, restore afterwards.
-function MatchAudio.duckMusic(ducked: boolean)
-	if music then
-		music.Volume = ducked and Config.MusicMatchVolume or Config.MusicVolume
+-- The player's music switch. Off stops the playlist entirely.
+function MatchAudio.setMusicEnabled(on: boolean)
+	enabled = on
+	if on then
+		MatchAudio.startMusic()
+	else
+		MatchAudio.stopMusic()
 	end
+end
+
+function MatchAudio.isMusicEnabled(): boolean
+	return enabled
+end
+
+-- Lower the music under the crowd during a match, ease it back afterwards.
+function MatchAudio.duckMusic(duck: boolean)
+	ducked = duck
+	fadeTo(targetVolume(), duck and 1.5 or 4)
 end
 
 function MatchAudio.goalCheer()

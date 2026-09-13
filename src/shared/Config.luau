@@ -69,7 +69,7 @@ Config.Music = {
 	"rbxassetid://1846700210", -- Spirits High B
 	"rbxassetid://1846690930", -- High Above B
 }
-Config.MusicVolume = 0.25
-Config.MusicMatchVolume = 0.06
+Config.MusicVolume = 0.16
+Config.MusicMatchVolume = 0.05
 
 return Config

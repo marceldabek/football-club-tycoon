@@ -41,8 +41,8 @@ function T.eventsAreSortedAndSpaced()
 			assert(gap >= MatchSim.MIN_EVENT_GAP, ("seed %d: gap %d between events %d and %d"):format(seed, gap, i - 1, i))
 		end
 		for _, ev in evs do
-			-- never before minute 6 so the 3D build-up (~5s) fits after kickoff
-			assert(ev.minute >= 6 and ev.minute <= 88, "event minute out of range: " .. ev.minute)
+			-- never before minute 10 so kick-off gets real build-up, not a long-range slam
+			assert(ev.minute >= 10 and ev.minute <= 88, "event minute out of range: " .. ev.minute)
 		end
 	end
 end

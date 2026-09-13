@@ -35,11 +35,12 @@ local TOTAL_XG = 2.6
 -- overlap (a sequence takes ~6 real seconds = ~6 minutes of a 90s match).
 MatchSim.MIN_EVENT_GAP = 8
 -- Chances live in two windows so nothing straddles the half-time break at 45':
--- first chance no earlier than 6' (build-up needs ~5s after kickoff), nothing
--- from 42' to 49' (build-up before / celebration after the whistle).
+-- first chance no earlier than 10' (kick-off needs a few seconds of open play
+-- before a build-up, or the first shot is a slam from the centre circle),
+-- nothing from 42' to 49' (build-up before / celebration after the whistle).
 MatchSim.FIRST_HALF_LAST = 41
 MatchSim.SECOND_HALF_FIRST = 50
-local FIRST_MINUTE, LAST_MINUTE = 6, 88
+local FIRST_MINUTE, LAST_MINUTE = 10, 88
 -- 4 per half at the minimum gap.
 MatchSim.MAX_CHANCES = math.floor((MatchSim.FIRST_HALF_LAST - FIRST_MINUTE) / MatchSim.MIN_EVENT_GAP)
 	+ math.floor((LAST_MINUTE - MatchSim.SECOND_HALF_FIRST) / MatchSim.MIN_EVENT_GAP)

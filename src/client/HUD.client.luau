@@ -89,6 +89,32 @@ local clockLabel = makeLabel("Clock", scoreboard, {
 })
 scoreboard.Visible = false
 
+-- Music switch (top-right, always available)
+local MatchAudio = require(script.Parent.MatchAudio)
+local musicButton = Instance.new("TextButton")
+musicButton.Name = "MusicToggle"
+musicButton.Size = UDim2.fromOffset(130, 32)
+musicButton.Position = UDim2.new(1, -20, 0, 70) -- clear of the Roblox top bar
+musicButton.AnchorPoint = Vector2.new(1, 0)
+musicButton.BackgroundColor3 = Color3.fromRGB(20, 25, 30)
+musicButton.BackgroundTransparency = 0.3
+musicButton.Font = Enum.Font.GothamBold
+musicButton.TextSize = 16
+musicButton.TextColor3 = Color3.new(1, 1, 1)
+musicButton.Parent = gui
+local musicCorner = Instance.new("UICorner")
+musicCorner.CornerRadius = UDim.new(0, 8)
+musicCorner.Parent = musicButton
+local function refreshMusicButton()
+	musicButton.Text = MatchAudio.isMusicEnabled() and "♪ Music: On" or "♪ Music: Off"
+	musicButton.TextColor3 = MatchAudio.isMusicEnabled() and Color3.new(1, 1, 1) or Color3.fromRGB(160, 160, 160)
+end
+musicButton.Activated:Connect(function()
+	MatchAudio.setMusicEnabled(not MatchAudio.isMusicEnabled())
+	refreshMusicButton()
+end)
+refreshMusicButton()
+
 -- Matchday banner (PreMatch only)
 local banner = makePanel("Banner", UDim2.fromOffset(520, 90), UDim2.new(0.5, 0, 0, 90))
 local bannerTitle = makeLabel("Title", banner, {

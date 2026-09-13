@@ -64,9 +64,10 @@ dbg:Invoke("tactic", "Attack")   -- "Attack" | "Defend" | "Balanced" | "Sub"
 - Milestone 2: matchday illusion (iris, walkout, 3D match playback, halftime with a change of
   ends, crowd, Attack / Defend / Sub). Done. Tactics are HUD hooks only; they change the visuals,
   not the sim, until squads exist.
-- Polish pass: halftime with change of ends, throw-ins and corners, dribbling and lead passes,
+- Polish pass: halftime with change of ends, dribbling and lead passes,
   inverted iris at kickoff, Shift to sprint, nets / centre circle / flags, grass surroundings.
 - Audio: `Config.Sounds` (crowd, cheer, whistle) and `Config.Music` (shuffled APM tracks, ducked
-  during matches) are free Roblox-licensed Creator Store assets. `MatchAudio` plays them.
+  during matches, on/off button in the HUD) are free Roblox-licensed Creator Store assets.
+  `MatchAudio` plays them.
 
 All economy numbers in `src/shared/Config.luau` are TEMP placeholders.

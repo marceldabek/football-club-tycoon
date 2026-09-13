@@ -13,7 +13,7 @@ local LEG = Vector3.new(0.7, 2, 0.7)
 local ARM = Vector3.new(0.6, 2, 0.6)
 local SKIN = Color3.fromRGB(230, 190, 150) -- TEMP: single tone for now
 
-export type Pose = "idle" | "kick" | "celebrate" | "dive" | "throw"
+export type Pose = "idle" | "kick" | "celebrate" | "dive"
 
 export type Footballer = typeof(setmetatable(
 	{} :: {
@@ -37,7 +37,7 @@ export type Footballer = typeof(setmetatable(
 	Footballer
 ))
 
-local POSE_LENGTH: { [Pose]: number } = { idle = 0, kick = 0.4, celebrate = 2.5, dive = 1.3, throw = 0.8 }
+local POSE_LENGTH: { [Pose]: number } = { idle = 0, kick = 0.4, celebrate = 2.5, dive = 1.3 }
 
 local function part(name: string, size: Vector3, color: Color3, parent: Instance): Part
 	local p = Instance.new("Part")
@@ -168,10 +168,6 @@ function Footballer.celebrate(self: Footballer)
 	setPose(self, "celebrate")
 end
 
-function Footballer.throw(self: Footballer)
-	setPose(self, "throw")
-end
-
 -- dir: -1 dives to the player's left, 1 to the right.
 function Footballer.dive(self: Footballer, dir: number)
 	self.diveDir = dir >= 0 and 1 or -1
@@ -225,11 +221,6 @@ function Footballer.update(self: Footballer, dt: number)
 	elseif self.pose == "celebrate" then
 		armLA, armRA = math.pi - 0.3, math.pi - 0.3
 		bob = math.abs(math.sin(self.poseT * 9)) * 1.2
-	elseif self.pose == "throw" then
-		-- both arms overhead, snapping forward at release
-		local k = math.min(self.poseT / POSE_LENGTH.throw, 1)
-		local arm = math.pi - 0.2 - math.sin(k * math.pi) * 1.2
-		armLA, armRA = arm, arm
 	elseif self.pose == "dive" then
 		local k = math.min(self.poseT / 0.25, 1)
 		tilt = self.diveDir * 1.35 * k

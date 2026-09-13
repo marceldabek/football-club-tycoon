@@ -316,7 +316,7 @@ function Presenter.halftime(self: Presenter)
 end
 
 -- Kicks the ball from the current holder (or wherever it is) to a player.
-function Presenter.pass(self: Presenter, toTeam: Pitch.Team, toIdx: number, arcOverride: number?, throw: boolean?)
+function Presenter.pass(self: Presenter, toTeam: Pitch.Team, toIdx: number, arcOverride: number?)
 	local receiver = self.teams[toTeam].players[toIdx]
 	local from = self.ball.Position
 	-- play it into space ahead of the receiver so they run onto it
@@ -327,11 +327,7 @@ function Presenter.pass(self: Presenter, toTeam: Pitch.Team, toIdx: number, arcO
 	if holder then
 		local kicker = self.teams[holder.team].players[holder.idx]
 		kicker:face(landing)
-		if throw then
-			kicker:throw()
-		else
-			kicker:kick()
-		end
+		kicker:kick()
 	end
 	receiver.speed = RUN_SPEED
 	receiver:setTarget(landing)
@@ -357,109 +353,11 @@ function Presenter.waitForBall(self: Presenter)
 	end
 end
 
--- Kicks the ball to a point with nobody waiting for it (out of play, corners).
-function Presenter.kickTo(self: Presenter, to: Vector3, arc: number, dur: number?)
-	local from = self.ball.Position
-	local holder = self.holder
-	if holder then
-		local kicker = self.teams[holder.team].players[holder.idx]
-		kicker:face(to)
-		kicker:kick()
-	end
-	self.holder = nil
-	self.flight = { from = from, to = to, t = 0, dur = dur or math.clamp((to - from).Magnitude / PASS_SPEED, 0.35, 1.2), arc = arc }
-end
-
--- Moves a footballer to a spot and yields until they are close (or timeout).
-local function runTo(fb: Footballer.Footballer, spot: Vector3, timeout: number)
-	fb.busy = true
-	fb.speed = RUN_SPEED
-	fb:setTarget(spot)
-	local t0 = os.clock()
-	while (Vector3.new(fb.position.X, 0, fb.position.Z) - Vector3.new(spot.X, 0, spot.Z)).Magnitude > 2.5 and os.clock() - t0 < timeout do
-		task.wait(0.1)
-	end
-end
-
--- The holder overhits a pass across the touchline; the other side throws it in.
-function Presenter.throwIn(self: Presenter)
-	local holder = self.holder
-	if not holder or holder.idx == 1 then
-		return
-	end
-	local kicker = self.teams[holder.team].players[holder.idx]
-	local side = kicker.position.X >= 0 and 1 or -1
-	local outSpot = Vector3.new(side * (Pitch.WIDTH / 2 + 3), Pitch.SURFACE_Y + 0.8,
-		math.clamp(kicker.position.Z + math.random() * 30 - 15, -Pitch.LENGTH / 2 + 15, Pitch.LENGTH / 2 - 15))
-	self:kickTo(outSpot, 3)
-	self:waitForBall()
-	task.wait(0.4)
-
-	local throwTeam = other(holder.team)
-	local throwerIdx = math.random(2, 9)
-	local thrower = self.teams[throwTeam].players[throwerIdx]
-	runTo(thrower, Vector3.new(side * (Pitch.WIDTH / 2 + 1), Pitch.SURFACE_Y, outSpot.Z), 3)
-	self.holder = { team = throwTeam, idx = throwerIdx }
-	thrower:face(centre())
-	task.wait(0.4)
-
-	local receiver = math.random(2, 11)
-	if receiver == throwerIdx then
-		receiver = receiver == 11 and 10 or receiver + 1
-	end
-	self:pass(throwTeam, receiver, 6, true)
-	self:waitForBall()
-	thrower.busy = false
-end
-
--- Corner: the attacking side swings it into the box; the defence deals with it.
-function Presenter.corner(self: Presenter, team: Pitch.Team)
-	local opp = other(team)
-	local dir = attackDir(self:geom(team))
-	local goalZ = Pitch.goalZ(self:geom(team))
-	local side = math.random() < 0.5 and -1 or 1
-	local flag = Vector3.new(side * (Pitch.WIDTH / 2 - 2), Pitch.SURFACE_Y, goalZ - dir * 2)
-	self.ball.Position = flag + Vector3.new(0, 0.8, 0)
-
-	local takerIdx = math.random(6, 9)
-	local taker = self.teams[team].players[takerIdx]
-	runTo(taker, flag + Vector3.new(side * 2, 0, -dir * 2), 4)
-	self.holder = { team = team, idx = takerIdx }
-	-- attackers crowd the box while the taker sets up
-	self.teams[team].push = 40
-	task.wait(1.0)
-
-	local boxSpot = Vector3.new(math.random() * 16 - 8, Pitch.SURFACE_Y + 1.5, goalZ - dir * (14 + math.random() * 10))
-	self:kickTo(boxSpot, 9, 1.1)
-	self:waitForBall()
-	taker.busy = false
-	self.teams[team].push = 0
-
-	if math.random() < 0.5 then
-		-- keeper claims it
-		local keeper = self.teams[opp].players[1]
-		keeper:setTarget(Vector3.new(boxSpot.X, Pitch.SURFACE_Y, boxSpot.Z))
-		task.wait(0.5)
-		self.holder = { team = opp, idx = 1 }
-	else
-		-- headed clear by a defender
-		local defIdx = math.random(2, 5)
-		self.holder = { team = opp, idx = defIdx }
-		task.wait(0.3)
-		self:pass(opp, math.random(6, 9), 5)
-		self:waitForBall()
-	end
-end
-
--- Idle possession: short passes around, with the odd turnover or throw-in.
+-- Idle possession: short passes around, with the odd turnover.
 function Presenter.fillerPass(self: Presenter)
 	local holder = self.holder
 	if not holder then
 		self.holder = { team = "Home", idx = 7 }
-		return
-	end
-	if holder.idx ~= 1 and math.random() < 0.1 then
-		self:throwIn()
 		return
 	end
 	local team = holder.team
@@ -581,10 +479,6 @@ function Presenter.playSequence(self: Presenter, ev: Event, shotAt: number)
 		keeper.busy = false
 		self.holder = { team = opp, idx = 1 }
 		task.wait(0.8)
-	elseif math.random() < 0.4 then
-		-- deflected wide: corner
-		task.wait(0.8)
-		self:corner(team)
 	else
 		task.wait(1.2)
 		self.holder = { team = opp, idx = 1 }
