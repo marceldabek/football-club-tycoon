@@ -2,14 +2,22 @@
 -- Builds the grassroots club out of primitive Parts. Intentionally ugly.
 -- Layout (studs): pitch centred on origin, long axis along Z.
 --   office block to the west (-X), stand to the east (+X).
+-- Scale: ~2.75 studs per metre, so a 105m x 68m pitch is 290 x 190 studs.
+-- A concourse strip is left free around the fence for future stands/facilities.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 
 local WorldBuilder = {}
 
-local PITCH_W, PITCH_L = 60, 100
+local PITCH_W, PITCH_L = 190, 290
 local GROUND_Y = 0 -- top of the baseplate
+local FENCE_OFFSET = 5 -- fence sits this far outside the touchline
+local FENCE_GAP = 10 -- walk-through gap in the west and east fences
+local CONCOURSE = 4 -- free strip between fence and the first structure
+
+local FENCE_X = PITCH_W / 2 + FENCE_OFFSET
+local FENCE_Z = PITCH_L / 2 + FENCE_OFFSET
 
 local function part(props: { [string]: any }): Part
 	local p = Instance.new("Part")
@@ -50,7 +58,7 @@ local function addSign(target: BasePart, text: string)
 	billboard.Size = UDim2.fromOffset(200, 50)
 	billboard.StudsOffset = Vector3.new(0, 4, 0)
 	billboard.AlwaysOnTop = false
-	billboard.MaxDistance = 60
+	billboard.MaxDistance = 150
 	billboard.Parent = target
 	local label = Instance.new("TextLabel")
 	label.Name = "Text"
@@ -73,24 +81,37 @@ local function buildPitch(parent: Instance)
 		Color3.fromRGB(75, 140, 60), Enum.Material.Grass, pitch)
 
 	local lineY = GROUND_Y + 1.05
+	local lineW = 1
 	local white = Color3.new(1, 1, 1)
 	-- touchlines / goal lines
-	box("LineW", Vector3.new(0.5, 0.1, PITCH_L), Vector3.new(-PITCH_W / 2 + 0.25, lineY, 0), white, nil, pitch)
-	box("LineE", Vector3.new(0.5, 0.1, PITCH_L), Vector3.new(PITCH_W / 2 - 0.25, lineY, 0), white, nil, pitch)
-	box("LineN", Vector3.new(PITCH_W, 0.1, 0.5), Vector3.new(0, lineY, -PITCH_L / 2 + 0.25), white, nil, pitch)
-	box("LineS", Vector3.new(PITCH_W, 0.1, 0.5), Vector3.new(0, lineY, PITCH_L / 2 - 0.25), white, nil, pitch)
-	box("Halfway", Vector3.new(PITCH_W, 0.1, 0.5), Vector3.new(0, lineY, 0), white, nil, pitch)
+	box("LineW", Vector3.new(lineW, 0.1, PITCH_L), Vector3.new(-PITCH_W / 2 + lineW / 2, lineY, 0), white, nil, pitch)
+	box("LineE", Vector3.new(lineW, 0.1, PITCH_L), Vector3.new(PITCH_W / 2 - lineW / 2, lineY, 0), white, nil, pitch)
+	box("LineN", Vector3.new(PITCH_W, 0.1, lineW), Vector3.new(0, lineY, -PITCH_L / 2 + lineW / 2), white, nil, pitch)
+	box("LineS", Vector3.new(PITCH_W, 0.1, lineW), Vector3.new(0, lineY, PITCH_L / 2 - lineW / 2), white, nil, pitch)
+	box("Halfway", Vector3.new(PITCH_W, 0.1, lineW), Vector3.new(0, lineY, 0), white, nil, pitch)
 
-	-- goals: two posts and a crossbar at each end
+	-- penalty areas (16.5m deep, 40.3m wide -> ~45 x 111 studs)
+	local boxD, boxW = 45, 111
+	for _, zSign in { -1, 1 } do
+		local edgeZ = zSign * (PITCH_L / 2)
+		local innerZ = edgeZ - zSign * boxD
+		box("BoxFront", Vector3.new(boxW, 0.1, lineW), Vector3.new(0, lineY, innerZ), white, nil, pitch)
+		for _, xSign in { -1, 1 } do
+			box("BoxSide", Vector3.new(lineW, 0.1, boxD), Vector3.new(xSign * boxW / 2, lineY, (edgeZ + innerZ) / 2), white, nil, pitch)
+		end
+	end
+
+	-- goals: 7.32m x 2.44m -> ~20 x 7 studs
+	local goalW, goalH = 20, 7
 	for _, zSign in { -1, 1 } do
 		local z = zSign * (PITCH_L / 2)
 		local goal = Instance.new("Model")
 		goal.Name = zSign < 0 and "GoalNorth" or "GoalSouth"
 		goal.Parent = pitch
 		for _, xSign in { -1, 1 } do
-			box("Post", Vector3.new(0.5, 8, 0.5), Vector3.new(xSign * 12, GROUND_Y + 1 + 4, z), white, nil, goal)
+			box("Post", Vector3.new(0.6, goalH, 0.6), Vector3.new(xSign * goalW / 2, GROUND_Y + 1 + goalH / 2, z), white, nil, goal)
 		end
-		box("Crossbar", Vector3.new(24.5, 0.5, 0.5), Vector3.new(0, GROUND_Y + 1 + 8, z), white, nil, goal)
+		box("Crossbar", Vector3.new(goalW + 0.6, 0.6, 0.6), Vector3.new(0, GROUND_Y + 1 + goalH, z), white, nil, goal)
 	end
 end
 
@@ -101,17 +122,17 @@ local function buildFence(parent: Instance)
 	local grey = Color3.fromRGB(120, 120, 120)
 	local h = 3
 	local y = GROUND_Y + h / 2
-	local fx = PITCH_W / 2 + 4
-	local fz = PITCH_L / 2 + 4
-	-- east and both ends are solid
-	box("FenceE", Vector3.new(0.4, h, fz * 2), Vector3.new(fx, y, 0), grey, Enum.Material.Metal, fence)
-	box("FenceN", Vector3.new(fx * 2, h, 0.4), Vector3.new(0, y, -fz), grey, Enum.Material.Metal, fence)
-	box("FenceS", Vector3.new(fx * 2, h, 0.4), Vector3.new(0, y, fz), grey, Enum.Material.Metal, fence)
-	-- west side has a gap in the middle for the walk from the office
-	local gap = 8
-	local segLen = fz - gap / 2
-	box("FenceW1", Vector3.new(0.4, h, segLen), Vector3.new(-fx, y, -(gap / 2 + segLen / 2)), grey, Enum.Material.Metal, fence)
-	box("FenceW2", Vector3.new(0.4, h, segLen), Vector3.new(-fx, y, gap / 2 + segLen / 2), grey, Enum.Material.Metal, fence)
+	-- both ends are solid
+	box("FenceN", Vector3.new(FENCE_X * 2, h, 0.4), Vector3.new(0, y, -FENCE_Z), grey, Enum.Material.Metal, fence)
+	box("FenceS", Vector3.new(FENCE_X * 2, h, 0.4), Vector3.new(0, y, FENCE_Z), grey, Enum.Material.Metal, fence)
+	-- west (office) and east (stand) sides have a walk-through gap in the middle
+	local segLen = FENCE_Z - FENCE_GAP / 2
+	local segZ = FENCE_GAP / 2 + segLen / 2
+	for _, side in { { "W", -FENCE_X }, { "E", FENCE_X } } do
+		local name, x = side[1] :: string, side[2] :: number
+		box("Fence" .. name .. "1", Vector3.new(0.4, h, segLen), Vector3.new(x, y, -segZ), grey, Enum.Material.Metal, fence)
+		box("Fence" .. name .. "2", Vector3.new(0.4, h, segLen), Vector3.new(x, y, segZ), grey, Enum.Material.Metal, fence)
+	end
 end
 
 local function buildOffice(parent: Instance)
@@ -119,8 +140,9 @@ local function buildOffice(parent: Instance)
 	office.Name = "Office"
 	office.Parent = parent
 
-	local cx, cz = -75, 0
-	local w, d, h = 24, 24, 10
+	local w, d, h = 32, 32, 12
+	-- west of the pitch, past the fence and a concourse strip, door facing the pitch
+	local cx, cz = -(FENCE_X + CONCOURSE + 40 + w / 2), 0
 	local wallColor = Color3.fromRGB(170, 160, 135) -- stained beige
 	local wallMat = Enum.Material.Concrete
 
@@ -134,23 +156,23 @@ local function buildOffice(parent: Instance)
 	box("WallN", Vector3.new(w, h, 1), Vector3.new(cx, wy, cz - d / 2), wallColor, wallMat, office)
 	box("WallS", Vector3.new(w, h, 1), Vector3.new(cx, wy, cz + d / 2), wallColor, wallMat, office)
 	-- east wall has a doorway facing the pitch
-	local doorW = 6
+	local doorW = 8
 	local segLen = (d - doorW) / 2
 	box("WallE1", Vector3.new(1, h, segLen), Vector3.new(cx + w / 2, wy, cz - (doorW / 2 + segLen / 2)), wallColor, wallMat, office)
 	box("WallE2", Vector3.new(1, h, segLen), Vector3.new(cx + w / 2, wy, cz + (doorW / 2 + segLen / 2)), wallColor, wallMat, office)
-	box("DoorHeader", Vector3.new(1, 2, doorW), Vector3.new(cx + w / 2, GROUND_Y + 1 + h - 1, cz), wallColor, wallMat, office)
+	box("DoorHeader", Vector3.new(1, 3, doorW), Vector3.new(cx + w / 2, GROUND_Y + 1 + h - 1.5, cz), wallColor, wallMat, office)
 
 	-- furniture
-	local desk = box("Desk", Vector3.new(4, 3, 8), Vector3.new(cx - 6, GROUND_Y + 1 + 1.5, cz),
+	local desk = box("Desk", Vector3.new(4, 3, 10), Vector3.new(cx - 8, GROUND_Y + 1 + 1.5, cz),
 		Color3.fromRGB(110, 75, 45), Enum.Material.Wood, office)
-	box("Computer", Vector3.new(1, 2, 2.5), Vector3.new(cx - 6, desk.Position.Y + 1.5 + 1, cz),
+	box("Computer", Vector3.new(1, 2, 2.5), Vector3.new(cx - 8, desk.Position.Y + 1.5 + 1, cz),
 		Color3.fromRGB(200, 200, 190), Enum.Material.Plastic, office)
-	box("Chair", Vector3.new(2, 2, 2), Vector3.new(cx - 9.5, GROUND_Y + 1 + 1, cz),
+	box("Chair", Vector3.new(2, 2, 2), Vector3.new(cx - 11.5, GROUND_Y + 1 + 1, cz),
 		Color3.fromRGB(60, 60, 60), Enum.Material.Fabric, office)
 
 	local light = Instance.new("PointLight")
 	light.Brightness = 1.2
-	light.Range = 30
+	light.Range = 40
 	light.Color = Color3.fromRGB(255, 235, 200)
 	light.Parent = box("Bulb", Vector3.new(1, 0.5, 1), Vector3.new(cx, GROUND_Y + h, cz),
 		Color3.fromRGB(255, 240, 200), Enum.Material.Neon, office)
@@ -169,18 +191,18 @@ local function buildOffice(parent: Instance)
 end
 
 local function buildMatchdayBoard(parent: Instance): ProximityPrompt
-	-- Sits just outside the west fence gap, on the walk from office to pitch.
-	local board = box("MatchdayBoard", Vector3.new(1, 5, 5), Vector3.new(-PITCH_W / 2 - 7, GROUND_Y + 2.5, 8),
+	-- Beside the west fence gap, on the walk from the office to the pitch.
+	local board = box("MatchdayBoard", Vector3.new(1, 5, 5), Vector3.new(-(FENCE_X + CONCOURSE + 3), GROUND_Y + 2.5, FENCE_GAP / 2 + 6),
 		Color3.fromRGB(30, 60, 30), Enum.Material.Wood, parent)
 	addSign(board, "MATCHDAY")
 	return addPrompt(board, "Matchday Board", "Play Match")
 end
 
 -- Stand geometry per level. Rebuildable so the upgrade physically changes it.
-local STAND_X = PITCH_W / 2 + 6
+local STAND_X = FENCE_X + CONCOURSE
 
 local function standLength(level: number): number
-	return level == 1 and 30 or 70
+	return level == 1 and 60 or 200
 end
 
 function WorldBuilder.buildStand(level: number)
@@ -195,8 +217,8 @@ function WorldBuilder.buildStand(level: number)
 	stand.Parent = club
 
 	local length = standLength(level)
-	local rows = level == 1 and 3 or 7
-	local stepDepth = 3
+	local rows = level == 1 and 3 or 8
+	local stepDepth = 4
 	local stepHeight = level == 1 and 1.5 or 2
 	local stepColor = level == 1 and Color3.fromRGB(150, 150, 150) or Color3.fromRGB(190, 190, 190)
 	local stepMat = level == 1 and Enum.Material.Metal or Enum.Material.Concrete
@@ -209,26 +231,27 @@ function WorldBuilder.buildStand(level: number)
 		if level >= 2 then
 			-- seat blocks along each row
 			local seatColor = Color3.fromRGB(30, 80, 200) -- TEMP: seat colour customisation later
-			box(("Seats%d"):format(i), Vector3.new(1.2, 1, length - 2),
-				Vector3.new(STAND_X + stepDepth * (i - 1) + stepDepth - 0.6, GROUND_Y + height + 0.5, 0),
+			box(("Seats%d"):format(i), Vector3.new(1.5, 1, length - 2),
+				Vector3.new(STAND_X + stepDepth * (i - 1) + stepDepth - 0.75, GROUND_Y + height + 0.5, 0),
 				seatColor, Enum.Material.Plastic, stand)
 		end
 	end
 
 	if level >= 2 then
 		local backX = STAND_X + stepDepth * rows + 0.5
-		box("BackWall", Vector3.new(1, stepHeight * rows + 4, length),
-			Vector3.new(backX, GROUND_Y + (stepHeight * rows + 4) / 2, 0),
+		local wallH = stepHeight * rows + 4
+		box("BackWall", Vector3.new(1, wallH, length),
+			Vector3.new(backX, GROUND_Y + wallH / 2, 0),
 			Color3.fromRGB(200, 200, 200), Enum.Material.Concrete, stand)
 	end
 
-	-- reposition the persistent upgrade sign just past the stand's north end
+	-- the persistent upgrade sign stands in front of the stand, beside the east fence gap
 	local sign = club:FindFirstChild("StandSign") :: Part
-	sign.CFrame = CFrame.new(STAND_X + 1.5, GROUND_Y + 2, -(length / 2) - 4)
+	sign.CFrame = CFrame.new(STAND_X - 2, GROUND_Y + 2, FENCE_GAP / 2 + 6)
 end
 
 local function buildStandSign(parent: Instance): ProximityPrompt
-	local sign = box("StandSign", Vector3.new(3, 4, 1), Vector3.new(0, 0, 0),
+	local sign = box("StandSign", Vector3.new(1, 4, 3), Vector3.new(0, 0, 0),
 		Color3.fromRGB(200, 170, 40), Enum.Material.Wood, parent)
 	addSign(sign, "STAND")
 	return addPrompt(sign, "Stand", "Expand")
