@@ -98,7 +98,10 @@ local function setupTerrain()
 	if baseplate and baseplate:IsA("BasePart") then
 		baseplate:Destroy()
 	end
-	terrain:FillBlock(CFrame.new(0, GROUND_Y - 8, 0), Vector3.new(4200, 16, 4200), Enum.Material.Grass)
+	-- LeafyGrass: the plain Grass material grows blade decoration that renders in a
+	-- circle round the camera and pokes through floors; the property that turns it
+	-- off is not scriptable here (Terrain > Decoration in the Properties panel)
+	terrain:FillBlock(CFrame.new(0, GROUND_Y - 8, 0), Vector3.new(4200, 16, 4200), Enum.Material.LeafyGrass)
 
 	-- rolling hills: grass balls mostly below ground, poking up at the horizon
 	local rng = Random.new(7)
@@ -108,11 +111,11 @@ local function setupTerrain()
 		local radius = rng:NextNumber(220, 380)
 		local peak = rng:NextNumber(50, 130)
 		local centre = Vector3.new(math.cos(angle) * dist, GROUND_Y - radius + peak, math.sin(angle) * dist)
-		terrain:FillBall(centre, radius, Enum.Material.Grass)
+		terrain:FillBall(centre, radius, Enum.Material.LeafyGrass)
 		if rng:NextNumber() < 0.4 then
 			-- rocky crown on some of them
 			terrain:FillBall(centre + Vector3.new(0, 4, 0), radius * 0.45, Enum.Material.Rock)
-			terrain:FillBall(centre, radius * 0.44, Enum.Material.Grass)
+			terrain:FillBall(centre, radius * 0.44, Enum.Material.LeafyGrass)
 		end
 	end
 
@@ -289,23 +292,14 @@ local function setupFloodlights(parent: Instance)
 			-- Creator Store mast when the place has one: its lamp parts are named StadiumLight
 			local placed = Assets.place("Floodlight", base, parent, { height = mastH + 6, lookAt = Vector3.new(0, GROUND_Y, 0), name = "Floodlight" })
 			if placed then
-				local lampCount = 0
+				-- lamps only. The store model ships with a light source in every lamp,
+				-- which washes the pole; real lights only reach 60 studs anyway.
 				for _, d in placed.model:GetDescendants() do
-					if d:IsA("BasePart") and d.Name == "StadiumLight" then
+					if d:IsA("Light") then
+						d:Destroy()
+					elseif d:IsA("BasePart") and d.Name == "StadiumLight" then
 						d.CastShadow = false
 						table.insert(floodHeads, d)
-						lampCount += 1
-						if lampCount == 1 then
-							local light = Instance.new("SpotLight")
-							light.Name = "Beam"
-							light.Angle = 120
-							light.Brightness = 3
-							light.Range = 60
-							light.Face = Enum.NormalId.Bottom
-							light.Color = Color3.fromRGB(255, 250, 235)
-							light.Enabled = false
-							light.Parent = d
-						end
 					end
 				end
 				continue
@@ -338,15 +332,6 @@ local function setupFloodlights(parent: Instance)
 				CastShadow = false,
 				Parent = parent,
 			})
-			local light = Instance.new("SpotLight")
-			light.Name = "Beam"
-			light.Angle = 120
-			light.Brightness = 3
-			light.Range = 60
-			light.Face = Enum.NormalId.Front
-			light.Color = Color3.fromRGB(255, 250, 235)
-			light.Enabled = false
-			light.Parent = head
 			table.insert(floodHeads, head)
 		end
 	end
@@ -356,10 +341,6 @@ function Scenery.setFloodlights(on: boolean)
 	for _, head in floodHeads do
 		head.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
 		head.Color = if on then Color3.fromRGB(255, 250, 225) else Color3.fromRGB(150, 145, 125)
-		local beam = head:FindFirstChild("Beam") :: SpotLight?
-		if beam then
-			beam.Enabled = on
-		end
 	end
 end
 

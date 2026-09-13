@@ -303,20 +303,31 @@ local function buildDugouts(parent: Instance)
 	local dugouts = Instance.new("Model")
 	dugouts.Name = "Dugouts"
 	dugouts.Parent = parent
-	local x = -(PITCH_W / 2 + 3.2)
+	-- character scale: ~2.75 studs per metre, so a seat is ~1.3 high and a shelter ~7.5
+	local x = -(PITCH_W / 2 + 3.6)
+	local depth = 5.5
+	local shelterH = 7.5
+	local dark = Color3.fromRGB(45, 45, 50)
 	for _, zSign in { -1, 1 } do
 		local zc = zSign * (DUGOUT_Z[1] + DUGOUT_Z[2]) / 2
 		local len = DUGOUT_Z[2] - DUGOUT_Z[1]
-		box("Bench", Vector3.new(2, 1.6, len - 2), Vector3.new(x - 0.5, GROUND_Y + 0.8, zc), Color3.fromRGB(50, 50, 55), Enum.Material.Plastic, dugouts)
-		box("BenchBack", Vector3.new(0.4, 3.5, len - 2), Vector3.new(x - 1.6, GROUND_Y + 1.75, zc), Color3.fromRGB(50, 50, 55), Enum.Material.Plastic, dugouts)
-		local roof = box("Shelter", Vector3.new(4.5, 0.3, len), Vector3.new(x - 0.2, GROUND_Y + 5.5, zc), Color3.fromRGB(180, 210, 230), Enum.Material.Glass, dugouts)
-		roof.Transparency = 0.35
+		-- raised concrete step the bench sits on, so it reads as a dugout not a box
+		box("Plinth", Vector3.new(depth, 0.6, len), Vector3.new(x - depth / 2 + 1.5, GROUND_Y + 0.3, zc), Color3.fromRGB(165, 165, 160), Enum.Material.Concrete, dugouts)
+		-- padded bench: seat plus a tall back against the rear wall, in club colours
+		box("Seat", Vector3.new(2.2, 0.5, len - 2), Vector3.new(x - 1.2, GROUND_Y + 1.55, zc), Config.SeatColor, Enum.Material.Fabric, dugouts)
+		box("SeatBase", Vector3.new(2.2, 1.0, len - 2), Vector3.new(x - 1.2, GROUND_Y + 1.1, zc), dark, Enum.Material.Plastic, dugouts)
+		box("SeatBack", Vector3.new(0.5, 2.6, len - 2), Vector3.new(x - 2.4, GROUND_Y + 2.9, zc), Config.SeatColor, Enum.Material.Fabric, dugouts)
+		-- rear wall and end posts carry the perspex shelter
+		box("RearWall", Vector3.new(0.4, shelterH, len), Vector3.new(x - depth + 1.5, GROUND_Y + shelterH / 2, zc), dark, Enum.Material.Metal, dugouts)
 		for _, zEnd in { -1, 1 } do
-			local side = box("Side", Vector3.new(4.5, 5.2, 0.3), Vector3.new(x - 0.2, GROUND_Y + 2.7, zc + zEnd * (len / 2 - 0.15)), Color3.fromRGB(180, 210, 230), Enum.Material.Glass, dugouts)
-			side.Transparency = 0.35
+			local zEdge = zc + zEnd * (len / 2 - 0.2)
+			box("Post", Vector3.new(0.4, shelterH, 0.4), Vector3.new(x + 1.3, GROUND_Y + shelterH / 2, zEdge), dark, Enum.Material.Metal, dugouts)
+			local side = box("Side", Vector3.new(depth - 0.4, shelterH - 0.6, 0.3), Vector3.new(x - depth / 2 + 1.5, GROUND_Y + shelterH / 2, zEdge), Color3.fromRGB(190, 215, 235), Enum.Material.Glass, dugouts)
+			side.Transparency = 0.45
 		end
-		box("Frame", Vector3.new(0.4, 5.5, 0.4), Vector3.new(x - 2.3, GROUND_Y + 2.75, zc + len / 2 - 0.3), Color3.fromRGB(90, 90, 95), Enum.Material.Metal, dugouts)
-		box("Frame", Vector3.new(0.4, 5.5, 0.4), Vector3.new(x - 2.3, GROUND_Y + 2.75, zc - len / 2 + 0.3), Color3.fromRGB(90, 90, 95), Enum.Material.Metal, dugouts)
+		local roof = box("Shelter", Vector3.new(depth + 0.6, 0.35, len + 0.4), Vector3.new(x - depth / 2 + 1.5, GROUND_Y + shelterH, zc), Color3.fromRGB(190, 215, 235), Enum.Material.Glass, dugouts)
+		roof.Transparency = 0.3
+		box("RoofFrame", Vector3.new(depth + 0.8, 0.5, 0.5), Vector3.new(x - depth / 2 + 1.5, GROUND_Y + shelterH + 0.2, zc), dark, Enum.Material.Metal, dugouts)
 	end
 end
 
@@ -325,14 +336,17 @@ local function buildTunnel(parent: Instance): TextLabel
 	local tunnel = Instance.new("Model")
 	tunnel.Name = "Tunnel"
 	tunnel.Parent = parent
+	-- tall enough to feel like a stadium entrance: ~14 studs is roughly two and a half characters
 	local x = -(FENCE_X + 0.5)
-	local h = 9
-	local w = FENCE_GAP + 4
+	local h = 13
+	local w = FENCE_GAP + 5
 	local colour = Config.HomeKit
 	for _, zSign in { -1, 1 } do
-		box("Pillar", Vector3.new(1.4, h, 1.4), Vector3.new(x, GROUND_Y + h / 2, zSign * (w / 2)), colour, Enum.Material.SmoothPlastic, tunnel)
+		box("Pillar", Vector3.new(2.2, h, 2.2), Vector3.new(x, GROUND_Y + h / 2, zSign * (w / 2)), colour, Enum.Material.SmoothPlastic, tunnel)
+		box("PillarCap", Vector3.new(2.8, 0.6, 2.8), Vector3.new(x, GROUND_Y + 0.3, zSign * (w / 2)), Color3.fromRGB(70, 70, 75), Enum.Material.Concrete, tunnel)
 	end
-	local header = box("Header", Vector3.new(1.4, 2.6, w + 1.4), Vector3.new(x, GROUND_Y + h + 1.3, 0), colour, Enum.Material.SmoothPlastic, tunnel)
+	local header = box("Header", Vector3.new(2.2, 3.4, w + 2.2), Vector3.new(x, GROUND_Y + h + 1.7, 0), colour, Enum.Material.SmoothPlastic, tunnel)
+	box("HeaderTrim", Vector3.new(2.4, 0.4, w + 2.4), Vector3.new(x, GROUND_Y + h + 3.6, 0), Color3.fromRGB(240, 240, 240), Enum.Material.SmoothPlastic, tunnel)
 	-- name plate facing the pitch (+X side of the header)
 	local gui = Instance.new("SurfaceGui")
 	gui.Face = Enum.NormalId.Right
@@ -371,13 +385,18 @@ local function buildFence(parent: Instance)
 	-- both ends are solid
 	box("FenceN", Vector3.new(FENCE_X * 2, h, 0.4), Vector3.new(0, y, -FENCE_Z), grey, Enum.Material.Metal, fence)
 	box("FenceS", Vector3.new(FENCE_X * 2, h, 0.4), Vector3.new(0, y, FENCE_Z), grey, Enum.Material.Metal, fence)
-	-- west (office) and east (stand) sides have a walk-through gap in the middle
-	local segLen = FENCE_Z - FENCE_GAP / 2
-	local segZ = FENCE_GAP / 2 + segLen / 2
-	for _, side in { { "W", -FENCE_X }, { "E", FENCE_X } } do
-		local name, x = side[1] :: string, side[2] :: number
-		box("Fence" .. name .. "1", Vector3.new(0.4, h, segLen), Vector3.new(x, y, -segZ), grey, Enum.Material.Metal, fence)
-		box("Fence" .. name .. "2", Vector3.new(0.4, h, segLen), Vector3.new(x, y, segZ), grey, Enum.Material.Metal, fence)
+	-- west (office) and east (stand) sides have a walk-through gap in the middle;
+	-- on the west the dugouts stand in the fence line, so it skips their span
+	local function run(name: string, x: number, z0: number, z1: number)
+		box(name, Vector3.new(0.4, h, z1 - z0), Vector3.new(x, y, (z0 + z1) / 2), grey, Enum.Material.Metal, fence)
+	end
+	for _, zSign in { -1, 1 } do
+		local g, fz = FENCE_GAP / 2, FENCE_Z
+		local lo, hi = math.min(zSign * g, zSign * fz), math.max(zSign * g, zSign * fz)
+		run("FenceE", FENCE_X, lo, hi)
+		local d0, d1 = math.min(zSign * DUGOUT_Z[1], zSign * DUGOUT_Z[2]), math.max(zSign * DUGOUT_Z[1], zSign * DUGOUT_Z[2])
+		run("FenceW", -FENCE_X, lo, d0)
+		run("FenceW", -FENCE_X, d1, hi)
 	end
 end
 
