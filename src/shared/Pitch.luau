@@ -40,6 +40,7 @@ local FORMATION = {
 	{ x = -0.2, depth = 0.68 },
 	{ x = 0.2, depth = 0.68 },
 }
+Pitch.FORMATION = FORMATION -- read-only; the lineup board draws slots from it
 
 -- TEMP: how far Attack / Defend push the outfield line (fraction of pitch length).
 local TACTIC_SHIFT = 0.1

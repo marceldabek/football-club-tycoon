@@ -59,6 +59,11 @@ The curated id tables live in `Appearance.luau` and hold only Roblox-published c
 (free, script-free, loadable from any experience). Ids are verified in Studio during
 implementation with `MarketplaceService:GetProductInfo`. Marcel can extend the tables later.
 
+Implementation note (2026-09-13): the avatar catalog has no free Roblox-made beards, so
+`beard` was dropped and replaced by a rare `shades` face accessory (4%). Headshots use a
+classic mesh head with the face as a thumbnail decal, because the rig's dynamic head renders
+untextured inside a ViewportFrame.
+
 `Appearance.toDescription(look, kit, isKeeper): HumanoidDescription` fills a description:
 body colours from `skin`, scales, `HairAccessory`, `Face`, `FaceAccessory`, `HatAccessory`.
 Shirt/shorts/socks/boots are plain part colours applied after the rig exists (`applyKit`):

@@ -12,6 +12,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Theme = require(script.Parent.Theme)
+local LineupBoard = require(script.Parent.LineupBoard)
 
 local player = Players.LocalPlayer
 local state = ReplicatedStorage:WaitForChild("ClubState")
@@ -39,8 +40,6 @@ type Club = {
 	scoutLevel: number,
 	shortlist: { Player },
 }
-
-local ROLE_ORDER = { "GK", "DEF", "DEF", "DEF", "DEF", "MID", "MID", "MID", "MID", "FWD", "FWD" }
 
 local money = Theme.money
 
@@ -234,72 +233,9 @@ local function canManage(): boolean
 	return get("OwnerUserId") == player.UserId
 end
 
-local function statusText(p: Player): (string, Color3)
-	if p.injured > 0 then
-		return ("INJ %d"):format(p.injured), RED
-	end
-	return "", GREY
-end
-
 -- ------------------------------------------------------------------ Squad tab
 
-local function playerRow(p: Player, slotLabel: string, alt: boolean, club: Club, canRelease: boolean)
-	local f = row(alt)
-	local isSelected = selectedId == p.id
-	if isSelected then
-		f.BackgroundColor3 = Theme.colors.selected
-	end
-	local hit = Instance.new("TextButton")
-	hit.BackgroundTransparency = 1
-	hit.Text = ""
-	canRelease = canRelease and canManage()
-	hit.Size = UDim2.new(1, if canRelease then -90 else 0, 1, 0)
-	hit.Parent = f
-	cell(f, slotLabel, 10, 46, { TextColor3 = GREY, Font = Enum.Font.GothamBold })
-	cell(f, ("%d"):format(p.number), 58, 30, { TextColor3 = GREY })
-	cell(f, p.name, 90, 190, { Font = Enum.Font.GothamBold })
-	cell(f, p.role, 285, 40, { TextColor3 = GREY })
-	cell(f, ("age %d"):format(p.age), 330, 60, { TextColor3 = GREY })
-	cell(f, ("%d"):format(p.overall), 395, 40, { Font = Enum.Font.GothamBold, TextColor3 = ACCENT })
-	cell(f, ("%dA %dG"):format(p.apps, p.goals), 440, 80, { TextColor3 = GREY })
-	local st, stColor = statusText(p)
-	cell(f, st, 525, 70, { TextColor3 = stColor, Font = Enum.Font.GothamBold })
-
-	hit.Activated:Connect(function()
-		if not canManage() then
-			return
-		end
-		-- with Auto Squad on the server refuses the swap and explains why
-		if selectedId == nil then
-			selectedId = p.id
-			render()
-		elseif selectedId == p.id then
-			selectedId = nil
-			render()
-		else
-			actionEvent:FireServer("swap", selectedId, p.id)
-			selectedId = nil
-		end
-	end)
-
-	if canRelease then
-		local rel = button(f, "Release", Color3.fromRGB(90, 60, 60), {
-			Size = UDim2.fromOffset(80, 24),
-			Position = UDim2.new(1, -86, 0, 3),
-			TextSize = 13,
-		})
-		rel.Activated:Connect(function()
-			actionEvent:FireServer("release", p.id)
-		end)
-	end
-end
-
 local function renderSquad(club: Club)
-	local byId: { [number]: Player } = {}
-	for _, p in club.players do
-		byId[p.id] = p
-	end
-
 	local head = row(false)
 	head.BackgroundColor3 = PANEL_BG
 	if canManage() then
@@ -310,48 +246,34 @@ local function renderSquad(club: Club)
 		toggle.Activated:Connect(function()
 			actionEvent:FireServer("setAutoSquad", not club.autoSquad)
 		end)
-		cell(head, if club.autoSquad then "The best fit XI is picked for you." else "Tap two players to swap them.", 180, 400, { TextColor3 = GREY })
+		cell(head, if club.autoSquad then "The best fit XI is picked for you." else "Drag a card onto another to swap.", 180, 400, { TextColor3 = GREY })
 	else
 		cell(head, if club.autoSquad then "Auto Squad is on." else "The owner picks the team by hand.", 0, 400, { TextColor3 = GREY })
 	end
 
-	section("STARTING XI")
-	local used: { [number]: boolean } = {}
-	for slot, role in ROLE_ORDER do
-		local id = club.lineup.xi[slot]
-		local p = if id then byId[id] else nil
-		if p then
-			used[p.id] = true
-			playerRow(p, role, slot % 2 == 0, club, false)
-		else
-			local f = row(slot % 2 == 0)
-			cell(f, role, 10, 46, { TextColor3 = GREY, Font = Enum.Font.GothamBold })
-			cell(f, "— empty —", 90, 200, { TextColor3 = RED })
-		end
-	end
-
-	section("BENCH")
-	for i, id in club.lineup.bench do
-		local p = byId[id]
-		if p then
-			used[p.id] = true
-			playerRow(p, "SUB", i % 2 == 0, club, false)
-		end
-	end
-
-	local reserves = {}
-	for _, p in club.players do
-		if not used[p.id] then
-			table.insert(reserves, p)
-		end
-	end
-	if #reserves > 0 then
-		section(("RESERVES (%d)"):format(#reserves))
-		for i, p in reserves do
-			playerRow(p, "", i % 2 == 0, club, true)
-		end
-	end
-	note(("Squad: %d / %d players.  OVR = overall rating.  A = appearances, G = goals."):format(#club.players, Config.SquadMax))
+	LineupBoard.render(content, {
+		club = club :: any,
+		kit = Config.HomeKit,
+		canDrag = canManage() and not club.autoSquad,
+		canRelease = canManage(),
+		selectedId = selectedId,
+		layoutOrder = nextOrder(),
+		onSwap = function(a: number, b: number)
+			selectedId = nil
+			actionEvent:FireServer("swap", a, b)
+		end,
+		onSelect = function(id: number?)
+			selectedId = id
+			render()
+		end,
+		onRelease = function(id: number)
+			actionEvent:FireServer("release", id)
+		end,
+		lockScroll = function(locked: boolean)
+			content.ScrollingEnabled = not locked
+		end,
+	})
+	note(("Squad: %d / %d players.  Drag a card onto another to swap, or tap two cards.  Number bottom-left, OVR bottom-right."):format(#club.players, Config.SquadMax))
 end
 
 -- --------------------------------------------------------------- Scouting tab

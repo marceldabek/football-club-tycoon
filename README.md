@@ -112,6 +112,17 @@ dbg:Invoke("wipe")               -- throw the club away and start fresh
   styles every client screen. Set *Lighting → Technology* to **Future** in Studio by hand
   (not scriptable) for the shadows the grade was tuned for.
 
+- Match visuals pass: footballers are R15 rigs built on the client from a per-player look
+  seed (`Appearance.luau`: skin tone, height/build, Roblox-made hair, face, rare shades or
+  headband, boot colour) with Roblox-owned idle / walk / run / celebrate animations and
+  procedural kick / dive; `BlockFootballer` is the fallback if a rig fails to build. The ball
+  rolls at 0.9 studs, sits at the carrier's feet, gets knocked ahead while dribbling and is
+  only lofted for switches and shots; filler play is nearest-teammate build-up with
+  interceptions. Fans are character-scale and leave at full time. The Club panel's Squad tab
+  is a lineup board: headshot cards (`Headshot.luau`, classic mesh head with the face as a
+  thumbnail decal) on a pitch, drag one card onto another or tap two to swap
+  (`LineupBoard.luau`), which still goes through the server's `swap` rules.
+
 All economy numbers in `src/shared/Config.luau` are TEMP placeholders.
 
 ## Assets
