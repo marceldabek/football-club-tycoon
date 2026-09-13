@@ -4,12 +4,16 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
+
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 
 local player = Players.LocalPlayer
 local state = ReplicatedStorage:WaitForChild("ClubState")
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local summaryEvent = remotes:WaitForChild("MatchSummary") :: RemoteEvent
 local toastEvent = remotes:WaitForChild("Toast") :: RemoteEvent
+local tacticEvent = remotes:WaitForChild("Tactic") :: RemoteEvent
 
 local function money(n: number): string
 	local s = tostring(math.floor(n))
@@ -85,6 +89,82 @@ local clockLabel = makeLabel("Clock", scoreboard, {
 })
 scoreboard.Visible = false
 
+-- Matchday banner (PreMatch only)
+local banner = makePanel("Banner", UDim2.fromOffset(520, 90), UDim2.new(0.5, 0, 0, 90))
+local bannerTitle = makeLabel("Title", banner, {
+	Size = UDim2.new(1, -20, 0.45, 0),
+	Position = UDim2.fromOffset(10, 6),
+	TextColor3 = Color3.fromRGB(255, 230, 150),
+})
+bannerTitle.Text = "MATCHDAY"
+local bannerBody = makeLabel("Body", banner, { Size = UDim2.new(1, -20, 0.45, 0), Position = UDim2.new(0, 10, 0.5, 0) })
+banner.Visible = false
+
+-- Big centre flash (GOAL! / KICK-OFF / FULL TIME)
+local flashLabel = makeLabel("Flash", gui, {
+	Size = UDim2.new(0.6, 0, 0, 90),
+	Position = UDim2.fromScale(0.5, 0.3),
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Visible = false,
+})
+local flashToken = 0
+local function flash(text: string, color: Color3, seconds: number)
+	flashToken += 1
+	local myToken = flashToken
+	flashLabel.Text = text
+	flashLabel.TextColor3 = color
+	flashLabel.Visible = true
+	task.delay(seconds, function()
+		if flashToken == myToken then
+			flashLabel.Visible = false
+		end
+	end)
+end
+
+-- Tactics (bottom-right, Match only). Attack / Defend toggle back to Balanced.
+local tactics = makePanel("Tactics", UDim2.fromOffset(170, 160), UDim2.new(1, -105, 1, -110))
+tactics.Visible = false
+local function makeButton(name: string, y: number, color: Color3): TextButton
+	local b = Instance.new("TextButton")
+	b.Name = name
+	b.Size = UDim2.new(1, -20, 0, 42)
+	b.Position = UDim2.new(0, 10, 0, y)
+	b.BackgroundColor3 = color
+	b.Font = Enum.Font.GothamBold
+	b.TextSize = 18
+	b.TextColor3 = Color3.new(1, 1, 1)
+	b.Text = name:upper()
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = b
+	b.Parent = tactics
+	return b
+end
+local attackButton = makeButton("Attack", 10, Color3.fromRGB(200, 60, 60))
+local defendButton = makeButton("Defend", 58, Color3.fromRGB(60, 100, 200))
+local subButton = makeButton("Sub", 106, Color3.fromRGB(90, 90, 90))
+
+local function refreshTacticButtons()
+	local current = get("Tactic") or "Balanced"
+	for _, pair in { { attackButton, "Attack" }, { defendButton, "Defend" } } do
+		local button, name = pair[1] :: TextButton, pair[2] :: string
+		local active = current == name
+		button.BackgroundTransparency = active and 0 or 0.55
+		button.Text = active and (name:upper() .. "  ✓") or name:upper()
+	end
+	local subs = HttpService:JSONDecode(get("Subs") or "[]")
+	subButton.Text = ("SUB  (%d left)"):format(math.max(Config.MaxSubs - #subs, 0))
+end
+attackButton.Activated:Connect(function()
+	tacticEvent:FireServer(get("Tactic") == "Attack" and "Balanced" or "Attack")
+end)
+defendButton.Activated:Connect(function()
+	tacticEvent:FireServer(get("Tactic") == "Defend" and "Balanced" or "Defend")
+end)
+subButton.Activated:Connect(function()
+	tacticEvent:FireServer("Sub")
+end)
+
 -- Post-match summary (centre)
 local summary = makePanel("Summary", UDim2.fromOffset(420, 360), UDim2.fromScale(0.5, 0.5))
 summary.Visible = false
@@ -126,21 +206,29 @@ local toastLabel = makeLabel("Toast", gui, {
 	Visible = false,
 })
 local toastToken = 0
-toastEvent.OnClientEvent:Connect(function(message: string)
+local function showToast(message: string, color: Color3?)
 	toastToken += 1
 	local myToken = toastToken
 	toastLabel.Text = message
+	toastLabel.TextColor3 = color or Color3.fromRGB(255, 120, 120)
 	toastLabel.Visible = true
 	task.delay(2.5, function()
 		if toastToken == myToken then
 			toastLabel.Visible = false
 		end
 	end)
+end
+toastEvent.OnClientEvent:Connect(function(message: string)
+	showToast(message)
 end)
 
 local function refreshHint()
-	if get("Phase") == "Match" then
-		hintLabel.Text = "Match in progress. Walk around and watch."
+	local phase = get("Phase")
+	if phase == "PreMatch" then
+		hintLabel.Text = "Matchday! The teams are walking out."
+		return
+	elseif phase == "Match" then
+		hintLabel.Text = "Match on. Walk around and watch, or use ATTACK / DEFEND / SUB."
 		return
 	end
 	local played = get("MatchesPlayed") or 0
@@ -180,6 +268,71 @@ end
 for _, key in { "Phase", "MatchesPlayed", "StandLevel" } do
 	state:GetAttributeChangedSignal(key):Connect(refreshHint)
 end
+
+local function refreshPhasePanels()
+	local phase = get("Phase")
+	banner.Visible = phase == "PreMatch"
+	tactics.Visible = phase == "Match"
+	if phase == "PreMatch" then
+		summary.Visible = false -- a lingering summary must never cover the next match
+		bannerBody.Text = ("%s  vs  %s"):format(get("ClubName") or "Home", get("Opponent") or "Away")
+	end
+end
+
+local lastPhase = get("Phase")
+state:GetAttributeChangedSignal("Phase"):Connect(function()
+	local phase = get("Phase")
+	if lastPhase == "Match" and phase == "Manage" then
+		flash("FULL TIME", Color3.new(1, 1, 1), 3)
+	elseif phase == "Match" then
+		flash("KICK-OFF", Color3.new(1, 1, 1), 1.5)
+	end
+	lastPhase = phase
+	refreshPhasePanels()
+	refreshTacticButtons()
+end)
+state:GetAttributeChangedSignal("Opponent"):Connect(refreshPhasePanels)
+state:GetAttributeChangedSignal("Tactic"):Connect(refreshTacticButtons)
+
+local function onGoal(team: string)
+	if get("Phase") ~= "Match" then
+		return
+	end
+	if team == "Home" then
+		flash("GOAL!", Color3.fromRGB(255, 230, 80), 2.5)
+	else
+		flash(("%s score"):format(get("Opponent") or "They"), Color3.fromRGB(255, 120, 120), 2.5)
+	end
+end
+-- Goals only ever go up during a match; the reset to 0 at kickoff is ignored.
+state:GetAttributeChangedSignal("HomeGoals"):Connect(function()
+	if (get("HomeGoals") or 0) > 0 then
+		onGoal("Home")
+	end
+end)
+state:GetAttributeChangedSignal("AwayGoals"):Connect(function()
+	if (get("AwayGoals") or 0) > 0 then
+		onGoal("Away")
+	end
+end)
+
+state:GetAttributeChangedSignal("Subs"):Connect(function()
+	refreshTacticButtons()
+	local subs = HttpService:JSONDecode(get("Subs") or "[]")
+	local raw = get("Timeline")
+	if #subs == 0 or type(raw) ~= "string" or raw == "" then
+		return
+	end
+	local sub = subs[#subs]
+	local squad = HttpService:JSONDecode(raw).home.squad
+	local outP, inP = squad[sub.out], squad[sub["in"]]
+	if outP and inP then
+		showToast(("SUB: %d %s on, %d %s off"):format(inP.number, inP.name, outP.number, outP.name), Color3.fromRGB(150, 220, 255))
+	end
+end)
+
+refreshPhasePanels()
+refreshTacticButtons()
 
 summaryEvent.OnClientEvent:Connect(function(data)
 	local outcomeText = data.outcome == "Win" and "WIN" or (data.outcome == "Draw" and "DRAW" or "LOSS")

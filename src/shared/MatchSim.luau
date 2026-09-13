@@ -34,7 +34,8 @@ local TOTAL_XG = 2.6
 -- Minimum football minutes between two chances so their 3D sequences never
 -- overlap (a sequence takes ~6 real seconds = ~6 minutes of a 90s match).
 MatchSim.MIN_EVENT_GAP = 8
-local FIRST_MINUTE, LAST_MINUTE = 3, 88
+-- First chance no earlier than 6' so the 3D build-up (~5s) fits after kickoff.
+local FIRST_MINUTE, LAST_MINUTE = 6, 88
 
 -- Extra non-scoring chances per team, on top of goals.
 local MIN_EXTRA_CHANCES, MAX_EXTRA_CHANCES = 2, 3

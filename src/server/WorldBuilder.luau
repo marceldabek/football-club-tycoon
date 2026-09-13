@@ -7,10 +7,11 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
+local Pitch = require(ReplicatedStorage.Shared.Pitch)
 
 local WorldBuilder = {}
 
-local PITCH_W, PITCH_L = 190, 290
+local PITCH_W, PITCH_L = Pitch.WIDTH, Pitch.LENGTH
 local GROUND_Y = 0 -- top of the baseplate
 local FENCE_OFFSET = 5 -- fence sits this far outside the touchline
 local FENCE_GAP = 10 -- walk-through gap in the west and east fences
@@ -102,7 +103,7 @@ local function buildPitch(parent: Instance)
 	end
 
 	-- goals: 7.32m x 2.44m -> ~20 x 7 studs
-	local goalW, goalH = 20, 7
+	local goalW, goalH = Pitch.GOAL_WIDTH, Pitch.GOAL_HEIGHT
 	for _, zSign in { -1, 1 } do
 		local z = zSign * (PITCH_L / 2)
 		local goal = Instance.new("Model")
@@ -201,8 +202,14 @@ end
 -- Stand geometry per level. Rebuildable so the upgrade physically changes it.
 local STAND_X = FENCE_X + CONCOURSE
 
-local function standLength(level: number): number
-	return level == 1 and 60 or 200
+local STEP_DEPTH = 4
+
+local function standSpec(level: number)
+	return {
+		length = level == 1 and 60 or 200,
+		rows = level == 1 and 3 or 8,
+		stepHeight = level == 1 and 1.5 or 2,
+	}
 end
 
 function WorldBuilder.buildStand(level: number)
@@ -216,10 +223,8 @@ function WorldBuilder.buildStand(level: number)
 	stand.Name = "Stand"
 	stand.Parent = club
 
-	local length = standLength(level)
-	local rows = level == 1 and 3 or 8
-	local stepDepth = 4
-	local stepHeight = level == 1 and 1.5 or 2
+	local spec = standSpec(level)
+	local length, rows, stepDepth, stepHeight = spec.length, spec.rows, STEP_DEPTH, spec.stepHeight
 	local stepColor = level == 1 and Color3.fromRGB(150, 150, 150) or Color3.fromRGB(190, 190, 190)
 	local stepMat = level == 1 and Enum.Material.Metal or Enum.Material.Concrete
 
@@ -245,9 +250,59 @@ function WorldBuilder.buildStand(level: number)
 			Color3.fromRGB(200, 200, 200), Enum.Material.Concrete, stand)
 	end
 
+	-- empty crowd folder; filled at kickoff
+	local crowd = Instance.new("Folder")
+	crowd.Name = "Crowd"
+	crowd.Parent = stand
+
 	-- the persistent upgrade sign stands in front of the stand, beside the east fence gap
 	local sign = club:FindFirstChild("StandSign") :: Part
 	sign.CFrame = CFrame.new(STAND_X - 2, GROUND_Y + 2, FENCE_GAP / 2 + 6)
+end
+
+-- TEMP crowd palette: mostly home colours with some neutrals.
+local CROWD_COLORS = {
+	Config.HomeKit,
+	Config.HomeKit,
+	Color3.fromRGB(240, 240, 240),
+	Color3.fromRGB(40, 40, 40),
+	Color3.fromRGB(70, 90, 130),
+	Color3.fromRGB(220, 200, 150),
+}
+local FAN_SPACING = 2.2
+
+-- Fills the stand with simple block fans at a density matching attendance.
+-- One block stands for several fans, so `capacity` blocks means a full house.
+function WorldBuilder.buildCrowd(standLevel: number, attendance: number, capacity: number)
+	local club = workspace:FindFirstChild("Club") :: Model
+	local stand = club:FindFirstChild("Stand") :: Model
+	local crowd = stand:FindFirstChild("Crowd") :: Folder
+	crowd:ClearAllChildren()
+
+	local spec = standSpec(standLevel)
+	local perRow = math.floor((spec.length - 2) / FAN_SPACING)
+	local slots = perRow * spec.rows
+	local fill = math.clamp(attendance / math.max(capacity, 1), 0, 1)
+	local rng = Random.new(attendance)
+
+	local count = 0
+	for row = 1, spec.rows do
+		local top = GROUND_Y + spec.stepHeight * row
+		local x = STAND_X + STEP_DEPTH * (row - 1) + STEP_DEPTH / 2 - 0.4
+		for i = 1, perRow do
+			-- deterministic scatter: skip seats so density visibly tracks attendance
+			if rng:NextNumber() > fill then
+				continue
+			end
+			local z = -spec.length / 2 + 1 + FAN_SPACING * (i - 0.5)
+			local fan = box("Fan", Vector3.new(1.3, 2.2, 1.1), Vector3.new(x, top + 1.1, z),
+				CROWD_COLORS[rng:NextInteger(1, #CROWD_COLORS)], Enum.Material.SmoothPlastic, crowd)
+			fan.CanCollide = false
+			count += 1
+		end
+	end
+	stand:SetAttribute("CrowdSlots", slots)
+	stand:SetAttribute("CrowdCount", count)
 end
 
 local function buildStandSign(parent: Instance): ProximityPrompt

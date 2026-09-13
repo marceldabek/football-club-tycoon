@@ -1,11 +1,13 @@
 --!strict
--- Milestone 1 configuration.
+-- Game configuration.
 -- TEMP: every number in this file is a placeholder chosen to make the first
 -- two matches feel good. Real economy tuning is an open question (CLAUDE.md §25).
 
 local Config = {}
 
 Config.MatchDurationSeconds = 90
+-- Time between pressing Play Match and kickoff: iris transition + walkout.
+Config.WalkoutSeconds = 10
 
 -- TEMP economy
 Config.StartingCash = 0
@@ -27,7 +29,7 @@ Config.StandLevels = {
 	{ name = "North Stand", capacity = 400, cost = 1500 }, -- TEMP cost
 }
 
--- TEMP fictional opponents. Cycled by match index.
+-- TEMP fictional opponents. Cycled by match index. Kit colours line up by index.
 Config.OpponentNames = {
 	"Bramblewick Rovers",
 	"Oakhollow United",
@@ -35,7 +37,20 @@ Config.OpponentNames = {
 	"Kestrel Green FC",
 	"Ashby Wanderers",
 }
+Config.AwayKits = {
+	Color3.fromRGB(240, 220, 60),
+	Color3.fromRGB(240, 240, 240),
+	Color3.fromRGB(40, 160, 220),
+	Color3.fromRGB(60, 170, 80),
+	Color3.fromRGB(150, 60, 200),
+}
 
 Config.ClubName = "Your Club" -- TEMP: club naming flow is undecided
+Config.HomeKit = Color3.fromRGB(200, 40, 50) -- TEMP: kit customisation later
+-- Fixed seed so the home squad's names stay the same match to match, so the
+-- player can start recognising them. Real persistent squads arrive in Milestone 3.
+Config.HomeSquadSeed = 1
+
+Config.MaxSubs = 3
 
 return Config

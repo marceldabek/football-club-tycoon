@@ -1,5 +1,5 @@
 --!strict
--- Milestone 1 entry point: build the world and wire the two world prompts.
+-- Entry point: build the world and wire the world prompts.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ClubState = require(script.Parent.ClubState)
@@ -14,9 +14,7 @@ local world = WorldBuilder.build(ClubState.get("StandLevel"))
 UpgradeService.init(world.standPrompt)
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
-local toast = Instance.new("RemoteEvent")
-toast.Name = "Toast"
-toast.Parent = remotes
+local toast = remotes:WaitForChild("Toast") :: RemoteEvent
 
 world.matchdayPrompt.Triggered:Connect(function(player)
 	local started = MatchService.playMatch()
@@ -34,7 +32,7 @@ world.standPrompt.Triggered:Connect(function(player)
 	end
 end)
 
--- Lock world upgrades while a match is running.
+-- Lock world upgrades while a match is running (PreMatch and Match).
 ClubState.Folder:GetAttributeChangedSignal("Phase"):Connect(function()
 	local managing = ClubState.get("Phase") == "Manage"
 	world.matchdayPrompt.Enabled = managing
@@ -43,6 +41,9 @@ end)
 
 -- Studio-only debug hook so agent/manual playtests can drive the real services
 -- without walking to prompts. Never present in a live server.
+--   ("playMatch", durationSeconds?, walkoutSeconds?)
+--   ("expandStand")
+--   ("tactic", "Attack" | "Defend" | "Balanced" | "Sub")
 if game:GetService("RunService"):IsStudio() then
 	local debug = Instance.new("BindableFunction")
 	debug.Name = "DebugCommand"
@@ -52,9 +53,11 @@ if game:GetService("RunService"):IsStudio() then
 			return MatchService.playMatch(...)
 		elseif command == "expandStand" then
 			return UpgradeService.tryExpandStand()
+		elseif command == "tactic" then
+			return MatchService.applyTactic(...)
 		end
 		return false, "unknown command: " .. tostring(command)
 	end
 end
 
-print("[FCT] Milestone 1 world ready")
+print("[FCT] world ready")

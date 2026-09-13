@@ -42,11 +42,17 @@ function ClubState.init()
 	ClubState.set("Wins", 0)
 	ClubState.set("Draws", 0)
 	ClubState.set("Losses", 0)
-	ClubState.set("Phase", "Manage") -- "Manage" | "Match"
+	ClubState.set("Phase", "Manage") -- "Manage" | "PreMatch" | "Match"
 	ClubState.set("HomeGoals", 0)
 	ClubState.set("AwayGoals", 0)
 	ClubState.set("TimeLeft", 0)
+	ClubState.set("MatchDuration", Config.MatchDurationSeconds)
+	ClubState.set("KickoffAt", 0)
 	ClubState.set("Opponent", "")
+	ClubState.set("Attendance", 0)
+	ClubState.set("Tactic", "Balanced") -- "Balanced" | "Attack" | "Defend"
+	ClubState.set("Subs", "[]") -- JSON list of { out = number, in = number }
+	ClubState.set("Timeline", "") -- JSON published at PreMatch for the client presenter
 	ClubState.set("ClubName", Config.ClubName)
 end
 

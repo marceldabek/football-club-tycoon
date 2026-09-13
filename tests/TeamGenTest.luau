@@ -42,4 +42,17 @@ function T.deterministicBySeed()
 	assert(TeamGen.generate(1)[1].name ~= TeamGen.generate(2)[1].name, "different seeds gave the same keeper")
 end
 
+function T.nextSubWalksDownFromElevenAndStopsAtThree()
+	local squad = TeamGen.generate(5)
+	local made = {}
+	local expected = { { out = 11, ["in"] = 12 }, { out = 10, ["in"] = 13 }, { out = 9, ["in"] = 14 } }
+	for i = 1, 3 do
+		local sub = TeamGen.nextSub(squad, made)
+		assert(sub, "sub " .. i .. " was nil")
+		assert(sub.out == expected[i].out and sub["in"] == expected[i]["in"], ("sub %d: %d->%d"):format(i, sub.out, sub["in"]))
+		table.insert(made, sub)
+	end
+	assert(TeamGen.nextSub(squad, made) == nil, "fourth sub should be refused")
+end
+
 return T

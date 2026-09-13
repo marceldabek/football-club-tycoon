@@ -53,4 +53,31 @@ function TeamGen.generate(seed: number): { Player }
 	return squad
 end
 
+export type Sub = { out: number, ["in"]: number }
+
+local MAX_SUBS = 3
+
+-- Picks the next substitution: the most advanced remaining starter comes off
+-- for the next unused bench player. TEMP: no fatigue/ratings yet, so the
+-- order is fixed (11, 10, 9). Returns nil when no sub is possible.
+function TeamGen.nextSub(squad: { Player }, made: { Sub }): Sub?
+	if #made >= MAX_SUBS then
+		return nil
+	end
+	local onBench = #Pitch.ROLES + #made + 1
+	if not squad[onBench] then
+		return nil
+	end
+	local subbedOut: { [number]: boolean } = {}
+	for _, sub in made do
+		subbedOut[sub.out] = true
+	end
+	for number = #Pitch.ROLES, 2, -1 do
+		if not subbedOut[number] then
+			return { out = number, ["in"] = onBench }
+		end
+	end
+	return nil
+end
+
 return TeamGen

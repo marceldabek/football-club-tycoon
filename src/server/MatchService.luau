@@ -1,17 +1,25 @@
 --!strict
--- Runs a matchday: locks the club, runs the hidden sim, replays goal events on
--- the scoreboard over the match duration, then settles revenue.
+-- Runs a matchday: locks the club, runs the hidden sim, publishes the timeline
+-- for clients to visualise, replays goal events on the scoreboard over the
+-- match duration, then settles revenue.
 -- The final score always comes from the sim, never from what was displayed.
+--
+-- Phases: Manage -> PreMatch (iris + walkout) -> Match (clock running) -> Manage
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local MatchSim = require(ReplicatedStorage.Shared.MatchSim)
 local Economy = require(ReplicatedStorage.Shared.Economy)
+local TeamGen = require(ReplicatedStorage.Shared.TeamGen)
 local ClubState = require(script.Parent.ClubState)
+local WorldBuilder = require(script.Parent.WorldBuilder)
 
 local MatchService = {}
 
 local running = false
+local homeSquad: { TeamGen.Player } = {}
+local subsMade: { TeamGen.Sub } = {}
 
 local function findOrCreate(parent: Instance, name: string, className: string): Instance
 	local existing = parent:FindFirstChild(name)
@@ -24,36 +32,66 @@ local function findOrCreate(parent: Instance, name: string, className: string): 
 	return inst
 end
 
-local function summaryEvent(): RemoteEvent
+local function remote(name: string): RemoteEvent
 	local remotes = findOrCreate(ReplicatedStorage, "Remotes", "Folder")
-	return findOrCreate(remotes, "MatchSummary", "RemoteEvent") :: RemoteEvent
-end
-
-function MatchService.init()
-	summaryEvent()
+	return findOrCreate(remotes, name, "RemoteEvent") :: RemoteEvent
 end
 
 local function bump(key: string, delta: number)
 	ClubState.set(key, (ClubState.get(key) :: number) + delta)
 end
 
--- durationOverride exists for tests only.
-function MatchService.playMatch(durationOverride: number?): boolean
+local function colorToJson(c: Color3): { number }
+	return { math.floor(c.R * 255 + 0.5), math.floor(c.G * 255 + 0.5), math.floor(c.B * 255 + 0.5) }
+end
+
+-- Attack / Defend / Balanced / Sub. Returns false plus a reason if refused.
+function MatchService.applyTactic(action: string): (boolean, string?)
+	if ClubState.get("Phase") ~= "Match" then
+		return false, "No match in progress"
+	end
+	if action == "Attack" or action == "Defend" or action == "Balanced" then
+		ClubState.set("Tactic", action)
+		return true
+	elseif action == "Sub" then
+		local sub = TeamGen.nextSub(homeSquad, subsMade)
+		if not sub then
+			return false, "No substitutions left"
+		end
+		table.insert(subsMade, sub)
+		ClubState.set("Subs", HttpService:JSONEncode(subsMade))
+		return true
+	end
+	return false, "Unknown action"
+end
+
+function MatchService.init()
+	remote("MatchSummary")
+	remote("Toast")
+	local tactic = remote("Tactic")
+	tactic.OnServerEvent:Connect(function(player: Player, action: unknown)
+		if type(action) ~= "string" then
+			return
+		end
+		local ok, reason = MatchService.applyTactic(action)
+		if not ok and reason then
+			remote("Toast"):FireClient(player, reason)
+		end
+	end)
+end
+
+-- Overrides exist for tests only.
+function MatchService.playMatch(durationOverride: number?, walkoutOverride: number?): boolean
 	if running or ClubState.get("Phase") ~= "Manage" then
 		return false
 	end
 	running = true
 
 	local matchIndex = (ClubState.get("MatchesPlayed") :: number) + 1
-	local opponent = Config.OpponentNames[((matchIndex - 1) % #Config.OpponentNames) + 1]
+	local opponentIndex = ((matchIndex - 1) % #Config.OpponentNames) + 1
+	local opponent = Config.OpponentNames[opponentIndex]
 	local duration = durationOverride or Config.MatchDurationSeconds
-
-	ClubState.set("Opponent", opponent)
-	ClubState.set("HomeGoals", 0)
-	ClubState.set("AwayGoals", 0)
-	ClubState.set("MatchDuration", duration)
-	ClubState.set("TimeLeft", duration)
-	ClubState.set("Phase", "Match")
+	local walkout = walkoutOverride or Config.WalkoutSeconds
 
 	-- Simulation layer: result decided up front.
 	local result = MatchSim.simulate({
@@ -62,7 +100,35 @@ function MatchService.playMatch(durationOverride: number?): boolean
 		bias = MatchSim.biasForMatch(matchIndex),
 	})
 
-	-- Presentation layer: replay goal events against the clock.
+	homeSquad = TeamGen.generate(Config.HomeSquadSeed)
+	local awaySquad = TeamGen.generate(100 + matchIndex) -- TEMP: fresh opponents each match
+	subsMade = {}
+
+	local capacity = ClubState.capacity()
+	local attendance = math.min(capacity, Config.BaseDemand)
+	WorldBuilder.buildCrowd(ClubState.get("StandLevel") :: number, attendance, capacity)
+
+	ClubState.set("Opponent", opponent)
+	ClubState.set("HomeGoals", 0)
+	ClubState.set("AwayGoals", 0)
+	ClubState.set("MatchDuration", duration)
+	ClubState.set("TimeLeft", duration)
+	ClubState.set("Attendance", attendance)
+	ClubState.set("Tactic", "Balanced")
+	ClubState.set("Subs", "[]")
+	ClubState.set("Timeline", HttpService:JSONEncode({
+		events = result.events,
+		home = { name = ClubState.get("ClubName"), kit = colorToJson(Config.HomeKit), squad = homeSquad },
+		away = { name = opponent, kit = colorToJson(Config.AwayKits[opponentIndex]), squad = awaySquad },
+	}))
+	ClubState.set("Phase", "PreMatch")
+
+	task.wait(walkout)
+
+	ClubState.set("KickoffAt", workspace:GetServerTimeNow())
+	ClubState.set("Phase", "Match")
+
+	-- Presentation layer (scoreboard): replay goal events against the clock.
 	local startClock = os.clock()
 	local nextEvent = 1
 	while true do
@@ -73,10 +139,8 @@ function MatchService.playMatch(durationOverride: number?): boolean
 		local minute = math.floor(elapsed / duration * 90)
 		while result.events[nextEvent] and result.events[nextEvent].minute <= minute do
 			local ev = result.events[nextEvent]
-			if ev.team == "Home" then
-				bump("HomeGoals", 1)
-			else
-				bump("AwayGoals", 1)
+			if ev.type == "GOAL" then
+				bump(ev.team == "Home" and "HomeGoals" or "AwayGoals", 1)
 			end
 			nextEvent += 1
 		end
@@ -92,7 +156,7 @@ function MatchService.playMatch(durationOverride: number?): boolean
 	local settlement = Economy.settle({
 		homeGoals = result.homeGoals,
 		awayGoals = result.awayGoals,
-		capacity = ClubState.capacity(),
+		capacity = capacity,
 		demand = Config.BaseDemand,
 		ticketPrice = Config.TicketPrice,
 		winBonus = Config.WinBonus,
@@ -112,7 +176,7 @@ function MatchService.playMatch(durationOverride: number?): boolean
 	ClubState.set("Phase", "Manage")
 	running = false
 
-	summaryEvent():FireAllClients({
+	remote("MatchSummary"):FireAllClients({
 		opponent = opponent,
 		homeGoals = result.homeGoals,
 		awayGoals = result.awayGoals,
