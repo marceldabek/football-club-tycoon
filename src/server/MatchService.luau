@@ -205,6 +205,7 @@ function MatchService.playMatch(durationOverride: number?, walkoutOverride: numb
 	local roundResult = SeasonService.recordPlayerResult(result.homeGoals, result.awayGoals, settlement.outcome)
 
 	ClubState.set("Phase", "Manage")
+	WorldBuilder.clearCrowd()
 	running = false
 
 	local settled = MatchService.onSettled

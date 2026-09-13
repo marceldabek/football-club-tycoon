@@ -711,7 +711,7 @@ local SKIN_TONES = {
 	Color3.fromRGB(150, 100, 70),
 	Color3.fromRGB(100, 65, 45),
 }
-local FAN_SPACING = 2.2
+local FAN_SPACING = 2.6 -- seated fans at character scale need this much elbow room
 -- Fan budget for a full house (mobile); each fan is two parts.
 local MAX_FAN_BLOCKS = 500
 
@@ -733,24 +733,26 @@ function WorldBuilder.buildCrowd(standLevel: number, attendance: number, capacit
 	local count = 0
 	for row = 1, spec.rows do
 		local top = GROUND_Y + spec.stepHeight * row
-		local x = STAND_X + STEP_DEPTH * (row - 1) + STEP_DEPTH / 2 - 0.4
+		-- sit toward the front of the step so heads clear the row behind
+		local x = STAND_X + STEP_DEPTH * (row - 1) + STEP_DEPTH / 2 - 1.0
 		for i = 1, perRow do
 			-- deterministic scatter: skip seats so density visibly tracks attendance
 			if rng:NextNumber() > fill then
 				continue
 			end
 			local z = -spec.length / 2 + 1 + spacing * (i - 0.5)
-			-- seated fan: torso block plus a head; a little height jitter so rows do not look stamped
-			local bodyH = 1.5 + rng:NextNumber(-0.15, 0.15)
-			local fan = box("Fan", Vector3.new(1.2, bodyH, 1.0), Vector3.new(x, top + 0.9 + bodyH / 2, z),
+			-- seated fan at character scale (a standing character is ~5 studs):
+			-- torso block plus a head; a little height jitter so rows do not look stamped
+			local bodyH = 2.6 + rng:NextNumber(-0.2, 0.2)
+			local fan = box("Fan", Vector3.new(1.8, bodyH, 1.4), Vector3.new(x, top + 0.9 + bodyH / 2, z),
 				CROWD_COLORS[rng:NextInteger(1, #CROWD_COLORS)], Enum.Material.SmoothPlastic, crowd)
 			fan.CanCollide = false
 			fan.CastShadow = false
 			local head = part({
 				Name = "Head",
 				Shape = Enum.PartType.Ball,
-				Size = Vector3.new(0.9, 0.9, 0.9),
-				CFrame = CFrame.new(x, top + 0.9 + bodyH + 0.45, z),
+				Size = Vector3.new(1.2, 1.2, 1.2),
+				CFrame = CFrame.new(x, top + 0.9 + bodyH + 0.6, z),
 				Color = SKIN_TONES[rng:NextInteger(1, #SKIN_TONES)],
 				Material = Enum.Material.SmoothPlastic,
 				CanCollide = false,
@@ -763,6 +765,17 @@ function WorldBuilder.buildCrowd(standLevel: number, attendance: number, capacit
 	end
 	stand:SetAttribute("CrowdSlots", slots)
 	stand:SetAttribute("CrowdCount", count)
+end
+
+-- Fans go home at full time; the stand is empty between matches.
+function WorldBuilder.clearCrowd()
+	local club = workspace:FindFirstChild("Club")
+	local stand = club and club:FindFirstChild("Stand")
+	local crowd = stand and stand:FindFirstChild("Crowd")
+	if crowd and stand then
+		crowd:ClearAllChildren()
+		stand:SetAttribute("CrowdCount", 0)
+	end
 end
 
 -- Concourse amenity chain (snack bar -> club shop -> fan zone), opposite the
