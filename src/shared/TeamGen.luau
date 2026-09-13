@@ -12,6 +12,7 @@ export type Player = {
 	name: string,
 	number: number,
 	role: Pitch.Role,
+	look: number, -- appearance seed, see Appearance.luau
 }
 
 -- TEMP name pools. Footballer-shaped with a little Roblox flavour.
@@ -49,10 +50,10 @@ function TeamGen.generate(seed: number): { Player }
 	local names = TeamGen.generateNames(rng, #Pitch.ROLES + #BENCH_ROLES)
 	local squad: { Player } = {}
 	for i, role in Pitch.ROLES do
-		table.insert(squad, { name = names[i], number = i, role = role })
+		table.insert(squad, { name = names[i], number = i, role = role, look = rng:NextInteger(1, 2 ^ 30) })
 	end
 	for i, role in BENCH_ROLES do
-		table.insert(squad, { name = names[#Pitch.ROLES + i], number = #Pitch.ROLES + i, role = role })
+		table.insert(squad, { name = names[#Pitch.ROLES + i], number = #Pitch.ROLES + i, role = role, look = rng:NextInteger(1, 2 ^ 30) })
 	end
 	return squad
 end

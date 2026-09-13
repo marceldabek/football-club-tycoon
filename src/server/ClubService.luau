@@ -214,7 +214,12 @@ function ClubService.restore(data: any?)
 	end
 	players = {}
 	for _, p in data.players do
-		table.insert(players, table.clone(p))
+		local copy = table.clone(p)
+		-- saves from before looks existed get a stable seed so faces stay put
+		if type(copy.look) ~= "number" then
+			copy.look = Squad.lookSeedFor(copy.id, copy.name)
+		end
+		table.insert(players, copy)
 	end
 	local maxId = 0
 	for _, p in players do
@@ -228,7 +233,11 @@ function ClubService.restore(data: any?)
 	if type(data.shortlist) == "table" then
 		for _, p in data.shortlist do
 			if validPlayer(p) and type(p.fee) == "number" then
-				table.insert(shortlist, table.clone(p))
+				local copy = table.clone(p)
+				if type(copy.look) ~= "number" then
+					copy.look = Squad.lookSeedFor(copy.id, copy.name)
+				end
+				table.insert(shortlist, copy)
 			end
 		end
 	end

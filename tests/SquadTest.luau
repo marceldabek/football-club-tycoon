@@ -30,6 +30,22 @@ function T.generateShape()
 	assert(avg > 40 and avg < 50, "average " .. avg .. " far from 45")
 end
 
+function T.playersCarryLookSeed()
+	local a = Squad.generate(7, 45)
+	local b = Squad.generate(7, 45)
+	for i, p in a do
+		assert(type(p.look) == "number" and p.look >= 1, "look seed missing")
+		assert(p.look == b[i].look, "look seed not deterministic")
+	end
+	assert(a[1].look ~= a[2].look, "players share a look seed")
+	local ms = Squad.matchSquad(a, Squad.autoLineup(a))
+	assert(ms[1].look == Squad.byId(a)[ms[1].id].look, "matchSquad drops look")
+	assert(Squad.lookSeedFor(3, "Bob") == Squad.lookSeedFor(3, "Bob"), "hash unstable")
+	assert(Squad.lookSeedFor(3, "Bob") ~= Squad.lookSeedFor(4, "Bob"), "hash ignores id")
+	local prospects = Squad.prospects(4, 45, 1)
+	assert(#prospects == 0 or type(prospects[1].look) == "number", "prospect look missing")
+end
+
 function T.autoLineupPicksBestFitPerRole()
 	local players = Squad.generate(2, 45)
 	local lineup = Squad.autoLineup(players)

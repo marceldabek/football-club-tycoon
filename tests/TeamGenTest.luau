@@ -44,6 +44,13 @@ function T.generateNamesGivesDistinctCount()
 	end
 end
 
+function T.awayPlayersCarryLookSeed()
+	local s = TeamGen.generate(11)
+	assert(type(s[1].look) == "number", "away look missing")
+	assert(s[1].look == TeamGen.generate(11)[1].look, "away look not deterministic")
+	assert(s[1].look ~= s[2].look, "away players share a look")
+end
+
 function T.deterministicBySeed()
 	local a, b = TeamGen.generate(99), TeamGen.generate(99)
 	for i = 1, 16 do

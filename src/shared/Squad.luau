@@ -22,6 +22,7 @@ export type Player = {
 	injured: number, -- matches still out; 0 = fit
 	apps: number,
 	goals: number,
+	look: number, -- appearance seed, see Appearance.luau
 }
 
 export type Prospect = Player & { fee: number }
@@ -35,6 +36,7 @@ export type MatchPlayer = {
 	number: number,
 	role: Pitch.Role,
 	overall: number,
+	look: number,
 }
 
 export type Sub = { out: number, ["in"]: number }
@@ -95,7 +97,18 @@ local function makePlayer(rng: Random, id: number, name: string, number: number,
 		injured = 0,
 		apps = 0,
 		goals = 0,
+		look = rng:NextInteger(1, 2 ^ 30),
 	}
+end
+
+-- Stable look seed for players saved before looks existed (FNV-1a over the
+-- name, salted with the id).
+function Squad.lookSeedFor(id: number, name: string): number
+	local h = 2166136261
+	for i = 1, #name do
+		h = (bit32.bxor(h, name:byte(i)) * 16777619) % 2 ^ 31
+	end
+	return (h + id * 7919) % 2 ^ 30 + 1
 end
 
 -- Starting squad: 16 players with ids and shirt numbers 1..16.
@@ -205,7 +218,7 @@ function Squad.matchSquad(players: { Player }, lineup: Lineup): { MatchPlayer }
 	local function add(id: number?)
 		local p = if id then map[id] else nil
 		if p then
-			table.insert(out, { id = p.id, name = p.name, number = p.number, role = p.role, overall = p.overall })
+			table.insert(out, { id = p.id, name = p.name, number = p.number, role = p.role, overall = p.overall, look = p.look })
 		end
 	end
 	for slot = 1, #Pitch.ROLES do
