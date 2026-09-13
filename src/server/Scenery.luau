@@ -101,7 +101,10 @@ local function setupTerrain()
 	-- LeafyGrass: the plain Grass material grows blade decoration that renders in a
 	-- circle round the camera and pokes through floors; the property that turns it
 	-- off is not scriptable here (Terrain > Decoration in the Properties panel)
-	terrain:FillBlock(CFrame.new(0, GROUND_Y - 8, 0), Vector3.new(4200, 16, 4200), Enum.Material.LeafyGrass)
+	-- Terrain renders its surface ~2 studs above the top of a filled voxel row, so
+	-- the fill stops at GROUND_Y - 2 to put the walkable surface exactly at GROUND_Y
+	-- (measured: a fill to 0 gave a surface at 2, cutting through the pitch and office).
+	terrain:FillBlock(CFrame.new(0, GROUND_Y - 10, 0), Vector3.new(4200, 16, 4200), Enum.Material.LeafyGrass)
 
 	-- rolling hills: grass balls mostly below ground, poking up at the horizon
 	local rng = Random.new(7)
@@ -120,8 +123,8 @@ local function setupTerrain()
 	end
 
 	-- a pond off to the south-west
-	terrain:FillBlock(CFrame.new(-380, GROUND_Y - 3, 420), Vector3.new(160, 6, 120), Enum.Material.Air)
-	terrain:FillBlock(CFrame.new(-380, GROUND_Y - 4, 420), Vector3.new(160, 4, 120), Enum.Material.Water)
+	terrain:FillBlock(CFrame.new(-380, GROUND_Y - 5, 420), Vector3.new(160, 6, 120), Enum.Material.Air)
+	terrain:FillBlock(CFrame.new(-380, GROUND_Y - 6, 420), Vector3.new(160, 4, 120), Enum.Material.Water)
 
 	local clouds = findOrCreate(terrain, "Clouds", "Clouds") :: Clouds
 	clouds.Cover = 0.55
