@@ -16,12 +16,33 @@ Config.WinBonus = 400
 Config.DrawBonus = 150
 Config.LossBonus = 0
 
--- TEMP: flat fan demand. Later driven by popularity / performance / amenities.
-Config.BaseDemand = 420
+-- Attendance (Milestone 4). demand = demandBase * (0.5 + popularity/100) * (1 + amenity bonus)
+Config.StartingPopularity = 20
+Config.PopularityDelta = { Win = 3, Draw = 1, Loss = -2, Promoted = 10, Relegated = -10, Champions = 15 }
 
--- TEMP: opponent strength for the hidden sim until divisions arrive (Milestone 4).
--- Home strength comes from the squad (Squad.strength) plus the coach bonus.
-Config.AwayStrength = 45
+-- The fictional pyramid, bottom to top. TEMP names and numbers (CLAUDE.md §25).
+-- baseStrength is what the squad's average overall has to keep up with.
+Config.Divisions = {
+	{ name = "Sunday Parks League", baseStrength = 44, demandBase = 600, prizeMultiplier = 1 },
+	{ name = "County League", baseStrength = 52, demandBase = 1400, prizeMultiplier = 2 },
+	{ name = "Regional Premier", baseStrength = 60, demandBase = 3000, prizeMultiplier = 4 },
+	{ name = "National League", baseStrength = 68, demandBase = 6000, prizeMultiplier = 8 },
+	{ name = "Premier Division", baseStrength = 76, demandBase = 12000, prizeMultiplier = 16 },
+}
+Config.TeamsPerDivision = 6 -- double round robin = 10 matches
+Config.PromotionSpots = 2
+Config.RelegationSpots = 2
+-- End-of-season prize by final position, times the division multiplier.
+Config.PrizeByPosition = { 3000, 2000, 1200, 600, 500, 400 }
+
+-- TEMP fictional opponent pools, one per division. 5 are drawn each season.
+Config.TeamNamePools = {
+	{ "Bramblewick Rovers", "Oakhollow United", "Fenmoor Athletic", "Kestrel Green FC", "Ashby Wanderers", "Millpond Town", "Sunday Legends", "Hedgerow FC" },
+	{ "Thornbury Town", "Redcliffe Rangers", "Saltmarsh United", "Wexford Vale", "Brindle Heath", "Copperfield Celtic", "Norbury Athletic", "Larkspur Rovers" },
+	{ "Harrowgate City", "Blackwater Albion", "Ironbridge FC", "Greyfriars United", "Stonemoor Town", "Kingsmere Rovers", "Eastwick Athletic", "Dunmore Wanderers" },
+	{ "Northgate United", "Silverton City", "Marlow Park FC", "Whitcombe Town", "Ravensmoor", "Castlebridge Albion", "Ferndale Athletic", "Highfield Rovers" },
+	{ "Royal Kingsbury", "Meridian City", "Old Aldgate", "Wentworth United", "Crownhill FC", "Lancaster Park", "Westbrook Athletic", "Sovereign Town" },
+}
 
 -- Squad (Milestone 3). All TEMP.
 Config.StartingSquadOverall = 45
@@ -36,30 +57,32 @@ Config.DeclineChance = 0.06 -- per player aged 31+ per match
 Config.CoachLevels = {
 	{ name = "No coach", cost = 0, strengthBonus = 0, developMultiplier = 1 },
 	{ name = "Volunteer Coach", cost = 800, strengthBonus = 2, developMultiplier = 1.5 },
-	{ name = "Qualified Coach", cost = 2500, strengthBonus = 4, developMultiplier = 2 },
-	{ name = "Pro Coach", cost = 6000, strengthBonus = 6, developMultiplier = 3 },
+	{ name = "Qualified Coach", cost = 4000, strengthBonus = 4, developMultiplier = 2 },
+	{ name = "Pro Coach", cost = 10000, strengthBonus = 6, developMultiplier = 3 },
 }
 -- Level 0 = no scout. Index = level (no zero entry). Shortlist refreshes every match.
 Config.ScoutLevels = {
 	{ name = "Local Scout", cost = 600, prospects = 3, overallBonus = 2, potentialBoost = 3 },
-	{ name = "Regional Scout", cost = 2000, prospects = 4, overallBonus = 4, potentialBoost = 6 },
-	{ name = "Scouting Network", cost = 5000, prospects = 5, overallBonus = 6, potentialBoost = 10 },
+	{ name = "Regional Scout", cost = 3000, prospects = 4, overallBonus = 4, potentialBoost = 6 },
+	{ name = "Scouting Network", cost = 8000, prospects = 5, overallBonus = 6, potentialBoost = 10 },
 }
 
--- The one Milestone 1 upgrade. Level 1 is the starting stand.
+-- Stand chain. Level 1 is the starting stand. TEMP costs.
 Config.StandLevels = {
 	{ name = "Bleachers", capacity = 150, cost = 0 },
-	{ name = "North Stand", capacity = 400, cost = 1500 }, -- TEMP cost
+	{ name = "Main Stand", capacity = 400, cost = 1500 },
+	{ name = "Double-tier Stand", capacity = 1000, cost = 9000 },
+	{ name = "Covered Grandstand", capacity = 2500, cost = 30000 },
+}
+-- Concourse amenities. Level 0 = nothing. Values are cumulative. TEMP.
+Config.AmenityLevels = {
+	{ name = "Nothing", cost = 0, perFan = 0, demandBonus = 0 },
+	{ name = "Snack Bar", cost = 1200, perFan = 2, demandBonus = 0.1 },
+	{ name = "Club Shop", cost = 6000, perFan = 4, demandBonus = 0.2 },
+	{ name = "Fan Zone", cost = 15000, perFan = 6, demandBonus = 0.35 },
 }
 
--- TEMP fictional opponents. Cycled by match index. Kit colours line up by index.
-Config.OpponentNames = {
-	"Bramblewick Rovers",
-	"Oakhollow United",
-	"Fenmoor Athletic",
-	"Kestrel Green FC",
-	"Ashby Wanderers",
-}
+-- Opponent kit colours, assigned in order to each season's teams.
 Config.AwayKits = {
 	Color3.fromRGB(240, 220, 60),
 	Color3.fromRGB(240, 240, 240),

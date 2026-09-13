@@ -58,6 +58,18 @@ function ClubState.init()
 	ClubState.set("CoachLevel", 0)
 	ClubState.set("ScoutLevel", 0)
 	ClubState.set("AutoSquad", true)
+	-- Season (SeasonService)
+	ClubState.set("Tier", 1)
+	ClubState.set("DivisionName", "")
+	ClubState.set("Season", 1)
+	ClubState.set("Round", 0) -- matches played this season
+	ClubState.set("Rounds", 10)
+	ClubState.set("Position", 1)
+	ClubState.set("Popularity", Config.StartingPopularity)
+	ClubState.set("Demand", 0)
+	ClubState.set("NextOpponent", "")
+	ClubState.set("LeagueTable", "[]") -- JSON standings
+	ClubState.set("AmenityLevel", 0)
 end
 
 return ClubState

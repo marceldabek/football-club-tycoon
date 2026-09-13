@@ -7,13 +7,15 @@ local WorldBuilder = require(script.Parent.WorldBuilder)
 local MatchService = require(script.Parent.MatchService)
 local UpgradeService = require(script.Parent.UpgradeService)
 local ClubService = require(script.Parent.ClubService)
+local SeasonService = require(script.Parent.SeasonService)
 
 ClubState.init()
 MatchService.init()
 ClubService.init()
+SeasonService.init()
 
-local world = WorldBuilder.build(ClubState.get("StandLevel"))
-UpgradeService.init(world.standPrompt)
+local world = WorldBuilder.build(ClubState.get("StandLevel"), ClubState.get("AmenityLevel"))
+UpgradeService.init({ stand = world.standPrompt, amenity = world.amenityPrompt })
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local toast = remotes:WaitForChild("Toast") :: RemoteEvent
@@ -26,11 +28,20 @@ world.matchdayPrompt.Triggered:Connect(function(player)
 end)
 
 world.standPrompt.Triggered:Connect(function(player)
-	local ok, reason = UpgradeService.tryExpandStand()
+	local ok, message = UpgradeService.tryExpandStand()
 	if ok then
-		toast:FireAllClients("Stand expanded!")
+		toast:FireAllClients(message or "Stand expanded!", true)
 	else
-		toast:FireClient(player, reason or "Cannot expand right now")
+		toast:FireClient(player, message or "Cannot expand right now")
+	end
+end)
+
+world.amenityPrompt.Triggered:Connect(function(player)
+	local ok, message = UpgradeService.tryUpgradeAmenity()
+	if ok then
+		toast:FireAllClients(message or "Amenity built!", true)
+	else
+		toast:FireClient(player, message or "Cannot build right now")
 	end
 end)
 
@@ -44,7 +55,7 @@ end)
 -- Studio-only debug hook so agent/manual playtests can drive the real services
 -- without walking to prompts. Never present in a live server.
 --   ("playMatch", durationSeconds?, walkoutSeconds?)
---   ("expandStand")
+--   ("expandStand") / ("amenity")
 --   ("tactic", "Attack" | "Defend" | "Balanced" | "Sub")
 --   ("club", action, a?, b?)  e.g. ("club", "hireScout"), ("club", "swap", 3, 14)
 --   ("cash", amount) adds money
@@ -57,6 +68,8 @@ if game:GetService("RunService"):IsStudio() then
 			return MatchService.playMatch(...)
 		elseif command == "expandStand" then
 			return UpgradeService.tryExpandStand()
+		elseif command == "amenity" then
+			return UpgradeService.tryUpgradeAmenity()
 		elseif command == "tactic" then
 			return MatchService.applyTactic(...)
 		elseif command == "club" then

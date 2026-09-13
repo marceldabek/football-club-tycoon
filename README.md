@@ -29,7 +29,7 @@ running `rojo serve` over HTTP. HttpService must be enabled in the place for thi
 
 ### Tests
 
-Pure modules (`MatchSim`, `Pitch`, `TeamGen`, `Squad`) have suites in `tests/`. Run them from the
+Pure modules (`MatchSim`, `Pitch`, `TeamGen`, `Squad`, `League`, `Economy`) have suites in `tests/`. Run them from the
 command bar (they recompile modules from source, so no stale `require` cache):
 
 ```lua
@@ -43,7 +43,7 @@ In Play mode the server exposes `ServerScriptService.Server.DebugCommand` (Binda
 ```lua
 local dbg = game.ServerScriptService.Server.DebugCommand
 dbg:Invoke("playMatch", 30, 3)   -- optional: match seconds, walkout seconds
-dbg:Invoke("expandStand")
+dbg:Invoke("expandStand")        -- or "amenity" for the concourse chain
 dbg:Invoke("tactic", "Attack")   -- "Attack" | "Defend" | "Balanced" | "Sub"
 dbg:Invoke("club", "hireScout")  -- any ClubService action: setAutoSquad, swap, sign, release, hireCoach...
 dbg:Invoke("cash", 5000)         -- add money
@@ -60,6 +60,9 @@ dbg:Invoke("cash", 5000)         -- add money
   with ratings, auto/manual lineup, injuries, development, coach, scout shortlist. Published as
   one JSON attribute (`ClubState.Club`); the `ClubPanel` client shows it (office computer / CLUB
   button / Tab) and sends actions over the `ClubAction` remote.
+- **Season** (`src/shared/League.luau` + `src/server/SeasonService.luau`): 6-team double round
+  robin (10 matches), table, promotion / relegation through `Config.Divisions`, popularity and
+  fan demand (`Economy.demand`). The other fixtures of each round are simulated with `MatchSim`.
 - **Presentation** (`src/client/MatchPresenter.luau`): each client replays the timeline locally,
   synced to the server's `KickoffAt`. Block footballers (`Footballer.luau`) with procedural run /
   kick / celebrate / dive poses. Nothing here affects the result.
@@ -80,5 +83,11 @@ dbg:Invoke("cash", 5000)         -- add money
   with optional manual swaps, injuries and development after each match, coach (strength +
   development), scout with a refreshing shortlist, signing and releasing. Home strength in the
   sim now comes from the XI; home goals get named scorers.
+
+- Milestone 4: first season. Fixed opponents per division with division-driven strength, league
+  table (Club panel → League), promotion / relegation, season-over summary with prize money,
+  squad ageing, popularity-driven attendance, stand levels 3-4 and a concourse amenity chain
+  (Snack Bar → Club Shop → Fan Zone) that adds per-fan revenue and demand. All of the player's
+  fixtures are presented at home (one stadium) for now.
 
 All economy numbers in `src/shared/Config.luau` are TEMP placeholders.

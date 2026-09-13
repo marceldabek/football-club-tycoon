@@ -257,12 +257,15 @@ local STAND_X = FENCE_X + CONCOURSE
 
 local STEP_DEPTH = 4
 
+-- One entry per Config.StandLevels level.
+local STAND_SPECS = {
+	{ length = 60, rows = 3, stepHeight = 1.5, roof = false },
+	{ length = 200, rows = 8, stepHeight = 2, roof = false },
+	{ length = 240, rows = 12, stepHeight = 2, roof = false },
+	{ length = 270, rows = 16, stepHeight = 2, roof = true },
+}
 local function standSpec(level: number)
-	return {
-		length = level == 1 and 60 or 200,
-		rows = level == 1 and 3 or 8,
-		stepHeight = level == 1 and 1.5 or 2,
-	}
+	return STAND_SPECS[math.clamp(level, 1, #STAND_SPECS)]
 end
 
 function WorldBuilder.buildStand(level: number)
@@ -301,6 +304,20 @@ function WorldBuilder.buildStand(level: number)
 		box("BackWall", Vector3.new(1, wallH, length),
 			Vector3.new(backX, GROUND_Y + wallH / 2, 0),
 			Color3.fromRGB(200, 200, 200), Enum.Material.Concrete, stand)
+		if spec.roof then
+			-- cantilever roof over the seats, held by pillars along the back wall
+			local roofY = GROUND_Y + wallH + 6
+			local roofDepth = stepDepth * rows + 6
+			box("Roof", Vector3.new(roofDepth, 0.8, length + 4),
+				Vector3.new(STAND_X + roofDepth / 2 - 2, roofY, 0),
+				Color3.fromRGB(90, 95, 105), Enum.Material.Metal, stand)
+			for i = 0, 6 do
+				local z = -length / 2 + (length / 6) * i
+				box("Pillar", Vector3.new(1.5, roofY - GROUND_Y, 1.5),
+					Vector3.new(backX + 1.5, GROUND_Y + (roofY - GROUND_Y) / 2, z),
+					Color3.fromRGB(120, 120, 130), Enum.Material.Metal, stand)
+			end
+		end
 	end
 
 	-- empty crowd folder; filled at kickoff
@@ -323,9 +340,11 @@ local CROWD_COLORS = {
 	Color3.fromRGB(220, 200, 150),
 }
 local FAN_SPACING = 2.2
+-- Part budget for a full house (mobile). Bigger stands space the blocks out.
+local MAX_FAN_BLOCKS = 800
 
 -- Fills the stand with simple block fans at a density matching attendance.
--- One block stands for several fans, so `capacity` blocks means a full house.
+-- One block stands for several fans, so a full house means every slot filled.
 function WorldBuilder.buildCrowd(standLevel: number, attendance: number, capacity: number)
 	local club = workspace:FindFirstChild("Club") :: Model
 	local stand = club:FindFirstChild("Stand") :: Model
@@ -333,7 +352,8 @@ function WorldBuilder.buildCrowd(standLevel: number, attendance: number, capacit
 	crowd:ClearAllChildren()
 
 	local spec = standSpec(standLevel)
-	local perRow = math.floor((spec.length - 2) / FAN_SPACING)
+	local spacing = math.max(FAN_SPACING, (spec.length - 2) * spec.rows / MAX_FAN_BLOCKS)
+	local perRow = math.floor((spec.length - 2) / spacing)
 	local slots = perRow * spec.rows
 	local fill = math.clamp(attendance / math.max(capacity, 1), 0, 1)
 	local rng = Random.new(attendance)
@@ -347,7 +367,7 @@ function WorldBuilder.buildCrowd(standLevel: number, attendance: number, capacit
 			if rng:NextNumber() > fill then
 				continue
 			end
-			local z = -spec.length / 2 + 1 + FAN_SPACING * (i - 0.5)
+			local z = -spec.length / 2 + 1 + spacing * (i - 0.5)
 			local fan = box("Fan", Vector3.new(1.3, 2.2, 1.1), Vector3.new(x, top + 1.1, z),
 				CROWD_COLORS[rng:NextInteger(1, #CROWD_COLORS)], Enum.Material.SmoothPlastic, crowd)
 			fan.CanCollide = false
@@ -356,6 +376,52 @@ function WorldBuilder.buildCrowd(standLevel: number, attendance: number, capacit
 	end
 	stand:SetAttribute("CrowdSlots", slots)
 	stand:SetAttribute("CrowdCount", count)
+end
+
+-- Concourse amenity chain (snack bar -> club shop -> fan zone), opposite the
+-- matchday board on the walk from the office. Rebuilt on each upgrade.
+local AMENITY_POS = Vector3.new(-(FENCE_X + CONCOURSE + 10), GROUND_Y, -(FENCE_GAP / 2 + 14))
+
+function WorldBuilder.buildAmenity(level: number)
+	local club = workspace:FindFirstChild("Club") :: Model
+	local old = club:FindFirstChild("Amenity")
+	if old then
+		old:Destroy()
+	end
+	local amenity = Instance.new("Model")
+	amenity.Name = "Amenity"
+	amenity.Parent = club
+	local p = AMENITY_POS
+	if level >= 1 then
+		-- snack bar: hut with a serving hatch and a striped awning
+		box("Hut", Vector3.new(10, 7, 8), p + Vector3.new(0, 3.5, 0), Color3.fromRGB(190, 120, 70), Enum.Material.Wood, amenity)
+		box("Hatch", Vector3.new(0.3, 3, 5), p + Vector3.new(5.1, 4, 0), Color3.fromRGB(40, 40, 40), Enum.Material.SmoothPlastic, amenity)
+		box("Awning", Vector3.new(5, 0.3, 9), p + Vector3.new(7, 6.5, 0), Color3.fromRGB(220, 60, 60), Enum.Material.Fabric, amenity)
+		box("Counter", Vector3.new(2, 1, 6), p + Vector3.new(6, 2.5, 0), Color3.fromRGB(230, 230, 230), Enum.Material.SmoothPlastic, amenity)
+	end
+	if level >= 2 then
+		-- club shop: larger unit beside the hut, club-coloured facade
+		box("Shop", Vector3.new(12, 9, 12), p + Vector3.new(-1, 4.5, -13), Color3.fromRGB(220, 220, 225), Enum.Material.Concrete, amenity)
+		box("ShopFascia", Vector3.new(0.4, 2.5, 12), p + Vector3.new(5.2, 8, -13), Config.HomeKit, Enum.Material.SmoothPlastic, amenity)
+		local window = box("ShopWindow", Vector3.new(0.3, 4, 8), p + Vector3.new(5.1, 4, -13), Color3.fromRGB(150, 200, 230), Enum.Material.Glass, amenity)
+		window.Transparency = 0.4
+	end
+	if level >= 3 then
+		-- fan zone: paved square with flag poles and a small stage
+		box("Paving", Vector3.new(30, 0.3, 24), p + Vector3.new(16, 0.15, -6), Color3.fromRGB(160, 160, 150), Enum.Material.Cobblestone, amenity)
+		box("Stage", Vector3.new(10, 2, 6), p + Vector3.new(24, 1, -14), Color3.fromRGB(60, 60, 65), Enum.Material.Metal, amenity)
+		for i = 0, 3 do
+			local pole = box("Pole", Vector3.new(0.4, 14, 0.4), p + Vector3.new(6 + i * 7, 7, 4), Color3.fromRGB(220, 220, 220), Enum.Material.Metal, amenity)
+			box("Flag", Vector3.new(0.1, 2.5, 4), pole.Position + Vector3.new(0, 5.5, 2), Config.HomeKit, Enum.Material.Fabric, amenity)
+		end
+	end
+end
+
+local function buildAmenitySign(parent: Instance): ProximityPrompt
+	local sign = box("AmenitySign", Vector3.new(1, 4, 3), AMENITY_POS + Vector3.new(6, 2, 8),
+		Color3.fromRGB(200, 170, 40), Enum.Material.Wood, parent)
+	addSign(sign, "CONCOURSE")
+	return addPrompt(sign, "Concourse", "Build")
 end
 
 local function buildStandSign(parent: Instance): ProximityPrompt
@@ -369,6 +435,7 @@ export type World = {
 	model: Model,
 	matchdayPrompt: ProximityPrompt,
 	standPrompt: ProximityPrompt,
+	amenityPrompt: ProximityPrompt,
 }
 
 -- Turns the default checkered baseplate into rough grassland and gives the
@@ -413,7 +480,7 @@ local function dressSurroundings()
 	end
 end
 
-function WorldBuilder.build(standLevel: number): World
+function WorldBuilder.build(standLevel: number, amenityLevel: number?): World
 	dressSurroundings()
 	local existing = workspace:FindFirstChild("Club")
 	if existing then
@@ -433,12 +500,15 @@ function WorldBuilder.build(standLevel: number): World
 	buildOffice(club)
 	local matchdayPrompt = buildMatchdayBoard(club)
 	local standPrompt = buildStandSign(club)
+	local amenityPrompt = buildAmenitySign(club)
 	WorldBuilder.buildStand(standLevel)
+	WorldBuilder.buildAmenity(amenityLevel or 0)
 
 	return {
 		model = club,
 		matchdayPrompt = matchdayPrompt,
 		standPrompt = standPrompt,
+		amenityPrompt = amenityPrompt,
 	}
 end
 

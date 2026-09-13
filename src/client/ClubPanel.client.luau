@@ -197,7 +197,7 @@ local tabButtons: { [string]: TextButton } = {}
 
 local render: () -> ()
 
-for i, name in { "Squad", "Scouting", "Staff" } do
+for i, name in { "Squad", "League", "Scouting", "Staff" } do
 	local b = button(tabs, name:upper(), ROW_BG, { Name = name .. "Tab", Size = UDim2.fromOffset(120, 32), LayoutOrder = i })
 	tabButtons[name] = b
 	b.Activated:Connect(function()
@@ -426,6 +426,59 @@ local function renderScouting(club: Club)
 	end
 end
 
+-- ----------------------------------------------------------------- League tab
+
+local function ordinal(n: number): string
+	local suffix = "th"
+	local last = n % 10
+	if n % 100 < 11 or n % 100 > 13 then
+		suffix = if last == 1 then "st" elseif last == 2 then "nd" elseif last == 3 then "rd" else "th"
+	end
+	return ("%d%s"):format(n, suffix)
+end
+
+local function renderLeague()
+	local raw = get("LeagueTable")
+	local rows = if type(raw) == "string" and raw ~= "" then HttpService:JSONDecode(raw) else {}
+	section(("%s  ·  SEASON %d"):format(string.upper(get("DivisionName") or "LEAGUE"), get("Season") or 1))
+	local played, rounds = get("Round") or 0, get("Rounds") or 10
+	local nextOpp = get("NextOpponent") or ""
+	if nextOpp ~= "" then
+		note(("Match %d of %d next: vs %s.  You are %s."):format(played + 1, rounds, nextOpp, ordinal(get("Position") or 1)))
+	end
+	local head = row(false)
+	head.BackgroundColor3 = PANEL_BG
+	cell(head, "#", 10, 30, { TextColor3 = GREY })
+	cell(head, "Team", 40, 220, { TextColor3 = GREY })
+	cell(head, "P", 270, 30, { TextColor3 = GREY })
+	cell(head, "W", 305, 30, { TextColor3 = GREY })
+	cell(head, "D", 340, 30, { TextColor3 = GREY })
+	cell(head, "L", 375, 30, { TextColor3 = GREY })
+	cell(head, "GD", 410, 40, { TextColor3 = GREY })
+	cell(head, "Pts", 460, 40, { TextColor3 = GREY })
+	local promo, releg = Config.PromotionSpots, Config.RelegationSpots
+	for i, r in rows do
+		local f = row(i % 2 == 0)
+		if r.isPlayer then
+			f.BackgroundColor3 = Color3.fromRGB(70, 60, 25)
+		end
+		local posColor = if i <= promo then Color3.fromRGB(120, 230, 120) elseif i > #rows - releg then Color3.fromRGB(240, 110, 110) else Color3.new(1, 1, 1)
+		cell(f, tostring(r.position), 10, 30, { TextColor3 = posColor, Font = Enum.Font.GothamBold })
+		cell(f, r.name, 40, 220, { Font = if r.isPlayer then Enum.Font.GothamBold else Enum.Font.Gotham })
+		cell(f, tostring(r.played), 270, 30)
+		cell(f, tostring(r.won), 305, 30)
+		cell(f, tostring(r.drawn), 340, 30)
+		cell(f, tostring(r.lost), 375, 30)
+		cell(f, ("%+d"):format(r.gd), 410, 40)
+		cell(f, tostring(r.points), 460, 40, { Font = Enum.Font.GothamBold, TextColor3 = ACCENT })
+	end
+	local tier = get("Tier") or 1
+	local up = if tier < #Config.Divisions then ("Top %d go up to the %s."):format(promo, Config.Divisions[tier + 1].name) else "This is the top flight."
+	local down = if tier > 1 then ("Bottom %d go down to the %s."):format(releg, Config.Divisions[tier - 1].name) else "Nobody goes down from here."
+	note(up .. "  " .. down, GREY)
+	note(("Popularity %d / 100 — wins raise it, losses lower it. Fan demand right now: %d."):format(get("Popularity") or 0, get("Demand") or 0), GREY)
+end
+
 -- ------------------------------------------------------------------ Staff tab
 
 local function renderStaff(club: Club)
@@ -469,6 +522,8 @@ render = function()
 	end
 	if currentTab == "Squad" then
 		renderSquad(club)
+	elseif currentTab == "League" then
+		renderLeague()
 	elseif currentTab == "Scouting" then
 		renderScouting(club)
 	else
@@ -518,7 +573,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
 	end
 end)
 
-for _, key in { "Club", "Cash", "MatchesPlayed" } do
+for _, key in { "Club", "Cash", "MatchesPlayed", "LeagueTable", "Demand" } do
 	state:GetAttributeChangedSignal(key):Connect(render)
 end
 state:GetAttributeChangedSignal("Phase"):Connect(function()

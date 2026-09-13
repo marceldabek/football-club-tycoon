@@ -71,6 +71,37 @@ local cashLabel = makeLabel("Cash", gui, {
 	TextColor3 = Color3.fromRGB(120, 230, 120),
 })
 
+-- Season line (under the CLUB button)
+local seasonLabel = makeLabel("Season", gui, {
+	Size = UDim2.fromOffset(520, 22),
+	Position = UDim2.fromOffset(20, 134),
+	TextXAlignment = Enum.TextXAlignment.Left,
+	TextScaled = false,
+	TextSize = 16,
+	TextColor3 = Color3.fromRGB(220, 220, 220),
+})
+local function ordinal(n: number): string
+	local suffix = "th"
+	local last = n % 10
+	if n % 100 < 11 or n % 100 > 13 then
+		suffix = if last == 1 then "st" elseif last == 2 then "nd" elseif last == 3 then "rd" else "th"
+	end
+	return ("%d%s"):format(n, suffix)
+end
+local function refreshSeason()
+	local round, rounds = get("Round") or 0, get("Rounds") or 10
+	local division = get("DivisionName") or ""
+	if round == 0 then
+		seasonLabel.Text = ("%s  ·  Season %d  ·  Match 1 of %d next"):format(division, get("Season") or 1, rounds)
+	else
+		seasonLabel.Text = ("%s  ·  Match %d of %d played  ·  %s"):format(division, round, rounds, ordinal(get("Position") or 1))
+	end
+end
+for _, key in { "Round", "Position", "DivisionName", "Season" } do
+	state:GetAttributeChangedSignal(key):Connect(refreshSeason)
+end
+refreshSeason()
+
 -- Hint (bottom-centre)
 local hintLabel = makeLabel("Hint", gui, {
 	Size = UDim2.new(0.6, 0, 0, 30),
@@ -219,8 +250,59 @@ continueButton.Parent = summary
 local btnCorner = Instance.new("UICorner")
 btnCorner.CornerRadius = UDim.new(0, 8)
 btnCorner.Parent = continueButton
+-- Season-over panel, shown after the final match's summary is dismissed
+local seasonPanel = makePanel("SeasonOver", UDim2.fromOffset(460, 320), UDim2.fromScale(0.5, 0.5))
+seasonPanel.Visible = false
+local seasonTitle = makeLabel("Title", seasonPanel, {
+	Size = UDim2.new(1, -20, 0, 44),
+	Position = UDim2.fromOffset(10, 10),
+	TextColor3 = Color3.fromRGB(255, 230, 150),
+})
+local seasonBody = makeLabel("Body", seasonPanel, {
+	Size = UDim2.new(1, -40, 1, -130),
+	Position = UDim2.fromOffset(20, 60),
+	Font = Enum.Font.Gotham,
+	TextScaled = false,
+	TextSize = 18,
+	TextXAlignment = Enum.TextXAlignment.Left,
+	TextYAlignment = Enum.TextYAlignment.Top,
+	RichText = true,
+})
+local seasonContinue = continueButton:Clone()
+seasonContinue.Text = "Next season"
+seasonContinue.Parent = seasonPanel
+seasonContinue.Activated:Connect(function()
+	seasonPanel.Visible = false
+end)
+local pendingSeason: any = nil
+local function showSeason(data)
+	seasonTitle.Text = ("SEASON %d OVER"):format(data.season)
+	local headline
+	if data.outcome == "Promoted" then
+		headline = ("<font color=\"#80ff80\"><b>PROMOTED to the %s!</b></font>"):format(data.nextDivision)
+	elseif data.outcome == "Relegated" then
+		headline = ("<font color=\"#ff8080\"><b>Relegated to the %s.</b></font>"):format(data.nextDivision)
+	elseif data.outcome == "Champions" then
+		headline = "<font color=\"#ffe066\"><b>CHAMPIONS of the top flight!</b></font>"
+	else
+		headline = ("Staying in the %s."):format(data.nextDivision)
+	end
+	seasonBody.Text = table.concat({
+		("Finished <b>%s</b> in the %s."):format(ordinal(data.position), data.division),
+		headline,
+		"",
+		("Prize money: <b>%s</b>"):format(money(data.prize)),
+		"Every player is a year older. New fixtures are ready.",
+	}, "\n")
+	seasonPanel.Visible = true
+end
 continueButton.Activated:Connect(function()
 	summary.Visible = false
+	if pendingSeason then
+		local data = pendingSeason
+		pendingSeason = nil
+		showSeason(data)
+	end
 end)
 
 -- Toast (just above the hint)
@@ -265,6 +347,10 @@ local function refreshHint()
 		hintLabel.Text = "Fans were turned away. Expand the stand (yellow sign by the bleachers)."
 	elseif (get("ScoutLevel") or 0) == 0 then
 		hintLabel.Text = "Hire a scout to find new players: the office computer, or the CLUB button."
+	elseif (get("AmenityLevel") or 0) == 0 then
+		hintLabel.Text = "Fans spend money too: build a Snack Bar at the CONCOURSE sign by the fence."
+	elseif (get("Round") or 0) == 0 then
+		hintLabel.Text = ("New season in the %s. Play the first match at the MATCHDAY board."):format(get("DivisionName") or "league")
 	else
 		hintLabel.Text = "Play the next match at the MATCHDAY board. Check the CLUB office between games."
 	end
@@ -299,7 +385,7 @@ end
 for _, key in { "Phase", "HomeGoals", "AwayGoals", "TimeLeft", "Opponent" } do
 	state:GetAttributeChangedSignal(key):Connect(refreshScoreboard)
 end
-for _, key in { "Phase", "MatchesPlayed", "StandLevel", "ScoutLevel" } do
+for _, key in { "Phase", "MatchesPlayed", "StandLevel", "ScoutLevel", "AmenityLevel", "Round" } do
 	state:GetAttributeChangedSignal(key):Connect(refreshHint)
 end
 
@@ -309,7 +395,8 @@ local function refreshPhasePanels()
 	tactics.Visible = phase == "Match"
 	if phase == "PreMatch" then
 		summary.Visible = false -- a lingering summary must never cover the next match
-		bannerBody.Text = ("%s  vs  %s"):format(get("ClubName") or "Home", get("Opponent") or "Away")
+		seasonPanel.Visible = false
+		bannerBody.Text = ("%s  vs  %s   ·   Match %d of %d"):format(get("ClubName") or "Home", get("Opponent") or "Away", (get("Round") or 0) + 1, get("Rounds") or 10)
 	end
 end
 
@@ -376,12 +463,18 @@ summaryEvent.OnClientEvent:Connect(function(data)
 	if data.scorers and #data.scorers > 0 then
 		table.insert(lines, ("<font color=\"#ffe066\">Scorers: %s</font>"):format(table.concat(data.scorers, ", ")))
 	end
+	if data.position and data.division then
+		table.insert(lines, ("League: <b>%s</b> in the %s after %d of %d"):format(ordinal(data.position), data.division, data.round, data.rounds))
+	end
 	table.insert(lines, ("Attendance: <b>%d</b> / %d seats"):format(data.attendance, data.capacity))
 	if data.turnedAway > 0 then
 		table.insert(lines, ("<font color=\"#ff8080\">Fans turned away: <b>%d</b></font>"):format(data.turnedAway))
 	end
 	table.insert(lines, "")
 	table.insert(lines, ("Ticket revenue: %s"):format(money(data.ticketRevenue)))
+	if (data.concessionRevenue or 0) > 0 then
+		table.insert(lines, ("Concessions: %s"):format(money(data.concessionRevenue)))
+	end
 	table.insert(lines, ("Result bonus: %s"):format(money(data.resultBonus)))
 	table.insert(lines, ("<b>Total earned: %s</b>"):format(money(data.total)))
 	table.insert(lines, "")
@@ -398,6 +491,7 @@ summaryEvent.OnClientEvent:Connect(function(data)
 	end
 	summaryBody.Text = table.concat(lines, "\n")
 	summary.Visible = true
+	pendingSeason = data.season
 end)
 
 refreshCash()

@@ -1,7 +1,7 @@
 --!strict
 -- Runs a matchday: locks the club, runs the hidden sim, publishes the timeline
 -- for clients to visualise, replays goal events on the scoreboard over the
--- match duration, then settles revenue.
+-- match duration, then settles revenue and reports the result to the league.
 -- The final score always comes from the sim, never from what was displayed.
 --
 -- Phases: Manage -> PreMatch (iris + walkout) -> Match (clock running) -> Manage
@@ -16,6 +16,7 @@ local Squad = require(ReplicatedStorage.Shared.Squad)
 local ClubState = require(script.Parent.ClubState)
 local WorldBuilder = require(script.Parent.WorldBuilder)
 local ClubService = require(script.Parent.ClubService)
+local SeasonService = require(script.Parent.SeasonService)
 
 local MatchService = {}
 
@@ -87,31 +88,36 @@ function MatchService.playMatch(durationOverride: number?, walkoutOverride: numb
 	if running or ClubState.get("Phase") ~= "Manage" then
 		return false
 	end
+	local fixture = SeasonService.nextFixture()
+	if not fixture then
+		return false
+	end
 	running = true
 
 	local matchIndex = (ClubState.get("MatchesPlayed") :: number) + 1
-	local opponentIndex = ((matchIndex - 1) % #Config.OpponentNames) + 1
-	local opponent = Config.OpponentNames[opponentIndex]
 	local duration = durationOverride or Config.MatchDurationSeconds
 	local walkout = walkoutOverride or Config.WalkoutSeconds
 
-	-- Simulation layer: result decided up front from squad strength.
+	-- Simulation layer: result decided up front from squad strength vs the
+	-- division-driven opponent strength.
 	local prepared = ClubService.prepareMatch()
 	homeSquad = prepared.matchSquad
 	local result = MatchSim.simulate({
 		homeStrength = prepared.strength,
-		awayStrength = Config.AwayStrength, -- TEMP until divisions (Milestone 4)
+		awayStrength = fixture.strength,
 		bias = MatchSim.biasForMatch(matchIndex),
 	})
 	local scorerSlots = Squad.assignScorers(result.events :: any, homeSquad, Random.new())
-	local awaySquad = TeamGen.generate(100 + matchIndex) -- TEMP: fresh opponents each match
+	-- opponents keep the same names for both meetings in a season
+	local awaySquad = TeamGen.generate(fixture.seed)
 	subsMade = {}
 
 	local capacity = ClubState.capacity()
-	local attendance = math.min(capacity, Config.BaseDemand)
+	local demand = SeasonService.demand()
+	local attendance = math.min(capacity, demand)
 	WorldBuilder.buildCrowd(ClubState.get("StandLevel") :: number, attendance, capacity)
 
-	ClubState.set("Opponent", opponent)
+	ClubState.set("Opponent", fixture.opponent)
 	ClubState.set("HomeGoals", 0)
 	ClubState.set("AwayGoals", 0)
 	ClubState.set("MatchDuration", duration)
@@ -122,7 +128,7 @@ function MatchService.playMatch(durationOverride: number?, walkoutOverride: numb
 	ClubState.set("Timeline", HttpService:JSONEncode({
 		events = result.events,
 		home = { name = ClubState.get("ClubName"), kit = colorToJson(Config.HomeKit), squad = homeSquad },
-		away = { name = opponent, kit = colorToJson(Config.AwayKits[opponentIndex]), squad = awaySquad },
+		away = { name = fixture.opponent, kit = fixture.kit, squad = awaySquad },
 	}))
 	ClubState.set("Phase", "PreMatch")
 
@@ -156,12 +162,14 @@ function MatchService.playMatch(durationOverride: number?, walkoutOverride: numb
 	ClubState.set("AwayGoals", result.awayGoals)
 	ClubState.set("TimeLeft", 0)
 
+	local amenity = Config.AmenityLevels[((ClubState.get("AmenityLevel") :: number?) or 0) + 1]
 	local settlement = Economy.settle({
 		homeGoals = result.homeGoals,
 		awayGoals = result.awayGoals,
 		capacity = capacity,
-		demand = Config.BaseDemand,
+		demand = demand,
 		ticketPrice = Config.TicketPrice,
+		concessionPerFan = amenity.perFan,
 		winBonus = Config.WinBonus,
 		drawBonus = Config.DrawBonus,
 		lossBonus = Config.LossBonus,
@@ -176,6 +184,7 @@ function MatchService.playMatch(durationOverride: number?, walkoutOverride: numb
 	else
 		bump("Losses", 1)
 	end
+
 	local news = ClubService.finishMatch(scorerSlots, homeSquad)
 	local scorers = {}
 	for _, ev in result.events do
@@ -184,14 +193,14 @@ function MatchService.playMatch(durationOverride: number?, walkoutOverride: numb
 			table.insert(scorers, ("%d' %s"):format(ev.minute, homeSquad[scorer].name))
 		end
 	end
+	-- league bookkeeping last: at season end this ages the squad and rolls the division
+	local roundResult = SeasonService.recordPlayerResult(result.homeGoals, result.awayGoals, settlement.outcome)
 
 	ClubState.set("Phase", "Manage")
 	running = false
 
 	remote("MatchSummary"):FireAllClients({
-		scorers = scorers,
-		news = news,
-		opponent = opponent,
+		opponent = fixture.opponent,
 		homeGoals = result.homeGoals,
 		awayGoals = result.awayGoals,
 		outcome = settlement.outcome,
@@ -199,9 +208,17 @@ function MatchService.playMatch(durationOverride: number?, walkoutOverride: numb
 		capacity = settlement.capacity,
 		turnedAway = settlement.turnedAway,
 		ticketRevenue = settlement.ticketRevenue,
+		concessionRevenue = settlement.concessionRevenue,
 		resultBonus = settlement.resultBonus,
 		total = settlement.total,
 		cash = ClubState.get("Cash"),
+		scorers = scorers,
+		news = news,
+		division = ClubState.get("DivisionName"),
+		position = roundResult.position,
+		round = roundResult.round,
+		rounds = roundResult.rounds,
+		season = roundResult.summary,
 	})
 	return true
 end
