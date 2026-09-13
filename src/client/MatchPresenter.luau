@@ -35,7 +35,8 @@ type Team = {
 }
 
 type Holder = { team: Pitch.Team, idx: number }
-type Flight = { from: Vector3, to: Vector3, t: number, dur: number, arc: number, onArrive: (() -> ())? }
+-- ground: rolls with ease-out at rest height; air: lofted along an arc.
+type Flight = { from: Vector3, to: Vector3, t: number, dur: number, arc: number, kind: "ground" | "air", onArrive: (() -> ())? }
 
 export type Presenter = typeof(setmetatable(
 	{} :: {
@@ -51,6 +52,9 @@ export type Presenter = typeof(setmetatable(
 		appliedSubs: number,
 		swapped: boolean, -- second half: teams attack the opposite ends
 		homeTactic: Pitch.Tactic,
+		ballRot: CFrame, -- accumulated rolling rotation
+		dribbleT: number, -- time since the carrier last knocked the ball ahead
+		settleUntil: number, -- first touch: the ball sits still until this clock time
 	},
 	Presenter
 ))
@@ -71,6 +75,17 @@ local MAX_SHIFT = 22
 local DRIBBLE_SPEED = 13 -- the ball carrier keeps moving toward goal
 local LEAD_DISTANCE = 7 -- passes go into space ahead of the receiver
 local DRIFT_MIN, DRIFT_MAX = 1.5, 3.5 -- seconds between a player picking a new spot
+-- Ball (TEMP): a real ball is 0.6 studs at this scale; slightly larger reads better.
+local BALL_R = 0.45
+local BALL_REST = Pitch.SURFACE_Y + BALL_R
+local GROUND_PASS_MAX = 80 -- passes up to this length (~30 m) roll; longer ones are lofted
+local GROUND_SPEED = 55 -- studs/s average for a rolled pass
+local TOUCH_AHEAD = 1.1 -- how far in front of the carrier's feet the ball sits
+local DRIBBLE_KNOCK = 3.5 -- studs the carrier pushes the ball ahead while running
+local DRIBBLE_PERIOD = 0.6
+local FIRST_TOUCH = 0.15 -- seconds the ball sits still after a pass arrives
+local SWITCH_CHANCE = 0.15 -- long diagonal instead of a short pass
+local INTERCEPT_CHANCE = 0.2 -- short pass read by the nearest opponent
 
 -- per-footballer countdown until they drift to a new spot
 local driftClock: { [Footballer.Footballer]: number } = setmetatable({}, { __mode = "k" }) :: any
@@ -96,16 +111,41 @@ local function makeBall(parent: Instance): Part
 	local ball = Instance.new("Part")
 	ball.Name = "Ball"
 	ball.Shape = Enum.PartType.Ball
-	ball.Size = Vector3.new(1.6, 1.6, 1.6)
+	ball.Size = Vector3.new(BALL_R * 2, BALL_R * 2, BALL_R * 2)
 	ball.Color = Color3.new(1, 1, 1)
 	ball.Material = Enum.Material.SmoothPlastic
 	ball.Anchored = true
 	ball.CanCollide = false
 	ball.CanQuery = false
 	ball.CanTouch = false
-	ball.Position = centre() + Vector3.new(0, 0.8, 0)
+	ball.CastShadow = true
+	ball.Position = centre() + Vector3.new(0, BALL_R, 0)
 	ball.Parent = parent
+	-- dark patches half-sunk into the surface so the roll is visible; they are
+	-- unanchored and welded, so they follow the anchored ball's CFrame
+	for _, offset in { Vector3.new(0.3, 0.25, 0.2), Vector3.new(-0.25, -0.2, 0.3), Vector3.new(0.05, 0.3, -0.35), Vector3.new(-0.3, -0.1, -0.25) } do
+		local patch = Instance.new("Part")
+		patch.Name = "Patch"
+		patch.Shape = Enum.PartType.Ball
+		patch.Size = Vector3.new(0.34, 0.34, 0.34)
+		patch.Color = Color3.fromRGB(25, 25, 25)
+		patch.Material = Enum.Material.SmoothPlastic
+		patch.CanCollide = false
+		patch.CanQuery = false
+		patch.CanTouch = false
+		patch.Massless = true
+		patch.CFrame = ball.CFrame * CFrame.new(offset)
+		patch.Parent = ball
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = ball
+		weld.Part1 = patch
+		weld.Parent = patch
+	end
 	return ball
+end
+
+local function restAt(p: Vector3): Vector3
+	return Vector3.new(p.X, BALL_REST, p.Z)
 end
 
 function Presenter.new(timeline: Timeline, duration: number): Presenter
@@ -126,6 +166,9 @@ function Presenter.new(timeline: Timeline, duration: number): Presenter
 		appliedSubs = 0,
 		swapped = false,
 		homeTactic = "Balanced" :: Pitch.Tactic,
+		ballRot = CFrame.identity,
+		dribbleT = 0,
+		settleUntil = 0,
 	}, Presenter)
 
 	for _, teamName in { "Home" :: Pitch.Team, "Away" :: Pitch.Team } do
@@ -167,7 +210,13 @@ function Presenter.step(self: Presenter, dt: number)
 	if flight then
 		flight.t += dt
 		local a = math.min(flight.t / flight.dur, 1)
-		self.ball.Position = flight.from:Lerp(flight.to, a) + Vector3.new(0, flight.arc * math.sin(a * math.pi), 0)
+		local pos
+		if flight.kind == "ground" then
+			pos = flight.from:Lerp(flight.to, 1 - (1 - a) ^ 2) -- ease-out: the pass slows as it runs
+		else
+			pos = flight.from:Lerp(flight.to, a) + Vector3.new(0, flight.arc * math.sin(a * math.pi), 0)
+		end
+		self:moveBall(pos, if flight.kind == "ground" then 1 else 0.3)
 		if a >= 1 then
 			self.flight = nil
 			if flight.onArrive then
@@ -176,11 +225,42 @@ function Presenter.step(self: Presenter, dt: number)
 		end
 	elseif self.holder then
 		local fb = self.teams[self.holder.team].players[self.holder.idx]
-		if fb then
-			local forward = CFrame.Angles(0, fb.yaw, 0).LookVector
-			self.ball.Position = fb.position + forward * 1.3 + Vector3.new(0, 0.8, 0)
+		if fb and os.clock() >= self.settleUntil then
+			local look = CFrame.Angles(0, fb.yaw, 0)
+			if self.holder.idx == 1 then
+				-- keeper carries it in hand
+				self:moveBall(fb.position + look.LookVector * 1.0 + Vector3.new(0, 2.4, 0), 0)
+			else
+				local carrying = fb.velocity.Magnitude > 3
+				self.dribbleT += dt
+				if carrying and self.dribbleT >= DRIBBLE_PERIOD then
+					-- knock it ahead and run onto it; the holder is unchanged
+					self.dribbleT = 0
+					local ahead = restAt(fb.position + look.LookVector * (TOUCH_AHEAD + DRIBBLE_KNOCK) + look.RightVector * 0.35)
+					self.flight = { from = self.ball.Position, to = ahead, t = 0, dur = 0.35, arc = 0, kind = "ground" }
+				else
+					self:moveBall(restAt(fb.position + look.LookVector * TOUCH_AHEAD + look.RightVector * 0.35), 1)
+				end
+			end
 		end
 	end
+end
+
+-- Moves the ball and rolls it by the ground distance covered. `roll` scales
+-- the spin (1 on the grass, less in the air, 0 when carried).
+function Presenter.moveBall(self: Presenter, pos: Vector3, roll: number)
+	local moved = pos - self.ball.Position
+	local flat = Vector3.new(moved.X, 0, moved.Z)
+	if roll > 0 and flat.Magnitude > 1e-4 then
+		local axis = Vector3.yAxis:Cross(flat.Unit)
+		self.ballRot = CFrame.fromAxisAngle(axis, flat.Magnitude / BALL_R * roll) * self.ballRot
+	end
+	self.ball.CFrame = CFrame.new(pos) * self.ballRot
+end
+
+function Presenter.placeBall(self: Presenter, pos: Vector3)
+	self.flight = nil
+	self.ball.CFrame = CFrame.new(restAt(pos)) * self.ballRot
 end
 
 -- Which end a team attacks. In the second half the teams swap, so Home uses
@@ -309,7 +389,7 @@ function Presenter.halftime(self: Presenter)
 		fb:teleport(self.teams[teamName].slots[idx])
 		fb:face(centre())
 	end)
-	self.ball.Position = centre() + Vector3.new(0, 0.8, 0)
+	self:placeBall(centre())
 	self:resetToFormation()
 	task.wait(HALFTIME_SECONDS - 1.0)
 	self.holder = { team = "Away", idx = 7 }
@@ -322,7 +402,7 @@ function Presenter.pass(self: Presenter, toTeam: Pitch.Team, toIdx: number, arcO
 	-- play it into space ahead of the receiver so they run onto it
 	local dir = attackDir(self:geom(toTeam))
 	local landing = clampToPitch(receiver.position + Vector3.new(math.random() * 6 - 3, 0, dir * LEAD_DISTANCE))
-	local to = landing + Vector3.new(0, 0.8, 0)
+	local to = restAt(landing)
 	local holder = self.holder
 	if holder then
 		local kicker = self.teams[holder.team].players[holder.idx]
@@ -334,15 +414,20 @@ function Presenter.pass(self: Presenter, toTeam: Pitch.Team, toIdx: number, arcO
 	receiver.busy = true
 	local dist = (to - from).Magnitude
 	self.holder = nil
+	-- short passes roll along the grass; long switches are lofted
+	local lofted = arcOverride ~= nil or dist > GROUND_PASS_MAX
 	self.flight = {
 		from = from,
 		to = to,
 		t = 0,
-		dur = math.clamp(dist / PASS_SPEED, 0.3, 1.0),
-		arc = arcOverride or math.min(dist * 0.06, 5),
+		dur = if lofted then math.clamp(dist / PASS_SPEED, 0.3, 1.0) else math.clamp(dist / GROUND_SPEED, 0.3, 1.3),
+		arc = if lofted then (arcOverride or math.min(dist * 0.06, 5)) else 0,
+		kind = if lofted then "air" else "ground",
 		onArrive = function()
 			receiver.busy = false
 			self.holder = { team = toTeam, idx = toIdx }
+			self.dribbleT = 0
+			self.settleUntil = os.clock() + FIRST_TOUCH -- first touch: the ball sits for a beat
 		end,
 	}
 end
@@ -353,22 +438,61 @@ function Presenter.waitForBall(self: Presenter)
 	end
 end
 
--- Idle possession: short passes around, with the odd turnover.
+-- Idle possession as build-up play: short passes to a nearby teammate with a
+-- forward bias, the odd long switch to the far side, and turnovers by the
+-- nearest opponent reading a pass.
 function Presenter.fillerPass(self: Presenter)
 	local holder = self.holder
 	if not holder then
 		self.holder = { team = "Home", idx = 7 }
 		return
 	end
-	local team = holder.team
-	if math.random() < 0.2 then
-		team = other(team)
+	local team = self.teams[holder.team]
+	local from = team.players[holder.idx]
+	local dir = attackDir(self:geom(holder.team))
+
+	if holder.idx ~= 1 and math.random() < SWITCH_CHANCE then
+		local far: { number } = {}
+		for idx = 6, 11 do
+			if idx ~= holder.idx then
+				table.insert(far, idx)
+			end
+		end
+		table.sort(far, function(a, b)
+			return math.abs(team.players[a].position.X - from.position.X) > math.abs(team.players[b].position.X - from.position.X)
+		end)
+		self:pass(holder.team, far[1], 6)
+		return
 	end
-	local idx = math.random(2, 11)
-	if team == holder.team and idx == holder.idx then
-		idx = idx == 11 and 10 or idx + 1
+
+	local cands: { { idx: number, score: number } } = {}
+	for idx = 2, 11 do
+		if idx ~= holder.idx then
+			local p = team.players[idx]
+			local d = (p.position - from.position).Magnitude
+			local forward = (p.position.Z - from.position.Z) * dir
+			table.insert(cands, { idx = idx, score = d - math.max(forward, 0) * 0.6 })
+		end
 	end
-	self:pass(team, idx)
+	table.sort(cands, function(a, b)
+		return a.score < b.score
+	end)
+	local to = cands[math.random(1, math.min(3, #cands))].idx
+
+	if holder.idx ~= 1 and math.random() < INTERCEPT_CHANCE then
+		local oppTeam = other(holder.team)
+		local mid = (from.position + team.players[to].position) / 2
+		local best, bestD = 7, math.huge
+		for idx = 2, 11 do
+			local d = (self.teams[oppTeam].players[idx].position - mid).Magnitude
+			if d < bestD then
+				best, bestD = idx, d
+			end
+		end
+		self:pass(oppTeam, best)
+		return
+	end
+	self:pass(holder.team, to)
 end
 
 local function crowdReact()
@@ -463,6 +587,7 @@ function Presenter.playSequence(self: Presenter, ev: Event, shotAt: number)
 		t = 0,
 		dur = math.clamp(remaining(), 0.4, 1.2),
 		arc = 1.5,
+		kind = "air",
 	}
 	self:waitForBall()
 	shooter.busy = false
@@ -475,7 +600,7 @@ function Presenter.playSequence(self: Presenter, ev: Event, shotAt: number)
 		end
 		task.wait(CELEBRATE_SECONDS)
 		self:resetToFormation()
-		self.ball.Position = centre() + Vector3.new(0, 0.8, 0)
+		self:placeBall(centre())
 		task.wait(RESET_SECONDS)
 		self.holder = { team = opp, idx = 7 }
 	elseif ev.type == "SAVE" then
@@ -502,7 +627,7 @@ function Presenter.start(self: Presenter, kickoffAt: number)
 	end
 	self:refreshSlots()
 	self:resetToFormation()
-	self.ball.Position = centre() + Vector3.new(0, 0.8, 0)
+	self:placeBall(centre())
 	self.holder = { team = self.swapped and "Away" or "Home", idx = 7 }
 
 	task.spawn(function()
