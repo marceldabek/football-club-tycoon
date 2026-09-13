@@ -12,6 +12,7 @@ local HttpService = game:GetService("HttpService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Iris = require(script.Parent.Iris)
 local Presenter = require(script.Parent.MatchPresenter)
+local MatchAudio = require(script.Parent.MatchAudio)
 
 local state = ReplicatedStorage:WaitForChild("ClubState")
 local camera = workspace.CurrentCamera
@@ -80,13 +81,17 @@ local function beginMatch()
 	p:setTactic(get("Tactic") or "Balanced")
 	p:applySubs(HttpService:JSONDecode(get("Subs") or "[]"))
 	p:start(get("KickoffAt") or workspace:GetServerTimeNow())
+	MatchAudio.whistle()
+	MatchAudio.startCrowd((get("Attendance") or 0) / math.max(get("Capacity") or 1, 1))
 end
 
 local function endMatch()
 	if presenter then
+		MatchAudio.whistle()
 		presenter:finish()
 		presenter = nil
 	end
+	MatchAudio.stopCrowd()
 end
 
 local function onPhase()

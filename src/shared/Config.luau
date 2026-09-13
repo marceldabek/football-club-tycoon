@@ -53,4 +53,13 @@ Config.HomeSquadSeed = 1
 
 Config.MaxSubs = 3
 
+-- Matchday audio. All three are free Pro Sound Effects assets from Roblox's
+-- licensed Creator Store library. An empty string disables that sound.
+Config.Sounds = {
+	crowdAmbient = "rbxassetid://9119562527", -- "Stadium Crowd 2": idling, cheering, walla (74s loop)
+	goalCheer = "rbxassetid://9120973900", -- "Wrestling Crowd 2": short punchy cheers
+	whistle = "rbxassetid://9118113825", -- "Referee Whistle 2": exterior single blast
+}
+Config.CrowdVolume = 0.35
+
 return Config

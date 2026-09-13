@@ -102,8 +102,42 @@ local function buildPitch(parent: Instance)
 		end
 	end
 
-	-- goals: 7.32m x 2.44m -> ~20 x 7 studs
+	-- centre spot, penalty spots (11m -> ~30 studs from the goal line)
+	box("CentreSpot", Vector3.new(2, 0.1, 2), Vector3.new(0, lineY, 0), white, nil, pitch)
+	for _, zSign in { -1, 1 } do
+		box("PenaltySpot", Vector3.new(2, 0.1, 2), Vector3.new(0, lineY, zSign * (PITCH_L / 2 - 30)), white, nil, pitch)
+	end
+
+	-- centre circle (9.15m -> 25 studs) as a ring of short segments
+	local circleR, segments = 25, 28
+	for i = 1, segments do
+		local a0 = (i - 1) / segments * math.pi * 2
+		local a1 = i / segments * math.pi * 2
+		local mid = (a0 + a1) / 2
+		local segLen = circleR * (a1 - a0) + 0.4
+		-- segment lies along the tangent: yaw of -mid - 90deg maps the part's X axis onto (-sin, cos)
+		local seg = part({
+			Name = "CentreCircle",
+			Size = Vector3.new(segLen, 0.1, lineW),
+			CFrame = CFrame.new(math.cos(mid) * circleR, lineY, math.sin(mid) * circleR) * CFrame.Angles(0, -mid - math.pi / 2, 0),
+			Color = white,
+			Parent = pitch,
+		})
+		seg.Material = Enum.Material.SmoothPlastic
+	end
+
+	-- corner flags
+	for _, zSign in { -1, 1 } do
+		for _, xSign in { -1, 1 } do
+			local x, z = xSign * (PITCH_W / 2 - 0.5), zSign * (PITCH_L / 2 - 0.5)
+			box("FlagPost", Vector3.new(0.3, 5, 0.3), Vector3.new(x, GROUND_Y + 1 + 2.5, z), Color3.fromRGB(240, 240, 240), nil, pitch)
+			box("Flag", Vector3.new(0.1, 1.2, 1.8), Vector3.new(x, GROUND_Y + 1 + 4.4, z - zSign * 0.9), Color3.fromRGB(255, 200, 40), nil, pitch)
+		end
+	end
+
+	-- goals: 7.32m x 2.44m -> ~20 x 7 studs, with a simple net box behind
 	local goalW, goalH = Pitch.GOAL_WIDTH, Pitch.GOAL_HEIGHT
+	local netDepth = 6
 	for _, zSign in { -1, 1 } do
 		local z = zSign * (PITCH_L / 2)
 		local goal = Instance.new("Model")
@@ -113,6 +147,19 @@ local function buildPitch(parent: Instance)
 			box("Post", Vector3.new(0.6, goalH, 0.6), Vector3.new(xSign * goalW / 2, GROUND_Y + 1 + goalH / 2, z), white, nil, goal)
 		end
 		box("Crossbar", Vector3.new(goalW + 0.6, 0.6, 0.6), Vector3.new(0, GROUND_Y + 1 + goalH, z), white, nil, goal)
+
+		local netZ = z + zSign * netDepth / 2
+		local netY = GROUND_Y + 1 + goalH / 2
+		local function net(name: string, size: Vector3, pos: Vector3)
+			local n = box(name, size, pos, Color3.fromRGB(235, 235, 235), Enum.Material.Fabric, goal)
+			n.Transparency = 0.55
+			n.CanCollide = false
+		end
+		net("NetBack", Vector3.new(goalW, goalH, 0.2), Vector3.new(0, netY, z + zSign * netDepth))
+		net("NetTop", Vector3.new(goalW, 0.2, netDepth), Vector3.new(0, GROUND_Y + 1 + goalH, netZ))
+		for _, xSign in { -1, 1 } do
+			net("NetSide", Vector3.new(0.2, goalH, netDepth), Vector3.new(xSign * goalW / 2, netY, netZ))
+		end
 	end
 end
 
@@ -318,7 +365,50 @@ export type World = {
 	standPrompt: ProximityPrompt,
 }
 
+-- Turns the default checkered baseplate into rough grassland and gives the
+-- sky some depth. Cheap, no assets.
+local function dressSurroundings()
+	local baseplate = workspace:FindFirstChild("Baseplate")
+	if baseplate and baseplate:IsA("BasePart") then
+		baseplate.Color = Color3.fromRGB(96, 128, 70)
+		baseplate.Material = Enum.Material.Grass
+		local texture = baseplate:FindFirstChildOfClass("Texture")
+		if texture then
+			texture:Destroy()
+		end
+	end
+
+	local Lighting = game:GetService("Lighting")
+	Lighting.ClockTime = 14.5
+	Lighting.Brightness = 2.2
+	Lighting.GlobalShadows = true
+	Lighting.EnvironmentDiffuseScale = 0.5
+	Lighting.EnvironmentSpecularScale = 0.5
+	Lighting.OutdoorAmbient = Color3.fromRGB(140, 150, 160)
+	if not Lighting:FindFirstChildOfClass("Sky") then
+		local sky = Instance.new("Sky") -- default skybox textures, nothing to load
+		sky.Parent = Lighting
+	end
+	if not Lighting:FindFirstChildOfClass("Atmosphere") then
+		local atmosphere = Instance.new("Atmosphere")
+		atmosphere.Density = 0.32
+		atmosphere.Offset = 0.2
+		atmosphere.Color = Color3.fromRGB(199, 208, 220)
+		atmosphere.Decay = Color3.fromRGB(110, 120, 140)
+		atmosphere.Glare = 0.2
+		atmosphere.Haze = 1.2
+		atmosphere.Parent = Lighting
+	end
+	if not Lighting:FindFirstChildOfClass("SunRaysEffect") then
+		local rays = Instance.new("SunRaysEffect")
+		rays.Intensity = 0.06
+		rays.Spread = 0.6
+		rays.Parent = Lighting
+	end
+end
+
 function WorldBuilder.build(standLevel: number): World
+	dressSurroundings()
 	local existing = workspace:FindFirstChild("Club")
 	if existing then
 		existing:Destroy()

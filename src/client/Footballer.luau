@@ -23,6 +23,7 @@ export type Footballer = typeof(setmetatable(
 		yaw: number,
 		target: Vector3?,
 		speed: number,
+		velocity: Vector3,
 		moving: boolean,
 		phase: number,
 		pose: Pose,
@@ -75,8 +76,9 @@ end
 local function nameTag(head: Part, number: number, name: string)
 	local billboard = Instance.new("BillboardGui")
 	billboard.Size = UDim2.fromOffset(140, 22)
+	billboard.Name = "NameTag"
 	billboard.StudsOffset = Vector3.new(0, 1.6, 0)
-	billboard.MaxDistance = 90
+	billboard.MaxDistance = 60
 	billboard.AlwaysOnTop = false
 	billboard.Parent = head
 	local label = Instance.new("TextLabel")
@@ -114,6 +116,7 @@ function Footballer.new(parent: Instance, kit: Color3, number: number, name: str
 		yaw = 0,
 		target = nil,
 		speed = 22,
+		velocity = Vector3.zero,
 		moving = false,
 		phase = 0,
 		pose = "idle" :: Pose,
@@ -136,6 +139,13 @@ function Footballer.teleport(self: Footballer, position: Vector3)
 	self.position = position
 	self.target = nil
 	self:update(0)
+end
+
+function Footballer.setTagVisible(self: Footballer, visible: boolean)
+	local tag = self.parts[2]:FindFirstChild("NameTag")
+	if tag then
+		(tag :: BillboardGui).Enabled = visible
+	end
 end
 
 function Footballer.face(self: Footballer, point: Vector3)
@@ -166,19 +176,30 @@ end
 
 -- Advances movement and pose timers, then writes all part CFrames.
 function Footballer.update(self: Footballer, dt: number)
+	-- Velocity with acceleration and ease-out, so players lean into runs and
+	-- slow into position instead of stopping dead.
 	local target = self.target
-	self.moving = false
+	local desired = Vector3.zero
 	if target then
 		local delta = Vector3.new(target.X - self.position.X, 0, target.Z - self.position.Z)
 		local dist = delta.Magnitude
-		if dist > 0.6 then
-			local step = math.min(dist, self.speed * dt)
-			self.position += delta.Unit * step
-			self.yaw = math.atan2(-delta.X, -delta.Z)
-			self.moving = true
-			self.phase += dt * (self.speed * 0.55)
+		if dist > 0.3 then
+			desired = delta.Unit * math.min(self.speed, dist * 2.2)
 		end
 	end
+	self.velocity = self.velocity:Lerp(desired, math.min(dt * 7, 1))
+	local speedNow = self.velocity.Magnitude
+	if speedNow > 0.4 then
+		local step = self.velocity * dt
+		if target and step.Magnitude > (target - self.position).Magnitude then
+			self.position = Vector3.new(target.X, self.position.Y, target.Z)
+		else
+			self.position += step
+		end
+		self.yaw = math.atan2(-self.velocity.X, -self.velocity.Z)
+		self.phase += dt * (speedNow * 0.55)
+	end
+	self.moving = speedNow > 1.5
 
 	if self.pose ~= "idle" then
 		self.poseT += dt
@@ -187,7 +208,8 @@ function Footballer.update(self: Footballer, dt: number)
 		end
 	end
 
-	local swing = self.moving and math.sin(self.phase) * 0.7 or 0
+	local amp = math.clamp(self.velocity.Magnitude / 22, 0, 1) * 0.7
+	local swing = self.moving and math.sin(self.phase) * amp or 0
 	local legLA, legRA = swing, -swing
 	local armLA, armRA = -swing * 0.8, swing * 0.8
 	local bob = self.moving and math.abs(math.sin(self.phase)) * 0.15 or 0

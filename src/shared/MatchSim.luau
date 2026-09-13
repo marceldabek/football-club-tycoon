@@ -34,8 +34,15 @@ local TOTAL_XG = 2.6
 -- Minimum football minutes between two chances so their 3D sequences never
 -- overlap (a sequence takes ~6 real seconds = ~6 minutes of a 90s match).
 MatchSim.MIN_EVENT_GAP = 8
--- First chance no earlier than 6' so the 3D build-up (~5s) fits after kickoff.
+-- Chances live in two windows so nothing straddles the half-time break at 45':
+-- first chance no earlier than 6' (build-up needs ~5s after kickoff), nothing
+-- from 42' to 49' (build-up before / celebration after the whistle).
+MatchSim.FIRST_HALF_LAST = 41
+MatchSim.SECOND_HALF_FIRST = 50
 local FIRST_MINUTE, LAST_MINUTE = 6, 88
+-- 4 per half at the minimum gap.
+MatchSim.MAX_CHANCES = math.floor((MatchSim.FIRST_HALF_LAST - FIRST_MINUTE) / MatchSim.MIN_EVENT_GAP)
+	+ math.floor((LAST_MINUTE - MatchSim.SECOND_HALF_FIRST) / MatchSim.MIN_EVENT_GAP)
 
 -- Extra non-scoring chances per team, on top of goals.
 local MIN_EXTRA_CHANCES, MAX_EXTRA_CHANCES = 2, 3
@@ -62,19 +69,37 @@ function MatchSim.biasForMatch(matchIndex: number): ("NarrowWin" | "LikelyWin")?
 	return nil
 end
 
--- Picks `count` distinct minutes with at least MIN_EVENT_GAP between them.
--- Works by spreading the events over evenly sized windows and jittering inside.
-local function pickMinutes(rng: Random, count: number): { number }
+-- Picks `count` distinct minutes inside [first, last] with at least
+-- MIN_EVENT_GAP between them, by spreading them over evenly sized windows and
+-- jittering inside each.
+local function pickMinutesIn(rng: Random, count: number, first: number, last: number): { number }
 	local minutes = {}
 	if count == 0 then
 		return minutes
 	end
-	local span = LAST_MINUTE - FIRST_MINUTE
+	local span = last - first
 	local window = span / count
 	local jitter = math.max(math.floor(window - MatchSim.MIN_EVENT_GAP), 0)
 	for i = 1, count do
-		local windowStart = FIRST_MINUTE + math.floor(window * (i - 1))
+		local windowStart = first + math.floor(window * (i - 1))
 		table.insert(minutes, windowStart + rng:NextInteger(0, jitter))
+	end
+	return minutes
+end
+
+-- Splits the chances between the halves (the odd one lands randomly) and
+-- keeps the half-time window clear.
+local function pickMinutes(rng: Random, count: number): { number }
+	local firstHalfMax = math.floor((MatchSim.FIRST_HALF_LAST - FIRST_MINUTE) / MatchSim.MIN_EVENT_GAP)
+	local firstHalf = math.floor(count / 2)
+	if count % 2 == 1 and rng:NextNumber() < 0.5 then
+		firstHalf += 1
+	end
+	firstHalf = math.min(firstHalf, firstHalfMax)
+	local secondHalf = count - firstHalf
+	local minutes = pickMinutesIn(rng, firstHalf, FIRST_MINUTE, MatchSim.FIRST_HALF_LAST)
+	for _, m in pickMinutesIn(rng, secondHalf, MatchSim.SECOND_HALF_FIRST, LAST_MINUTE) do
+		table.insert(minutes, m)
 	end
 	return minutes
 end
@@ -123,9 +148,8 @@ function MatchSim.simulate(params: Params): Result
 
 	-- Never more chances than fit in the match with the minimum gap. Drop
 	-- non-scoring chances first; goals are never dropped.
-	local maxChances = math.floor((LAST_MINUTE - FIRST_MINUTE) / MatchSim.MIN_EVENT_GAP)
 	for i = #chances, 1, -1 do
-		if #chances <= maxChances then
+		if #chances <= MatchSim.MAX_CHANCES then
 			break
 		end
 		if chances[i].type ~= "GOAL" then

@@ -246,6 +246,7 @@ local function refreshCash()
 	cashLabel.Text = money(get("Cash") or 0)
 end
 
+local lastMinute = 0
 local function refreshScoreboard()
 	local inMatch = get("Phase") == "Match"
 	scoreboard.Visible = inMatch
@@ -256,7 +257,12 @@ local function refreshScoreboard()
 	local total = get("TimeLeft") or 0
 	-- show a football minute rather than raw seconds; the real clock is hidden
 	local elapsedFrac = 1 - (total / math.max(get("MatchDuration") or 90, 1))
-	clockLabel.Text = ("%d'"):format(math.clamp(math.floor(elapsedFrac * 90), 0, 90))
+	local minute = math.clamp(math.floor(elapsedFrac * 90), 0, 90)
+	clockLabel.Text = ("%d'"):format(minute)
+	if minute >= 45 and lastMinute < 45 then
+		flash("HALF TIME", Color3.new(1, 1, 1), 2)
+	end
+	lastMinute = minute
 end
 
 for _, key in { "Cash" } do
@@ -285,6 +291,7 @@ state:GetAttributeChangedSignal("Phase"):Connect(function()
 	if lastPhase == "Match" and phase == "Manage" then
 		flash("FULL TIME", Color3.new(1, 1, 1), 3)
 	elseif phase == "Match" then
+		lastMinute = 0
 		flash("KICK-OFF", Color3.new(1, 1, 1), 1.5)
 	end
 	lastPhase = phase

@@ -61,7 +61,11 @@ dbg:Invoke("tactic", "Attack")   -- "Attack" | "Defend" | "Balanced" | "Sub"
 ## Status
 
 - Milestone 1: ugly playable loop (play match -> earn -> buy one upgrade). Done.
-- Milestone 2: matchday illusion (iris, walkout, 3D match playback, crowd, Attack / Defend / Sub).
-  Done. Tactics are HUD hooks only; they change the visuals, not the sim, until squads exist.
+- Milestone 2: matchday illusion (iris, walkout, 3D match playback, halftime with a change of
+  ends, crowd, Attack / Defend / Sub). Done. Tactics are HUD hooks only; they change the visuals,
+  not the sim, until squads exist.
+- Audio: `Config.Sounds` holds crowd / cheer / whistle asset IDs. They ship empty (silent) until
+  verified-creator IDs are confirmed to load in the published place; fill them in and the
+  `MatchAudio` client module picks them up.
 
 All economy numbers in `src/shared/Config.luau` are TEMP placeholders.

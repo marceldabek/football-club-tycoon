@@ -47,6 +47,19 @@ function T.eventsAreSortedAndSpaced()
 	end
 end
 
+function T.noChancesAcrossHalfTime()
+	-- the presenter swaps ends at 45'; a chance whose build-up or aftermath
+	-- straddles it would delay the break, so the sim keeps that window clear
+	for seed = 1, 60 do
+		local r = sim(seed)
+		assert(#r.events <= MatchSim.MAX_CHANCES, ("seed %d: %d chances"):format(seed, #r.events))
+		for _, ev in r.events do
+			assert(ev.minute <= MatchSim.FIRST_HALF_LAST or ev.minute >= MatchSim.SECOND_HALF_FIRST,
+				("seed %d: chance at %d' sits across half time"):format(seed, ev.minute))
+		end
+	end
+end
+
 function T.seedIsDeterministic()
 	local a, b = sim(7), sim(7)
 	assert(a.homeGoals == b.homeGoals and a.awayGoals == b.awayGoals and #a.events == #b.events, "same seed gave different results")

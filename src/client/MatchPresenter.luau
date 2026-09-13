@@ -12,6 +12,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local Footballer = require(script.Parent.Footballer)
+local MatchAudio = require(script.Parent.MatchAudio)
+local Iris = require(script.Parent.Iris)
 
 local Presenter = {}
 Presenter.__index = Presenter
@@ -48,6 +50,8 @@ export type Presenter = typeof(setmetatable(
 		mode: "walkout" | "play" | "ended",
 		heartbeat: RBXScriptConnection?,
 		appliedSubs: number,
+		swapped: boolean, -- second half: teams attack the opposite ends
+		homeTactic: Pitch.Tactic,
 	},
 	Presenter
 ))
@@ -60,6 +64,17 @@ local SEQUENCE_LEAD = 4.5 -- seconds before the event minute that its build-up s
 local FILLER_INTERVAL = 1.6
 local CELEBRATE_SECONDS = 1.8
 local RESET_SECONDS = 1.0
+local HALFTIME_SECONDS = 2.0
+-- How far each line follows the ball up and down the pitch (fraction of the
+-- distance). Defenders hold, forwards chase, so the shape stays a shape.
+local ROLE_SHIFT: { [string]: number } = { DEF = 0.1, MID = 0.18, FWD = 0.24 }
+local MAX_SHIFT = 22
+local DRIBBLE_SPEED = 13 -- the ball carrier keeps moving toward goal
+local LEAD_DISTANCE = 7 -- passes go into space ahead of the receiver
+local DRIFT_MIN, DRIFT_MAX = 1.5, 3.5 -- seconds between a player picking a new spot
+
+-- per-footballer countdown until they drift to a new spot
+local driftClock: { [Footballer.Footballer]: number } = setmetatable({}, { __mode = "k" }) :: any
 local KEEPER_KITS = { Home = Color3.fromRGB(60, 200, 90), Away = Color3.fromRGB(255, 140, 0) }
 
 local function other(team: Pitch.Team): Pitch.Team
@@ -110,6 +125,8 @@ function Presenter.new(timeline: Timeline, duration: number): Presenter
 		mode = "walkout" :: "walkout" | "play" | "ended",
 		heartbeat = nil,
 		appliedSubs = 0,
+		swapped = false,
+		homeTactic = "Balanced" :: Pitch.Tactic,
 	}, Presenter)
 
 	for _, teamName in { "Home" :: Pitch.Team, "Away" :: Pitch.Team } do
@@ -139,7 +156,7 @@ end
 -- Per-frame: move footballers, fly the ball, keep formation.
 function Presenter.step(self: Presenter, dt: number)
 	if self.mode == "play" then
-		self:updateFormationTargets()
+		self:updateFormationTargets(dt)
 	end
 	for _, team in self.teams do
 		for _, fb in team.players do
@@ -167,24 +184,63 @@ function Presenter.step(self: Presenter, dt: number)
 	end
 end
 
-function Presenter.updateFormationTargets(self: Presenter)
+-- Which end a team attacks. In the second half the teams swap, so Home uses
+-- Away's geometry and vice versa.
+function Presenter.geom(self: Presenter, team: Pitch.Team): Pitch.Team
+	return self.swapped and other(team) or team
+end
+
+function Presenter.refreshSlots(self: Presenter)
+	self.teams.Home.slots = Pitch.formationSlots(self:geom("Home"), self.homeTactic)
+	self.teams.Away.slots = Pitch.formationSlots(self:geom("Away"), "Balanced")
+end
+
+local function clampToPitch(p: Vector3): Vector3
+	return Vector3.new(
+		math.clamp(p.X, -Pitch.WIDTH / 2 + 6, Pitch.WIDTH / 2 - 6),
+		p.Y,
+		math.clamp(p.Z, -Pitch.LENGTH / 2 + 8, Pitch.LENGTH / 2 - 8)
+	)
+end
+
+function Presenter.updateFormationTargets(self: Presenter, dt: number)
 	local ballPos = self.ball.Position
 	for teamName, team in self.teams do
-		local dir = attackDir(teamName)
+		local dir = attackDir(self:geom(teamName))
 		for idx, fb in team.players do
 			if fb.busy then
 				continue
 			end
-			if self.holder and self.holder.team == teamName and self.holder.idx == idx then
-				fb:setTarget(nil)
+			local isHolder = self.holder and self.holder.team == teamName and self.holder.idx == idx
+			if isHolder then
+				if idx == 1 then
+					fb:setTarget(nil) -- keeper holds it
+				else
+					-- carry the ball toward goal with a little weave
+					fb.speed = DRIBBLE_SPEED
+					local weave = math.sin(os.clock() * 1.7 + idx) * 5
+					fb:setTarget(clampToPitch(fb.position + Vector3.new(weave, 0, dir * 14)))
+				end
 				continue
 			end
+			fb.speed = RUN_SPEED
+
+			-- every few seconds pick a new spot to drift to, so nobody stands still
+			local clock = (driftClock[fb] or 0) - dt
+			if clock <= 0 then
+				fb.jitter = Vector3.new(math.random() * 12 - 6, 0, math.random() * 14 - 7)
+				clock = DRIFT_MIN + math.random() * (DRIFT_MAX - DRIFT_MIN)
+			end
+			driftClock[fb] = clock
+
 			local base = team.slots[idx]
 			if idx == 1 then
 				fb:setTarget(base + Vector3.new(math.clamp(ballPos.X * 0.2, -7, 7), 0, 0))
 			else
-				local shift = math.clamp((ballPos.Z - base.Z) * 0.25, -30, 30) + dir * team.push
-				fb:setTarget(base + Vector3.new(0, 0, shift) + fb.jitter)
+				local follow = ROLE_SHIFT[Pitch.ROLES[idx]] or 0.18
+				local shift = math.clamp((ballPos.Z - base.Z) * follow, -MAX_SHIFT, MAX_SHIFT) + dir * team.push
+				local sway = math.clamp((ballPos.X - base.X) * 0.08, -6, 6)
+				fb:setTarget(clampToPitch(base + Vector3.new(sway, 0, shift) + fb.jitter))
 			end
 		end
 	end
@@ -205,6 +261,7 @@ function Presenter.walkout(self: Presenter, seconds: number)
 	setAll(self, function(teamName, idx, fb)
 		local side = teamName == "Home" and -2.5 or 2.5
 		fb:teleport(Pitch.TUNNEL + Vector3.new(-4 * idx, 0, side))
+		fb:setTagVisible(false) -- 22 tags in a line just overlap; shown at kickoff
 		fb.speed = WALK_SPEED
 		fb:setTarget(Vector3.new(-36 + 6 * (idx - 1), Pitch.SURFACE_Y, side * 1.6))
 	end)
@@ -226,28 +283,59 @@ function Presenter.resetToFormation(self: Presenter)
 	setAll(self, function(teamName, idx, fb)
 		fb.busy = false
 		fb.speed = RUN_SPEED
+		fb:setTagVisible(true)
 		fb:setTarget(self.teams[teamName].slots[idx])
 	end)
 end
 
 function Presenter.setTactic(self: Presenter, tactic: Pitch.Tactic)
-	self.teams.Home.slots = Pitch.formationSlots("Home", tactic)
+	self.homeTactic = tactic
+	self:refreshSlots()
+end
+
+-- Whistle, everyone stops, the iris closes, teams are placed at the opposite
+-- ends behind the black, the iris opens and Away restarts. Yields ~3s.
+function Presenter.halftime(self: Presenter)
+	MatchAudio.whistle()
+	self.holder = nil
+	self.flight = nil
+	setAll(self, function(_, _, fb)
+		fb.busy = true
+		fb:setTarget(nil)
+	end)
+	task.wait(1.0)
+	Iris.close(0.45)
+	self.swapped = true
+	self:refreshSlots()
+	setAll(self, function(teamName, idx, fb)
+		fb:teleport(self.teams[teamName].slots[idx])
+		fb:face(centre())
+	end)
+	self.ball.Position = centre() + Vector3.new(0, 0.8, 0)
+	task.wait(0.3)
+	Iris.open(0.6)
+	self:resetToFormation()
+	task.wait(HALFTIME_SECONDS - 1.0)
+	self.holder = { team = "Away", idx = 7 }
 end
 
 -- Kicks the ball from the current holder (or wherever it is) to a player.
 function Presenter.pass(self: Presenter, toTeam: Pitch.Team, toIdx: number, arcOverride: number?)
 	local receiver = self.teams[toTeam].players[toIdx]
 	local from = self.ball.Position
-	local to = receiver.position + Vector3.new(0, 0.8, 0)
+	-- play it into space ahead of the receiver so they run onto it
+	local dir = attackDir(self:geom(toTeam))
+	local landing = clampToPitch(receiver.position + Vector3.new(math.random() * 6 - 3, 0, dir * LEAD_DISTANCE))
+	local to = landing + Vector3.new(0, 0.8, 0)
 	local holder = self.holder
 	if holder then
 		local kicker = self.teams[holder.team].players[holder.idx]
-		kicker:face(receiver.position)
+		kicker:face(landing)
 		kicker:kick()
 	end
-	receiver:setTarget(receiver.position)
+	receiver.speed = RUN_SPEED
+	receiver:setTarget(landing)
 	receiver.busy = true
-	receiver:face(from)
 	local dist = (to - from).Magnitude
 	self.holder = nil
 	self.flight = {
@@ -288,6 +376,7 @@ function Presenter.fillerPass(self: Presenter)
 end
 
 local function crowdReact()
+	MatchAudio.goalCheer()
 	local club = workspace:FindFirstChild("Club")
 	local stand = club and club:FindFirstChild("Stand")
 	local crowd = stand and stand:FindFirstChild("Crowd")
@@ -311,7 +400,7 @@ function Presenter.playSequence(self: Presenter, ev: Event, shotAt: number)
 	local team = ev.team
 	local opp = other(team)
 	local T = self.teams[team]
-	local dir = attackDir(team)
+	local dir = attackDir(self:geom(team))
 	T.push = 22
 
 	local function remaining(): number
@@ -347,7 +436,7 @@ function Presenter.playSequence(self: Presenter, ev: Event, shotAt: number)
 	end
 	shooter:setTarget(nil)
 
-	local goalZ = Pitch.goalZ(team)
+	local goalZ = Pitch.goalZ(self:geom(team))
 	local keeper = self.teams[opp].players[1]
 	local target: Vector3
 	local side = math.random() < 0.5 and -1 or 1
@@ -407,14 +496,20 @@ function Presenter.start(self: Presenter, kickoffAt: number)
 		return
 	end
 	self.mode = "play"
+	-- late joiner in the second half: ends are already swapped
+	if workspace:GetServerTimeNow() - kickoffAt >= self.duration / 2 then
+		self.swapped = true
+	end
+	self:refreshSlots()
 	self:resetToFormation()
 	self.ball.Position = centre() + Vector3.new(0, 0.8, 0)
-	self.holder = { team = "Home", idx = 7 }
+	self.holder = { team = self.swapped and "Away" or "Home", idx = 7 }
 
 	task.spawn(function()
 		local secondsPerMinute = self.duration / 90
 		local nextEvent = 1
 		local fillerAt = 1.0
+		local halfDone = self.swapped
 		-- skip anything a late joiner has already missed
 		while self.events[nextEvent] and self.events[nextEvent].minute * secondsPerMinute < workspace:GetServerTimeNow() - kickoffAt do
 			nextEvent += 1
@@ -425,7 +520,11 @@ function Presenter.start(self: Presenter, kickoffAt: number)
 				break
 			end
 			local ev = self.events[nextEvent]
-			if ev and t >= ev.minute * secondsPerMinute - SEQUENCE_LEAD then
+			if not halfDone and t >= self.duration / 2 then
+				halfDone = true
+				self:halftime()
+				fillerAt = workspace:GetServerTimeNow() - kickoffAt + 0.8
+			elseif ev and t >= ev.minute * secondsPerMinute - SEQUENCE_LEAD then
 				nextEvent += 1
 				self:playSequence(ev, kickoffAt + ev.minute * secondsPerMinute)
 				fillerAt = workspace:GetServerTimeNow() - kickoffAt + 0.8
