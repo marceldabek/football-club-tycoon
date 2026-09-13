@@ -29,7 +29,7 @@ running `rojo serve` over HTTP. HttpService must be enabled in the place for thi
 
 ### Tests
 
-Pure modules (`MatchSim`, `Pitch`, `TeamGen`) have suites in `tests/`. Run them from the
+Pure modules (`MatchSim`, `Pitch`, `TeamGen`, `Squad`) have suites in `tests/`. Run them from the
 command bar (they recompile modules from source, so no stale `require` cache):
 
 ```lua
@@ -45,6 +45,8 @@ local dbg = game.ServerScriptService.Server.DebugCommand
 dbg:Invoke("playMatch", 30, 3)   -- optional: match seconds, walkout seconds
 dbg:Invoke("expandStand")
 dbg:Invoke("tactic", "Attack")   -- "Attack" | "Defend" | "Balanced" | "Sub"
+dbg:Invoke("club", "hireScout")  -- any ClubService action: setAutoSquad, swap, sign, release, hireCoach...
+dbg:Invoke("cash", 5000)         -- add money
 ```
 
 ## Architecture
@@ -54,6 +56,10 @@ dbg:Invoke("tactic", "Attack")   -- "Attack" | "Defend" | "Balanced" | "Sub"
 - **Server** (`MatchService`): runs phases Manage -> PreMatch -> Match -> Manage, publishes the
   timeline and squads as a JSON attribute on `ReplicatedStorage.ClubState`, bumps the scoreboard
   on the minute, settles revenue.
+- **Club** (`src/shared/Squad.luau` + `src/server/ClubService.luau`): persistent generated squad
+  with ratings, auto/manual lineup, injuries, development, coach, scout shortlist. Published as
+  one JSON attribute (`ClubState.Club`); the `ClubPanel` client shows it (office computer / CLUB
+  button / Tab) and sends actions over the `ClubAction` remote.
 - **Presentation** (`src/client/MatchPresenter.luau`): each client replays the timeline locally,
   synced to the server's `KickoffAt`. Block footballers (`Footballer.luau`) with procedural run /
   kick / celebrate / dive poses. Nothing here affects the result.
@@ -69,5 +75,10 @@ dbg:Invoke("tactic", "Attack")   -- "Attack" | "Defend" | "Balanced" | "Sub"
 - Audio: `Config.Sounds` (crowd, cheer, whistle) and `Config.Music` (shuffled APM tracks, ducked
   during matches, on/off button in the HUD) are free Roblox-licensed Creator Store assets.
   `MatchAudio` plays them.
+
+- Milestone 3: club management. 16-player generated squad (OVR / potential / age), Auto Squad
+  with optional manual swaps, injuries and development after each match, coach (strength +
+  development), scout with a refreshing shortlist, signing and releasing. Home strength in the
+  sim now comes from the XI; home goals get named scorers.
 
 All economy numbers in `src/shared/Config.luau` are TEMP placeholders.

@@ -54,6 +54,10 @@ function ClubState.init()
 	ClubState.set("Subs", "[]") -- JSON list of { out = number, in = number }
 	ClubState.set("Timeline", "") -- JSON published at PreMatch for the client presenter
 	ClubState.set("ClubName", Config.ClubName)
+	ClubState.set("Club", "") -- JSON squad / lineup / staff / shortlist (ClubService)
+	ClubState.set("CoachLevel", 0)
+	ClubState.set("ScoutLevel", 0)
+	ClubState.set("AutoSquad", true)
 end
 
 return ClubState

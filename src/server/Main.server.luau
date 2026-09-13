@@ -6,9 +6,11 @@ local ClubState = require(script.Parent.ClubState)
 local WorldBuilder = require(script.Parent.WorldBuilder)
 local MatchService = require(script.Parent.MatchService)
 local UpgradeService = require(script.Parent.UpgradeService)
+local ClubService = require(script.Parent.ClubService)
 
 ClubState.init()
 MatchService.init()
+ClubService.init()
 
 local world = WorldBuilder.build(ClubState.get("StandLevel"))
 UpgradeService.init(world.standPrompt)
@@ -44,6 +46,8 @@ end)
 --   ("playMatch", durationSeconds?, walkoutSeconds?)
 --   ("expandStand")
 --   ("tactic", "Attack" | "Defend" | "Balanced" | "Sub")
+--   ("club", action, a?, b?)  e.g. ("club", "hireScout"), ("club", "swap", 3, 14)
+--   ("cash", amount) adds money
 if game:GetService("RunService"):IsStudio() then
 	local debug = Instance.new("BindableFunction")
 	debug.Name = "DebugCommand"
@@ -55,6 +59,11 @@ if game:GetService("RunService"):IsStudio() then
 			return UpgradeService.tryExpandStand()
 		elseif command == "tactic" then
 			return MatchService.applyTactic(...)
+		elseif command == "club" then
+			return ClubService.act(...)
+		elseif command == "cash" then
+			ClubState.addCash((...) or 1000)
+			return true
 		end
 		return false, "unknown command: " .. tostring(command)
 	end

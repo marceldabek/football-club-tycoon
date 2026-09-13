@@ -12,14 +12,16 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local MatchSim = require(ReplicatedStorage.Shared.MatchSim)
 local Economy = require(ReplicatedStorage.Shared.Economy)
 local TeamGen = require(ReplicatedStorage.Shared.TeamGen)
+local Squad = require(ReplicatedStorage.Shared.Squad)
 local ClubState = require(script.Parent.ClubState)
 local WorldBuilder = require(script.Parent.WorldBuilder)
+local ClubService = require(script.Parent.ClubService)
 
 local MatchService = {}
 
 local running = false
-local homeSquad: { TeamGen.Player } = {}
-local subsMade: { TeamGen.Sub } = {}
+local homeSquad: { Squad.MatchPlayer } = {}
+local subsMade: { Squad.Sub } = {}
 
 local function findOrCreate(parent: Instance, name: string, className: string): Instance
 	local existing = parent:FindFirstChild(name)
@@ -54,7 +56,7 @@ function MatchService.applyTactic(action: string): (boolean, string?)
 		ClubState.set("Tactic", action)
 		return true
 	elseif action == "Sub" then
-		local sub = TeamGen.nextSub(homeSquad, subsMade)
+		local sub = Squad.nextSub(homeSquad, subsMade)
 		if not sub then
 			return false, "No substitutions left"
 		end
@@ -93,14 +95,15 @@ function MatchService.playMatch(durationOverride: number?, walkoutOverride: numb
 	local duration = durationOverride or Config.MatchDurationSeconds
 	local walkout = walkoutOverride or Config.WalkoutSeconds
 
-	-- Simulation layer: result decided up front.
+	-- Simulation layer: result decided up front from squad strength.
+	local prepared = ClubService.prepareMatch()
+	homeSquad = prepared.matchSquad
 	local result = MatchSim.simulate({
-		homeStrength = Config.HomeStrength,
-		awayStrength = Config.AwayStrength,
+		homeStrength = prepared.strength,
+		awayStrength = Config.AwayStrength, -- TEMP until divisions (Milestone 4)
 		bias = MatchSim.biasForMatch(matchIndex),
 	})
-
-	homeSquad = TeamGen.generate(Config.HomeSquadSeed)
+	local scorerSlots = Squad.assignScorers(result.events :: any, homeSquad, Random.new())
 	local awaySquad = TeamGen.generate(100 + matchIndex) -- TEMP: fresh opponents each match
 	subsMade = {}
 
@@ -173,10 +176,21 @@ function MatchService.playMatch(durationOverride: number?, walkoutOverride: numb
 	else
 		bump("Losses", 1)
 	end
+	local news = ClubService.finishMatch(scorerSlots, homeSquad)
+	local scorers = {}
+	for _, ev in result.events do
+		local scorer = (ev :: any).scorer
+		if scorer and homeSquad[scorer] then
+			table.insert(scorers, ("%d' %s"):format(ev.minute, homeSquad[scorer].name))
+		end
+	end
+
 	ClubState.set("Phase", "Manage")
 	running = false
 
 	remote("MatchSummary"):FireAllClients({
+		scorers = scorers,
+		news = news,
 		opponent = opponent,
 		homeGoals = result.homeGoals,
 		awayGoals = result.awayGoals,

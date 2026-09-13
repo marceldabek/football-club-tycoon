@@ -214,8 +214,13 @@ local function buildOffice(parent: Instance)
 	-- furniture
 	local desk = box("Desk", Vector3.new(4, 3, 10), Vector3.new(cx - 8, GROUND_Y + 1 + 1.5, cz),
 		Color3.fromRGB(110, 75, 45), Enum.Material.Wood, office)
-	box("Computer", Vector3.new(1, 2, 2.5), Vector3.new(cx - 8, desk.Position.Y + 1.5 + 1, cz),
+	local computer = box("Computer", Vector3.new(1, 2, 2.5), Vector3.new(cx - 8, desk.Position.Y + 1.5 + 1, cz),
 		Color3.fromRGB(200, 200, 190), Enum.Material.Plastic, office)
+	-- Club management lives on the office computer. The client opens the panel
+	-- when this prompt fires (ProximityPromptService.PromptTriggered).
+	local clubPrompt = addPrompt(computer, "Club Office", "Manage squad, scouting & staff")
+	clubPrompt.Name = "ClubPrompt"
+	clubPrompt.HoldDuration = 0
 	box("Chair", Vector3.new(2, 2, 2), Vector3.new(cx - 11.5, GROUND_Y + 1 + 1, cz),
 		Color3.fromRGB(60, 60, 60), Enum.Material.Fabric, office)
 

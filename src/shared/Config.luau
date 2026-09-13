@@ -19,9 +19,32 @@ Config.LossBonus = 0
 -- TEMP: flat fan demand. Later driven by popularity / performance / amenities.
 Config.BaseDemand = 420
 
--- TEMP: strength values feed the hidden sim. Squad system arrives in Milestone 3.
-Config.HomeStrength = 50
-Config.AwayStrength = 50
+-- TEMP: opponent strength for the hidden sim until divisions arrive (Milestone 4).
+-- Home strength comes from the squad (Squad.strength) plus the coach bonus.
+Config.AwayStrength = 45
+
+-- Squad (Milestone 3). All TEMP.
+Config.StartingSquadOverall = 45
+Config.SquadMax = 20
+Config.SquadMin = 14
+Config.BenchSize = 5
+Config.InjuryChance = 0.04 -- per starter per match
+Config.DevelopChance = 0.2 -- per eligible player per match, scaled by coach
+Config.DeclineChance = 0.06 -- per player aged 31+ per match
+
+-- Level 0 = no coach. Index = level + 1.
+Config.CoachLevels = {
+	{ name = "No coach", cost = 0, strengthBonus = 0, developMultiplier = 1 },
+	{ name = "Volunteer Coach", cost = 800, strengthBonus = 2, developMultiplier = 1.5 },
+	{ name = "Qualified Coach", cost = 2500, strengthBonus = 4, developMultiplier = 2 },
+	{ name = "Pro Coach", cost = 6000, strengthBonus = 6, developMultiplier = 3 },
+}
+-- Level 0 = no scout. Index = level (no zero entry). Shortlist refreshes every match.
+Config.ScoutLevels = {
+	{ name = "Local Scout", cost = 600, prospects = 3, overallBonus = 2, potentialBoost = 3 },
+	{ name = "Regional Scout", cost = 2000, prospects = 4, overallBonus = 4, potentialBoost = 6 },
+	{ name = "Scouting Network", cost = 5000, prospects = 5, overallBonus = 6, potentialBoost = 10 },
+}
 
 -- The one Milestone 1 upgrade. Level 1 is the starting stand.
 Config.StandLevels = {

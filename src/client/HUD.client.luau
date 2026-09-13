@@ -192,7 +192,7 @@ subButton.Activated:Connect(function()
 end)
 
 -- Post-match summary (centre)
-local summary = makePanel("Summary", UDim2.fromOffset(420, 360), UDim2.fromScale(0.5, 0.5))
+local summary = makePanel("Summary", UDim2.fromOffset(460, 440), UDim2.fromScale(0.5, 0.5))
 summary.Visible = false
 local summaryTitle = makeLabel("Title", summary, { Size = UDim2.new(1, -20, 0, 44), Position = UDim2.fromOffset(10, 10) })
 local summaryBody = makeLabel("Body", summary, {
@@ -244,8 +244,8 @@ local function showToast(message: string, color: Color3?)
 		end
 	end)
 end
-toastEvent.OnClientEvent:Connect(function(message: string)
-	showToast(message)
+toastEvent.OnClientEvent:Connect(function(message: string, ok: boolean?)
+	showToast(message, if ok then Color3.fromRGB(150, 230, 150) else nil)
 end)
 
 local function refreshHint()
@@ -263,8 +263,10 @@ local function refreshHint()
 		hintLabel.Text = "Head out to the MATCHDAY board and play your first match."
 	elseif level == 1 then
 		hintLabel.Text = "Fans were turned away. Expand the stand (yellow sign by the bleachers)."
+	elseif (get("ScoutLevel") or 0) == 0 then
+		hintLabel.Text = "Hire a scout to find new players: the office computer, or the CLUB button."
 	else
-		hintLabel.Text = "Play the next match at the MATCHDAY board."
+		hintLabel.Text = "Play the next match at the MATCHDAY board. Check the CLUB office between games."
 	end
 end
 
@@ -297,7 +299,7 @@ end
 for _, key in { "Phase", "HomeGoals", "AwayGoals", "TimeLeft", "Opponent" } do
 	state:GetAttributeChangedSignal(key):Connect(refreshScoreboard)
 end
-for _, key in { "Phase", "MatchesPlayed", "StandLevel" } do
+for _, key in { "Phase", "MatchesPlayed", "StandLevel", "ScoutLevel" } do
 	state:GetAttributeChangedSignal(key):Connect(refreshHint)
 end
 
@@ -370,9 +372,11 @@ refreshTacticButtons()
 summaryEvent.OnClientEvent:Connect(function(data)
 	local outcomeText = data.outcome == "Win" and "WIN" or (data.outcome == "Draw" and "DRAW" or "LOSS")
 	summaryTitle.Text = ("%s  %d - %d  %s   (%s)"):format(get("ClubName") or "Home", data.homeGoals, data.awayGoals, data.opponent, outcomeText)
-	local lines = {
-		("Attendance: <b>%d</b> / %d seats"):format(data.attendance, data.capacity),
-	}
+	local lines = {}
+	if data.scorers and #data.scorers > 0 then
+		table.insert(lines, ("<font color=\"#ffe066\">Scorers: %s</font>"):format(table.concat(data.scorers, ", ")))
+	end
+	table.insert(lines, ("Attendance: <b>%d</b> / %d seats"):format(data.attendance, data.capacity))
 	if data.turnedAway > 0 then
 		table.insert(lines, ("<font color=\"#ff8080\">Fans turned away: <b>%d</b></font>"):format(data.turnedAway))
 	end
@@ -382,6 +386,16 @@ summaryEvent.OnClientEvent:Connect(function(data)
 	table.insert(lines, ("<b>Total earned: %s</b>"):format(money(data.total)))
 	table.insert(lines, "")
 	table.insert(lines, ("Club cash: <b>%s</b>"):format(money(data.cash)))
+	if data.news and #data.news > 0 then
+		table.insert(lines, "")
+		for i, line in data.news do
+			if i > 4 then
+				table.insert(lines, ("<font color=\"#a0a0a0\">…and %d more</font>"):format(#data.news - 4))
+				break
+			end
+			table.insert(lines, ("<font color=\"#9fd3ff\">%s</font>"):format(line))
+		end
+	end
 	summaryBody.Text = table.concat(lines, "\n")
 	summary.Visible = true
 end)

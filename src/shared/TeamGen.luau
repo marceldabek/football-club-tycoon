@@ -1,7 +1,7 @@
 --!strict
--- Generates a fictional squad for the matchday visuals. Pure and deterministic.
--- Milestone 2 only needs names, numbers and roles; the real persistent squad
--- with ratings arrives in Milestone 3 and can grow from this shape.
+-- Generates fictional footballer names and throwaway opponent squads for the
+-- matchday visuals. Pure and deterministic. The home club's persistent squad
+-- with ratings lives in Squad.luau and reuses generateNames.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
@@ -26,58 +26,35 @@ local LAST = {
 	"Underhill", "Voss", "Wickham", "Xu", "Yarrow", "Zelinski", "Bloxham", "Noobington", "Skyward", "Fairbanks",
 }
 
--- Bench roles are always outfield. TEMP: fixed shape until real squads exist.
-local BENCH_ROLES: { Pitch.Role } = { "DEF", "MID", "MID", "FWD", "DEF" }
-
-function TeamGen.generate(seed: number): { Player }
-	local rng = Random.new(seed)
-	local squad: { Player } = {}
+-- `count` distinct names drawn from the shared rng.
+function TeamGen.generateNames(rng: Random, count: number): { string }
+	local names: { string } = {}
 	local used: { [string]: boolean } = {}
-
-	local function uniqueName(): string
-		while true do
-			local name = FIRST[rng:NextInteger(1, #FIRST)] .. " " .. LAST[rng:NextInteger(1, #LAST)]
-			if not used[name] then
-				used[name] = true
-				return name
-			end
+	while #names < count do
+		local name = FIRST[rng:NextInteger(1, #FIRST)] .. " " .. LAST[rng:NextInteger(1, #LAST)]
+		if not used[name] then
+			used[name] = true
+			table.insert(names, name)
 		end
 	end
-
-	for i, role in Pitch.ROLES do
-		table.insert(squad, { name = uniqueName(), number = i, role = role })
-	end
-	for i, role in BENCH_ROLES do
-		table.insert(squad, { name = uniqueName(), number = #Pitch.ROLES + i, role = role })
-	end
-	return squad
+	return names
 end
 
-export type Sub = { out: number, ["in"]: number }
+-- Bench roles are always outfield. Fixed shape for opponents.
+local BENCH_ROLES: { Pitch.Role } = { "DEF", "MID", "MID", "FWD", "DEF" }
 
-local MAX_SUBS = 3
-
--- Picks the next substitution: the most advanced remaining starter comes off
--- for the next unused bench player. TEMP: no fatigue/ratings yet, so the
--- order is fixed (11, 10, 9). Returns nil when no sub is possible.
-function TeamGen.nextSub(squad: { Player }, made: { Sub }): Sub?
-	if #made >= MAX_SUBS then
-		return nil
+-- An opponent's 16: starting XI in formation order plus a five-man bench.
+function TeamGen.generate(seed: number): { Player }
+	local rng = Random.new(seed)
+	local names = TeamGen.generateNames(rng, #Pitch.ROLES + #BENCH_ROLES)
+	local squad: { Player } = {}
+	for i, role in Pitch.ROLES do
+		table.insert(squad, { name = names[i], number = i, role = role })
 	end
-	local onBench = #Pitch.ROLES + #made + 1
-	if not squad[onBench] then
-		return nil
+	for i, role in BENCH_ROLES do
+		table.insert(squad, { name = names[#Pitch.ROLES + i], number = #Pitch.ROLES + i, role = role })
 	end
-	local subbedOut: { [number]: boolean } = {}
-	for _, sub in made do
-		subbedOut[sub.out] = true
-	end
-	for number = #Pitch.ROLES, 2, -1 do
-		if not subbedOut[number] then
-			return { out = number, ["in"] = onBench }
-		end
-	end
-	return nil
+	return squad
 end
 
 return TeamGen

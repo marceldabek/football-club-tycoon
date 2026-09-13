@@ -18,7 +18,7 @@ local Presenter = {}
 Presenter.__index = Presenter
 
 type Player = { name: string, number: number, role: string }
-type Event = { minute: number, team: Pitch.Team, type: string }
+type Event = { minute: number, team: Pitch.Team, type: string, scorer: number? }
 export type Timeline = {
 	events: { Event },
 	home: { name: string, kit: { number }, squad: { Player } },
@@ -409,6 +409,10 @@ function Presenter.playSequence(self: Presenter, ev: Event, shotAt: number)
 		{ idx = math.random(6, 9), needs = 1.9 },
 		{ idx = math.random(10, 11), needs = 0 },
 	}
+	-- the sim names the scorer for home goals; that slot takes the shot
+	if ev.scorer and T.players[ev.scorer] then
+		chain[3].idx = ev.scorer
+	end
 	local fwd = chain[3].idx
 	for _, link in chain do
 		if remaining() < link.needs then

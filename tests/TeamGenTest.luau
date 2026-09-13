@@ -34,25 +34,22 @@ function T.namesUniqueWithinSquad()
 	end
 end
 
+function T.generateNamesGivesDistinctCount()
+	local names = TeamGen.generateNames(Random.new(3), 25)
+	assert(#names == 25, "expected 25 names")
+	local seen = {}
+	for _, n in names do
+		assert(not seen[n], "duplicate " .. n)
+		seen[n] = true
+	end
+end
+
 function T.deterministicBySeed()
 	local a, b = TeamGen.generate(99), TeamGen.generate(99)
 	for i = 1, 16 do
 		assert(a[i].name == b[i].name, "seed 99 gave different squads")
 	end
 	assert(TeamGen.generate(1)[1].name ~= TeamGen.generate(2)[1].name, "different seeds gave the same keeper")
-end
-
-function T.nextSubWalksDownFromElevenAndStopsAtThree()
-	local squad = TeamGen.generate(5)
-	local made = {}
-	local expected = { { out = 11, ["in"] = 12 }, { out = 10, ["in"] = 13 }, { out = 9, ["in"] = 14 } }
-	for i = 1, 3 do
-		local sub = TeamGen.nextSub(squad, made)
-		assert(sub, "sub " .. i .. " was nil")
-		assert(sub.out == expected[i].out and sub["in"] == expected[i]["in"], ("sub %d: %d->%d"):format(i, sub.out, sub["in"]))
-		table.insert(made, sub)
-	end
-	assert(TeamGen.nextSub(squad, made) == nil, "fourth sub should be refused")
 end
 
 return T
