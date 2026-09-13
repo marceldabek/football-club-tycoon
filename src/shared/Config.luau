@@ -99,6 +99,20 @@ Config.HomeSquadSeed = 1
 
 Config.MaxSubs = 3
 
+-- Persistence (Milestone 5). TEMP values.
+Config.Save = {
+	storeName = "ClubProfiles", -- DataStore name; bump to reset every save during prototyping
+	autosaveSeconds = 30, -- save this often while something changed
+	loadRetries = 3,
+	retryBackoffSeconds = 1,
+}
+-- Club naming (onboarding). TEMP: the naming flow is an open question (CLAUDE.md §25).
+Config.ClubNameMinLength = 3
+Config.ClubNameMaxLength = 24
+Config.DefaultClubNameSuffix = " FC" -- default name is "<DisplayName> FC"
+-- How many title trophies fit on the office shelf.
+Config.TrophiesShown = 8
+
 -- Matchday audio. All three are free Pro Sound Effects assets from Roblox's
 -- licensed Creator Store library. An empty string disables that sound.
 Config.Sounds = {

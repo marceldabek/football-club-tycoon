@@ -1,10 +1,12 @@
 --!strict
--- Single club state for the Milestone 1 prototype, replicated to clients as
--- attributes on ReplicatedStorage.ClubState.
--- TEMP: one shared club per server. Per-player clubs come with persistence (Milestone 5).
+-- The club's replicated state: attributes on ReplicatedStorage.ClubState.
+-- One club per server, owned by the first player to join (OwnerUserId).
+-- The scalar half of the save (cash, stadium, record, name) lives here;
+-- squad / season / history are published by their own services.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
+local Profile = require(ReplicatedStorage.Shared.Profile)
 
 local ClubState = {}
 
@@ -17,12 +19,38 @@ if not folder then
 end
 ClubState.Folder = folder
 
+-- Keys that are part of the save; changing one marks the profile dirty.
+local PERSISTED: { [string]: boolean } = {
+	Cash = true,
+	StandLevel = true,
+	AmenityLevel = true,
+	MatchesPlayed = true,
+	Wins = true,
+	Draws = true,
+	Losses = true,
+	ClubName = true,
+}
+
+-- Set by Session once a profile is loaded; nil before that.
+ClubState.onDirty = nil :: (() -> ())?
+
+function ClubState.markDirty()
+	local hook = ClubState.onDirty
+	if hook then
+		hook()
+	end
+end
+
 function ClubState.get(key: string): any
 	return folder:GetAttribute(key)
 end
 
 function ClubState.set(key: string, value: any)
+	local changed = folder:GetAttribute(key) ~= value
 	folder:SetAttribute(key, value)
+	if changed and PERSISTED[key] then
+		ClubState.markDirty()
+	end
 end
 
 function ClubState.addCash(amount: number)
@@ -34,7 +62,14 @@ function ClubState.capacity(): number
 	return Config.StandLevels[level].capacity
 end
 
+function ClubState.isOwner(player: Player): boolean
+	return (ClubState.get("OwnerUserId") :: number?) == player.UserId
+end
+
 function ClubState.init()
+	ClubState.set("Phase", "Loading") -- "Loading" | "Manage" | "PreMatch" | "Match"
+	ClubState.set("OwnerUserId", 0)
+	ClubState.set("NeedsName", false) -- onboarding: owner still has to name the club
 	ClubState.set("Cash", Config.StartingCash)
 	ClubState.set("StandLevel", 1)
 	ClubState.set("Capacity", Config.StandLevels[1].capacity)
@@ -42,7 +77,6 @@ function ClubState.init()
 	ClubState.set("Wins", 0)
 	ClubState.set("Draws", 0)
 	ClubState.set("Losses", 0)
-	ClubState.set("Phase", "Manage") -- "Manage" | "PreMatch" | "Match"
 	ClubState.set("HomeGoals", 0)
 	ClubState.set("AwayGoals", 0)
 	ClubState.set("TimeLeft", 0)
@@ -70,6 +104,47 @@ function ClubState.init()
 	ClubState.set("NextOpponent", "")
 	ClubState.set("LeagueTable", "[]") -- JSON standings
 	ClubState.set("AmenityLevel", 0)
+	ClubState.set("History", "{}") -- JSON { seasons, honours } (HistoryService)
+end
+
+-- The scalar half of the profile.
+function ClubState.restore(p: Profile.Profile)
+	ClubState.set("ClubName", p.clubName)
+	ClubState.set("NeedsName", not p.named)
+	ClubState.set("Cash", p.cash)
+	ClubState.set("StandLevel", p.standLevel)
+	ClubState.set("Capacity", Config.StandLevels[p.standLevel].capacity)
+	ClubState.set("AmenityLevel", p.amenityLevel)
+	ClubState.set("MatchesPlayed", p.matchesPlayed)
+	ClubState.set("Wins", p.wins)
+	ClubState.set("Draws", p.draws)
+	ClubState.set("Losses", p.losses)
+end
+
+export type Scalars = {
+	clubName: string,
+	named: boolean,
+	cash: number,
+	standLevel: number,
+	amenityLevel: number,
+	matchesPlayed: number,
+	wins: number,
+	draws: number,
+	losses: number,
+}
+
+function ClubState.serialize(): Scalars
+	return {
+		clubName = ClubState.get("ClubName") :: string,
+		named = not (ClubState.get("NeedsName") :: boolean),
+		cash = ClubState.get("Cash") :: number,
+		standLevel = ClubState.get("StandLevel") :: number,
+		amenityLevel = (ClubState.get("AmenityLevel") :: number?) or 0,
+		matchesPlayed = ClubState.get("MatchesPlayed") :: number,
+		wins = ClubState.get("Wins") :: number,
+		draws = ClubState.get("Draws") :: number,
+		losses = ClubState.get("Losses") :: number,
+	}
 end
 
 return ClubState

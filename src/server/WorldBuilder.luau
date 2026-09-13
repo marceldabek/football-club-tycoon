@@ -21,6 +21,10 @@ local CONCOURSE = 4 -- free strip between fence and the first structure
 local FENCE_X = PITCH_W / 2 + FENCE_OFFSET
 local FENCE_Z = PITCH_L / 2 + END_FENCE_OFFSET
 
+-- Office block: west of the pitch, past the fence and a concourse strip.
+local OFFICE_W, OFFICE_D, OFFICE_H = 32, 32, 12
+local OFFICE_CX, OFFICE_CZ = -(FENCE_X + CONCOURSE + 40 + OFFICE_W / 2), 0
+
 local function part(props: { [string]: any }): Part
 	local p = Instance.new("Part")
 	p.Anchored = true
@@ -189,9 +193,9 @@ local function buildOffice(parent: Instance)
 	office.Name = "Office"
 	office.Parent = parent
 
-	local w, d, h = 32, 32, 12
-	-- west of the pitch, past the fence and a concourse strip, door facing the pitch
-	local cx, cz = -(FENCE_X + CONCOURSE + 40 + w / 2), 0
+	local w, d, h = OFFICE_W, OFFICE_D, OFFICE_H
+	-- door faces the pitch
+	local cx, cz = OFFICE_CX, OFFICE_CZ
 	local wallColor = Color3.fromRGB(170, 160, 135) -- stained beige
 	local wallMat = Enum.Material.Concrete
 
@@ -242,6 +246,66 @@ local function buildOffice(parent: Instance)
 	spawn.Neutral = true
 	spawn.Duration = 0
 	spawn.Parent = office
+end
+
+-- Trophy shelf on the inside of the office's north wall: one gold cup per
+-- league title (Milestone 5 club history). Safe to call again after a title.
+function WorldBuilder.buildTrophies(count: number)
+	local club = workspace:FindFirstChild("Club")
+	local office = club and club:FindFirstChild("Office")
+	if not office then
+		return
+	end
+	local existing = office:FindFirstChild("Trophies")
+	if existing then
+		existing:Destroy()
+	end
+	local shown = math.clamp(math.floor(count), 0, Config.TrophiesShown)
+	if shown == 0 then
+		return
+	end
+	local model = Instance.new("Model")
+	model.Name = "Trophies"
+	model.Parent = office
+
+	local shelfLen = OFFICE_W - 6
+	local shelfY = GROUND_Y + 1 + 7
+	local shelfZ = OFFICE_CZ - OFFICE_D / 2 + 1.5
+	box("Shelf", Vector3.new(shelfLen, 0.5, 2), Vector3.new(OFFICE_CX, shelfY, shelfZ),
+		Color3.fromRGB(110, 75, 45), Enum.Material.Wood, model)
+
+	local gold = Color3.fromRGB(230, 190, 60)
+	local spacing = 3
+	local startX = OFFICE_CX - (shown - 1) * spacing / 2
+	for i = 1, shown do
+		local x = startX + (i - 1) * spacing
+		local base = part({
+			Name = "CupBase" .. i,
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.4, 1.6, 1.6),
+			CFrame = CFrame.new(x, shelfY + 0.45, shelfZ) * CFrame.Angles(0, 0, math.pi / 2),
+			Color = gold,
+			Material = Enum.Material.Metal,
+			Parent = model,
+		})
+		part({
+			Name = "CupStem" .. i,
+			Size = Vector3.new(0.4, 1.2, 0.4),
+			CFrame = CFrame.new(x, base.Position.Y + 0.8, shelfZ),
+			Color = gold,
+			Material = Enum.Material.Metal,
+			Parent = model,
+		})
+		part({
+			Name = "Cup" .. i,
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.new(1.4, 1.4, 1.4),
+			CFrame = CFrame.new(x, base.Position.Y + 2, shelfZ),
+			Color = gold,
+			Material = Enum.Material.Metal,
+			Parent = model,
+		})
+	end
 end
 
 local function buildMatchdayBoard(parent: Instance): ProximityPrompt

@@ -29,7 +29,8 @@ running `rojo serve` over HTTP. HttpService must be enabled in the place for thi
 
 ### Tests
 
-Pure modules (`MatchSim`, `Pitch`, `TeamGen`, `Squad`, `League`, `Economy`) have suites in `tests/`. Run them from the
+Pure modules (`MatchSim`, `Pitch`, `TeamGen`, `Squad`, `League`, `Economy`, `Profile`, `History`)
+and `SaveService` (with its memory backend) have suites in `tests/`. Run them from the
 command bar (they recompile modules from source, so no stale `require` cache):
 
 ```lua
@@ -47,6 +48,9 @@ dbg:Invoke("expandStand")        -- or "amenity" for the concourse chain
 dbg:Invoke("tactic", "Attack")   -- "Attack" | "Defend" | "Balanced" | "Sub"
 dbg:Invoke("club", "hireScout")  -- any ClubService action: setAutoSquad, swap, sign, release, hireCoach...
 dbg:Invoke("cash", 5000)         -- add money
+dbg:Invoke("save")               -- flush the profile now
+dbg:Invoke("reload")             -- snapshot -> JSON -> restore: proves the save round trip
+dbg:Invoke("wipe")               -- throw the club away and start fresh
 ```
 
 ## Architecture
@@ -63,6 +67,12 @@ dbg:Invoke("cash", 5000)         -- add money
 - **Season** (`src/shared/League.luau` + `src/server/SeasonService.luau`): 6-team double round
   robin (10 matches), table, promotion / relegation through `Config.Divisions`, popularity and
   fan demand (`Economy.demand`). The other fixtures of each round are simulated with `MatchSim`.
+- **Persistence** (`src/shared/Profile.luau` + `src/server/SaveService.luau` + `src/server/Session.luau`):
+  one club per server, owned by the first player to join. `Session` loads the owner's profile,
+  restores every service and builds the world, then saves after every match, on a 30s dirty
+  timer, when the owner leaves and on shutdown. `Profile.normalize` repairs anything missing or
+  malformed in a save. Club history (`History.luau`, `HistoryService`) records every finished
+  season and puts a trophy on the office shelf per league title.
 - **Presentation** (`src/client/MatchPresenter.luau`): each client replays the timeline locally,
   synced to the server's `KickoffAt`. Block footballers (`Footballer.luau`) with procedural run /
   kick / celebrate / dive poses. Nothing here affects the result.
@@ -90,4 +100,18 @@ dbg:Invoke("cash", 5000)         -- add money
   (Snack Bar → Club Shop → Fan Zone) that adds per-fan revenue and demand. All of the player's
   fixtures are presented at home (one stadium) for now.
 
+- Milestone 5: save & retention. DataStore persistence of cash, stadium, squad, season, table
+  and history; loading screen; first-visit club naming (filtered); welcome-back card; Club
+  panel → History tab; trophy shelf in the office. Visitors (a second player in the same
+  server) can watch but not manage.
+
 All economy numbers in `src/shared/Config.luau` are TEMP placeholders.
+
+## Persistence in Studio
+
+DataStores only work in a **published** place with *Game Settings → Security → Enable Studio
+Access to API Services* turned on. Until then the server logs
+`DataStore unavailable in Studio` and saves to memory for the Play session only; use
+`dbg:Invoke("reload")` to prove the round trip. Also set *Game Settings → Places → Max
+players* to **1** (it is read-only from scripts) so every player gets their own server and club.
+The DataStore name is `Config.Save.storeName`; bump it to reset all saves while prototyping.

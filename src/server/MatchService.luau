@@ -24,6 +24,10 @@ local running = false
 local homeSquad: { Squad.MatchPlayer } = {}
 local subsMade: { Squad.Sub } = {}
 
+-- Set by Session: called once the result and revenue are applied, so the
+-- profile is saved at the one moment that matters most.
+MatchService.onSettled = nil :: (() -> ())?
+
 local function findOrCreate(parent: Instance, name: string, className: string): Instance
 	local existing = parent:FindFirstChild(name)
 	if existing then
@@ -74,6 +78,10 @@ function MatchService.init()
 	local tactic = remote("Tactic")
 	tactic.OnServerEvent:Connect(function(player: Player, action: unknown)
 		if type(action) ~= "string" then
+			return
+		end
+		if not ClubState.isOwner(player) then
+			remote("Toast"):FireClient(player, "You're visiting this club. Only the owner can manage it.")
 			return
 		end
 		local ok, reason = MatchService.applyTactic(action)
@@ -198,6 +206,11 @@ function MatchService.playMatch(durationOverride: number?, walkoutOverride: numb
 
 	ClubState.set("Phase", "Manage")
 	running = false
+
+	local settled = MatchService.onSettled
+	if settled then
+		task.spawn(settled)
+	end
 
 	remote("MatchSummary"):FireAllClients({
 		opponent = fixture.opponent,

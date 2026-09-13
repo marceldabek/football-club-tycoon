@@ -3,13 +3,14 @@
 -- manual), the coach, the scout and the current shortlist. Publishes it all as
 -- one JSON attribute (ClubState.Club) and handles the ClubAction remote.
 -- Pure squad maths lives in Squad.luau; this module only holds state and rules.
--- TEMP: one shared club per server until persistence (Milestone 5).
+-- The squad persists: Session restores it from the profile and serializes it back.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Squad = require(ReplicatedStorage.Shared.Squad)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
+local Profile = require(ReplicatedStorage.Shared.Profile)
 local ClubState = require(script.Parent.ClubState)
 
 local ClubService = {}
@@ -39,6 +40,7 @@ local function publish()
 	ClubState.set("CoachLevel", coachLevel)
 	ClubState.set("ScoutLevel", scoutLevel)
 	ClubState.set("AutoSquad", autoSquad)
+	ClubState.markDirty()
 end
 
 local function findPlayer(id: number): Squad.Player?
@@ -161,16 +163,98 @@ local function recomputeLineup()
 	end
 end
 
-function ClubService.init()
-	players = Squad.generate(Config.HomeSquadSeed, Config.StartingSquadOverall)
+local VALID_ROLES: { [string]: boolean } = { GK = true, DEF = true, MID = true, FWD = true }
+
+local function validPlayer(p: any): boolean
+	if type(p) ~= "table" then
+		return false
+	end
+	for _, key in { "id", "number", "age", "overall", "potential", "injured", "apps", "goals" } do
+		if type(p[key]) ~= "number" then
+			return false
+		end
+	end
+	return type(p.name) == "string" and VALID_ROLES[p.role] == true
+end
+
+local function generateFresh()
+	-- every club gets its own 16; the fixed Config.HomeSquadSeed is for tests
+	players = Squad.generate(rng:NextInteger(1, 1000000), Config.StartingSquadOverall)
 	nextId = #players + 1
 	autoSquad = true
 	coachLevel = 0
 	scoutLevel = 0
 	shortlist = {}
+	lineup = { xi = {}, bench = {} }
 	recomputeLineup()
-	publish()
+end
 
+-- nil = a brand-new club. Anything malformed falls back to a fresh squad
+-- rather than a crash; the warning tells us the save was bad.
+function ClubService.restore(data: any?)
+	if data == nil then
+		generateFresh()
+		publish()
+		return
+	end
+	local ok = type(data) == "table" and type(data.players) == "table" and #data.players >= 1
+	if ok then
+		for _, p in data.players do
+			if not validPlayer(p) then
+				ok = false
+				break
+			end
+		end
+	end
+	if not ok then
+		warn("[FCT] saved squad was invalid; generating a fresh one")
+		generateFresh()
+		publish()
+		return
+	end
+	players = {}
+	for _, p in data.players do
+		table.insert(players, table.clone(p))
+	end
+	local maxId = 0
+	for _, p in players do
+		maxId = math.max(maxId, p.id)
+	end
+	nextId = math.max(if type(data.nextId) == "number" then data.nextId else 0, maxId + 1)
+	autoSquad = data.autoSquad ~= false
+	coachLevel = math.clamp(if type(data.coachLevel) == "number" then data.coachLevel else 0, 0, #Config.CoachLevels - 1)
+	scoutLevel = math.clamp(if type(data.scoutLevel) == "number" then data.scoutLevel else 0, 0, #Config.ScoutLevels)
+	shortlist = {}
+	if type(data.shortlist) == "table" then
+		for _, p in data.shortlist do
+			if validPlayer(p) and type(p.fee) == "number" then
+				table.insert(shortlist, table.clone(p))
+			end
+		end
+	end
+	local savedLineup = if type(data.lineup) == "table" then data.lineup else {}
+	lineup = {
+		xi = if type(savedLineup.xi) == "table" then Profile.unpackXi(savedLineup.xi) else {},
+		bench = if type(savedLineup.bench) == "table" then table.clone(savedLineup.bench) else {},
+	}
+	recomputeLineup() -- auto: best XI; manual: repair anything stale
+	publish()
+end
+
+function ClubService.serialize()
+	return {
+		players = players,
+		lineup = { xi = Profile.packXi(lineup.xi), bench = lineup.bench },
+		autoSquad = autoSquad,
+		coachLevel = coachLevel,
+		scoutLevel = scoutLevel,
+		shortlist = shortlist,
+		nextId = nextId,
+	}
+end
+
+-- Wires the remote only; the squad arrives through restore().
+function ClubService.init()
 	local remotes = ReplicatedStorage:FindFirstChild("Remotes") or Instance.new("Folder")
 	remotes.Name = "Remotes"
 	remotes.Parent = ReplicatedStorage
@@ -183,6 +267,12 @@ function ClubService.init()
 	local toast = remotes:FindFirstChild("Toast") :: RemoteEvent
 	action.OnServerEvent:Connect(function(player: Player, name: unknown, a: unknown, b: unknown)
 		if type(name) ~= "string" then
+			return
+		end
+		if not ClubState.isOwner(player) then
+			if toast then
+				toast:FireClient(player, "You're visiting this club. Only the owner can manage it.", false)
+			end
 			return
 		end
 		local ok, message = ClubService.act(name, a, b)

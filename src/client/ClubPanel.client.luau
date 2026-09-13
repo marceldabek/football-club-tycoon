@@ -197,7 +197,7 @@ local tabButtons: { [string]: TextButton } = {}
 
 local render: () -> ()
 
-for i, name in { "Squad", "League", "Scouting", "Staff" } do
+for i, name in { "Squad", "League", "History", "Scouting", "Staff" } do
 	local b = button(tabs, name:upper(), ROW_BG, { Name = name .. "Tab", Size = UDim2.fromOffset(120, 32), LayoutOrder = i })
 	tabButtons[name] = b
 	b.Activated:Connect(function()
@@ -262,6 +262,11 @@ local function cell(parent: Instance, text: string, x: number, w: number, props:
 	end
 end
 
+-- Visitors (anyone but the owner) can look but not touch.
+local function canManage(): boolean
+	return get("OwnerUserId") == player.UserId
+end
+
 local function statusText(p: Player): (string, Color3)
 	if p.injured > 0 then
 		return ("INJ %d"):format(p.injured), RED
@@ -280,6 +285,7 @@ local function playerRow(p: Player, slotLabel: string, alt: boolean, club: Club,
 	local hit = Instance.new("TextButton")
 	hit.BackgroundTransparency = 1
 	hit.Text = ""
+	canRelease = canRelease and canManage()
 	hit.Size = UDim2.new(1, if canRelease then -90 else 0, 1, 0)
 	hit.Parent = f
 	cell(f, slotLabel, 10, 46, { TextColor3 = GREY, Font = Enum.Font.GothamBold })
@@ -293,6 +299,9 @@ local function playerRow(p: Player, slotLabel: string, alt: boolean, club: Club,
 	cell(f, st, 525, 70, { TextColor3 = stColor, Font = Enum.Font.GothamBold })
 
 	hit.Activated:Connect(function()
+		if not canManage() then
+			return
+		end
 		-- with Auto Squad on the server refuses the swap and explains why
 		if selectedId == nil then
 			selectedId = p.id
@@ -326,14 +335,18 @@ local function renderSquad(club: Club)
 
 	local head = row(false)
 	head.BackgroundColor3 = PANEL_BG
-	local toggle = button(head, if club.autoSquad then "AUTO SQUAD: ON" else "AUTO SQUAD: OFF", if club.autoSquad then GREEN else Color3.fromRGB(90, 90, 100), {
-		Size = UDim2.fromOffset(170, 28),
-		Position = UDim2.fromOffset(0, 1),
-	})
-	toggle.Activated:Connect(function()
-		actionEvent:FireServer("setAutoSquad", not club.autoSquad)
-	end)
-	cell(head, if club.autoSquad then "The best fit XI is picked for you." else "Tap two players to swap them.", 180, 400, { TextColor3 = GREY })
+	if canManage() then
+		local toggle = button(head, if club.autoSquad then "AUTO SQUAD: ON" else "AUTO SQUAD: OFF", if club.autoSquad then GREEN else Color3.fromRGB(90, 90, 100), {
+			Size = UDim2.fromOffset(170, 28),
+			Position = UDim2.fromOffset(0, 1),
+		})
+		toggle.Activated:Connect(function()
+			actionEvent:FireServer("setAutoSquad", not club.autoSquad)
+		end)
+		cell(head, if club.autoSquad then "The best fit XI is picked for you." else "Tap two players to swap them.", 180, 400, { TextColor3 = GREY })
+	else
+		cell(head, if club.autoSquad then "Auto Squad is on." else "The owner picks the team by hand.", 0, 400, { TextColor3 = GREY })
+	end
 
 	section("STARTING XI")
 	local used: { [number]: boolean } = {}
@@ -391,7 +404,7 @@ local function renderScouting(club: Club)
 	else
 		note(("%s — finds %d prospects after every match."):format(level.name, level.prospects))
 	end
-	if nextLevel then
+	if nextLevel and canManage() then
 		local hire = button(content, ("%s %s — %s"):format(if level then "Upgrade to" else "Hire", nextLevel.name, money(nextLevel.cost)), GREEN, {
 			Size = UDim2.fromOffset(340, 34),
 			LayoutOrder = nextOrder(),
@@ -413,14 +426,18 @@ local function renderScouting(club: Club)
 			cell(f, ("age %d"):format(p.age), 250, 60, { TextColor3 = GREY })
 			cell(f, ("OVR %d"):format(p.overall), 315, 60, { Font = Enum.Font.GothamBold, TextColor3 = ACCENT })
 			cell(f, ("POT %d"):format(p.potential), 380, 60, { TextColor3 = Color3.fromRGB(150, 220, 255) })
-			local sign = button(f, ("Sign  %s"):format(money(p.fee or 0)), GREEN, {
-				Size = UDim2.fromOffset(150, 24),
-				Position = UDim2.new(1, -156, 0, 3),
-				TextSize = 13,
-			})
-			sign.Activated:Connect(function()
-				actionEvent:FireServer("sign", p.id)
-			end)
+			if canManage() then
+				local sign = button(f, ("Sign  %s"):format(money(p.fee or 0)), GREEN, {
+					Size = UDim2.fromOffset(150, 24),
+					Position = UDim2.new(1, -156, 0, 3),
+					TextSize = 13,
+				})
+				sign.Activated:Connect(function()
+					actionEvent:FireServer("sign", p.id)
+				end)
+			else
+				cell(f, money(p.fee or 0), 450, 100, { TextColor3 = GREY })
+			end
 		end
 		note("POT = potential. Young players with headroom improve over time, faster with a coach.")
 	end
@@ -490,7 +507,7 @@ local function renderStaff(club: Club)
 	else
 		note(("%s — +%d team strength, %.1fx development."):format(level.name, level.strengthBonus, level.developMultiplier))
 	end
-	if nextLevel then
+	if nextLevel and canManage() then
 		local hire = button(content, ("%s %s — %s"):format(if club.coachLevel == 0 then "Hire" else "Upgrade to", nextLevel.name, money(nextLevel.cost)), GREEN, {
 			Size = UDim2.fromOffset(340, 34),
 			LayoutOrder = nextOrder(),
@@ -499,8 +516,58 @@ local function renderStaff(club: Club)
 			actionEvent:FireServer(if club.coachLevel == 0 then "hireCoach" else "upgradeCoach")
 		end)
 		note(("Next: +%d team strength, %.1fx development."):format(nextLevel.strengthBonus, nextLevel.developMultiplier), GREY)
+	elseif nextLevel then
+		note(("Next: %s — %s."):format(nextLevel.name, money(nextLevel.cost)), GREY)
 	else
 		note("Coaching is fully upgraded.", GREY)
+	end
+end
+
+-- ---------------------------------------------------------------- History tab
+
+local function renderHistory()
+	local raw = get("History")
+	local data = if type(raw) == "string" and raw ~= "" then HttpService:JSONDecode(raw) else {}
+	local honours = data.honours or { seasons = 0, titles = 0, promotions = 0, relegations = 0, bestTier = 0 }
+	local seasons = data.seasons or {}
+
+	section(("%s  ·  HONOURS"):format(string.upper(get("ClubName") or "CLUB")))
+	local titleWord = if honours.titles == 1 then "title" else "titles"
+	note(("%d league %s  ·  %d promotions  ·  %d relegations  ·  Highest level: %s"):format(
+		honours.titles, titleWord, honours.promotions, honours.relegations,
+		if honours.bestTier > 0 then Config.Divisions[honours.bestTier].name else "-"))
+	note(("All-time record: %d played, %d won, %d drawn, %d lost."):format(
+		get("MatchesPlayed") or 0, get("Wins") or 0, get("Draws") or 0, get("Losses") or 0), GREY)
+	if honours.titles > 0 then
+		note("Every title puts a trophy on the office shelf.", GREY)
+	end
+
+	section(("PAST SEASONS (%d)"):format(#seasons))
+	if #seasons == 0 then
+		note("Nothing yet. Finish a season and it goes in the book.", GREY)
+		return
+	end
+	local head = row(false)
+	head.BackgroundColor3 = PANEL_BG
+	cell(head, "S", 10, 30, { TextColor3 = GREY })
+	cell(head, "Division", 40, 180, { TextColor3 = GREY })
+	cell(head, "Pos", 225, 40, { TextColor3 = GREY })
+	cell(head, "W-D-L", 270, 70, { TextColor3 = GREY })
+	cell(head, "GF-GA", 345, 70, { TextColor3 = GREY })
+	cell(head, "Pts", 420, 40, { TextColor3 = GREY })
+	cell(head, "Result", 465, 120, { TextColor3 = GREY })
+	for i = #seasons, 1, -1 do
+		local r = seasons[i]
+		local f = row(i % 2 == 0)
+		local color = if r.position == 1 then ACCENT elseif r.outcome == "Promoted" then Color3.fromRGB(120, 230, 120) elseif r.outcome == "Relegated" then Color3.fromRGB(240, 110, 110) else Color3.new(1, 1, 1)
+		cell(f, tostring(r.season), 10, 30, { TextColor3 = GREY })
+		cell(f, r.division, 40, 180, { Font = Enum.Font.GothamBold })
+		cell(f, ordinal(r.position), 225, 40, { TextColor3 = color, Font = Enum.Font.GothamBold })
+		cell(f, ("%d-%d-%d"):format(r.won, r.drawn, r.lost), 270, 70)
+		cell(f, ("%d-%d"):format(r.gf, r.ga), 345, 70)
+		cell(f, tostring(r.points), 420, 40, { Font = Enum.Font.GothamBold })
+		local result = if r.position == 1 then "Champions" elseif r.outcome == "Promoted" then "Promoted" elseif r.outcome == "Relegated" then "Relegated" else "Stayed up"
+		cell(f, result, 465, 120, { TextColor3 = color })
 	end
 end
 
@@ -520,10 +587,15 @@ render = function()
 		note("Loading club…")
 		return
 	end
+	if not canManage() then
+		note(("You are visiting %s. Only the owner can make changes."):format(get("ClubName") or "this club"), ACCENT)
+	end
 	if currentTab == "Squad" then
 		renderSquad(club)
 	elseif currentTab == "League" then
 		renderLeague()
+	elseif currentTab == "History" then
+		renderHistory()
 	elseif currentTab == "Scouting" then
 		renderScouting(club)
 	else
@@ -573,7 +645,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
 	end
 end)
 
-for _, key in { "Club", "Cash", "MatchesPlayed", "LeagueTable", "Demand" } do
+for _, key in { "Club", "Cash", "MatchesPlayed", "LeagueTable", "Demand", "History", "ClubName", "OwnerUserId" } do
 	state:GetAttributeChangedSignal(key):Connect(render)
 end
 state:GetAttributeChangedSignal("Phase"):Connect(function()

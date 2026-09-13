@@ -132,6 +132,40 @@ function League.newSeason(tier: number, seed: number, clubName: string, playerSe
 	}
 end
 
+-- Shape check for a season that came back from a save. Anything false here
+-- means the caller should start a fresh season rather than trust it.
+function League.isValid(season: any): boolean
+	if type(season) ~= "table" then
+		return false
+	end
+	if type(season.tier) ~= "number" or not Config.Divisions[season.tier] then
+		return false
+	end
+	if type(season.teams) ~= "table" or #season.teams ~= Config.TeamsPerDivision then
+		return false
+	end
+	if type(season.playerIndex) ~= "number" or not season.teams[season.playerIndex] then
+		return false
+	end
+	if type(season.fixtures) ~= "table" or type(season.rounds) ~= "number" then
+		return false
+	end
+	if #season.fixtures ~= season.rounds * Config.TeamsPerDivision / 2 then
+		return false
+	end
+	for _, t in season.teams do
+		if type(t.name) ~= "string" or type(t.strength) ~= "number" or type(t.points) ~= "number" or type(t.kit) ~= "table" then
+			return false
+		end
+	end
+	for _, f in season.fixtures do
+		if type(f.round) ~= "number" or not season.teams[f.home] or not season.teams[f.away] or type(f.played) ~= "boolean" then
+			return false
+		end
+	end
+	return season.teams[season.playerIndex].isPlayer == true
+end
+
 -- The player's fixture in a round (opponent index and whether the schedule
 -- says home). Presentation is always at the player's ground for now.
 function League.playerFixture(season: Season, round: number): (Fixture?, number?)

@@ -131,6 +131,21 @@ function T.prizeScalesWithTierAndPosition()
 	assert(League.prizeFor(1, 99) > 0, "unknown position still pays something")
 end
 
+function T.isValidAcceptsSeasonsAndRejectsGarbage()
+	local s = season(1, 9)
+	assert(League.isValid(s), "fresh season should be valid")
+	local HttpService = game:GetService("HttpService")
+	assert(League.isValid(HttpService:JSONDecode(HttpService:JSONEncode(s))), "JSON round trip should stay valid")
+	assert(not League.isValid(nil), "nil")
+	assert(not League.isValid({}), "empty table")
+	local broken = season(1, 9)
+	broken.teams[6] = nil
+	assert(not League.isValid(broken), "missing team")
+	local wrongPlayer = season(1, 9)
+	wrongPlayer.playerIndex = 99
+	assert(not League.isValid(wrongPlayer), "player index out of range")
+end
+
 function T.ordinals()
 	assert(League.ordinal(1) == "1st" and League.ordinal(2) == "2nd" and League.ordinal(3) == "3rd", "bad ordinals")
 	assert(League.ordinal(4) == "4th" and League.ordinal(11) == "11th" and League.ordinal(22) == "22nd", "bad ordinals")

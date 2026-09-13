@@ -305,6 +305,84 @@ continueButton.Activated:Connect(function()
 	end
 end)
 
+-- Loading cover: the club is being fetched for the owner; nothing else is real yet
+local loadingCover = Instance.new("Frame")
+loadingCover.Name = "Loading"
+loadingCover.Size = UDim2.fromScale(1, 1)
+loadingCover.BackgroundColor3 = Color3.fromRGB(12, 16, 20)
+loadingCover.BorderSizePixel = 0
+loadingCover.ZIndex = 20
+loadingCover.Visible = false
+loadingCover.Parent = gui
+local loadingLabel = makeLabel("Text", loadingCover, {
+	Size = UDim2.new(0.6, 0, 0, 40),
+	Position = UDim2.fromScale(0.5, 0.5),
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	ZIndex = 21,
+	TextColor3 = Color3.fromRGB(255, 230, 150),
+})
+loadingLabel.Text = "Loading your club…"
+
+-- Welcome back (returning owner, once per visit)
+local welcome = makePanel("Welcome", UDim2.fromOffset(460, 300), UDim2.fromScale(0.5, 0.45))
+welcome.Visible = false
+local welcomeTitle = makeLabel("Title", welcome, {
+	Size = UDim2.new(1, -20, 0, 44),
+	Position = UDim2.fromOffset(10, 10),
+	TextColor3 = Color3.fromRGB(255, 230, 150),
+})
+welcomeTitle.Text = "WELCOME BACK"
+local welcomeBody = makeLabel("Body", welcome, {
+	Size = UDim2.new(1, -40, 1, -130),
+	Position = UDim2.fromOffset(20, 60),
+	Font = Enum.Font.Gotham,
+	TextScaled = false,
+	TextSize = 18,
+	TextXAlignment = Enum.TextXAlignment.Left,
+	TextYAlignment = Enum.TextYAlignment.Top,
+	RichText = true,
+})
+local welcomeContinue = continueButton:Clone()
+welcomeContinue.Text = "Let's go"
+welcomeContinue.Parent = welcome
+welcomeContinue.Activated:Connect(function()
+	welcome.Visible = false
+end)
+local welcomeDecided = false
+local function maybeWelcome()
+	if welcomeDecided or get("Phase") ~= "Manage" then
+		return
+	end
+	welcomeDecided = true
+	if (get("MatchesPlayed") or 0) == 0 or get("OwnerUserId") ~= player.UserId then
+		return
+	end
+	local round, rounds = get("Round") or 0, get("Rounds") or 10
+	local nextOpp = get("NextOpponent") or ""
+	welcomeBody.Text = table.concat({
+		("<b>%s</b>"):format(get("ClubName") or "Your club"),
+		("%s  ·  Season %d"):format(get("DivisionName") or "", get("Season") or 1),
+		if round > 0 then ("Currently %s after %d of %d matches."):format(ordinal(get("Position") or 1), round, rounds) else "A new season is about to start.",
+		if nextOpp ~= "" then ("Next up: <b>%s</b>"):format(nextOpp) else "",
+		"",
+		("Record: %d played, %d won, %d drawn, %d lost"):format(get("MatchesPlayed") or 0, get("Wins") or 0, get("Draws") or 0, get("Losses") or 0),
+		("Club cash: <b>%s</b>"):format(money(get("Cash") or 0)),
+	}, "\n")
+	welcome.Visible = true
+end
+
+local function refreshLoading()
+	local loading = get("Phase") == "Loading"
+	loadingCover.Visible = loading
+	cashLabel.Visible = not loading
+	seasonLabel.Visible = not loading
+	if not loading then
+		maybeWelcome()
+	end
+end
+state:GetAttributeChangedSignal("Phase"):Connect(refreshLoading)
+refreshLoading()
+
 -- Toast (just above the hint)
 local toastLabel = makeLabel("Toast", gui, {
 	Size = UDim2.new(0.6, 0, 0, 30),
@@ -332,7 +410,13 @@ end)
 
 local function refreshHint()
 	local phase = get("Phase")
-	if phase == "PreMatch" then
+	if phase == "Loading" then
+		hintLabel.Text = ""
+		return
+	elseif get("NeedsName") == true then
+		hintLabel.Text = "Give your club a name to get started."
+		return
+	elseif phase == "PreMatch" then
 		hintLabel.Text = "Matchday! The teams are walking out."
 		return
 	elseif phase == "Match" then
@@ -385,7 +469,7 @@ end
 for _, key in { "Phase", "HomeGoals", "AwayGoals", "TimeLeft", "Opponent" } do
 	state:GetAttributeChangedSignal(key):Connect(refreshScoreboard)
 end
-for _, key in { "Phase", "MatchesPlayed", "StandLevel", "ScoutLevel", "AmenityLevel", "Round" } do
+for _, key in { "Phase", "MatchesPlayed", "StandLevel", "ScoutLevel", "AmenityLevel", "Round", "NeedsName" } do
 	state:GetAttributeChangedSignal(key):Connect(refreshHint)
 end
 
