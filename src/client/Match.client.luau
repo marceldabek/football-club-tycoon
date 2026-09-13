@@ -82,6 +82,7 @@ local function beginMatch()
 	p:applySubs(HttpService:JSONDecode(get("Subs") or "[]"))
 	p:start(get("KickoffAt") or workspace:GetServerTimeNow())
 	MatchAudio.whistle()
+	MatchAudio.duckMusic(true)
 	MatchAudio.startCrowd((get("Attendance") or 0) / math.max(get("Capacity") or 1, 1))
 end
 
@@ -92,6 +93,7 @@ local function endMatch()
 		presenter = nil
 	end
 	MatchAudio.stopCrowd()
+	MatchAudio.duckMusic(false)
 end
 
 local function onPhase()
@@ -117,4 +119,5 @@ state:GetAttributeChangedSignal("Subs"):Connect(function()
 	end
 end)
 
+MatchAudio.startMusic()
 onPhase()

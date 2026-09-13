@@ -62,4 +62,14 @@ Config.Sounds = {
 }
 Config.CrowdVolume = 0.35
 
+-- Background music while managing the club (APM Music, free on the Creator
+-- Store). Shuffled; ducked during matches so the crowd carries the atmosphere.
+Config.Music = {
+	"rbxassetid://1839272911", -- Easy Friends
+	"rbxassetid://1846700210", -- Spirits High B
+	"rbxassetid://1846690930", -- High Above B
+}
+Config.MusicVolume = 0.25
+Config.MusicMatchVolume = 0.06
+
 return Config

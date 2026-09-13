@@ -13,12 +13,13 @@ local WorldBuilder = {}
 
 local PITCH_W, PITCH_L = Pitch.WIDTH, Pitch.LENGTH
 local GROUND_Y = 0 -- top of the baseplate
-local FENCE_OFFSET = 5 -- fence sits this far outside the touchline
+local FENCE_OFFSET = 5 -- side fences sit this far outside the touchline
+local END_FENCE_OFFSET = 12 -- end fences sit behind the goal nets (net depth 6)
 local FENCE_GAP = 10 -- walk-through gap in the west and east fences
 local CONCOURSE = 4 -- free strip between fence and the first structure
 
 local FENCE_X = PITCH_W / 2 + FENCE_OFFSET
-local FENCE_Z = PITCH_L / 2 + FENCE_OFFSET
+local FENCE_Z = PITCH_L / 2 + END_FENCE_OFFSET
 
 local function part(props: { [string]: any }): Part
 	local p = Instance.new("Part")

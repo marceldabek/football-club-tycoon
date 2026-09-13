@@ -52,6 +52,57 @@ local function oneShot(id: string, volume: number)
 	sound:Play()
 end
 
+-- Background music: shuffled playlist, one track after another.
+local music: Sound? = nil
+local playlistToken = 0
+
+local function nextTrack(token: number, lastId: string?)
+	if token ~= playlistToken or #Config.Music == 0 then
+		return
+	end
+	local id = Config.Music[math.random(1, #Config.Music)]
+	if #Config.Music > 1 and id == lastId then
+		return nextTrack(token, lastId) -- pick a different one
+	end
+	local sound = make(id, false, Config.MusicVolume)
+	if not sound then
+		return
+	end
+	music = sound
+	sound.Ended:Once(function()
+		sound:Destroy()
+		if token == playlistToken then
+			music = nil
+			nextTrack(token, id)
+		end
+	end)
+	sound:Play()
+end
+
+function MatchAudio.startMusic()
+	if music then
+		return
+	end
+	playlistToken += 1
+	nextTrack(playlistToken, nil)
+end
+
+function MatchAudio.stopMusic()
+	playlistToken += 1
+	if music then
+		music:Stop()
+		music:Destroy()
+		music = nil
+	end
+end
+
+-- Lower the music under the crowd during a match, restore afterwards.
+function MatchAudio.duckMusic(ducked: boolean)
+	if music then
+		music.Volume = ducked and Config.MusicMatchVolume or Config.MusicVolume
+	end
+end
+
 function MatchAudio.goalCheer()
 	oneShot(Config.Sounds.goalCheer, 0.6)
 end
