@@ -8,6 +8,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
+local Assets = require(script.Parent.Assets)
 
 local WorldBuilder = {}
 
@@ -178,8 +179,29 @@ local function buildPitch(parent: Instance)
 	local netDepth = 6
 	for _, zSign in { -1, 1 } do
 		local z = zSign * (PITCH_L / 2)
+		local goalName = zSign < 0 and "GoalNorth" or "GoalSouth"
+		-- Creator Store goal with a real net when the place has one; its crossbar is 33 wide
+		-- box centre sits 1.75 studs behind the line so the posts land on it; net goes back ~5.6
+		local placed = Assets.place("Goal", Vector3.new(0, GROUND_Y + 1, z + zSign * 1.75), pitch, {
+			scale = goalW / 33,
+			lookAt = Vector3.new(0, GROUND_Y + 1, 0),
+			flip = true, -- the model's net is on its look side
+			name = goalName,
+		})
+		if placed then
+			for _, d in placed.model:GetDescendants() do
+				if d:IsA("BasePart") then
+					if d.Name == "COLLIDABLE" then
+						d.Transparency = 1
+						d.CanCollide = false
+					end
+					d.CanCollide = false
+				end
+			end
+			continue
+		end
 		local goal = Instance.new("Model")
-		goal.Name = zSign < 0 and "GoalNorth" or "GoalSouth"
+		goal.Name = goalName
 		goal.Parent = pitch
 		for _, xSign in { -1, 1 } do
 			box("Post", Vector3.new(0.6, goalH, 0.6), Vector3.new(xSign * goalW / 2, GROUND_Y + 1 + goalH / 2, z), white, nil, goal)
@@ -450,6 +472,15 @@ function WorldBuilder.buildTrophies(count: number)
 	local startX = OFFICE_CX - (shown - 1) * spacing / 2
 	for i = 1, shown do
 		local x = startX + (i - 1) * spacing
+		-- generated trophy mesh when the place has it (README "Assets"), else a primitive cup
+		local placed = Assets.place("Trophy", Vector3.new(x, shelfY + 0.25, shelfZ), model, {
+			height = 2.2,
+			lookAt = Vector3.new(x, shelfY, OFFICE_CZ),
+			name = "Trophy" .. i,
+		})
+		if placed then
+			continue
+		end
 		local base = part({
 			Name = "CupBase" .. i,
 			Shape = Enum.PartType.Cylinder,
@@ -808,6 +839,12 @@ function WorldBuilder.build(standLevel: number, amenityLevel: number?): World
 	buildDugouts(club)
 	buildTunnel(club)
 	buildOffice(club)
+	-- the team coach, parked on the concourse beside the office (decorative)
+	Assets.place("Bus", Vector3.new(OFFICE_CX + 6, GROUND_Y, OFFICE_CZ + OFFICE_D / 2 + 14), club, {
+		lookAt = Vector3.new(OFFICE_CX + 60, GROUND_Y, OFFICE_CZ + OFFICE_D / 2 + 14),
+		flip = true, -- windscreen is on the model's far side
+		name = "TeamBus",
+	})
 	local matchdayPrompt = buildMatchdayBoard(club)
 	local standPrompt = buildStandSign(club)
 	local amenityPrompt = buildAmenitySign(club)

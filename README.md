@@ -114,6 +114,27 @@ dbg:Invoke("wipe")               -- throw the club away and start fresh
 
 All economy numbers in `src/shared/Config.luau` are TEMP placeholders.
 
+## Assets
+
+Creator Store and generated models live in the **place file** under `ServerStorage.Assets`, not in
+git. `src/server/Assets.luau` clones them; every caller falls back to primitives when one is
+missing, so a fresh clone still builds a complete (uglier) world. Store models are stripped of
+scripts on insert and again on clone (CLAUDE.md agent rule 9). To rebuild the library in a new
+place, insert these and name them as listed:
+
+| Name | Source | Asset id |
+|---|---|---|
+| `Floodlight` | Creator Store, "Stadium Lights Floodlight Arena" | 114304849826345 |
+| `Goal` | Creator Store, "Football Goal Post Stadium Field Net Arena" | 98791919057798 |
+| `Bus` | Creator Store, "Coach bus" | 9127212780 |
+| `Trees.Pine` | Creator Store, "Low Poly Tree" (Remadex) | 12549617200 |
+| `Trees.Tree1..11` | Creator Store, "Low Poly Tree Pack" | 15217079919 |
+| `Trophy` | Generated in Studio (mesh 80652460368685) | 123217619951714 |
+
+Store inserts arrive with a rotated pivot; the library models were straightened so their
+bounding boxes are axis aligned. `Assets.place` scales, faces and grounds a model; `flip` /
+`yawOffset` correct models whose front is not their -Z.
+
 ## Persistence in Studio
 
 DataStores only work in a **published** place with *Game Settings → Security → Enable Studio

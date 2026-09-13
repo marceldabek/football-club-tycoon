@@ -9,6 +9,7 @@ local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
+local Assets = require(script.Parent.Assets)
 
 local Scenery = {}
 
@@ -91,19 +92,13 @@ local function setupTerrain()
 	end
 	terrain:SetAttribute("FCTScenery", true)
 
-	-- the baseplate stays as the walking surface; terrain carries the horizon
+	-- terrain is the ground everywhere (top exactly at GROUND_Y); the template
+	-- baseplate would show as a flat square against it, so it goes
 	local baseplate = workspace:FindFirstChild("Baseplate")
 	if baseplate and baseplate:IsA("BasePart") then
-		baseplate.Color = Color3.fromRGB(96, 128, 70)
-		baseplate.Material = Enum.Material.Grass
-		local texture = baseplate:FindFirstChildOfClass("Texture")
-		if texture then
-			texture:Destroy()
-		end
+		baseplate:Destroy()
 	end
-
-	-- a wide grass plain just under the baseplate so the world does not end at its edge
-	terrain:FillBlock(CFrame.new(0, GROUND_Y - 6, 0), Vector3.new(4200, 10, 4200), Enum.Material.Grass)
+	terrain:FillBlock(CFrame.new(0, GROUND_Y - 8, 0), Vector3.new(4200, 16, 4200), Enum.Material.Grass)
 
 	-- rolling hills: grass balls mostly below ground, poking up at the horizon
 	local rng = Random.new(7)
@@ -122,8 +117,8 @@ local function setupTerrain()
 	end
 
 	-- a pond off to the south-west
-	terrain:FillBlock(CFrame.new(-380, GROUND_Y - 4, 420), Vector3.new(160, 6, 120), Enum.Material.Air)
-	terrain:FillBlock(CFrame.new(-380, GROUND_Y - 5, 420), Vector3.new(160, 4, 120), Enum.Material.Water)
+	terrain:FillBlock(CFrame.new(-380, GROUND_Y - 3, 420), Vector3.new(160, 6, 120), Enum.Material.Air)
+	terrain:FillBlock(CFrame.new(-380, GROUND_Y - 4, 420), Vector3.new(160, 4, 120), Enum.Material.Water)
 
 	local clouds = findOrCreate(terrain, "Clouds", "Clouds") :: Clouds
 	clouds.Cover = 0.55
@@ -172,6 +167,7 @@ local function setupTrees(parent: Instance)
 	local rng = Random.new(21)
 	local fenceX = Pitch.WIDTH / 2 + 5
 	local fenceZ = Pitch.LENGTH / 2 + 12
+	local kinds = Assets.list("Trees") -- Creator Store low-poly trees when the place has them
 	local placed = 0
 	while placed < 46 do
 		local x = rng:NextNumber(-520, 520)
@@ -181,7 +177,20 @@ local function setupTrees(parent: Instance)
 		if insideClub then
 			continue
 		end
-		tree(parent, Vector3.new(x, GROUND_Y, z), rng)
+		local pos = Vector3.new(x, GROUND_Y, z)
+		local done = false
+		if #kinds > 0 then
+			local kind = kinds[rng:NextInteger(1, #kinds)]
+			local placedTree = Assets.place("Trees." .. kind, pos, parent, {
+				height = rng:NextNumber(18, 34),
+				lookAt = pos + Vector3.new(math.cos(rng:NextNumber(0, 6.28)), 0, math.sin(rng:NextNumber(0, 6.28))),
+				name = "Tree",
+			})
+			done = placedTree ~= nil
+		end
+		if not done then
+			tree(parent, pos, rng)
+		end
 		placed += 1
 	end
 	-- a hedge line along the north end behind the goal, with a gap for the eye
@@ -277,6 +286,30 @@ local function setupFloodlights(parent: Instance)
 	for _, sx in { -1, 1 } do
 		for _, sz in { -1, 1 } do
 			local base = Vector3.new(sx * x, GROUND_Y, sz * z)
+			-- Creator Store mast when the place has one: its lamp parts are named StadiumLight
+			local placed = Assets.place("Floodlight", base, parent, { height = mastH + 6, lookAt = Vector3.new(0, GROUND_Y, 0), name = "Floodlight" })
+			if placed then
+				local lampCount = 0
+				for _, d in placed.model:GetDescendants() do
+					if d:IsA("BasePart") and d.Name == "StadiumLight" then
+						d.CastShadow = false
+						table.insert(floodHeads, d)
+						lampCount += 1
+						if lampCount == 1 then
+							local light = Instance.new("SpotLight")
+							light.Name = "Beam"
+							light.Angle = 120
+							light.Brightness = 3
+							light.Range = 60
+							light.Face = Enum.NormalId.Bottom
+							light.Color = Color3.fromRGB(255, 250, 235)
+							light.Enabled = false
+							light.Parent = d
+						end
+					end
+				end
+				continue
+			end
 			part({
 				Name = "Mast",
 				Size = Vector3.new(2, mastH, 2),
@@ -322,7 +355,7 @@ end
 function Scenery.setFloodlights(on: boolean)
 	for _, head in floodHeads do
 		head.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
-		head.Color = if on then Color3.fromRGB(255, 250, 225) else Color3.fromRGB(120, 120, 110)
+		head.Color = if on then Color3.fromRGB(255, 250, 225) else Color3.fromRGB(150, 145, 125)
 		local beam = head:FindFirstChild("Beam") :: SpotLight?
 		if beam then
 			beam.Enabled = on
