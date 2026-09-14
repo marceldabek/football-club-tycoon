@@ -444,9 +444,8 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		face.ClipsDescendants = true
 		face.Parent = card
 		Theme.corner(face, 6)
-		local vf = Headshot.attach(face, c.look or c.id, Config.HomeKit, c.number, { shoulders = true })
-		vf.BackgroundColor3 = INNER_BG
-		vf.BackgroundTransparency = 0
+		Headshot.attach(face, c.look or c.id, Config.HomeKit, c.number, { shoulders = true })
+		Theme.stroke(face, 0.35, Color3.fromRGB(120, 150, 210))
 		Theme.text(card, (c.name :: string):match("(%S+)$") or c.name, "body", {
 			Size = UDim2.new(1, -8, 0, 18),
 			Position = UDim2.fromOffset(4, 106),

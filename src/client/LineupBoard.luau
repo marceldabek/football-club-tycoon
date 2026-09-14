@@ -174,8 +174,8 @@ local function card(parent: Instance, p: Player, kit: Color3, selected: boolean)
 	face.ClipsDescendants = true
 	face.Parent = f
 	Theme.corner(face, 6)
-	local vf = Headshot.attach(face, p.look or p.id, kit, p.number, { shoulders = true })
-	vf.BackgroundTransparency = 1
+	Headshot.attach(face, p.look or p.id, kit, p.number, { shoulders = true })
+	Theme.stroke(face, 0.35, Color3.fromRGB(120, 150, 210))
 
 	Theme.text(f, surname(p.name), "body", {
 		Name = "Name",
@@ -226,8 +226,8 @@ local function row(parent: Instance, p: Player, kit: Color3, selected: boolean, 
 	face.ClipsDescendants = true
 	face.Parent = f
 	Theme.corner(face, 6)
-	local vf = Headshot.attach(face, p.look or p.id, kit, p.number, { shoulders = true })
-	vf.BackgroundTransparency = 1
+	Headshot.attach(face, p.look or p.id, kit, p.number, { shoulders = true })
+	Theme.stroke(face, 0.35, Color3.fromRGB(120, 150, 210))
 
 	Theme.text(f, surname(p.name), "body", {
 		Name = "Name",

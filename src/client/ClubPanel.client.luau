@@ -13,6 +13,7 @@ local UserInputService = game:GetService("UserInputService")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Theme = require(script.Parent.Theme)
 local LineupBoard = require(script.Parent.LineupBoard)
+local Headshot = require(script.Parent.Headshot)
 
 local player = Players.LocalPlayer
 local state = ReplicatedStorage:WaitForChild("ClubState")
@@ -31,6 +32,7 @@ type Player = {
 	apps: number,
 	goals: number,
 	fee: number?,
+	look: number?,
 }
 type Club = {
 	players: { Player },
@@ -401,58 +403,183 @@ end
 
 -- --------------------------------------------------------------- Scouting tab
 
+local SCOUT_BG = Color3.fromRGB(23, 30, 44)
+local ROW_CARD = Color3.fromRGB(16, 24, 44)
+local CYAN = Color3.fromRGB(90, 220, 255)
+local BLUE_LINE = Color3.fromRGB(120, 150, 210)
+
+-- Dark rounded card the scouting sections sit in.
+local function scoutPanel(height: number): Frame
+	local f = row(false)
+	f.Size = UDim2.new(1, -10, 0, height)
+	f.BackgroundColor3 = SCOUT_BG
+	Theme.corner(f, 10)
+	Theme.stroke(f, 0.88)
+	return f
+end
+
+-- Binoculars drawn from two circles, so no icon asset or glyph is needed.
+local function binoculars(parent: Instance, x: number, y: number)
+	for _, dx in { 0, 14 } do
+		local lens = Instance.new("Frame")
+		lens.Size = UDim2.fromOffset(16, 16)
+		lens.Position = UDim2.fromOffset(x + dx, y)
+		lens.BackgroundColor3 = CYAN
+		lens.BorderSizePixel = 0
+		lens.Parent = parent
+		Theme.corner(lens, 8)
+		local pupil = Instance.new("Frame")
+		pupil.Size = UDim2.fromOffset(8, 8)
+		pupil.Position = UDim2.fromOffset(4, 4)
+		pupil.BackgroundColor3 = SCOUT_BG
+		pupil.BorderSizePixel = 0
+		pupil.Parent = lens
+		Theme.corner(pupil, 4)
+	end
+end
+
+local function infoFooter(text: string)
+	local f = scoutPanel(48)
+	local dot = Instance.new("Frame")
+	dot.Size = UDim2.fromOffset(26, 26)
+	dot.Position = UDim2.new(0, 16, 0.5, 0)
+	dot.AnchorPoint = Vector2.new(0, 0.5)
+	dot.BackgroundColor3 = Theme.colors.info
+	dot.BorderSizePixel = 0
+	dot.Parent = f
+	Theme.corner(dot, 13)
+	Theme.text(dot, "i", "display", {
+		Size = UDim2.fromScale(1, 1),
+		TextSize = 15,
+		TextColor3 = Color3.new(1, 1, 1),
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextYAlignment = Enum.TextYAlignment.Center,
+	})
+	cell(f, text, 56, 800, { TextColor3 = Color3.fromRGB(210, 215, 225), Size = UDim2.new(1, -70, 0, 48), TextYAlignment = Enum.TextYAlignment.Center })
+end
+
 local function renderScouting(club: Club)
 	local played = (get("MatchesPlayed") or 0) :: number
 	if played < 1 then
-		section("SCOUTING")
-		note("Scouting opens after your first match. Play it from the MATCHDAY board.")
+		local f = scoutPanel(64)
+		binoculars(f, 18, 24)
+		cell(f, "Scouting opens after your first match. Press PLAY MATCH at the top.", 56, 800, { Size = UDim2.new(1, -70, 0, 64), TextYAlignment = Enum.TextYAlignment.Center })
 		return
 	end
 	local level = Config.ScoutLevels[club.scoutLevel]
 	local nextLevel = Config.ScoutLevels[club.scoutLevel + 1]
-	section("SCOUT")
-	if not level then
-		note("No scout yet. A scout brings you a short list of players you can sign, refreshed after every match.")
-	else
-		note(("%s — finds %d prospects after every match."):format(level.name, level.prospects))
+
+	-- scout row: icon, level name, what it does, hire / upgrade on the right
+	local head = scoutPanel(64)
+	binoculars(head, 18, 24)
+	local title = Theme.text(head, string.upper(if level then level.name else "NO SCOUT"), "display", {
+		Size = UDim2.fromOffset(300, 64),
+		Position = UDim2.fromOffset(58, 0),
+		TextSize = 22,
+		TextYAlignment = Enum.TextYAlignment.Center,
+	})
+	local textW = 0
+	pcall(function()
+		textW = game:GetService("TextService"):GetTextSize(title.Text, 22, Theme.fonts.display, Vector2.new(400, 64)).X
+	end)
+	cell(head, "|", 58 + textW + 14, 12, { TextColor3 = GREY, Size = UDim2.fromOffset(12, 64), TextYAlignment = Enum.TextYAlignment.Center })
+	local desc = if level
+		then ("Finds %d prospects after every match."):format(level.prospects)
+		else "A scout brings you a short list of players you can sign, refreshed after every match."
+	cell(head, desc, 58 + textW + 32, 520, { TextColor3 = Color3.fromRGB(210, 215, 225), Size = UDim2.new(1, -(58 + textW + 32) - 300, 0, 64), TextYAlignment = Enum.TextYAlignment.Center, TextTruncate = Enum.TextTruncate.AtEnd })
+	if nextLevel then
+		if canManage() then
+			local hire = Theme.button(head, ("%s %s  ·  %s"):format(if level then "Upgrade to" else "Hire", nextLevel.name, money(nextLevel.cost)), "primary", {
+				Size = UDim2.fromOffset(280, 40),
+				Position = UDim2.new(1, -12, 0.5, 0),
+				AnchorPoint = Vector2.new(1, 0.5),
+				TextSize = 15,
+				Font = Theme.fonts.display,
+			})
+			hire.Activated:Connect(function()
+				actionEvent:FireServer(if level then "upgradeScout" else "hireScout")
+			end)
+		else
+			cell(head, ("Next: %s  ·  %s"):format(nextLevel.name, money(nextLevel.cost)), 0, 280, { Position = UDim2.new(1, -12, 0, 0), AnchorPoint = Vector2.new(1, 0), Size = UDim2.fromOffset(280, 64), TextColor3 = GREY, TextXAlignment = Enum.TextXAlignment.Right, TextYAlignment = Enum.TextYAlignment.Center })
+		end
 	end
-	if nextLevel and canManage() then
-		local hire = button(content, ("%s %s — %s"):format(if level then "Upgrade to" else "Hire", nextLevel.name, money(nextLevel.cost)), GREEN, {
-			Size = UDim2.fromOffset(340, 34),
-			LayoutOrder = nextOrder(),
-		})
-		hire.Activated:Connect(function()
-			actionEvent:FireServer(if level then "upgradeScout" else "hireScout")
-		end)
+	if not level then
+		infoFooter("Hire a scout to start receiving prospects. Better scouts find more players with higher potential.")
+		return
 	end
 
-	if level then
-		section(("SHORTLIST (%d)"):format(#club.shortlist))
-		if #club.shortlist == 0 then
-			note("Nobody left on the list. New prospects arrive after the next match.")
-		end
-		for i, p in club.shortlist do
-			local f = row(i % 2 == 0)
-			cell(f, p.name, 10, 190, { Font = Enum.Font.GothamBold })
-			cell(f, p.role, 205, 40, { TextColor3 = GREY })
-			cell(f, ("age %d"):format(p.age), 250, 60, { TextColor3 = GREY })
-			cell(f, ("OVR %d"):format(p.overall), 315, 60, { Font = Enum.Font.GothamBold, TextColor3 = ACCENT })
-			cell(f, ("POT %d"):format(p.potential), 380, 60, { TextColor3 = Color3.fromRGB(150, 220, 255) })
-			if canManage() then
-				local sign = button(f, ("Sign  %s"):format(money(p.fee or 0)), GREEN, {
-					Size = UDim2.fromOffset(150, 24),
-					Position = UDim2.new(1, -156, 0, 3),
-					TextSize = 13,
-				})
-				sign.Activated:Connect(function()
-					actionEvent:FireServer("sign", p.id)
-				end)
-			else
-				cell(f, money(p.fee or 0), 450, 100, { TextColor3 = GREY })
-			end
-		end
-		note("POT = potential. Young players with headroom improve over time, faster with a coach.")
+	-- shortlist panel: title, column headers, one row per prospect
+	local ROW_H, ROW_GAP = 78, 8
+	local n = #club.shortlist
+	local listH = 92 + (if n == 0 then 40 else n * ROW_H + (n - 1) * ROW_GAP) + 16
+	local list = scoutPanel(listH)
+	Theme.text(list, "SHORTLIST", "display", {
+		Size = UDim2.fromOffset(300, 40),
+		Position = UDim2.fromOffset(18, 10),
+		TextSize = 26,
+		TextYAlignment = Enum.TextYAlignment.Center,
+	})
+	cell(list, ("%d prospect%s"):format(n, if n == 1 then "" else "s"), 0, 200, { Position = UDim2.new(1, -20, 0, 10), AnchorPoint = Vector2.new(1, 0), Size = UDim2.fromOffset(200, 40), TextColor3 = GREY, TextXAlignment = Enum.TextXAlignment.Right, TextYAlignment = Enum.TextYAlignment.Center })
+	local rule = Instance.new("Frame")
+	rule.BackgroundColor3 = Color3.new(1, 1, 1)
+	rule.BackgroundTransparency = 0.88
+	rule.BorderSizePixel = 0
+	rule.Size = UDim2.new(1, 0, 0, 1)
+	rule.Position = UDim2.fromOffset(0, 56)
+	rule.Parent = list
+	-- column x positions (scale of the panel width)
+	local COL_OVR, COL_POT, COL_FEE = 0.44, 0.58, 0.72
+	local function header(text: string, x: UDim2, w: UDim2)
+		cell(list, text, 0, 100, { Position = x, Size = w, TextColor3 = BLUE_LINE, Font = Theme.fonts.bold, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Center, TextYAlignment = Enum.TextYAlignment.Center })
 	end
+	header("PLAYER", UDim2.fromOffset(110, 60), UDim2.fromOffset(100, 28))
+	header("OVR", UDim2.new(COL_OVR, 0, 0, 60), UDim2.fromOffset(90, 28))
+	header("POTENTIAL", UDim2.new(COL_POT, 0, 0, 60), UDim2.fromOffset(110, 28))
+	header("TRANSFER FEE", UDim2.new(COL_FEE, 0, 0, 60), UDim2.new(1 - COL_FEE, -12, 0, 28))
+	if n == 0 then
+		cell(list, "Nobody left on the list. New prospects arrive after the next match.", 18, 700, { Position = UDim2.fromOffset(18, 92), Size = UDim2.new(1, -36, 0, 40), TextColor3 = GREY })
+	end
+	for i, p in club.shortlist do
+		local r = Instance.new("Frame")
+		r.Name = ("Prospect%d"):format(p.id)
+		r.BackgroundColor3 = ROW_CARD
+		r.BorderSizePixel = 0
+		r.Position = UDim2.new(0, 12, 0, 92 + (i - 1) * (ROW_H + ROW_GAP))
+		r.Size = UDim2.new(1, -24, 0, ROW_H)
+		r.Parent = list
+		Theme.corner(r, 8)
+		Theme.stroke(r, 0.7, BLUE_LINE)
+		local face = Instance.new("Frame")
+		face.Name = "Face"
+		face.Size = UDim2.fromOffset(ROW_H - 18, ROW_H - 18)
+		face.Position = UDim2.fromOffset(10, 9)
+		face.BackgroundTransparency = 1
+		face.ClipsDescendants = true
+		face.Parent = r
+		Theme.corner(face, 8)
+		Theme.stroke(face, 0.3, BLUE_LINE)
+		Headshot.attach(face, p.look or p.id, Config.HomeKit, 0, { shoulders = true })
+		cell(r, p.name, 96, 320, { Font = Theme.fonts.display, TextSize = 19, Size = UDim2.fromOffset(320, 30), Position = UDim2.fromOffset(96, 16), TextTruncate = Enum.TextTruncate.AtEnd })
+		cell(r, ("%s  ·  Age %d"):format(p.role, p.age), 96, 320, { TextColor3 = BLUE_LINE, TextSize = 14, Size = UDim2.fromOffset(320, 22), Position = UDim2.fromOffset(96, 46) })
+		cell(r, tostring(p.overall), 0, 90, { Position = UDim2.new(COL_OVR, -12, 0, 0), Size = UDim2.fromOffset(90, ROW_H), Font = Theme.fonts.display, TextSize = 32, TextColor3 = ACCENT, TextXAlignment = Enum.TextXAlignment.Center, TextYAlignment = Enum.TextYAlignment.Center })
+		cell(r, tostring(p.potential), 0, 110, { Position = UDim2.new(COL_POT, -12, 0, 0), Size = UDim2.fromOffset(110, ROW_H), Font = Theme.fonts.display, TextSize = 32, TextColor3 = CYAN, TextXAlignment = Enum.TextXAlignment.Center, TextYAlignment = Enum.TextYAlignment.Center })
+		if canManage() then
+			local sign = Theme.button(r, ("Sign %s"):format(money(p.fee or 0)), "primary", {
+				Size = UDim2.new(1 - COL_FEE, -36, 0, 48),
+				Position = UDim2.new(1, -12, 0.5, 0),
+				AnchorPoint = Vector2.new(1, 0.5),
+				TextSize = 18,
+				Font = Theme.fonts.display,
+			})
+			sign.Activated:Connect(function()
+				actionEvent:FireServer("sign", p.id)
+			end)
+		else
+			cell(r, money(p.fee or 0), 0, 200, { Position = UDim2.new(COL_FEE, 0, 0, 0), Size = UDim2.new(1 - COL_FEE, -12, 0, ROW_H), TextColor3 = GREY, Font = Theme.fonts.bold, TextXAlignment = Enum.TextXAlignment.Center, TextYAlignment = Enum.TextYAlignment.Center })
+		end
+	end
+
+	infoFooter("Potential shows how far a player can develop. Young players improve faster with a coach.")
 end
 
 -- ----------------------------------------------------------------- League tab

@@ -57,9 +57,10 @@ local function buildBust(look: number): Model?
 	-- Shoulders for the wider "bust" framing: a torso block and two short
 	-- sleeves, painted with the kit colour when the bust is attached. Hidden
 	-- by the tight face camera in the default framing.
-	local function block(name: string, size: Vector3, offset: Vector3, color: Color3)
+	local function block(name: string, size: Vector3, offset: Vector3, color: Color3, shape: Enum.PartType?)
 		local b = Instance.new("Part")
 		b.Name = name
+		b.Shape = shape or Enum.PartType.Block
 		b.Size = size
 		b.Color = color
 		b.Material = Enum.Material.SmoothPlastic
@@ -71,11 +72,14 @@ local function buildBust(look: number): Model?
 		return b
 	end
 	local neckY = -0.75 * spec.headScale
-	block("Shirt", Vector3.new(2.0, 1.6, 1.0), Vector3.new(0, neckY - 0.95, 0), Color3.fromRGB(200, 40, 50))
+	local kitPlaceholder = Color3.fromRGB(200, 40, 50)
+	block("Shirt", Vector3.new(1.7, 1.6, 1.0), Vector3.new(0, neckY - 0.95, 0), kitPlaceholder)
 	block("Neck", Vector3.new(0.6, 0.3, 0.6), Vector3.new(0, neckY - 0.1, 0), spec.skin)
 	for _, side in { -1, 1 } do
-		block("Sleeve", Vector3.new(0.6, 0.9, 0.9), Vector3.new(side * 1.3, neckY - 0.6, 0), Color3.fromRGB(200, 40, 50))
-		block("Arm", Vector3.new(0.55, 0.9, 0.85), Vector3.new(side * 1.3, neckY - 1.5, 0), spec.skin)
+		-- round shoulder caps, then a rounded upper arm below
+		block("Sleeve", Vector3.new(0.95, 0.95, 0.95), Vector3.new(side * 1.1, neckY - 0.55, 0), kitPlaceholder, Enum.PartType.Ball)
+		block("Arm", Vector3.new(0.8, 0.8, 0.8), Vector3.new(side * 1.2, neckY - 1.25, 0), spec.skin, Enum.PartType.Ball)
+		block("ArmLower", Vector3.new(0.55, 0.9, 0.55), Vector3.new(side * 1.22, neckY - 1.7, 0), spec.skin)
 	end
 
 	-- Accessories were never welded (the rig is torn down before physics ran),
@@ -129,9 +133,31 @@ function Headshot.attach(parent: GuiObject, look: number, kit: Color3, number: n
 	vf.BackgroundColor3 = kit
 	vf.BackgroundTransparency = 0.25
 	vf.BorderSizePixel = 0
-	vf.Ambient = Color3.fromRGB(140, 140, 150)
-	vf.LightColor = Color3.fromRGB(235, 230, 220)
-	vf.LightDirection = Vector3.new(0.4, -0.8, 0.7) -- travels toward +Z, so it lights the -Z face
+	-- Studio-portrait lighting: bright warm key from the upper front-left, a
+	-- lifted cool ambient so nothing goes muddy, and a navy gradient backdrop
+	-- for the card framing.
+	vf.Ambient = Color3.fromRGB(178, 182, 198)
+	vf.LightColor = Color3.fromRGB(255, 246, 228)
+	vf.LightDirection = Vector3.new(-0.45, -0.7, 0.62) -- travels toward +Z, so it lights the -Z face
+	if shoulders then
+		-- backdrop is a sibling underneath: a UIGradient on the viewport itself
+		-- would tint the rendered bust too
+		local backdrop = Instance.new("Frame")
+		backdrop.Name = "Backdrop"
+		backdrop.Size = UDim2.fromScale(1, 1)
+		backdrop.BackgroundColor3 = Color3.fromRGB(44, 72, 132)
+		backdrop.BorderSizePixel = 0
+		backdrop.ZIndex = vf.ZIndex
+		local grad = Instance.new("UIGradient")
+		grad.Rotation = 90
+		grad.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(70, 74, 92)),
+		})
+		grad.Parent = backdrop
+		backdrop.Parent = parent
+		vf.BackgroundTransparency = 1
+	end
 	vf.Parent = parent
 
 	local fallback = Instance.new("TextLabel")
@@ -162,7 +188,7 @@ function Headshot.attach(parent: GuiObject, look: number, kit: Color3, number: n
 		cam.FieldOfView = 28
 		-- the face decal is on the head's Front (-Z), so the camera sits on -Z
 		if shoulders then
-			cam.CFrame = CFrame.lookAt(Vector3.new(-0.2, 0.3, -7.2), Vector3.new(0, -0.45, 0))
+			cam.CFrame = CFrame.lookAt(Vector3.new(-0.25, 0.35, -6.3), Vector3.new(0, -0.4, 0))
 		else
 			cam.CFrame = CFrame.lookAt(Vector3.new(-0.3, 0.55, -3.6), Vector3.new(0, 0.15, 0))
 		end
