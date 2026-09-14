@@ -425,9 +425,11 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 				break
 			end
 		end
+		local value = Squad.value(p)
+		ClubState.addCash(value)
 		recomputeLineup()
 		publish()
-		return true, ("%s released"):format(p.name)
+		return true, ("%s sold for %s"):format(p.name, money(value))
 	end
 	return false, "Unknown action"
 end
@@ -446,7 +448,7 @@ function ClubService.prepareMatch(): Prepared
 end
 
 -- Called after the final whistle. `scorerSlots` index into the matchSquad.
-function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.MatchPlayer }): { string }
+function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.MatchPlayer }): ({ string }, { Squad.RatingChange })
 	local scorerIds: { number } = {}
 	for _, slot in scorerSlots do
 		local p = matchSquad[slot]
@@ -454,11 +456,11 @@ function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.Ma
 			table.insert(scorerIds, p.id)
 		end
 	end
-	local news = Squad.afterMatch(players, lineup.xi, scorerIds, coachLevel, rng)
+	local news, changes = Squad.afterMatch(players, lineup.xi, scorerIds, coachLevel, rng)
 	refreshShortlist()
 	recomputeLineup()
 	publish()
-	return news
+	return news, changes
 end
 
 -- New season housekeeping (Milestone 4 calls this).

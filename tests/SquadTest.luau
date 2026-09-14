@@ -190,4 +190,35 @@ function T.feeGrowsWithQuality()
 	assert(Squad.fee(high :: any) > Squad.fee(low :: any), "better player should cost more")
 end
 
+function T.valueNeverExceedsFeeAndFallsWithAge()
+	local young = { id = 1, name = "a", number = 1, role = "MID", age = 21, overall = 55, potential = 65, injured = 0, apps = 0, goals = 0, look = 1 }
+	local old = { id = 2, name = "b", number = 2, role = "MID", age = 33, overall = 55, potential = 65, injured = 0, apps = 0, goals = 0, look = 2 }
+	assert(Squad.value(young :: any) <= Squad.fee(young :: any), "sale value above buying fee")
+	assert(Squad.value(young :: any) > Squad.value(old :: any), "veteran should be worth less")
+	assert(Squad.value(old :: any) >= 100 and Squad.value(old :: any) % 50 == 0, "value not rounded to 50 / below floor")
+end
+
+function T.afterMatchReportsRatingChanges()
+	local players = Squad.generate(9, 45)
+	local lineup = Squad.autoLineup(players)
+	local seen = 0
+	for round = 1, 20 do
+		local news, changes = Squad.afterMatch(players, lineup.xi, {}, 3, Random.new(round))
+		assert(type(changes) == "table", "changes missing")
+		for _, c in changes do
+			seen += 1
+			assert(math.abs(c.to - c.from) == 1, "a change should move OVR by exactly one")
+			assert(type(c.look) == "number" and type(c.name) == "string" and type(c.number) == "number", "change lacks card fields")
+			local found = false
+			for _, line in news do
+				if line:find(c.name, 1, true) then
+					found = true
+				end
+			end
+			assert(found, "every change needs a matching news line")
+		end
+	end
+	assert(seen > 0, "20 matches with a pro coach should develop somebody")
+end
+
 return T

@@ -807,12 +807,14 @@ function WorldBuilder.buildAmenity(level: number)
 		window.Transparency = 0.4
 	end
 	if level >= 3 then
-		-- fan zone: paved square with flag poles and a small stage
-		box("Paving", Vector3.new(30, 0.3, 24), p + Vector3.new(16, 0.15, -6), Color3.fromRGB(160, 160, 150), Enum.Material.Cobblestone, amenity)
-		box("Stage", Vector3.new(10, 2, 6), p + Vector3.new(24, 1, -14), Color3.fromRGB(60, 60, 65), Enum.Material.Metal, amenity)
+		-- fan zone: paved square with flag poles and a small stage. It grows
+		-- away from the pitch (further -X, towards the office) so nothing
+		-- crosses the fence or the touchline.
+		box("Paving", Vector3.new(30, 0.3, 24), p + Vector3.new(-14, 0.15, -6), Color3.fromRGB(160, 160, 150), Enum.Material.Cobblestone, amenity)
+		box("Stage", Vector3.new(10, 2, 6), p + Vector3.new(-24, 1, -14), Color3.fromRGB(60, 60, 65), Enum.Material.Metal, amenity)
 		for i = 0, 3 do
-			local pole = box("Pole", Vector3.new(0.4, 14, 0.4), p + Vector3.new(6 + i * 7, 7, 4), Color3.fromRGB(220, 220, 220), Enum.Material.Metal, amenity)
-			box("Flag", Vector3.new(0.1, 2.5, 4), pole.Position + Vector3.new(0, 5.5, 2), Config.HomeKit, Enum.Material.Fabric, amenity)
+			local pole = box("Pole", Vector3.new(0.4, 14, 0.4), p + Vector3.new(-(8 + i * 7), 7, 4), Color3.fromRGB(220, 220, 220), Enum.Material.Metal, amenity)
+			box("Flag", Vector3.new(0.1, 2.5, 4), pole.Position + Vector3.new(0, 5.5, -2), Config.HomeKit, Enum.Material.Fabric, amenity)
 		end
 	end
 end

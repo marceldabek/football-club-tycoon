@@ -99,42 +99,83 @@ local function button(parent: Instance, text: string, color: Color3, props: { [s
 end
 
 local panel = Theme.panel(gui, "Panel", {
-	Size = UDim2.new(0.86, 0, 0.8, 0),
+	Size = UDim2.new(0.92, 0, 0.9, 0),
 	Position = UDim2.fromScale(0.5, 0.52),
 	AnchorPoint = Vector2.new(0.5, 0.5),
+	BackgroundColor3 = Color3.fromRGB(14, 20, 34),
+	BackgroundTransparency = 0.02,
 	Visible = false,
 })
 local sizeLimit = Instance.new("UISizeConstraint")
-sizeLimit.MaxSize = Vector2.new(760, 540)
+sizeLimit.MaxSize = Vector2.new(1040, 800)
 sizeLimit.Parent = panel
 
+-- club crest: rounded shield in the kit colour with the club initials
+local crest = Instance.new("Frame")
+crest.Name = "Crest"
+crest.Size = UDim2.fromOffset(44, 44)
+crest.Position = UDim2.fromOffset(18, 10)
+crest.BackgroundColor3 = Config.HomeKit
+crest.BorderSizePixel = 0
+crest.Parent = panel
+Theme.corner(crest, 12)
+Theme.stroke(crest, 0.3, Color3.new(1, 1, 1))
+local crestInitials = Theme.text(crest, "", "display", {
+	Name = "Initials",
+	Size = UDim2.fromScale(1, 1),
+	TextSize = 18,
+	TextColor3 = Color3.new(1, 1, 1),
+	TextXAlignment = Enum.TextXAlignment.Center,
+	TextYAlignment = Enum.TextYAlignment.Center,
+})
+local function initials(name: string): string
+	local out = ""
+	for word in name:gmatch("%S+") do
+		if word:upper() ~= "FC" or out == "" then
+			out ..= word:sub(1, 1):upper()
+		end
+		if #out >= 2 then
+			break
+		end
+	end
+	return if out == "" then "?" else out
+end
+
 local title = Theme.text(panel, "CLUB OFFICE", "display", {
-	TextSize = 24,
-	Position = UDim2.fromOffset(18, 12),
-	Size = UDim2.new(1, -300, 0, 30),
+	TextSize = 30,
+	TextColor3 = Color3.new(1, 1, 1),
+	Position = UDim2.fromOffset(72, 10),
+	Size = UDim2.new(1, -340, 0, 44),
+	TextYAlignment = Enum.TextYAlignment.Center,
 })
 
-local closeButton = button(panel, "✕", Color3.fromRGB(70, 70, 80), {
-	Name = "Close",
-	Size = UDim2.fromOffset(36, 30),
-	Position = UDim2.new(1, -46, 0, 12),
+local closeButton = Theme.closeButton(panel, {
+	Size = UDim2.fromOffset(44, 44),
+	Position = UDim2.new(1, -54, 0, 10),
+	BackgroundColor3 = Color3.fromRGB(23, 30, 44),
+	BackgroundTransparency = 0,
 })
 
 local cashLine = Theme.pill(panel, "CashLine", {
-	Position = UDim2.new(1, -56, 0, 10),
+	Position = UDim2.new(1, -62, 0, 10),
 	AnchorPoint = Vector2.new(1, 0),
-	Size = UDim2.fromOffset(170, 34),
-	TextXAlignment = Enum.TextXAlignment.Right,
+	Size = UDim2.fromOffset(190, 44),
+	Font = Theme.fonts.display,
+	TextSize = 22,
+	TextXAlignment = Enum.TextXAlignment.Center,
 	TextColor3 = Theme.colors.cash,
-	BackgroundColor3 = Theme.colors.bg2,
-})
+	BackgroundColor3 = Color3.fromRGB(23, 30, 44),
+	BackgroundTransparency = 0,
+});
+(cashLine:FindFirstChildOfClass("UICorner") :: UICorner).CornerRadius = UDim.new(0, 10);
+(cashLine:FindFirstChildOfClass("UIStroke") :: UIStroke).Transparency = 0.5
 
 -- tabs
 local tabs = Instance.new("Frame")
 tabs.Name = "Tabs"
 tabs.BackgroundTransparency = 1
-tabs.Position = UDim2.fromOffset(18, 52)
-tabs.Size = UDim2.new(1, -36, 0, 34)
+tabs.Position = UDim2.fromOffset(18, 64)
+tabs.Size = UDim2.new(1, -36, 0, 38)
 tabs.Parent = panel
 local tabLayout = Instance.new("UIListLayout")
 tabLayout.FillDirection = Enum.FillDirection.Horizontal
@@ -144,8 +185,8 @@ tabLayout.Parent = tabs
 
 local content = Instance.new("ScrollingFrame")
 content.Name = "Content"
-content.Position = UDim2.fromOffset(18, 96)
-content.Size = UDim2.new(1, -36, 1, -110)
+content.Position = UDim2.fromOffset(18, 112)
+content.Size = UDim2.new(1, -36, 1, -126)
 content.BackgroundTransparency = 1
 content.BorderSizePixel = 0
 content.ScrollBarThickness = 6
@@ -153,7 +194,7 @@ content.AutomaticCanvasSize = Enum.AutomaticSize.Y
 content.CanvasSize = UDim2.new()
 content.Parent = panel
 local contentLayout = Instance.new("UIListLayout")
-contentLayout.Padding = UDim.new(0, 4)
+contentLayout.Padding = UDim.new(0, 8)
 contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
 contentLayout.Parent = content
 
@@ -163,8 +204,11 @@ local tabButtons: { [string]: TextButton } = {}
 
 local render: () -> ()
 
-for i, name in { "Squad", "League", "History", "Scouting", "Staff" } do
-	local b = button(tabs, name:upper(), ROW_BG, { Name = name .. "Tab", Size = UDim2.fromOffset(118, 32), LayoutOrder = i, TextSize = 14 })
+-- Five tabs share the row: each takes a fifth of the width minus its share of the gaps.
+local TAB_NAMES = { "Squad", "League", "History", "Scouting", "Staff" }
+local tabGapShare = math.ceil(8 * (#TAB_NAMES - 1) / #TAB_NAMES)
+for i, name in TAB_NAMES do
+	local b = button(tabs, name:upper(), ROW_BG, { Name = name .. "Tab", Size = UDim2.new(1 / #TAB_NAMES, -tabGapShare, 0, 38), LayoutOrder = i, TextSize = 16, Font = Theme.fonts.display })
 	tabButtons[name] = b
 	b.Activated:Connect(function()
 		currentTab = name
@@ -235,22 +279,100 @@ end
 
 -- ------------------------------------------------------------------ Squad tab
 
-local function renderSquad(club: Club)
+-- Auto Squad row: green switch pill on the left, explanation on the right.
+local function autoSquadRow(club: Club)
 	local head = row(false)
-	head.BackgroundColor3 = PANEL_BG
+	head.Size = UDim2.new(1, -10, 0, 48)
+	head.BackgroundColor3 = Color3.fromRGB(23, 30, 44)
+	Theme.stroke(head, 0.88)
+	local on = club.autoSquad
 	if canManage() then
-		local toggle = button(head, if club.autoSquad then "AUTO SQUAD: ON" else "AUTO SQUAD: OFF", if club.autoSquad then GREEN else Color3.fromRGB(90, 90, 100), {
-			Size = UDim2.fromOffset(170, 28),
-			Position = UDim2.fromOffset(0, 1),
+		local toggle = Theme.button(head, if on then "AUTO SQUAD: ON" else "AUTO SQUAD: OFF", if on then "primary" else "secondary", {
+			Name = "AutoToggle",
+			Size = UDim2.fromOffset(236, 34),
+			Position = UDim2.fromOffset(8, 7),
+			TextSize = 15,
+			Font = Theme.fonts.display,
+			TextXAlignment = Enum.TextXAlignment.Left,
 		})
+		Theme.padding(toggle, 0, 14)
+		local track = Instance.new("Frame")
+		track.Name = "Switch"
+		track.Size = UDim2.fromOffset(46, 24)
+		track.Position = UDim2.new(1, 0, 0.5, 0)
+		track.AnchorPoint = Vector2.new(1, 0.5)
+		track.BackgroundColor3 = if on then Color3.fromRGB(28, 120, 60) else Theme.colors.bg
+		track.BorderSizePixel = 0
+		track.Parent = toggle
+		Theme.corner(track, 12)
+		local knob = Instance.new("Frame")
+		knob.Size = UDim2.fromOffset(18, 18)
+		knob.Position = if on then UDim2.new(1, -3, 0.5, 0) else UDim2.new(0, 3, 0.5, 0)
+		knob.AnchorPoint = if on then Vector2.new(1, 0.5) else Vector2.new(0, 0.5)
+		knob.BackgroundColor3 = Color3.new(1, 1, 1)
+		knob.BorderSizePixel = 0
+		knob.Parent = track
+		Theme.corner(knob, 9)
 		toggle.Activated:Connect(function()
 			actionEvent:FireServer("setAutoSquad", not club.autoSquad)
 		end)
-		cell(head, if club.autoSquad then "The best fit XI is picked for you." else "Drag a card onto another to swap.", 180, 400, { TextColor3 = GREY })
+		cell(head, if on then "Your best XI is selected automatically." else "Drag a card onto another to swap, or tap two cards.", 260, 600, { TextColor3 = GREY, Size = UDim2.fromOffset(600, 48), TextYAlignment = Enum.TextYAlignment.Center })
 	else
-		cell(head, if club.autoSquad then "Auto Squad is on." else "The owner picks the team by hand.", 0, 400, { TextColor3 = GREY })
+		cell(head, if on then "Auto Squad is on." else "The owner picks the team by hand.", 12, 500, { TextColor3 = GREY, Size = UDim2.fromOffset(500, 48), TextYAlignment = Enum.TextYAlignment.Center })
 	end
+end
 
+-- Bottom bar: squad capacity meter on the left, selection details on the right.
+local function capacityBar(club: Club)
+	local bar = row(false)
+	bar.Size = UDim2.new(1, -10, 0, 48)
+	bar.BackgroundColor3 = Color3.fromRGB(23, 30, 44)
+	Theme.stroke(bar, 0.88)
+	local count, max = #club.players, Config.SquadMax
+	cell(bar, "Squad capacity", 14, 130, { TextColor3 = GREY, Size = UDim2.fromOffset(130, 48), TextYAlignment = Enum.TextYAlignment.Center })
+	cell(bar, ("%d / %d players"):format(count, max), 150, 170, { Font = Theme.fonts.display, TextSize = 18, Size = UDim2.fromOffset(170, 48), TextYAlignment = Enum.TextYAlignment.Center })
+	local track = Instance.new("Frame")
+	track.Name = "Track"
+	track.Position = UDim2.new(0, 330, 0.5, 0)
+	track.AnchorPoint = Vector2.new(0, 0.5)
+	track.Size = UDim2.new(0.3, 0, 0, 16)
+	track.BackgroundColor3 = Theme.colors.bg3
+	track.BorderSizePixel = 0
+	track.Parent = bar
+	Theme.corner(track, 8)
+	local fill = Instance.new("Frame")
+	fill.Size = UDim2.fromScale(math.clamp(count / max, 0, 1), 1)
+	fill.BackgroundColor3 = Theme.colors.cash
+	fill.BorderSizePixel = 0
+	fill.Parent = track
+	Theme.corner(fill, 8)
+	cell(bar, ("%d%%"):format(math.floor(count / max * 100 + 0.5)), 0, 60, {
+		Position = UDim2.new(0.3, 344, 0, 0),
+		Size = UDim2.fromOffset(60, 48),
+		TextYAlignment = Enum.TextYAlignment.Center,
+		Font = Theme.fonts.bold,
+	})
+	local detail = "Select a player to view details"
+	if selectedId then
+		for _, p in club.players do
+			if p.id == selectedId then
+				detail = ("%s  ·  %s  ·  OVR %d  ·  POT %d  ·  age %d  ·  %d apps, %d goals"):format(p.name, p.role, p.overall, p.potential, p.age, p.apps, p.goals)
+			end
+		end
+	end
+	cell(bar, detail, 0, 420, {
+		Position = UDim2.new(1, -14, 0, 0),
+		AnchorPoint = Vector2.new(1, 0),
+		Size = UDim2.new(0.36, 0, 0, 48),
+		TextColor3 = if selectedId then Theme.colors.text else GREY,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		TextYAlignment = Enum.TextYAlignment.Center,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+	})
+end
+
+local function renderSquad(club: Club)
+	autoSquadRow(club)
 	LineupBoard.render(content, {
 		club = club :: any,
 		kit = Config.HomeKit,
@@ -266,14 +388,15 @@ local function renderSquad(club: Club)
 			selectedId = id
 			render()
 		end,
-		onRelease = function(id: number)
+		onSell = function(id: number)
+			selectedId = nil
 			actionEvent:FireServer("release", id)
 		end,
 		lockScroll = function(locked: boolean)
 			content.ScrollingEnabled = not locked
 		end,
 	})
-	note(("Squad: %d / %d players.  Drag a card onto another to swap, or tap two cards.  Number bottom-left, OVR bottom-right."):format(#club.players, Config.SquadMax))
+	capacityBar(club)
 end
 
 -- --------------------------------------------------------------- Scouting tab
@@ -467,6 +590,7 @@ render = function()
 	clearContent()
 	order = 0
 	cashLine.Text = money(get("Cash") or 0)
+	crestInitials.Text = initials(get("ClubName") or Config.ClubName)
 	for name, b in tabButtons do
 		b.BackgroundColor3 = if name == currentTab then ACCENT else Theme.colors.bg3
 		b.TextColor3 = if name == currentTab then Theme.colors.bg else Theme.colors.text

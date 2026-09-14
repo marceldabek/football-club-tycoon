@@ -156,6 +156,29 @@ function Theme.button(parent: Instance, text: string, variant: ButtonVariant?, p
 	return b
 end
 
+-- Close button: an X drawn from two rotated bars, so it never depends on the
+-- font having a glyph (Gotham renders "✕" as a box).
+function Theme.closeButton(parent: Instance, props: { [string]: any }?): TextButton
+	local b = Theme.button(parent, "", "ghost", {
+		Name = "Close",
+		Size = UDim2.fromOffset(32, 32),
+	})
+	apply(b, props)
+	for _, angle in { 45, -45 } do
+		local bar = Instance.new("Frame")
+		bar.Name = "Bar"
+		bar.AnchorPoint = Vector2.new(0.5, 0.5)
+		bar.Position = UDim2.fromScale(0.5, 0.5)
+		bar.Size = UDim2.new(0.5, 0, 0, 2)
+		bar.Rotation = angle
+		bar.BackgroundColor3 = Theme.colors.text
+		bar.BorderSizePixel = 0
+		bar.ZIndex = b.ZIndex + 1
+		bar.Parent = b
+	end
+	return b
+end
+
 -- Rounded label with a dark backing: cash, hint, toast, scoreboard clock.
 function Theme.pill(parent: Instance, name: string, props: { [string]: any }?): TextLabel
 	local l = Instance.new("TextLabel")

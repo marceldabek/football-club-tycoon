@@ -41,6 +41,9 @@ export type MatchPlayer = {
 
 export type Sub = { out: number, ["in"]: number }
 
+-- One OVR move after a match, for the post-match development strip.
+export type RatingChange = { id: number, name: string, number: number, look: number, from: number, to: number }
+
 export type ScoredEvent = { minute: number, team: string, type: string, scorer: number? }
 
 -- Starting squad shape: 16 players. TEMP.
@@ -307,8 +310,9 @@ end
 
 -- Post-match bookkeeping. `scorerIds` are player ids. Mutates players and
 -- returns human-readable news lines for the summary.
-function Squad.afterMatch(players: { Player }, xi: { number }, scorerIds: { number }, coachLevel: number, rng: Random): { string }
+function Squad.afterMatch(players: { Player }, xi: { number }, scorerIds: { number }, coachLevel: number, rng: Random): ({ string }, { RatingChange })
 	local news: { string } = {}
+	local changes: { RatingChange } = {}
 	local played: { [number]: boolean } = {}
 	for _, id in xi do
 		played[id] = true
@@ -342,13 +346,18 @@ function Squad.afterMatch(players: { Player }, xi: { number }, scorerIds: { numb
 			if rng:NextNumber() < chance then
 				p.overall += 1
 				table.insert(news, ("%s improved to %d OVR"):format(p.name, p.overall))
+				table.insert(changes, { id = p.id, name = p.name, number = p.number, look = p.look, from = p.overall - 1, to = p.overall })
 			end
 		elseif p.age >= 31 and rng:NextNumber() < Config.DeclineChance then
+			local before = p.overall
 			p.overall = math.max(p.overall - 1, Squad.MIN_OVERALL)
-			table.insert(news, ("%s is slowing down (%d OVR)"):format(p.name, p.overall))
+			if p.overall < before then
+				table.insert(news, ("%s is slowing down (%d OVR)"):format(p.name, p.overall))
+				table.insert(changes, { id = p.id, name = p.name, number = p.number, look = p.look, from = before, to = p.overall })
+			end
 		end
 	end
-	return news
+	return news, changes
 end
 
 -- New season: everyone a year older. Returns nothing notable.
@@ -363,6 +372,13 @@ function Squad.fee(p: Player): number
 	local quality = math.max(p.overall - 35, 1) * 60
 	local headroom = math.max(p.potential - p.overall, 0) * 25
 	return math.max(math.floor((quality + headroom) / 50) * 50, 100)
+end
+
+-- TEMP transfer value: what the club receives for selling a player. Younger
+-- players hold their fee; veterans fetch much less. Rounded to 50, min 100.
+function Squad.value(p: Player): number
+	local ageFactor = if p.age <= 23 then 1 elseif p.age <= 29 then 0.85 elseif p.age <= 32 then 0.55 else 0.35
+	return math.max(math.floor((Squad.fee(p) * ageFactor) / 50) * 50, 100)
 end
 
 -- Scout shortlist. Better scouts find more and higher-ceiling players.

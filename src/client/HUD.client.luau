@@ -10,6 +10,7 @@ local HttpService = game:GetService("HttpService")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Theme = require(script.Parent.Theme)
 local MatchAudio = require(script.Parent.MatchAudio)
+local MatchSummary = require(script.Parent.MatchSummary)
 
 local player = Players.LocalPlayer
 local state = ReplicatedStorage:WaitForChild("ClubState")
@@ -17,6 +18,7 @@ local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local summaryEvent = remotes:WaitForChild("MatchSummary") :: RemoteEvent
 local toastEvent = remotes:WaitForChild("Toast") :: RemoteEvent
 local tacticEvent = remotes:WaitForChild("Tactic") :: RemoteEvent
+local playMatchEvent = remotes:WaitForChild("PlayMatch") :: RemoteEvent
 
 local money, ordinal, rich = Theme.money, Theme.ordinal, Theme.rich
 local C = Theme.colors
@@ -83,6 +85,44 @@ end)
 refreshMusicButton()
 
 -- -------------------------------------------------------------- top-centre
+
+-- PLAY MATCH (Manage only, owner only). The world board still works; this is
+-- the always-visible way to start the next fixture.
+local playButton = Theme.button(gui, "PLAY MATCH", "primary", {
+	Name = "PlayMatch",
+	Size = UDim2.fromOffset(300, 44),
+	Position = UDim2.new(0.5, 0, 0, 48),
+	AnchorPoint = Vector2.new(0.5, 0),
+	TextSize = 18,
+	Visible = false,
+})
+local playCooldown = false
+playButton.Activated:Connect(function()
+	if playCooldown then
+		return
+	end
+	playCooldown = true
+	playMatchEvent:FireServer()
+	task.delay(1.5, function()
+		playCooldown = false
+	end)
+end)
+local function refreshPlayButton()
+	local show = get("Phase") == "Manage" and get("OwnerUserId") == player.UserId and get("NeedsName") ~= true
+	playButton.Visible = show
+	if not show then
+		return
+	end
+	local nextOpp = get("NextOpponent") or ""
+	local round, rounds = get("Round") or 0, get("Rounds") or 10
+	if (get("MatchesPlayed") or 0) == 0 then
+		playButton.Text = "PLAY YOUR FIRST MATCH"
+	elseif nextOpp ~= "" then
+		playButton.Text = ("PLAY MATCH  ·  vs %s  (%d/%d)"):format(nextOpp, round + 1, rounds)
+	else
+		playButton.Text = "PLAY MATCH"
+	end
+end
 
 -- Scoreboard (Match only): club names either side of the score, clock below
 local scoreboard = Theme.panel(gui, "Scoreboard", {
@@ -182,7 +222,7 @@ local function refreshTacticButtons()
 		local button, name = pair[1] :: TextButton, pair[2] :: string
 		local active = current == name
 		button.BackgroundTransparency = active and 0 or 0.6
-		button.Text = active and (name:upper() .. "  ✓") or name:upper()
+		button.Text = active and (name:upper() .. "  ·  ON") or name:upper()
 	end
 	local subs = HttpService:JSONDecode(get("Subs") or "[]")
 	subButton.Text = ("SUB  (%d left)"):format(math.max(Config.MaxSubs - #subs, 0))
@@ -199,8 +239,8 @@ end)
 
 -- ------------------------------------------------------------------- cards
 
-local summary = Theme.card(gui, "Summary", "", UDim2.fromOffset(480, 470))
-local summaryContinue = summary.addButton("Continue", "primary")
+local summary = MatchSummary.new(gui)
+local summaryContinue = summary.continueButton
 
 local seasonCard = Theme.card(gui, "SeasonOver", "SEASON OVER", UDim2.fromOffset(480, 330))
 local seasonContinue = seasonCard.addButton("Next season", "primary")
@@ -232,6 +272,7 @@ local function showSeason(data)
 end
 summaryContinue.Activated:Connect(function()
 	summary.frame.Visible = false
+	refreshPlayButton()
 	if pendingSeason then
 		local data = pendingSeason
 		pendingSeason = nil
@@ -346,7 +387,14 @@ end)
 
 -- ---------------------------------------------------------------- refreshes
 
+local refreshHintText: () -> ()
+
 local function refreshHint()
+	refreshHintText()
+	hintLabel.Visible = hintLabel.Text ~= ""
+end
+
+function refreshHintText()
 	local phase = get("Phase")
 	if phase == "Loading" then
 		hintLabel.Text = ""
@@ -361,20 +409,20 @@ local function refreshHint()
 		hintLabel.Text = "Match on. Walk around and watch, or use ATTACK / DEFEND / SUB."
 		return
 	end
+	-- Onboarding only: the pill teaches the first few upgrades, then goes away.
+	-- Starting a match is the PLAY MATCH button at the top, so it is never hinted here.
 	local played = get("MatchesPlayed") or 0
 	local level = get("StandLevel") or 1
 	if played == 0 then
-		hintLabel.Text = "Head out to the MATCHDAY board and play your first match."
+		hintLabel.Text = "Welcome to your club. Have a look around, then hit PLAY MATCH at the top."
 	elseif level == 1 then
 		hintLabel.Text = "Fans were turned away. Expand the stand (yellow sign by the bleachers)."
 	elseif (get("ScoutLevel") or 0) == 0 then
 		hintLabel.Text = "Hire a scout to find new players: the office computer, or the CLUB button."
 	elseif (get("AmenityLevel") or 0) == 0 then
 		hintLabel.Text = "Fans spend money too: build a Snack Bar at the CONCOURSE sign by the fence."
-	elseif (get("Round") or 0) == 0 then
-		hintLabel.Text = ("New season in the %s. Play the first match at the MATCHDAY board."):format(get("DivisionName") or "league")
 	else
-		hintLabel.Text = "Play the next match at the MATCHDAY board. Check the CLUB office between games."
+		hintLabel.Text = ""
 	end
 end
 
@@ -430,6 +478,9 @@ for _, key in { "Phase", "HomeGoals", "AwayGoals", "TimeLeft", "Opponent" } do
 end
 for _, key in { "Phase", "MatchesPlayed", "StandLevel", "ScoutLevel", "AmenityLevel", "Round", "NeedsName" } do
 	state:GetAttributeChangedSignal(key):Connect(refreshHint)
+end
+for _, key in { "Phase", "OwnerUserId", "NeedsName", "NextOpponent", "Round", "Rounds", "MatchesPlayed" } do
+	state:GetAttributeChangedSignal(key):Connect(refreshPlayButton)
 end
 state:GetAttributeChangedSignal("Phase"):Connect(refreshLoading)
 
@@ -487,49 +538,15 @@ state:GetAttributeChangedSignal("Subs"):Connect(function()
 end)
 
 summaryEvent.OnClientEvent:Connect(function(data)
-	local outcomeText = data.outcome == "Win" and "WIN" or (data.outcome == "Draw" and "DRAW" or "LOSS")
-	local outcomeColor = data.outcome == "Win" and C.good or (data.outcome == "Draw" and C.muted or C.bad)
-	summary.title.Text = ("%d - %d   %s"):format(data.homeGoals, data.awayGoals, outcomeText)
-	summary.title.TextColor3 = outcomeColor
-	local lines = {}
-	table.insert(lines, ("<b>%s</b>  vs  <b>%s</b>"):format(get("ClubName") or "Home", data.opponent))
-	if data.scorers and #data.scorers > 0 then
-		table.insert(lines, rich("Scorers: " .. table.concat(data.scorers, ", "), C.accent))
-	end
-	if data.position and data.division then
-		table.insert(lines, ("League: <b>%s</b> in the %s after %d of %d"):format(ordinal(data.position), data.division, data.round, data.rounds))
-	end
-	table.insert(lines, ("Attendance: <b>%d</b> / %d seats"):format(data.attendance, data.capacity))
-	if data.turnedAway > 0 then
-		table.insert(lines, rich(("Fans turned away: %d"):format(data.turnedAway), C.bad))
-	end
-	table.insert(lines, "")
-	table.insert(lines, ("Ticket revenue: %s"):format(money(data.ticketRevenue)))
-	if (data.concessionRevenue or 0) > 0 then
-		table.insert(lines, ("Concessions: %s"):format(money(data.concessionRevenue)))
-	end
-	table.insert(lines, ("Result bonus: %s"):format(money(data.resultBonus)))
-	table.insert(lines, ("Total earned: %s"):format(rich(money(data.total), C.cash, true)))
-	table.insert(lines, "")
-	table.insert(lines, ("Club cash: %s"):format(rich(money(data.cash), C.cash, true)))
-	if data.news and #data.news > 0 then
-		table.insert(lines, "")
-		for i, line in data.news do
-			if i > 4 then
-				table.insert(lines, rich(("…and %d more"):format(#data.news - 4), C.muted))
-				break
-			end
-			table.insert(lines, rich(line, C.info))
-		end
-	end
-	summary.body.Text = table.concat(lines, "\n")
-	summary.frame.Visible = true
+	summary.show(data)
+	playButton.Visible = false -- the card owns the screen until Back to Club
 	pendingSeason = data.season
 end)
 
 refreshCash()
 refreshScoreboard()
 refreshHint()
+refreshPlayButton()
 refreshLoading()
 refreshPhasePanels()
 refreshTacticButtons()

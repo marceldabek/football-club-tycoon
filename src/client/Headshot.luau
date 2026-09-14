@@ -54,6 +54,30 @@ local function buildBust(look: number): Model?
 	head.Parent = bust
 	bust.PrimaryPart = head
 
+	-- Shoulders for the wider "bust" framing: a torso block and two short
+	-- sleeves, painted with the kit colour when the bust is attached. Hidden
+	-- by the tight face camera in the default framing.
+	local function block(name: string, size: Vector3, offset: Vector3, color: Color3)
+		local b = Instance.new("Part")
+		b.Name = name
+		b.Size = size
+		b.Color = color
+		b.Material = Enum.Material.SmoothPlastic
+		b.Anchored = true
+		b.CanCollide = false
+		b.CanQuery = false
+		b.CFrame = head.CFrame * CFrame.new(offset)
+		b.Parent = bust
+		return b
+	end
+	local neckY = -0.75 * spec.headScale
+	block("Shirt", Vector3.new(2.0, 1.6, 1.0), Vector3.new(0, neckY - 0.95, 0), Color3.fromRGB(200, 40, 50))
+	block("Neck", Vector3.new(0.6, 0.3, 0.6), Vector3.new(0, neckY - 0.1, 0), spec.skin)
+	for _, side in { -1, 1 } do
+		block("Sleeve", Vector3.new(0.6, 0.9, 0.9), Vector3.new(side * 1.3, neckY - 0.6, 0), Color3.fromRGB(200, 40, 50))
+		block("Arm", Vector3.new(0.55, 0.9, 0.85), Vector3.new(side * 1.3, neckY - 1.5, 0), spec.skin)
+	end
+
 	-- Accessories were never welded (the rig is torn down before physics ran),
 	-- so place each handle by matching its attachment to the head's.
 	for _, child in model:GetChildren() do
@@ -92,9 +116,13 @@ local function getBust(look: number): Model?
 	return cache[look]
 end
 
+export type Options = { shoulders: boolean? }
+
 -- Fills `parent` with a headshot. Shows the shirt number on the kit colour
--- until the face is ready (or if it never loads).
-function Headshot.attach(parent: GuiObject, look: number, kit: Color3, number: number): ViewportFrame
+-- until the face is ready (or if it never loads). `opts.shoulders` pulls the
+-- camera back to show the kit, for the post-match development cards.
+function Headshot.attach(parent: GuiObject, look: number, kit: Color3, number: number, opts: Options?): ViewportFrame
+	local shoulders = opts ~= nil and opts.shoulders == true
 	local vf = Instance.new("ViewportFrame")
 	vf.Name = "Headshot"
 	vf.Size = UDim2.fromScale(1, 1)
@@ -124,11 +152,20 @@ function Headshot.attach(parent: GuiObject, look: number, kit: Color3, number: n
 		end
 		local bust = src:Clone()
 		bust:PivotTo(CFrame.new(0, 0, 0))
+		for _, part in bust:GetChildren() do
+			if part:IsA("BasePart") and (part.Name == "Shirt" or part.Name == "Sleeve") then
+				part.Color = kit
+			end
+		end
 		bust.Parent = vf
 		local cam = Instance.new("Camera")
 		cam.FieldOfView = 28
 		-- the face decal is on the head's Front (-Z), so the camera sits on -Z
-		cam.CFrame = CFrame.lookAt(Vector3.new(-0.3, 0.55, -3.6), Vector3.new(0, 0.15, 0))
+		if shoulders then
+			cam.CFrame = CFrame.lookAt(Vector3.new(-0.2, 0.3, -7.2), Vector3.new(0, -0.45, 0))
+		else
+			cam.CFrame = CFrame.lookAt(Vector3.new(-0.3, 0.55, -3.6), Vector3.new(0, 0.15, 0))
+		end
 		cam.Parent = vf
 		vf.CurrentCamera = cam
 		fallback.Visible = false

@@ -193,7 +193,7 @@ function MatchService.playMatch(durationOverride: number?, walkoutOverride: numb
 		bump("Losses", 1)
 	end
 
-	local news = ClubService.finishMatch(scorerSlots, homeSquad)
+	local news, development = ClubService.finishMatch(scorerSlots, homeSquad)
 	local scorers = {}
 	for _, ev in result.events do
 		local scorer = (ev :: any).scorer
@@ -215,6 +215,7 @@ function MatchService.playMatch(durationOverride: number?, walkoutOverride: numb
 
 	remote("MatchSummary"):FireAllClients({
 		opponent = fixture.opponent,
+		awayKit = fixture.kit,
 		homeGoals = result.homeGoals,
 		awayGoals = result.awayGoals,
 		outcome = settlement.outcome,
@@ -228,6 +229,7 @@ function MatchService.playMatch(durationOverride: number?, walkoutOverride: numb
 		cash = ClubState.get("Cash"),
 		scorers = scorers,
 		news = news,
+		development = development,
 		division = ClubState.get("DivisionName"),
 		position = roundResult.position,
 		round = roundResult.round,

@@ -85,17 +85,25 @@ function Session.snapshot(): Profile.Profile
 	return profile
 end
 
+-- Matchday starts from the world board or the HUD's PLAY MATCH button; both
+-- go through here so the owner check and the phase lock are in one place.
+local function requestMatch(player: Player)
+	if not ClubState.isOwner(player) then
+		toast(player, VISITOR_MESSAGE)
+		return
+	end
+	if ClubState.get("Phase") ~= "Manage" then
+		toast(player, "A match is already in progress")
+		return
+	end
+	local started = MatchService.playMatch()
+	if not started then
+		toast(player, "A match is already in progress")
+	end
+end
+
 local function wireWorld(w: WorldBuilder.World)
-	w.matchdayPrompt.Triggered:Connect(function(player)
-		if not ClubState.isOwner(player) then
-			toast(player, VISITOR_MESSAGE)
-			return
-		end
-		local started = MatchService.playMatch()
-		if not started then
-			toast(player, "A match is already in progress")
-		end
-	end)
+	w.matchdayPrompt.Triggered:Connect(requestMatch)
 
 	w.standPrompt.Triggered:Connect(function(player)
 		if not ClubState.isOwner(player) then
@@ -259,6 +267,11 @@ function Session.start()
 	HistoryService.init()
 	SeasonService.init()
 	remote("ClubName").OnServerEvent:Connect(applyName)
+	remote("PlayMatch").OnServerEvent:Connect(function(player: Player)
+		if loaded then
+			requestMatch(player)
+		end
+	end)
 	Scenery.setup() -- lighting, horizon and floodlights exist while the club loads
 
 	local backend, kind = SaveService.autoBackend(Config.Save.storeName)
