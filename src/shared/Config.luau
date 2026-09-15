@@ -16,7 +16,7 @@ Config.WinBonus = 400
 Config.DrawBonus = 150
 Config.LossBonus = 0
 
--- Attendance (Milestone 4). demand = demandBase * (0.5 + popularity/100) * (1 + amenity bonus)
+-- Attendance (Milestone 4). demand = demandBase * (0.75 + popularity/60) * (1 + amenity bonus)
 Config.StartingPopularity = 20
 Config.PopularityDelta = { Win = 3, Draw = 1, Loss = -2, Promoted = 10, Relegated = -10, Champions = 15 }
 
@@ -65,6 +65,11 @@ Config.ScoutLevels = {
 	{ name = "Local Scout", cost = 600, prospects = 3, overallBonus = 2, potentialBoost = 3 },
 	{ name = "Regional Scout", cost = 3000, prospects = 4, overallBonus = 4, potentialBoost = 6 },
 	{ name = "Scouting Network", cost = 8000, prospects = 5, overallBonus = 6, potentialBoost = 10 },
+	-- The top two exist so a club with five figures spare has something worth
+	-- buying: prospects are generated around the squad's own average, so a bigger
+	-- overallBonus is the only way cash turns into a genuinely better XI.
+	{ name = "National Network", cost = 22000, prospects = 5, overallBonus = 9, potentialBoost = 14 },
+	{ name = "Continental Network", cost = 60000, prospects = 6, overallBonus = 12, potentialBoost = 18 },
 }
 
 -- Stand chain, shared by every plot. Level 0 is an empty plot: open

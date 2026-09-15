@@ -60,6 +60,66 @@ function T.noChancesAcrossHalfTime()
 	end
 end
 
+-- Win rate over many seeds for a given strength pairing, as a percentage.
+local function winRate(home: number, away: number): number
+	local wins = 0
+	local runs = 600
+	for seed = 1, runs do
+		local r = MatchSim.simulate({ homeStrength = home, awayStrength = away, seed = seed })
+		if r.homeGoals > r.awayGoals then
+			wins += 1
+		end
+	end
+	return wins / runs * 100
+end
+
+-- The whole point of buying players: a squad that outclasses the division has
+-- to win most weeks. The old flat share gave 75.6 v 44 only a 53% win rate,
+-- so investing in the squad never showed up on the scoreboard.
+function T.strongSquadDominatesWeakDivision()
+	local rate = winRate(75.6, 44)
+	assert(rate >= 82, ("a 75.6 squad should bully a 44 division, got %.1f%%"):format(rate))
+end
+
+-- ...but an evenly matched game still has to be a real contest, or every
+-- division would be decided the moment the season starts.
+function T.evenMatchIsStillACoinFlip()
+	local rate = winRate(50, 50)
+	assert(rate >= 38 and rate <= 58, ("even match should stay competitive, got %.1f%%"):format(rate))
+end
+
+-- Difficulty has to keep rising: the same squad that walks the bottom tier
+-- must not walk the top one.
+function T.winRateFallsAsTheDivisionGetsHarder()
+	local tier1 = winRate(75.6, 44)
+	local tier3 = winRate(75.6, 60)
+	local tier5 = winRate(75.6, 76)
+	assert(tier1 > tier3 and tier3 > tier5, ("win rate should fall with tier: %.1f / %.1f / %.1f"):format(tier1, tier3, tier5))
+	assert(tier5 <= 50, ("an out-of-depth squad should struggle, got %.1f%%"):format(tier5))
+end
+
+-- Mismatches should look like mismatches on the scoreboard, not 1-0 every week.
+function T.scorelinesGrowWithTheMismatch()
+	local even, gulf = 0, 0
+	for seed = 1, 400 do
+		even += MatchSim.simulate({ homeStrength = 50, awayStrength = 50, seed = seed }).homeGoals
+		gulf += MatchSim.simulate({ homeStrength = 75.6, awayStrength = 44, seed = seed }).homeGoals
+	end
+	assert(gulf / 400 >= even / 400 * 1.8, ("a dominant side should score far more: %.2f vs %.2f"):format(gulf / 400, even / 400))
+end
+
+-- Playing at home is worth something, so the league table is not symmetric.
+function T.homeAdvantageExists()
+	assert(winRate(50, 50) > 50 - 12, "home side should not be the underdog")
+	local home, away = 0, 0
+	for seed = 1, 600 do
+		local r = MatchSim.simulate({ homeStrength = 50, awayStrength = 50, seed = seed })
+		home += r.homeGoals
+		away += r.awayGoals
+	end
+	assert(home > away, ("home side should outscore away over a season: %d vs %d"):format(home, away))
+end
+
 function T.seedIsDeterministic()
 	local a, b = sim(7), sim(7)
 	assert(a.homeGoals == b.homeGoals and a.awayGoals == b.awayGoals and #a.events == #b.events, "same seed gave different results")

@@ -16,6 +16,32 @@ function T.demandGrowsWithTierPopularityAndAmenities()
 	assert(base > Config.StandLevels[1].capacity, "match 1 should turn fans away")
 end
 
+-- Milestone 4 built stands as the money sink, but demand leaned so hard on
+-- popularity that a mid-table club's ground was never full, so expanding it
+-- earned nothing and matchday income stopped growing.
+function T.demandOutgrowsAMidTableGround()
+	-- the ground a bottom-tier club actually has after a couple of seasons:
+	-- Main Stands down both sides and behind one goal
+	local built = Config.plotCapacity(Config.StandPlots[1], 2) * 2 + Config.plotCapacity(Config.StandPlots[3], 2)
+	local mid = Economy.demand(1, 42, 3)
+	assert(mid > built, ("demand %d should still beat a %d-seat ground"):format(mid, built))
+end
+
+function T.demandNeverCollapsesForAStrugglingClub()
+	-- popularity 0 after a bad run should still fill the opening bleachers,
+	-- or a losing streak locks the club out of its own economy
+	assert(Economy.demand(1, 0, 0) > Config.StandLevels[1].capacity, "rock bottom should still beat the bleachers")
+end
+
+function T.bottomTierCannotFillAMaxedGround()
+	-- there has to be a wrong amount to build, or capacity is a free money printer
+	local maxed = 0
+	for _, plot in Config.StandPlots do
+		maxed += Config.plotCapacity(plot, #Config.StandLevels)
+	end
+	assert(Economy.demand(1, 100, #Config.AmenityLevels - 1) < maxed, "the bottom division should not fill a maxed ground")
+end
+
 function T.popularityClamps()
 	assert(Economy.popularityAfter(99, "Win") == 100, "should clamp high")
 	assert(Economy.popularityAfter(1, "Loss") == 0, "should clamp low")

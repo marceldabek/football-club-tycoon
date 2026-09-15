@@ -28,8 +28,17 @@ export type Params = {
 	bias: ("NarrowWin" | "LikelyWin")?,
 }
 
--- Expected total goals per match before strength weighting.
-local TOTAL_XG = 2.6
+-- Goal expectancy. A flat home/(home+away) share barely moved with squad
+-- quality -- a side rated 75 against a 44 division still only won half its
+-- games -- so the ratio is raised to a power and the goals scale with it
+-- rather than being split out of a fixed total. BASE_XG is what each side
+-- expects when the two are level; the clamps stop a freak mismatch from
+-- producing a cricket score.
+local BASE_XG = 1.35
+local STRENGTH_EXPONENT = 1.6
+local MIN_XG, MAX_XG = 0.15, 5
+-- Playing at your own ground is worth roughly three rating points.
+local HOME_ADVANTAGE = 3
 
 -- Minimum football minutes between two chances so their 3D sequences never
 -- overlap (a sequence takes ~6 real seconds = ~6 minutes of a 90s match).
@@ -107,12 +116,12 @@ end
 
 function MatchSim.simulate(params: Params): Result
 	local rng = Random.new(params.seed or os.time())
-	local home = math.max(params.homeStrength, 1)
+	local home = math.max(params.homeStrength + HOME_ADVANTAGE, 1)
 	local away = math.max(params.awayStrength, 1)
-	local homeShare = home / (home + away)
+	local edge = (home / away) ^ STRENGTH_EXPONENT
 
-	local homeGoals = samplePoisson(rng, TOTAL_XG * homeShare)
-	local awayGoals = samplePoisson(rng, TOTAL_XG * (1 - homeShare))
+	local homeGoals = samplePoisson(rng, math.clamp(BASE_XG * edge, MIN_XG, MAX_XG))
+	local awayGoals = samplePoisson(rng, math.clamp(BASE_XG / edge, MIN_XG, MAX_XG))
 
 	if params.bias == "NarrowWin" then
 		-- Match 1: always a one-goal win, never a blowout.
@@ -125,6 +134,17 @@ function MatchSim.simulate(params: Params): Result
 		-- Match 2: strong chance of a win, still allows the odd draw/loss.
 		if homeGoals <= awayGoals and rng:NextNumber() < 0.85 then
 			homeGoals = awayGoals + rng:NextInteger(1, 2)
+		end
+	end
+
+	-- The timeline can only space MAX_CHANCES sequences at the minimum gap and
+	-- goals are never dropped, so trim the winning side rather than let two 3D
+	-- sequences overlap. Rare enough at these expectancies to stay invisible.
+	while homeGoals + awayGoals > MatchSim.MAX_CHANCES do
+		if homeGoals >= awayGoals then
+			homeGoals -= 1
+		else
+			awayGoals -= 1
 		end
 	end
 

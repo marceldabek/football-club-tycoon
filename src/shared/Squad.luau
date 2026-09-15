@@ -368,9 +368,12 @@ function Squad.ageAll(players: { Player })
 end
 
 -- TEMP fee formula: pay for current quality and for headroom, rounded to 50.
+-- Both terms are superlinear. A linear fee made the top of the market cost
+-- almost the same as the middle (a 76 overall went for 3,000 and an 85 for
+-- 3,250), so a rich club bought every prospect on the list without choosing.
 function Squad.fee(p: Player): number
-	local quality = math.max(p.overall - 35, 1) * 60
-	local headroom = math.max(p.potential - p.overall, 0) * 25
+	local quality = math.max(p.overall - 35, 1) ^ 2.6
+	local headroom = math.max(p.potential - p.overall, 0) ^ 1.5 * 15
 	return math.max(math.floor((quality + headroom) / 50) * 50, 100)
 end
 

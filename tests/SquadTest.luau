@@ -184,6 +184,33 @@ function T.prospectsRespectScoutLevel()
 	end
 end
 
+-- An elite signing has to be a real decision, not pocket change. The old
+-- linear fee made a 76 overall cost 3,000 and an 85 cost 3,250, so a club
+-- sitting on 75k could buy every prospect on the list without thinking.
+function T.eliteSigningsCostRealMoney()
+	local function p(overall: number, potential: number)
+		return { id = 1, name = "a", number = 1, role = "MID", age = 22, overall = overall, potential = potential, injured = 0, apps = 0, goals = 0, look = 1 } :: any
+	end
+	local decent, elite = Squad.fee(p(65, 75)), Squad.fee(p(85, 92))
+	assert(elite >= decent * 3, ("an elite player should cost far more: %d vs %d"):format(elite, decent))
+	assert(elite >= 15000, ("an 85 overall should be a major outlay, got %d"):format(elite))
+	-- and the bottom of the market stays affordable for a grassroots club
+	assert(Squad.fee(p(45, 55)) <= 1500, "a fourth-tier squad player should stay cheap")
+end
+
+-- Late-game scouts are the way a rich club converts cash into squad strength.
+function T.topScoutsFindBetterPlayersThanEarlyOnes()
+	local first = Config.ScoutLevels[1]
+	local last = Config.ScoutLevels[#Config.ScoutLevels]
+	assert(#Config.ScoutLevels >= 5, "there should be a scouting ladder worth climbing")
+	assert(last.overallBonus > first.overallBonus * 2, "the best scout should find far better players")
+	for level = 2, #Config.ScoutLevels do
+		local prev, cur = Config.ScoutLevels[level - 1], Config.ScoutLevels[level]
+		assert(cur.cost > prev.cost, ("scout level %d should cost more than %d"):format(level, level - 1))
+		assert(cur.overallBonus > prev.overallBonus, ("scout level %d should find better players"):format(level))
+	end
+end
+
 function T.feeGrowsWithQuality()
 	local low = { id = 1, name = "a", number = 1, role = "MID", age = 25, overall = 40, potential = 42, injured = 0, apps = 0, goals = 0 }
 	local high = { id = 2, name = "b", number = 2, role = "MID", age = 20, overall = 55, potential = 70, injured = 0, apps = 0, goals = 0 }
