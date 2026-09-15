@@ -11,7 +11,7 @@ local SeasonService = require(script.Parent.SeasonService)
 
 local UpgradeService = {}
 
-local standPrompt: ProximityPrompt
+local standPrompts: { [string]: ProximityPrompt } = {}
 local amenityPrompt: ProximityPrompt
 
 local function money(n: number): string
@@ -24,14 +24,22 @@ end
 function UpgradeService.refreshPrompt()
 	local managing = ClubState.get("Phase") == "Manage"
 
-	local level = ClubState.get("StandLevel") :: number
-	local nextLevel = Config.StandLevels[level + 1]
-	if nextLevel then
-		standPrompt.ActionText = ("Expand to %s (%d seats) — %s"):format(nextLevel.name, nextLevel.capacity, money(nextLevel.cost))
-		standPrompt.Enabled = managing
-	else
-		standPrompt.ActionText = "Fully expanded"
-		standPrompt.Enabled = false
+	for _, plot in Config.StandPlots do
+		local prompt = standPrompts[plot.key]
+		if not prompt then
+			continue
+		end
+		local level = ClubState.plotLevel(plot)
+		local nextLevel = Config.StandLevels[level + 1]
+		if nextLevel then
+			local seats = Config.plotCapacity(plot, level + 1)
+			local verb = if level == 0 then "Build" else "Expand to"
+			prompt.ActionText = ("%s %s (%d seats) — %s"):format(verb, nextLevel.name, seats, money(nextLevel.cost))
+			prompt.Enabled = managing
+		else
+			prompt.ActionText = "Fully expanded"
+			prompt.Enabled = false
+		end
 	end
 
 	local amenity = (ClubState.get("AmenityLevel") :: number?) or 0
@@ -46,8 +54,8 @@ function UpgradeService.refreshPrompt()
 	end
 end
 
-function UpgradeService.init(prompts: { stand: ProximityPrompt, amenity: ProximityPrompt })
-	standPrompt = prompts.stand
+function UpgradeService.init(prompts: { stands: { [string]: ProximityPrompt }, amenity: ProximityPrompt })
+	standPrompts = prompts.stands
 	amenityPrompt = prompts.amenity
 	UpgradeService.refreshPrompt()
 end
@@ -64,9 +72,21 @@ local function pay(cost: number): (boolean, string?)
 	return true
 end
 
+-- Expands one side of the ground. `key` is a Config.StandPlots key; it
+-- defaults to the east (main) stand so the Studio debug command still works.
 -- Returns true if the purchase happened, otherwise a reason string.
-function UpgradeService.tryExpandStand(): (boolean, string?)
-	local level = ClubState.get("StandLevel") :: number
+function UpgradeService.tryExpandStand(key: string?): (boolean, string?)
+	local plotKey = key or Config.StandPlots[1].key
+	local plot
+	for _, candidate in Config.StandPlots do
+		if candidate.key == plotKey then
+			plot = candidate
+		end
+	end
+	if not plot then
+		return false, "No such stand"
+	end
+	local level = ClubState.plotLevel(plot)
 	local nextLevel = Config.StandLevels[level + 1]
 	if not nextLevel then
 		return false, "Already fully expanded"
@@ -75,11 +95,11 @@ function UpgradeService.tryExpandStand(): (boolean, string?)
 	if not ok then
 		return false, reason
 	end
-	ClubState.set("StandLevel", level + 1)
-	ClubState.set("Capacity", nextLevel.capacity)
-	WorldBuilder.buildStand(level + 1)
+	ClubState.setPlotLevel(plot, level + 1)
+	WorldBuilder.buildPlot(table.find(Config.StandPlots, plot) :: number, level + 1)
+	SeasonService.refreshDemand()
 	UpgradeService.refreshPrompt()
-	return true, ("%s built: %d seats"):format(nextLevel.name, nextLevel.capacity)
+	return true, ("%s: %s built, %d seats"):format(plot.label, nextLevel.name, ClubState.capacity())
 end
 
 function UpgradeService.tryUpgradeAmenity(): (boolean, string?)

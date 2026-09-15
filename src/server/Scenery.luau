@@ -286,8 +286,9 @@ end
 local floodHeads: { Part } = {}
 local function setupFloodlights(parent: Instance)
 	table.clear(floodHeads)
-	local x = Pitch.WIDTH / 2 + 5 + 4 + 8
-	local z = Pitch.LENGTH / 2 + 12 + 10
+	-- clear of the corners even when every plot is a full-depth grandstand
+	local x = Pitch.SIDE_EDGE + 66
+	local z = Pitch.END_EDGE + 66
 	local mastH = 60
 	for _, sx in { -1, 1 } do
 		for _, sz in { -1, 1 } do

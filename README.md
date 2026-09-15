@@ -44,7 +44,9 @@ In Play mode the server exposes `ServerScriptService.Server.DebugCommand` (Binda
 ```lua
 local dbg = game.ServerScriptService.Server.DebugCommand
 dbg:Invoke("playMatch", 30, 3)   -- optional: match seconds, walkout seconds
-dbg:Invoke("expandStand")        -- or "amenity" for the concourse chain
+dbg:Invoke("expandStand", "West") -- East | West | North | South; defaults to East
+dbg:Invoke("amenity")            -- the concourse chain
+dbg:Invoke("preview", "4,2,1,0") -- rebuild the ground at those plot levels (looking, not buying)
 dbg:Invoke("tactic", "Attack")   -- "Attack" | "Defend" | "Balanced" | "Sub"
 dbg:Invoke("club", "hireScout")  -- any ClubService action: setAutoSquad, swap, sign, release, hireCoach...
 dbg:Invoke("cash", 5000)         -- add money
@@ -52,6 +54,34 @@ dbg:Invoke("save")               -- flush the profile now
 dbg:Invoke("reload")             -- snapshot -> JSON -> restore: proves the save round trip
 dbg:Invoke("wipe")               -- throw the club away and start fresh
 ```
+
+The Studio MCP bridge runs in a sandboxed thread that cannot invoke a BindableFunction or
+require these modules, so the same commands are also reachable by writing a string attribute
+(arguments separated by `|`); the result comes back on `DebugResult`:
+
+```lua
+game.ServerScriptService.Server:SetAttribute("DebugRun", "preview|4,2,1,0")
+game.ServerScriptService.Server:SetAttribute("DebugRun", "playMatch|20|3")
+```
+
+## Ground layout
+
+Pitch centred on the origin, long axis along Z (`Pitch.luau` owns the numbers). Working
+outward: ad boards at the touchline, then the **hardstanding** — the paved ring fans walk on
+and the dugouts sit on — then the **perimeter wall** on the line `Pitch.SIDE_EDGE` /
+`Pitch.END_EDGE`, then the stands.
+
+Each of the four sides is an independent **plot** (`Config.StandPlots`) on the shared
+`Config.StandLevels` chain, so the ground grows asymmetrically like a real lower-league
+ground; capacity is the sum over plots and level 0 is an empty plot. Every plot is built in a
+local frame where +X points away from the pitch and +Z runs along the stand, so one builder
+serves all four sides. The wall stops short of all four corners: three are closed with a
+diagonal panel, and the open north-west one is the turnstile entrance.
+
+Two ways in, deliberately separate: the player spawns in the **office** on the paved
+forecourt outside that corner and walks through the **turnstiles**; the footballers use the
+**tunnel** mouth in the middle of the west wall (`Pitch.TUNNEL`). Keeping them apart is what
+frees all four sides for stands.
 
 ## Architecture
 
@@ -107,8 +137,8 @@ dbg:Invoke("wipe")               -- throw the club away and start fresh
 
 - Look pass: `Scenery` (lighting grade, dusk + floodlights on matchday, terrain hills, clouds,
   trees, distant town), pitch dressing (mowing stripes, six-yard boxes, penalty arcs, worn
-  goalmouths, sponsor ad boards, dugouts, tunnel arch with the club name), sectioned stands
-  with aisles, railings and a club-name wall, seated crowd with heads. One `Theme` module
+  goalmouths, sponsor ad boards, dugouts, tunnel mouth with the club name), sectioned stands
+  with aisles and a club-name roof fascia, seated crowd with heads. One `Theme` module
   styles every client screen. Set *Lighting → Technology* to **Future** in Studio by hand
   (not scriptable) for the shadows the grade was tuned for.
 

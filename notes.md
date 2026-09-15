@@ -57,3 +57,52 @@ block with square sleeve and upper-arm blocks, no spheres.
 
 14–15. PLAY MATCH grows with its label (`AutomaticSize.X` + padding, with a
 300x48 minimum), and the `(5/10)` counter is gone from the label.
+
+---
+
+# Stadium / World Fixes
+
+## Pitch & stand layout
+1. [x] Almost no spacing between the stands and the field.
+2. [x] Only one stand, and only one place to put it — wanted N/S/E/W plots.
+3. [x] No walkable perimeter: pavement, dugouts, touchline walkway.
+4. [ ] Make the perimeter itself part of the upgrade path (it exists from the start for now).
+
+## Stand model
+5. [x] Triangular side panels mirrored — they fought the seating ramp.
+6. [x] Billboards floating off the wall.
+7. [ ] Replace the stand with a better asset later; primitives stay for now.
+
+## Office
+8. [x] Office in a bad place — it sat mid-touchline and blocked the whole west side.
+
+---
+
+## How each one was done
+
+1, 3. `Pitch.luau` now owns the ground's outer geometry: `SIDE_MARGIN` 26 studs beside a
+touchline and `END_MARGIN` 34 behind a goal (about 9.5 m and 12 m at 2.75 studs/m). That gap
+is paved — `buildHardstanding` lays a ring of slabs flush with the grass — and everything
+that used to sit on the touchline (ad boards, dugouts) now stands on it. A perimeter wall
+runs along the outer edge on the `SIDE_EDGE` / `END_EDGE` line.
+
+2. Each side is an independent plot (`Config.StandPlots`) on the same `StandLevels` chain,
+level 0 being an empty plot. Capacity is the sum over plots, so the ground grows
+asymmetrically like a real lower-league ground and there are now four things to spend on
+instead of one. Every plot is built in a local frame where +X points away from the pitch and
++Z runs along the stand, so `buildPlot` serves all four sides; the west plot splits around
+the tunnel mouth. Saves gained a `stands` table with a v1 -> v2 migration that moves the old
+single `standLevel` onto the east plot.
+
+5. A WedgePart is full height at its local +Z (verified in Studio), so the end wall needed
+yaw +90, not -90, to slope away from the pitch. It was building the ramp backwards.
+
+6. The signs were `BillboardGui`s floating 4 studs above their posts, and the ad boards sat
+at ground level while the pitch surface is 1 stud up. Signs are painted onto the board face
+with a `SurfaceGui` now, and everything pitch-side stands on the paving.
+
+8. The player's way in and the team's way out were the same gap in the west fence, which
+forced the office to sit mid-touchline. They are separate now: turnstiles in the open
+north-west corner for the player (office, matchday board, concourse and car park on a paved
+forecourt outside it), and a tunnel mouth in the middle of the west wall for the
+footballers. That frees all four sides for stands.

@@ -123,7 +123,7 @@ function MatchService.playMatch(durationOverride: number?, walkoutOverride: numb
 	local capacity = ClubState.capacity()
 	local demand = SeasonService.demand()
 	local attendance = math.min(capacity, demand)
-	WorldBuilder.buildCrowd(ClubState.get("StandLevel") :: number, attendance, capacity)
+	WorldBuilder.buildCrowd(ClubState.plotLevels(), attendance, capacity)
 
 	ClubState.set("Opponent", fixture.opponent)
 	ClubState.set("HomeGoals", 0)

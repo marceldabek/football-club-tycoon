@@ -68,7 +68,7 @@ function Session.snapshot(): Profile.Profile
 		clubName = scalars.clubName,
 		named = scalars.named,
 		cash = scalars.cash,
-		standLevel = scalars.standLevel,
+		stands = scalars.stands,
 		amenityLevel = scalars.amenityLevel,
 		matchesPlayed = scalars.matchesPlayed,
 		wins = scalars.wins,
@@ -105,18 +105,20 @@ end
 local function wireWorld(w: WorldBuilder.World)
 	w.matchdayPrompt.Triggered:Connect(requestMatch)
 
-	w.standPrompt.Triggered:Connect(function(player)
-		if not ClubState.isOwner(player) then
-			toast(player, VISITOR_MESSAGE)
-			return
-		end
-		local ok, message = UpgradeService.tryExpandStand()
-		if ok then
-			remote("Toast"):FireAllClients(message or "Stand expanded!", true)
-		else
-			toast(player, message or "Cannot expand right now")
-		end
-	end)
+	for key, prompt in w.standPrompts do
+		prompt.Triggered:Connect(function(player)
+			if not ClubState.isOwner(player) then
+				toast(player, VISITOR_MESSAGE)
+				return
+			end
+			local ok, message = UpgradeService.tryExpandStand(key)
+			if ok then
+				remote("Toast"):FireAllClients(message or "Stand expanded!", true)
+			else
+				toast(player, message or "Cannot expand right now")
+			end
+		end)
+	end
 
 	w.amenityPrompt.Triggered:Connect(function(player)
 		if not ClubState.isOwner(player) then
@@ -139,9 +141,9 @@ function Session.restoreAll(p: Profile.Profile)
 	updatedAt = p.updatedAt
 	saveCount = p.saveCount
 	ClubState.restore(p)
-	local w = WorldBuilder.build(p.standLevel, p.amenityLevel)
+	local w = WorldBuilder.build(p.stands, p.amenityLevel)
 	world = w
-	UpgradeService.init({ stand = w.standPrompt, amenity = w.amenityPrompt })
+	UpgradeService.init({ stands = w.standPrompts, amenity = w.amenityPrompt })
 	wireWorld(w)
 	ClubService.restore(p.club)
 	SeasonService.restore(p.season)

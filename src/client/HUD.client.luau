@@ -421,11 +421,11 @@ function refreshHintText()
 	if played == 0 then
 		hintLabel.Text = "Welcome to your club. Have a look around, then hit PLAY MATCH at the top."
 	elseif level == 1 then
-		hintLabel.Text = "Fans were turned away. Expand the stand (yellow sign by the bleachers)."
+		hintLabel.Text = "Fans were turned away. Expand the East Stand (yellow sign in front of it)."
 	elseif (get("ScoutLevel") or 0) == 0 then
 		hintLabel.Text = "Hire a scout to find new players: the office computer, or the CLUB button."
 	elseif (get("AmenityLevel") or 0) == 0 then
-		hintLabel.Text = "Fans spend money too: build a Snack Bar at the CONCOURSE sign by the fence."
+		hintLabel.Text = "Fans spend money too: build a Snack Bar at the CONCOURSE sign on the forecourt."
 	else
 		hintLabel.Text = ""
 	end

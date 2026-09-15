@@ -14,12 +14,22 @@ export type Role = "GK" | "DEF" | "MID" | "FWD"
 
 Pitch.WIDTH = 190
 Pitch.LENGTH = 290
-Pitch.SURFACE_Y = 1 -- top of the grass part
+Pitch.SURFACE_Y = 1 -- top of the grass part, and of the hardstanding around it
 Pitch.GOAL_WIDTH = 20
 Pitch.GOAL_HEIGHT = 7
 
--- Where the players enter from: just outside the west fence gap.
-Pitch.TUNNEL = Vector3.new(-(Pitch.WIDTH / 2 + 18), Pitch.SURFACE_Y, 0)
+-- Hardstanding: the paved ring between the touchline and the stands. Fans
+-- walk on it, the dugouts sit on it, and every stand fronts onto it. Its outer
+-- edge is the stand line, so a plot's front wall replaces the perimeter wall.
+Pitch.SIDE_MARGIN = 26 -- beside a touchline (~9.5 m)
+Pitch.END_MARGIN = 34 -- behind a goal; the nets alone are 6 deep
+Pitch.SIDE_EDGE = Pitch.WIDTH / 2 + Pitch.SIDE_MARGIN
+Pitch.END_EDGE = Pitch.LENGTH / 2 + Pitch.END_MARGIN
+
+-- The players' tunnel: a mouth in the middle of the west side. Separate from
+-- the turnstiles the human player walks through (those are at a corner).
+Pitch.TUNNEL_GAP = 16 -- width of the mouth, along Z
+Pitch.TUNNEL = Vector3.new(-(Pitch.SIDE_EDGE - 4), Pitch.SURFACE_Y, 0)
 
 -- Starting XI role order. TeamGen and formationSlots both follow it.
 local ROLES: { Role } = { "GK", "DEF", "DEF", "DEF", "DEF", "MID", "MID", "MID", "MID", "FWD", "FWD" }

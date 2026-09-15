@@ -67,13 +67,36 @@ Config.ScoutLevels = {
 	{ name = "Scouting Network", cost = 8000, prospects = 5, overallBonus = 6, potentialBoost = 10 },
 }
 
--- Stand chain. Level 1 is the starting stand. TEMP costs.
+-- Stand chain, shared by every plot. Level 0 is an empty plot: open
+-- hardstanding behind the perimeter wall, no seats. TEMP costs.
 Config.StandLevels = {
 	{ name = "Bleachers", capacity = 150, cost = 0 },
 	{ name = "Main Stand", capacity = 400, cost = 1500 },
 	{ name = "Double-tier Stand", capacity = 1000, cost = 9000 },
 	{ name = "Covered Grandstand", capacity = 2500, cost = 30000 },
 }
+
+-- The four sides of the ground. Each is an independent plot on the same chain,
+-- so the ground grows asymmetrically like a real lower-league ground.
+-- `key` is the ClubState attribute suffix and the Profile field suffix.
+-- `share` scales the chain's capacity: the ends are shallower than the sides.
+-- East starts at level 1 (the club's one bleacher); the rest start empty.
+Config.StandPlots = {
+	{ key = "East", label = "East Stand", axis = "Z", sign = 1, share = 1, start = 1 },
+	{ key = "West", label = "West Stand", axis = "Z", sign = -1, share = 1, start = 0 },
+	{ key = "North", label = "North Terrace", axis = "X", sign = -1, share = 0.6, start = 0 },
+	{ key = "South", label = "South Terrace", axis = "X", sign = 1, share = 0.6, start = 0 },
+}
+
+-- Seats a plot holds at a given level. Level 0 is an empty plot.
+function Config.plotCapacity(plot: any, level: number): number
+	if level < 1 then
+		return 0
+	end
+	local entry = Config.StandLevels[math.min(level, #Config.StandLevels)]
+	return math.floor(entry.capacity * plot.share + 0.5)
+end
+
 -- Concourse amenities. Level 0 = nothing. Values are cumulative. TEMP.
 Config.AmenityLevels = {
 	{ name = "Nothing", cost = 0, perFan = 0, demandBonus = 0 },

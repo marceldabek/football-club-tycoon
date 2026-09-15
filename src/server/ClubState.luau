@@ -22,7 +22,6 @@ ClubState.Folder = folder
 -- Keys that are part of the save; changing one marks the profile dirty.
 local PERSISTED: { [string]: boolean } = {
 	Cash = true,
-	StandLevel = true,
 	AmenityLevel = true,
 	MatchesPlayed = true,
 	Wins = true,
@@ -30,6 +29,10 @@ local PERSISTED: { [string]: boolean } = {
 	Losses = true,
 	ClubName = true,
 }
+-- one persisted key per stand plot: Stand_East, Stand_West, ...
+for _, plot in Config.StandPlots do
+	PERSISTED["Stand_" .. plot.key] = true
+end
 
 -- Set by Session once a profile is loaded; nil before that.
 ClubState.onDirty = nil :: (() -> ())?
@@ -57,9 +60,40 @@ function ClubState.addCash(amount: number)
 	ClubState.set("Cash", (ClubState.get("Cash") :: number) + amount)
 end
 
+-- Stand plots. Each side of the ground has its own level on the shared chain;
+-- level 0 is an empty plot. `StandLevel` is kept as a mirror of the east (main)
+-- stand so the HUD's onboarding hint has one number to look at.
+local function plotKey(plot: any): string
+	return "Stand_" .. plot.key
+end
+
+function ClubState.plotLevel(plot: any): number
+	return (ClubState.get(plotKey(plot)) :: number?) or 0
+end
+
+function ClubState.setPlotLevel(plot: any, level: number)
+	ClubState.set(plotKey(plot), level)
+	if plot.key == "East" then
+		ClubState.set("StandLevel", level)
+	end
+	ClubState.set("Capacity", ClubState.capacity())
+end
+
+-- Levels keyed by plot key, the shape WorldBuilder.buildStands wants.
+function ClubState.plotLevels(): { [string]: number }
+	local levels = {}
+	for _, plot in Config.StandPlots do
+		levels[plot.key] = ClubState.plotLevel(plot)
+	end
+	return levels
+end
+
 function ClubState.capacity(): number
-	local level = ClubState.get("StandLevel") :: number
-	return Config.StandLevels[level].capacity
+	local total = 0
+	for _, plot in Config.StandPlots do
+		total += Config.plotCapacity(plot, ClubState.plotLevel(plot))
+	end
+	return total
 end
 
 function ClubState.isOwner(player: Player): boolean
@@ -71,8 +105,11 @@ function ClubState.init()
 	ClubState.set("OwnerUserId", 0)
 	ClubState.set("NeedsName", false) -- onboarding: owner still has to name the club
 	ClubState.set("Cash", Config.StartingCash)
+	for _, plot in Config.StandPlots do
+		ClubState.set("Stand_" .. plot.key, plot.start)
+	end
 	ClubState.set("StandLevel", 1)
-	ClubState.set("Capacity", Config.StandLevels[1].capacity)
+	ClubState.set("Capacity", ClubState.capacity())
 	ClubState.set("MatchesPlayed", 0)
 	ClubState.set("Wins", 0)
 	ClubState.set("Draws", 0)
@@ -112,8 +149,11 @@ function ClubState.restore(p: Profile.Profile)
 	ClubState.set("ClubName", p.clubName)
 	ClubState.set("NeedsName", not p.named)
 	ClubState.set("Cash", p.cash)
-	ClubState.set("StandLevel", p.standLevel)
-	ClubState.set("Capacity", Config.StandLevels[p.standLevel].capacity)
+	for _, plot in Config.StandPlots do
+		ClubState.set("Stand_" .. plot.key, p.stands[plot.key] or plot.start)
+	end
+	ClubState.set("StandLevel", ClubState.plotLevel(Config.StandPlots[1]))
+	ClubState.set("Capacity", ClubState.capacity())
 	ClubState.set("AmenityLevel", p.amenityLevel)
 	ClubState.set("MatchesPlayed", p.matchesPlayed)
 	ClubState.set("Wins", p.wins)
@@ -125,7 +165,7 @@ export type Scalars = {
 	clubName: string,
 	named: boolean,
 	cash: number,
-	standLevel: number,
+	stands: { [string]: number },
 	amenityLevel: number,
 	matchesPlayed: number,
 	wins: number,
@@ -138,7 +178,7 @@ function ClubState.serialize(): Scalars
 		clubName = ClubState.get("ClubName") :: string,
 		named = not (ClubState.get("NeedsName") :: boolean),
 		cash = ClubState.get("Cash") :: number,
-		standLevel = ClubState.get("StandLevel") :: number,
+		stands = ClubState.plotLevels(),
 		amenityLevel = (ClubState.get("AmenityLevel") :: number?) or 0,
 		matchesPlayed = ClubState.get("MatchesPlayed") :: number,
 		wins = ClubState.get("Wins") :: number,

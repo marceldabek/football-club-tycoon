@@ -1,9 +1,14 @@
 --!strict
 -- Builds the grassroots club out of primitive Parts. Intentionally ugly.
--- Layout (studs): pitch centred on origin, long axis along Z.
---   office block to the west (-X), stand to the east (+X).
+--
+-- Layout (studs), pitch centred on the origin with its long axis along Z:
+--   pitch -> ad boards -> hardstanding (the paved ring fans walk on)
+--         -> perimeter wall -> stand plot.
+-- The wall line is `Pitch.SIDE_EDGE` beside a touchline and `Pitch.END_EDGE`
+-- behind a goal. All four sides are independent plots on the same upgrade
+-- chain (Config.StandPlots), so the ground grows asymmetrically. The corners
+-- stay open; the north-west one is the turnstile entrance.
 -- Scale: ~2.75 studs per metre, so a 105m x 68m pitch is 290 x 190 studs.
--- A concourse strip is left free around the fence for future stands/facilities.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -14,17 +19,26 @@ local WorldBuilder = {}
 
 local PITCH_W, PITCH_L = Pitch.WIDTH, Pitch.LENGTH
 local GROUND_Y = 0 -- top of the baseplate
-local FENCE_OFFSET = 5 -- side fences sit this far outside the touchline
-local END_FENCE_OFFSET = 12 -- end fences sit behind the goal nets (net depth 6)
-local FENCE_GAP = 10 -- walk-through gap in the west and east fences
-local CONCOURSE = 4 -- free strip between fence and the first structure
+local DECK_Y = Pitch.SURFACE_Y -- top of the pitch, and of the paving around it
 
-local FENCE_X = PITCH_W / 2 + FENCE_OFFSET
-local FENCE_Z = PITCH_L / 2 + END_FENCE_OFFSET
+local SIDE_EDGE = Pitch.SIDE_EDGE -- wall line beside a touchline
+local END_EDGE = Pitch.END_EDGE -- wall line behind a goal
+-- The walls stop short of the corners, which stay open like a real
+-- lower-league ground. These are also the longest a stand on that side can be.
+local CORNER_Z = PITCH_L / 2 + 10 -- where the east/west walls stop
+local CORNER_X = PITCH_W / 2 + 10 -- where the north/south walls stop
+local WALL_H = 3.2
+local TUNNEL_GAP = Pitch.TUNNEL_GAP -- players' tunnel mouth, west side, centred
 
--- Office block: west of the pitch, past the fence and a concourse strip.
+-- Office and forecourt: outside the open north-west corner, so no stand plot
+-- has a building in the way. The player spawns inside and walks in through the
+-- turnstiles; the footballers use the tunnel on the west side.
 local OFFICE_W, OFFICE_D, OFFICE_H = 32, 32, 12
-local OFFICE_CX, OFFICE_CZ = -(FENCE_X + CONCOURSE + 40 + OFFICE_W / 2), 0
+local OFFICE_CX, OFFICE_CZ = -(SIDE_EDGE + 40), -(END_EDGE + 16)
+local TURNSTILE_Z = -(CORNER_Z + END_EDGE) / 2 -- middle of the corner gap
+-- Paved forecourt outside the west wall line, up to but not over the ring.
+local FORECOURT_X0, FORECOURT_X1 = -(SIDE_EDGE + 69), -SIDE_EDGE
+local FORECOURT_Z0, FORECOURT_Z1 = -(END_EDGE + 46), -(CORNER_Z - 5)
 
 local function part(props: { [string]: any }): Part
 	local p = Instance.new("Part")
@@ -53,30 +67,40 @@ local function addPrompt(target: BasePart, objectText: string, actionText: strin
 	prompt.ObjectText = objectText
 	prompt.ActionText = actionText
 	prompt.HoldDuration = 0.5
-	prompt.MaxActivationDistance = 12
+	prompt.MaxActivationDistance = 14
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = target
 	return prompt
 end
 
-local function addSign(target: BasePart, text: string)
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "Sign"
-	billboard.Size = UDim2.fromOffset(200, 50)
-	billboard.StudsOffset = Vector3.new(0, 4, 0)
-	billboard.AlwaysOnTop = false
-	billboard.MaxDistance = 150
-	billboard.Parent = target
-	local label = Instance.new("TextLabel")
-	label.Name = "Text"
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.TextScaled = true
-	label.Font = Enum.Font.GothamBold
-	label.TextColor3 = Color3.new(1, 1, 1)
-	label.TextStrokeTransparency = 0.3
-	label.Text = text
-	label.Parent = billboard
+-- Painted on the face of a board rather than floating over it, so signs read
+-- as part of the world instead of hovering a few studs off the wall.
+local function addSign(target: BasePart, text: string, faces: { Enum.NormalId }?)
+	for _, face in faces or { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = "Sign"
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 24
+		gui.LightInfluence = 0.85
+		gui.MaxDistance = 260
+		gui.Parent = target
+		local label = Instance.new("TextLabel")
+		label.Name = "Text"
+		label.Size = UDim2.fromScale(1, 1)
+		label.BackgroundTransparency = 1
+		label.TextScaled = true
+		label.Font = Enum.Font.GothamBold
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.Text = text
+		label.Parent = gui
+		local pad = Instance.new("UIPadding")
+		pad.PaddingTop = UDim.new(0.14, 0)
+		pad.PaddingBottom = UDim.new(0.14, 0)
+		pad.PaddingLeft = UDim.new(0.04, 0)
+		pad.PaddingRight = UDim.new(0.04, 0)
+		pad.Parent = label
+	end
 end
 
 local function buildPitch(parent: Instance)
@@ -223,10 +247,78 @@ local function buildPitch(parent: Instance)
 	end
 end
 
--- Pitch-side advertising boards with fictional sponsors. Gaps at the fence
--- gaps (walkout path) and where the dugouts sit.
+-- The paved ring between the pitch and the walls: the surface fans stand on,
+-- the dugouts sit on and every stand fronts onto. Four slabs tile the ring
+-- (the ends run full width so the corners are covered), flush with the grass.
+local function buildHardstanding(parent: Instance)
+	local ground = Instance.new("Model")
+	ground.Name = "Hardstanding"
+	ground.Parent = parent
+	local paving = Color3.fromRGB(148, 146, 140)
+	local y = DECK_Y / 2
+	local sideW = SIDE_EDGE - PITCH_W / 2
+	local endD = END_EDGE - PITCH_L / 2
+	for _, xSign in { -1, 1 } do
+		box("Side", Vector3.new(sideW, DECK_Y, PITCH_L), Vector3.new(xSign * (PITCH_W / 2 + sideW / 2), y, 0), paving, Enum.Material.Concrete, ground)
+	end
+	for _, zSign in { -1, 1 } do
+		box("End", Vector3.new(SIDE_EDGE * 2, DECK_Y, endD), Vector3.new(0, y, zSign * (PITCH_L / 2 + endD / 2)), paving, Enum.Material.Concrete, ground)
+	end
+	-- a painted line a couple of studs in from the wall, like a track edge
+	local trim = Color3.fromRGB(190, 188, 180)
+	for _, xSign in { -1, 1 } do
+		box("Trim", Vector3.new(1.2, 0.08, CORNER_Z * 2), Vector3.new(xSign * (SIDE_EDGE - 2), DECK_Y + 0.04, 0), trim, Enum.Material.Concrete, ground)
+	end
+	for _, zSign in { -1, 1 } do
+		box("Trim", Vector3.new(CORNER_X * 2, 0.08, 1.2), Vector3.new(0, DECK_Y + 0.04, zSign * (END_EDGE - 2)), trim, Enum.Material.Concrete, ground)
+	end
+end
+
+-- Perimeter wall. It stops short of all four corners; the north-west gap is
+-- the way in, the other three are closed off with a diagonal panel. The wall
+-- is also the front of whatever stand gets built behind it.
+local function wallRun(parent: Instance, from: Vector3, to: Vector3, name: string)
+	local delta = to - from
+	local length = delta.Magnitude
+	if length < 1 then
+		return
+	end
+	local lift = Vector3.new(0, DECK_Y + WALL_H / 2, 0)
+	local mid = (from + to) / 2 + lift
+	part({
+		Name = name,
+		Size = Vector3.new(0.8, WALL_H, length),
+		CFrame = CFrame.lookAt(mid, mid + delta),
+		Color = Color3.fromRGB(96, 98, 104),
+		Material = Enum.Material.Concrete,
+		Parent = parent,
+	})
+end
+
+local function buildPerimeter(parent: Instance)
+	local wall = Instance.new("Model")
+	wall.Name = "Perimeter"
+	wall.Parent = parent
+	local g = TUNNEL_GAP / 2
+	-- east side: continuous
+	wallRun(wall, Vector3.new(SIDE_EDGE, 0, -CORNER_Z), Vector3.new(SIDE_EDGE, 0, CORNER_Z), "WallEast")
+	-- west side: split around the tunnel mouth
+	wallRun(wall, Vector3.new(-SIDE_EDGE, 0, -CORNER_Z), Vector3.new(-SIDE_EDGE, 0, -g), "WallWest")
+	wallRun(wall, Vector3.new(-SIDE_EDGE, 0, g), Vector3.new(-SIDE_EDGE, 0, CORNER_Z), "WallWest")
+	-- ends: continuous
+	for _, zSign in { -1, 1 } do
+		wallRun(wall, Vector3.new(-CORNER_X, 0, zSign * END_EDGE), Vector3.new(CORNER_X, 0, zSign * END_EDGE), "WallEnd")
+	end
+	-- close every corner but the north-west one, which is the entrance
+	for _, corner in { { 1, -1 }, { 1, 1 }, { -1, 1 } } do
+		local sx, sz = corner[1], corner[2]
+		wallRun(wall, Vector3.new(sx * SIDE_EDGE, 0, sz * CORNER_Z), Vector3.new(sx * CORNER_X, 0, sz * END_EDGE), "WallCorner")
+	end
+end
+
+-- Pitch-side advertising boards with fictional sponsors, standing on the
+-- hardstanding. The only gap is the tunnel mouth.
 local BOARD_H = 3
-local DUGOUT_Z = { 18, 40 } -- dugouts occupy |z| in this range on the west side
 
 local function sponsorBoard(parent: Instance, cframe: CFrame, length: number, index: number)
 	local sponsor = Config.Sponsors[((index - 1) % #Config.Sponsors) + 1]
@@ -263,19 +355,17 @@ local function buildAdBoards(parent: Instance)
 	local boards = Instance.new("Model")
 	boards.Name = "AdBoards"
 	boards.Parent = parent
-	local y = GROUND_Y + BOARD_H / 2
-	local offset = 2.6 -- outside the touchline, inside the fence
+	local y = DECK_Y + BOARD_H / 2
+	local offset = 3 -- outside the touchline, standing on the paving
 	local segLen = 24
 	local index = 0
-	-- side boards, facing the pitch
 	for _, xSign in { -1, 1 } do
 		local x = xSign * (PITCH_W / 2 + offset)
 		local count = math.floor(PITCH_L / segLen)
 		for i = 1, count do
 			local z = -PITCH_L / 2 + segLen * (i - 0.5)
-			local inGap = math.abs(z) < FENCE_GAP / 2 + segLen / 2
-			local inDugout = xSign < 0 and math.abs(z) > DUGOUT_Z[1] - segLen / 2 and math.abs(z) < DUGOUT_Z[2] + segLen / 2
-			if inGap or inDugout then
+			-- leave the tunnel mouth clear on the west side
+			if xSign < 0 and math.abs(z) < TUNNEL_GAP / 2 + segLen / 2 then
 				continue
 			end
 			index += 1
@@ -284,9 +374,8 @@ local function buildAdBoards(parent: Instance)
 			sponsorBoard(boards, CFrame.new(x, y, z) * CFrame.Angles(0, yaw, 0), segLen - 1, index)
 		end
 	end
-	-- end boards behind the nets
 	for _, zSign in { -1, 1 } do
-		local z = zSign * (PITCH_L / 2 + 8.5)
+		local z = zSign * (PITCH_L / 2 + 9)
 		local count = math.floor(PITCH_W / segLen)
 		for i = 1, count do
 			local x = -PITCH_W / 2 + segLen * (i - 0.5)
@@ -298,13 +387,16 @@ local function buildAdBoards(parent: Instance)
 	end
 end
 
--- Two dugouts on the west touchline: bench under a perspex shelter.
+-- Two dugouts on the west hardstanding, flanking the tunnel mouth and set back
+-- behind the ad boards the way real ones are.
+local DUGOUT_Z = { 16, 40 }
+
 local function buildDugouts(parent: Instance)
 	local dugouts = Instance.new("Model")
 	dugouts.Name = "Dugouts"
 	dugouts.Parent = parent
 	-- character scale: ~2.75 studs per metre, so a seat is ~1.3 high and a shelter ~7.5
-	local x = -(PITCH_W / 2 + 3.6)
+	local x = -(PITCH_W / 2 + 9)
 	local depth = 5.5
 	local shelterH = 7.5
 	local dark = Color3.fromRGB(45, 45, 50)
@@ -312,41 +404,48 @@ local function buildDugouts(parent: Instance)
 		local zc = zSign * (DUGOUT_Z[1] + DUGOUT_Z[2]) / 2
 		local len = DUGOUT_Z[2] - DUGOUT_Z[1]
 		-- raised concrete step the bench sits on, so it reads as a dugout not a box
-		box("Plinth", Vector3.new(depth, 0.6, len), Vector3.new(x - depth / 2 + 1.5, GROUND_Y + 0.3, zc), Color3.fromRGB(165, 165, 160), Enum.Material.Concrete, dugouts)
+		box("Plinth", Vector3.new(depth, 0.6, len), Vector3.new(x - depth / 2 + 1.5, DECK_Y + 0.3, zc), Color3.fromRGB(165, 165, 160), Enum.Material.Concrete, dugouts)
 		-- padded bench: seat plus a tall back against the rear wall, in club colours
-		box("Seat", Vector3.new(2.2, 0.5, len - 2), Vector3.new(x - 1.2, GROUND_Y + 1.55, zc), Config.SeatColor, Enum.Material.Fabric, dugouts)
-		box("SeatBase", Vector3.new(2.2, 1.0, len - 2), Vector3.new(x - 1.2, GROUND_Y + 1.1, zc), dark, Enum.Material.Plastic, dugouts)
-		box("SeatBack", Vector3.new(0.5, 2.6, len - 2), Vector3.new(x - 2.4, GROUND_Y + 2.9, zc), Config.SeatColor, Enum.Material.Fabric, dugouts)
+		box("Seat", Vector3.new(2.2, 0.5, len - 2), Vector3.new(x - 1.2, DECK_Y + 1.55, zc), Config.SeatColor, Enum.Material.Fabric, dugouts)
+		box("SeatBase", Vector3.new(2.2, 1.0, len - 2), Vector3.new(x - 1.2, DECK_Y + 1.1, zc), dark, Enum.Material.Plastic, dugouts)
+		box("SeatBack", Vector3.new(0.5, 2.6, len - 2), Vector3.new(x - 2.4, DECK_Y + 2.9, zc), Config.SeatColor, Enum.Material.Fabric, dugouts)
 		-- rear wall and end posts carry the perspex shelter
-		box("RearWall", Vector3.new(0.4, shelterH, len), Vector3.new(x - depth + 1.5, GROUND_Y + shelterH / 2, zc), dark, Enum.Material.Metal, dugouts)
+		box("RearWall", Vector3.new(0.4, shelterH, len), Vector3.new(x - depth + 1.5, DECK_Y + shelterH / 2, zc), dark, Enum.Material.Metal, dugouts)
 		for _, zEnd in { -1, 1 } do
 			local zEdge = zc + zEnd * (len / 2 - 0.2)
-			box("Post", Vector3.new(0.4, shelterH, 0.4), Vector3.new(x + 1.3, GROUND_Y + shelterH / 2, zEdge), dark, Enum.Material.Metal, dugouts)
-			local side = box("Side", Vector3.new(depth - 0.4, shelterH - 0.6, 0.3), Vector3.new(x - depth / 2 + 1.5, GROUND_Y + shelterH / 2, zEdge), Color3.fromRGB(190, 215, 235), Enum.Material.Glass, dugouts)
+			box("Post", Vector3.new(0.4, shelterH, 0.4), Vector3.new(x + 1.3, DECK_Y + shelterH / 2, zEdge), dark, Enum.Material.Metal, dugouts)
+			local side = box("Side", Vector3.new(depth - 0.4, shelterH - 0.6, 0.3), Vector3.new(x - depth / 2 + 1.5, DECK_Y + shelterH / 2, zEdge), Color3.fromRGB(190, 215, 235), Enum.Material.Glass, dugouts)
 			side.Transparency = 0.45
 		end
-		local roof = box("Shelter", Vector3.new(depth + 0.6, 0.35, len + 0.4), Vector3.new(x - depth / 2 + 1.5, GROUND_Y + shelterH, zc), Color3.fromRGB(190, 215, 235), Enum.Material.Glass, dugouts)
+		local roof = box("Shelter", Vector3.new(depth + 0.6, 0.35, len + 0.4), Vector3.new(x - depth / 2 + 1.5, DECK_Y + shelterH, zc), Color3.fromRGB(190, 215, 235), Enum.Material.Glass, dugouts)
 		roof.Transparency = 0.3
-		box("RoofFrame", Vector3.new(depth + 0.8, 0.5, 0.5), Vector3.new(x - depth / 2 + 1.5, GROUND_Y + shelterH + 0.2, zc), dark, Enum.Material.Metal, dugouts)
+		box("RoofFrame", Vector3.new(depth + 0.8, 0.5, 0.5), Vector3.new(x - depth / 2 + 1.5, DECK_Y + shelterH + 0.2, zc), dark, Enum.Material.Metal, dugouts)
 	end
 end
 
--- Arch over the west fence gap where the teams walk out, with the club name.
-local function buildTunnel(parent: Instance): TextLabel
+-- The tunnel: a mouth in the middle of the west wall with the club name over
+-- it. Only the footballers use it; the player walks in at the turnstiles.
+local function buildTunnel(parent: Instance)
 	local tunnel = Instance.new("Model")
 	tunnel.Name = "Tunnel"
 	tunnel.Parent = parent
-	-- tall enough to feel like a stadium entrance: ~14 studs is roughly two and a half characters
-	local x = -(FENCE_X + 0.5)
-	local h = 13
-	local w = FENCE_GAP + 5
+	local x = -SIDE_EDGE
+	local h = 11
+	local w = TUNNEL_GAP
 	local colour = Config.HomeKit
+	local dark = Color3.fromRGB(55, 55, 60)
 	for _, zSign in { -1, 1 } do
-		box("Pillar", Vector3.new(2.2, h, 2.2), Vector3.new(x, GROUND_Y + h / 2, zSign * (w / 2)), colour, Enum.Material.SmoothPlastic, tunnel)
-		box("PillarCap", Vector3.new(2.8, 0.6, 2.8), Vector3.new(x, GROUND_Y + 0.3, zSign * (w / 2)), Color3.fromRGB(70, 70, 75), Enum.Material.Concrete, tunnel)
+		box("Jamb", Vector3.new(7, h, 2.4), Vector3.new(x - 3, DECK_Y + h / 2, zSign * (w / 2 + 1.2)), colour, Enum.Material.SmoothPlastic, tunnel)
 	end
-	local header = box("Header", Vector3.new(2.2, 3.4, w + 2.2), Vector3.new(x, GROUND_Y + h + 1.7, 0), colour, Enum.Material.SmoothPlastic, tunnel)
-	box("HeaderTrim", Vector3.new(2.4, 0.4, w + 2.4), Vector3.new(x, GROUND_Y + h + 3.6, 0), Color3.fromRGB(240, 240, 240), Enum.Material.SmoothPlastic, tunnel)
+	local header = box("Header", Vector3.new(7, 3, w + 4.8), Vector3.new(x - 3, DECK_Y + h + 1.5, 0), colour, Enum.Material.SmoothPlastic, tunnel)
+	box("HeaderTrim", Vector3.new(7.3, 0.4, w + 5.1), Vector3.new(x - 3, DECK_Y + h + 3.2, 0), Color3.fromRGB(240, 240, 240), Enum.Material.SmoothPlastic, tunnel)
+	-- the mouth recedes away from the pitch, so it reads as a tunnel not a doorway
+	box("Throat", Vector3.new(14, 0.6, w), Vector3.new(x - 13, DECK_Y + h, 0), dark, Enum.Material.Concrete, tunnel)
+	for _, zSign in { -1, 1 } do
+		box("ThroatWall", Vector3.new(14, h, 0.8), Vector3.new(x - 13, DECK_Y + h / 2, zSign * (w / 2)), dark, Enum.Material.Concrete, tunnel)
+	end
+	box("ThroatFloor", Vector3.new(14, DECK_Y, w), Vector3.new(x - 13, DECK_Y / 2, 0), Color3.fromRGB(130, 128, 122), Enum.Material.Concrete, tunnel)
+
 	-- name plate facing the pitch (+X side of the header)
 	local gui = Instance.new("SurfaceGui")
 	gui.Face = Enum.NormalId.Right
@@ -366,39 +465,74 @@ local function buildTunnel(parent: Instance): TextLabel
 	local pad = Instance.new("UIPadding")
 	pad.PaddingTop = UDim.new(0.15, 0)
 	pad.PaddingBottom = UDim.new(0.15, 0)
-	pad.PaddingLeft = UDim.new(0.05, 0)
-	pad.PaddingRight = UDim.new(0.05, 0)
 	pad.Parent = label
-	-- a strip of paving from the office door through the arch to the touchline
-	local pathLen = 40 + CONCOURSE + FENCE_OFFSET
-	box("Path", Vector3.new(pathLen, 0.2, 6), Vector3.new(x - pathLen / 2 + FENCE_OFFSET + 1, GROUND_Y + 0.1, 0), Color3.fromRGB(150, 145, 135), Enum.Material.Cobblestone, tunnel)
-	return label
 end
 
-local function buildFence(parent: Instance)
-	local fence = Instance.new("Model")
-	fence.Name = "Fence"
-	fence.Parent = parent
-	local grey = Color3.fromRGB(120, 120, 120)
-	local h = 3
-	local y = GROUND_Y + h / 2
-	-- both ends are solid
-	box("FenceN", Vector3.new(FENCE_X * 2, h, 0.4), Vector3.new(0, y, -FENCE_Z), grey, Enum.Material.Metal, fence)
-	box("FenceS", Vector3.new(FENCE_X * 2, h, 0.4), Vector3.new(0, y, FENCE_Z), grey, Enum.Material.Metal, fence)
-	-- west (office) and east (stand) sides have a walk-through gap in the middle;
-	-- on the west the dugouts stand in the fence line, so it skips their span
-	local function run(name: string, x: number, z0: number, z1: number)
-		box(name, Vector3.new(0.4, h, z1 - z0), Vector3.new(x, y, (z0 + z1) / 2), grey, Enum.Material.Metal, fence)
+-- Turnstile block in the open north-west corner: how the player gets in.
+local function buildTurnstiles(parent: Instance)
+	local gate = Instance.new("Model")
+	gate.Name = "Turnstiles"
+	gate.Parent = parent
+	local x = -SIDE_EDGE
+	local h = 9
+	local lanes, laneW, pierW = 3, 5, 2.4
+	local total = lanes * laneW + (lanes + 1) * pierW
+	local dark = Color3.fromRGB(60, 60, 65)
+	for i = 0, lanes do
+		local z = TURNSTILE_Z - total / 2 + pierW / 2 + i * (laneW + pierW)
+		box("Pier", Vector3.new(7, h, pierW), Vector3.new(x - 1, DECK_Y + h / 2, z), Config.HomeKit, Enum.Material.SmoothPlastic, gate)
 	end
-	for _, zSign in { -1, 1 } do
-		local g, fz = FENCE_GAP / 2, FENCE_Z
-		local lo, hi = math.min(zSign * g, zSign * fz), math.max(zSign * g, zSign * fz)
-		run("FenceE", FENCE_X, lo, hi)
-		local d0, d1 = math.min(zSign * DUGOUT_Z[1], zSign * DUGOUT_Z[2]), math.max(zSign * DUGOUT_Z[1], zSign * DUGOUT_Z[2])
-		run("FenceW", -FENCE_X, lo, d0)
-		run("FenceW", -FENCE_X, d1, hi)
+	for i = 1, lanes do
+		local z = TURNSTILE_Z - total / 2 + pierW + laneW / 2 + (i - 1) * (laneW + pierW)
+		-- a waist-high drum either side of the lane, so it reads as a turnstile
+		for _, side in { -1, 1 } do
+			local drum = box("Drum", Vector3.new(1.6, 3.4, 0.8), Vector3.new(x - 1, DECK_Y + 1.7, z + side * (laneW / 2 - 0.5)), Color3.fromRGB(150, 150, 155), Enum.Material.Metal, gate)
+			drum.CanCollide = false
+		end
+	end
+	local fascia = box("Fascia", Vector3.new(8, 3.2, total), Vector3.new(x - 1, DECK_Y + h + 1.6, TURNSTILE_Z), Config.HomeKit, Enum.Material.SmoothPlastic, gate)
+	box("Roof", Vector3.new(9, 0.5, total + 1), Vector3.new(x - 1.5, DECK_Y + h + 3.4, TURNSTILE_Z), dark, Enum.Material.Metal, gate)
+	-- club name across the outside face, where the player walks up
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Left
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 22
+	gui.LightInfluence = 0.85
+	gui.Parent = fascia
+	local label = Instance.new("TextLabel")
+	label.Name = "ClubName"
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.GothamBlack
+	label.TextScaled = true
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.Text = "CLUB"
+	label.Parent = gui
+	local pad = Instance.new("UIPadding")
+	pad.PaddingTop = UDim.new(0.18, 0)
+	pad.PaddingBottom = UDim.new(0.18, 0)
+	pad.Parent = label
+end
+
+-- Paved forecourt outside the corner, with the car park. Everything the club
+-- does away from the pitch (office, matchday board, concourse) sits on it.
+local function buildForecourt(parent: Instance)
+	local yard = Instance.new("Model")
+	yard.Name = "Forecourt"
+	yard.Parent = parent
+	local w = FORECOURT_X1 - FORECOURT_X0
+	local d = FORECOURT_Z1 - FORECOURT_Z0
+	box("Paving", Vector3.new(w, DECK_Y, d), Vector3.new((FORECOURT_X0 + FORECOURT_X1) / 2, DECK_Y / 2, (FORECOURT_Z0 + FORECOURT_Z1) / 2),
+		Color3.fromRGB(138, 136, 132), Enum.Material.Concrete, yard)
+	-- car park bays between the office and the corner
+	local bayZ = FORECOURT_Z1 - 13
+	for i = 0, 5 do
+		local bx = FORECOURT_X0 + 12 + i * 9
+		box("Bay", Vector3.new(0.6, 0.08, 18), Vector3.new(bx, DECK_Y + 0.04, bayZ), Color3.fromRGB(215, 212, 200), Enum.Material.Concrete, yard)
 	end
 end
+
+local OFFICE_Y = DECK_Y + 0.1 -- office floor, a touch proud of the forecourt paving
 
 local function buildOffice(parent: Instance)
 	local office = Instance.new("Model")
@@ -406,29 +540,29 @@ local function buildOffice(parent: Instance)
 	office.Parent = parent
 
 	local w, d, h = OFFICE_W, OFFICE_D, OFFICE_H
-	-- door faces the pitch
+	-- door faces east, toward the turnstiles and the ground
 	local cx, cz = OFFICE_CX, OFFICE_CZ
 	local wallColor = Color3.fromRGB(170, 160, 135) -- stained beige
 	local wallMat = Enum.Material.Concrete
 
-	box("Floor", Vector3.new(w, 1, d), Vector3.new(cx, GROUND_Y + 0.5, cz),
+	box("Floor", Vector3.new(w, 1, d), Vector3.new(cx, OFFICE_Y - 0.5, cz),
 		Color3.fromRGB(95, 80, 60), Enum.Material.WoodPlanks, office)
-	box("Roof", Vector3.new(w + 2, 1, d + 2), Vector3.new(cx, GROUND_Y + 1 + h + 0.5, cz),
+	box("Roof", Vector3.new(w + 2, 1, d + 2), Vector3.new(cx, OFFICE_Y + h + 0.5, cz),
 		Color3.fromRGB(70, 70, 70), Enum.Material.Slate, office)
 
-	local wy = GROUND_Y + 1 + h / 2
+	local wy = OFFICE_Y + h / 2
 	box("WallW", Vector3.new(1, h, d), Vector3.new(cx - w / 2, wy, cz), wallColor, wallMat, office)
 	box("WallN", Vector3.new(w, h, 1), Vector3.new(cx, wy, cz - d / 2), wallColor, wallMat, office)
 	box("WallS", Vector3.new(w, h, 1), Vector3.new(cx, wy, cz + d / 2), wallColor, wallMat, office)
-	-- east wall has a doorway facing the pitch
+	-- east wall has a doorway facing the ground
 	local doorW = 8
 	local segLen = (d - doorW) / 2
 	box("WallE1", Vector3.new(1, h, segLen), Vector3.new(cx + w / 2, wy, cz - (doorW / 2 + segLen / 2)), wallColor, wallMat, office)
 	box("WallE2", Vector3.new(1, h, segLen), Vector3.new(cx + w / 2, wy, cz + (doorW / 2 + segLen / 2)), wallColor, wallMat, office)
-	box("DoorHeader", Vector3.new(1, 3, doorW), Vector3.new(cx + w / 2, GROUND_Y + 1 + h - 1.5, cz), wallColor, wallMat, office)
+	box("DoorHeader", Vector3.new(1, 3, doorW), Vector3.new(cx + w / 2, OFFICE_Y + h - 1.5, cz), wallColor, wallMat, office)
 
 	-- furniture
-	local desk = box("Desk", Vector3.new(4, 3, 10), Vector3.new(cx - 8, GROUND_Y + 1 + 1.5, cz),
+	local desk = box("Desk", Vector3.new(4, 3, 10), Vector3.new(cx - 8, OFFICE_Y + 1.5, cz),
 		Color3.fromRGB(110, 75, 45), Enum.Material.Wood, office)
 	local computer = box("Computer", Vector3.new(1, 2, 2.5), Vector3.new(cx - 8, desk.Position.Y + 1.5 + 1, cz),
 		Color3.fromRGB(200, 200, 190), Enum.Material.Plastic, office)
@@ -437,21 +571,21 @@ local function buildOffice(parent: Instance)
 	local clubPrompt = addPrompt(computer, "Club Office", "Manage squad, scouting & staff")
 	clubPrompt.Name = "ClubPrompt"
 	clubPrompt.HoldDuration = 0
-	box("Chair", Vector3.new(2, 2, 2), Vector3.new(cx - 11.5, GROUND_Y + 1 + 1, cz),
+	box("Chair", Vector3.new(2, 2, 2), Vector3.new(cx - 11.5, OFFICE_Y + 1, cz),
 		Color3.fromRGB(60, 60, 60), Enum.Material.Fabric, office)
 
 	local light = Instance.new("PointLight")
 	light.Brightness = 1.2
 	light.Range = 40
 	light.Color = Color3.fromRGB(255, 235, 200)
-	light.Parent = box("Bulb", Vector3.new(1, 0.5, 1), Vector3.new(cx, GROUND_Y + h, cz),
+	light.Parent = box("Bulb", Vector3.new(1, 0.5, 1), Vector3.new(cx, OFFICE_Y + h - 1, cz),
 		Color3.fromRGB(255, 240, 200), Enum.Material.Neon, office)
 
 	-- spawn inside the office, facing the door
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "OfficeSpawn"
 	spawn.Size = Vector3.new(4, 1, 4)
-	spawn.CFrame = CFrame.new(cx + 2, GROUND_Y + 1.5, cz) * CFrame.Angles(0, -math.pi / 2, 0)
+	spawn.CFrame = CFrame.new(cx + 2, OFFICE_Y + 0.5, cz) * CFrame.Angles(0, -math.pi / 2, 0)
 	spawn.Anchored = true
 	spawn.Transparency = 1
 	spawn.CanCollide = false
@@ -481,7 +615,7 @@ function WorldBuilder.buildTrophies(count: number)
 	model.Parent = office
 
 	local shelfLen = OFFICE_W - 6
-	local shelfY = GROUND_Y + 1 + 7
+	local shelfY = OFFICE_Y + 7
 	local shelfZ = OFFICE_CZ - OFFICE_D / 2 + 1.5
 	box("Shelf", Vector3.new(shelfLen, 0.5, 2), Vector3.new(OFFICE_CX, shelfY, shelfZ),
 		Color3.fromRGB(110, 75, 45), Enum.Material.Wood, model)
@@ -529,170 +663,229 @@ function WorldBuilder.buildTrophies(count: number)
 	end
 end
 
+
 local function buildMatchdayBoard(parent: Instance): ProximityPrompt
-	-- Beside the west fence gap, on the walk from the office to the pitch.
-	local board = box("MatchdayBoard", Vector3.new(1, 5, 5), Vector3.new(-(FENCE_X + CONCOURSE + 3), GROUND_Y + 2.5, FENCE_GAP / 2 + 6),
+	-- On the forecourt, on the walk from the office door to the turnstiles.
+	local post = box("MatchdayBoard", Vector3.new(6, 5, 0.8), Vector3.new(OFFICE_CX + 23, DECK_Y + 3.5, OFFICE_CZ + 9),
 		Color3.fromRGB(30, 60, 30), Enum.Material.Wood, parent)
-	addSign(board, "MATCHDAY")
-	return addPrompt(board, "Matchday Board", "Play Match")
+	addSign(post, "MATCHDAY")
+	return addPrompt(post, "Matchday Board", "Play Match")
 end
 
--- Stand geometry per level. Rebuildable so the upgrade physically changes it.
-local STAND_X = FENCE_X + CONCOURSE
+-- ---------------------------------------------------------------- stand plots
 
-local STEP_DEPTH = 4
+local PLOTS = Config.StandPlots
 
--- One entry per Config.StandLevels level.
+-- Every stand is built in a local frame where +X points away from the pitch,
+-- +Z runs along the stand and the origin sits on the wall line at ground
+-- level. One builder then serves all four sides.
+-- Returns the frame and the longest a stand on that side can be.
+local function plotFrame(plot: any): (CFrame, number)
+	if plot.axis == "Z" then -- east or west side, stand runs along Z
+		local yaw = if plot.sign > 0 then 0 else math.pi
+		return CFrame.new(plot.sign * SIDE_EDGE, GROUND_Y, 0) * CFrame.Angles(0, yaw, 0), CORNER_Z * 2
+	end
+	-- north or south end, stand runs along X
+	local yaw = if plot.sign < 0 then math.pi / 2 else -math.pi / 2
+	return CFrame.new(0, GROUND_Y, plot.sign * END_EDGE) * CFrame.Angles(0, yaw, 0), CORNER_X * 2
+end
+
+local STEP_DEPTH = 3 -- one row of seats, ~1.1 m at 2.75 studs/m
+local STAND_X0 = 0.6 -- stands start just behind the perimeter wall, which is their front
+
+-- One entry per Config.StandLevels level. `lengthFrac` is of the plot's max.
 local STAND_SPECS = {
-	{ length = 60, rows = 3, stepHeight = 1.5, roof = false },
-	{ length = 200, rows = 8, stepHeight = 2, roof = false },
-	{ length = 240, rows = 12, stepHeight = 2, roof = false },
-	{ length = 270, rows = 16, stepHeight = 2, roof = true },
+	{ lengthFrac = 0.21, rows = 3, stepHeight = 1.5, roof = false, seats = false },
+	{ lengthFrac = 0.66, rows = 8, stepHeight = 1.5, roof = false, seats = true },
+	{ lengthFrac = 0.82, rows = 12, stepHeight = 1.5, roof = false, seats = true },
+	{ lengthFrac = 0.94, rows = 16, stepHeight = 1.5, roof = true, seats = true },
 }
-local function standSpec(level: number)
-	return STAND_SPECS[math.clamp(level, 1, #STAND_SPECS)]
+
+-- Geometry for one plot at one level, in the plot's local frame. Shared by the
+-- builder and the crowd filler so fans always land on the actual steps.
+type PlotGeometry = {
+	frame: CFrame,
+	length: number,
+	rows: number,
+	stepHeight: number,
+	spans: { { number } }, -- runs of seating along local Z, split around any gap
+	spec: any,
+}
+
+local function plotGeometry(plot: any, level: number): PlotGeometry?
+	if level < 1 then
+		return nil
+	end
+	local spec = STAND_SPECS[math.clamp(level, 1, #STAND_SPECS)]
+	local frame, maxLength = plotFrame(plot)
+	local length = math.floor(maxLength * spec.lengthFrac)
+	local half = length / 2
+	local spans: { { number } }
+	if plot.key == "West" then
+		-- the west stand is split around the tunnel mouth
+		local g = TUNNEL_GAP / 2 + 3
+		spans = if half > g + 8 then { { -half, -g }, { g, half } } else {}
+	else
+		spans = { { -half, half } }
+	end
+	return { frame = frame, length = length, rows = spec.rows, stepHeight = spec.stepHeight, spans = spans, spec = spec }
 end
 
-function WorldBuilder.buildStand(level: number)
+function WorldBuilder.buildPlot(plotIndex: number, level: number)
 	local club = workspace:FindFirstChild("Club") :: Model
-	local old = club:FindFirstChild("Stand")
+	local stands = club:FindFirstChild("Stands") :: Folder
+	local plot = PLOTS[plotIndex]
+	local old = stands:FindFirstChild(plot.key)
 	if old then
 		old:Destroy()
 	end
 
 	local stand = Instance.new("Model")
-	stand.Name = "Stand"
-	stand.Parent = club
+	stand.Name = plot.key
+	stand.Parent = stands
+	stand:SetAttribute("Level", level)
 
-	local spec = standSpec(level)
-	local length, rows, stepDepth, stepHeight = spec.length, spec.rows, STEP_DEPTH, spec.stepHeight
-	local stepColor = level == 1 and Color3.fromRGB(150, 150, 150) or Color3.fromRGB(175, 175, 172)
-	local stepMat = level == 1 and Enum.Material.Metal or Enum.Material.Concrete
-
-	-- seating is split into sections with a stepped aisle between each
-	local sectionLen = 26
-	local aisleW = 3
-	local sections = math.max(1, math.floor((length + aisleW) / (sectionLen + aisleW)))
-	local usedLen = sections * sectionLen + (sections - 1) * aisleW
-	local startZ = -usedLen / 2
-
-	for i = 1, rows do
-		local height = stepHeight * i
-		local rowX = STAND_X + stepDepth * (i - 1) + stepDepth / 2
-		box(("Row%d"):format(i), Vector3.new(stepDepth, height, length),
-			Vector3.new(rowX, GROUND_Y + height / 2, 0),
-			stepColor, stepMat, stand)
-		if level >= 2 then
-			-- seat blocks per section; an alternate shade every other section so the
-			-- seating reads as blocks rather than one long strip
-			for s = 1, sections do
-				local z = startZ + (s - 1) * (sectionLen + aisleW) + sectionLen / 2
-				local colour = if s % 2 == 0 then Config.SeatColor:Lerp(Color3.new(1, 1, 1), 0.25) else Config.SeatColor
-				local seat = box(("Seats%d_%d"):format(i, s), Vector3.new(1.6, 1.1, sectionLen),
-					Vector3.new(STAND_X + stepDepth * (i - 1) + stepDepth - 0.8, GROUND_Y + height + 0.55, z),
-					colour, Enum.Material.Plastic, stand)
-				seat.CanCollide = false
-				-- seat back, a thinner lip behind each row
-				local back = box(("SeatBack%d_%d"):format(i, s), Vector3.new(0.3, 1.6, sectionLen),
-					Vector3.new(STAND_X + stepDepth * (i - 1) + stepDepth - 0.15, GROUND_Y + height + 0.8, z),
-					colour, Enum.Material.Plastic, stand)
-				back.CanCollide = false
-			end
-			-- aisle treads between sections, lighter so they read as steps
-			for s = 1, sections - 1 do
-				local z = startZ + s * (sectionLen + aisleW) - aisleW / 2
-				local tread = box(("Aisle%d_%d"):format(i, s), Vector3.new(stepDepth, 0.2, aisleW),
-					Vector3.new(rowX, GROUND_Y + height + 0.1, z), Color3.fromRGB(215, 215, 210), Enum.Material.Concrete, stand)
-				tread.CanCollide = false
-			end
-		else
-			-- level 1: a plank bench along each bleacher row
-			box(("Bench%d"):format(i), Vector3.new(1.8, 0.4, length - 2),
-				Vector3.new(STAND_X + stepDepth * (i - 1) + stepDepth - 0.9, GROUND_Y + height + 0.2, 0),
-				Color3.fromRGB(150, 110, 70), Enum.Material.WoodPlanks, stand)
-		end
-	end
-
-	-- front wall with the club name, and a railing along the top of it
-	local frontH = if level == 1 then 1.2 else 2.6
-	local frontWall = box("FrontWall", Vector3.new(0.8, frontH, length), Vector3.new(STAND_X - 0.4, GROUND_Y + frontH / 2, 0),
-		if level == 1 then Color3.fromRGB(120, 120, 120) else Config.HomeKit, if level == 1 then Enum.Material.Metal else Enum.Material.SmoothPlastic, stand)
-	if level >= 2 then
-		local gui = Instance.new("SurfaceGui")
-		gui.Name = "NameGui"
-		gui.Face = Enum.NormalId.Left -- -X, toward the pitch
-		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		gui.PixelsPerStud = 16
-		gui.LightInfluence = 0.9
-		gui.Parent = frontWall
-		local label = Instance.new("TextLabel")
-		label.Name = "ClubName"
-		label.Size = UDim2.fromScale(1, 1)
-		label.BackgroundTransparency = 1
-		label.Font = Enum.Font.GothamBlack
-		label.TextScaled = true
-		label.TextColor3 = Color3.new(1, 1, 1)
-		label.TextTransparency = 0.15
-		label.Text = "" -- WorldBuilder.setClubName fills it
-		label.Parent = gui
-		local pad = Instance.new("UIPadding")
-		pad.PaddingTop = UDim.new(0.2, 0)
-		pad.PaddingBottom = UDim.new(0.2, 0)
-		pad.Parent = label
-		local rail = box("Rail", Vector3.new(0.3, 0.3, length), Vector3.new(STAND_X - 0.4, GROUND_Y + frontH + 1.1, 0), Color3.fromRGB(200, 200, 205), Enum.Material.Metal, stand)
-		rail.CanCollide = false
-		for i = 0, math.floor(length / 8) do
-			local post = box("RailPost", Vector3.new(0.25, 1.1, 0.25), Vector3.new(STAND_X - 0.4, GROUND_Y + frontH + 0.55, -length / 2 + i * 8), Color3.fromRGB(200, 200, 205), Enum.Material.Metal, stand)
-			post.CanCollide = false
-		end
-	end
-
-	if level >= 2 then
-		local backX = STAND_X + stepDepth * rows + 0.5
-		local wallH = stepHeight * rows + 4
-		box("BackWall", Vector3.new(1, wallH, length),
-			Vector3.new(backX, GROUND_Y + wallH / 2, 0),
-			Color3.fromRGB(200, 200, 200), Enum.Material.Concrete, stand)
-		-- end walls close the sides off
-		for _, zSign in { -1, 1 } do
-			local depth = stepDepth * rows + 1
-			local wedge = Instance.new("WedgePart")
-			wedge.Name = "EndWall"
-			wedge.Anchored = true
-			wedge.Size = Vector3.new(0.8, wallH - 4, depth)
-			-- slope rises toward the back wall (+X)
-			wedge.CFrame = CFrame.new(STAND_X + depth / 2, GROUND_Y + (wallH - 4) / 2, zSign * (length / 2 + 0.4)) * CFrame.Angles(0, -math.pi / 2, 0)
-			wedge.Color = Color3.fromRGB(200, 200, 200)
-			wedge.Material = Enum.Material.Concrete
-			wedge.Parent = stand
-		end
-		if spec.roof then
-			-- cantilever roof over the seats, held by pillars along the back wall
-			local roofY = GROUND_Y + wallH + 6
-			local roofDepth = stepDepth * rows + 6
-			box("Roof", Vector3.new(roofDepth, 0.8, length + 4),
-				Vector3.new(STAND_X + roofDepth / 2 - 2, roofY, 0),
-				Color3.fromRGB(90, 95, 105), Enum.Material.Metal, stand)
-			for i = 0, 6 do
-				local z = -length / 2 + (length / 6) * i
-				box("Pillar", Vector3.new(1.5, roofY - GROUND_Y, 1.5),
-					Vector3.new(backX + 1.5, GROUND_Y + (roofY - GROUND_Y) / 2, z),
-					Color3.fromRGB(120, 120, 130), Enum.Material.Metal, stand)
-			end
-		end
-	end
-
-	-- empty crowd folder; filled at kickoff
+	-- empty crowd folder; filled at kickoff. Always present, even at level 0.
 	local crowd = Instance.new("Folder")
 	crowd.Name = "Crowd"
 	crowd.Parent = stand
 
-	-- the persistent upgrade sign stands in front of the stand, beside the east fence gap
-	local sign = club:FindFirstChild("StandSign") :: Part
-	sign.CFrame = CFrame.new(STAND_X - 2, GROUND_Y + 2, FENCE_GAP / 2 + 6)
+	local geo = plotGeometry(plot, level)
+	if not geo then
+		return -- empty plot: open hardstanding behind the perimeter wall
+	end
+	local frame, rows, stepHeight, spec = geo.frame, geo.rows, geo.stepHeight, geo.spec
+
+	-- local-frame helper: +X away from the pitch, +Z along the stand
+	local function lbox(name: string, size: Vector3, pos: Vector3, color: Color3, material: Enum.Material?): Part
+		return part({
+			Name = name,
+			Size = size,
+			CFrame = frame * CFrame.new(pos),
+			Color = color,
+			Material = material or Enum.Material.SmoothPlastic,
+			Parent = stand,
+		})
+	end
+
+	local stepColor = if level == 1 then Color3.fromRGB(150, 150, 150) else Color3.fromRGB(175, 175, 172)
+	local stepMat = if level == 1 then Enum.Material.Metal else Enum.Material.Concrete
+	local sectionLen, aisleW = 26, 3
+	local depth = STEP_DEPTH * rows
+
+	for _, span in geo.spans do
+		local z0, z1 = span[1], span[2]
+		local runLen = z1 - z0
+		local zc = (z0 + z1) / 2
+		local sections = math.max(1, math.floor((runLen + aisleW) / (sectionLen + aisleW)))
+		local usedLen = sections * sectionLen + (sections - 1) * aisleW
+		local startZ = zc - usedLen / 2
+
+		for i = 1, rows do
+			local height = stepHeight * i
+			local rowX = STAND_X0 + STEP_DEPTH * (i - 1) + STEP_DEPTH / 2
+			local stepBack = STAND_X0 + STEP_DEPTH * i -- back edge of this step
+			lbox(("Row%d"):format(i), Vector3.new(STEP_DEPTH, DECK_Y + height, runLen),
+				Vector3.new(rowX, (DECK_Y + height) / 2, zc), stepColor, stepMat)
+			if spec.seats then
+				-- seat blocks per section; an alternate shade every other section so the
+				-- seating reads as blocks rather than one long strip
+				for s = 1, sections do
+					local z = startZ + (s - 1) * (sectionLen + aisleW) + sectionLen / 2
+					local colour = if s % 2 == 0 then Config.SeatColor:Lerp(Color3.new(1, 1, 1), 0.25) else Config.SeatColor
+					local seat = lbox(("Seats%d_%d"):format(i, s), Vector3.new(1.6, 1.1, sectionLen),
+						Vector3.new(stepBack - 0.8, DECK_Y + height + 0.55, z), colour, Enum.Material.Plastic)
+					seat.CanCollide = false
+					local back = lbox(("SeatBack%d_%d"):format(i, s), Vector3.new(0.3, 1.6, sectionLen),
+						Vector3.new(stepBack - 0.15, DECK_Y + height + 0.8, z), colour, Enum.Material.Plastic)
+					back.CanCollide = false
+				end
+				-- aisle treads between sections, lighter so they read as steps
+				for s = 1, sections - 1 do
+					local z = startZ + s * (sectionLen + aisleW) - aisleW / 2
+					local tread = lbox(("Aisle%d_%d"):format(i, s), Vector3.new(STEP_DEPTH, 0.2, aisleW),
+						Vector3.new(rowX, DECK_Y + height + 0.1, z), Color3.fromRGB(215, 215, 210), Enum.Material.Concrete)
+					tread.CanCollide = false
+				end
+			else
+				-- level 1: a plank bench along each bleacher row
+				lbox(("Bench%d"):format(i), Vector3.new(1.8, 0.4, runLen - 2),
+					Vector3.new(stepBack - 0.9, DECK_Y + height + 0.2, zc),
+					Color3.fromRGB(150, 110, 70), Enum.Material.WoodPlanks)
+			end
+		end
+
+		-- End walls. A WedgePart is full height at its local +Z and tapers to
+		-- nothing at -Z, so the slope has to rise AWAY from the pitch: yaw +90
+		-- sends local +Z along local +X (outward). Getting this backwards is
+		-- what made the side panels look inside out.
+		local wallH = stepHeight * rows
+		for _, zEnd in { z0, z1 } do
+			local wedge = Instance.new("WedgePart")
+			wedge.Name = "EndWall"
+			wedge.Anchored = true
+			wedge.Size = Vector3.new(0.8, wallH, depth)
+			wedge.CFrame = frame * CFrame.new(STAND_X0 + depth / 2, DECK_Y + wallH / 2, zEnd) * CFrame.Angles(0, math.pi / 2, 0)
+			wedge.Color = Color3.fromRGB(200, 200, 200)
+			wedge.Material = Enum.Material.Concrete
+			wedge.Parent = stand
+		end
+	end
+
+	if level >= 2 then
+		local length = geo.length
+		local wallH = stepHeight * rows + 3
+		local backX = STAND_X0 + depth + 0.5
+		lbox("BackWall", Vector3.new(1, wallH, length), Vector3.new(backX, DECK_Y + wallH / 2, 0),
+			Color3.fromRGB(200, 200, 200), Enum.Material.Concrete)
+
+		if spec.roof then
+			-- cantilever roof over the seats, held by pillars along the back wall
+			local roofY = DECK_Y + stepHeight * rows + 8
+			local roofDepth = depth + 4
+			lbox("Roof", Vector3.new(roofDepth, 0.8, length + 4), Vector3.new(roofDepth / 2 - 2, roofY, 0),
+				Color3.fromRGB(168, 172, 178), Enum.Material.Metal)
+			-- fascia across the front of the roof: the obvious place for the club name
+			local fascia = lbox("Fascia", Vector3.new(0.7, 2.6, length + 4), Vector3.new(roofDepth - 2, roofY + 1.7, 0),
+				Config.HomeKit, Enum.Material.SmoothPlastic)
+			local gui = Instance.new("SurfaceGui")
+			gui.Name = "NameGui"
+			gui.Face = Enum.NormalId.Left -- -X local, toward the pitch
+			gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+			gui.PixelsPerStud = 16
+			gui.LightInfluence = 0.9
+			gui.Parent = fascia
+			local label = Instance.new("TextLabel")
+			label.Name = "ClubName"
+			label.Size = UDim2.fromScale(1, 1)
+			label.BackgroundTransparency = 1
+			label.Font = Enum.Font.GothamBlack
+			label.TextScaled = true
+			label.TextColor3 = Color3.new(1, 1, 1)
+			label.Text = "" -- WorldBuilder.setClubName fills it
+			label.Parent = gui
+			local pad = Instance.new("UIPadding")
+			pad.PaddingTop = UDim.new(0.18, 0)
+			pad.PaddingBottom = UDim.new(0.18, 0)
+			pad.Parent = label
+			for i = 0, 6 do
+				local z = -length / 2 + (length / 6) * i
+				lbox("Pillar", Vector3.new(1.5, roofY - DECK_Y, 1.5), Vector3.new(backX + 1.5, DECK_Y + (roofY - DECK_Y) / 2, z),
+					Color3.fromRGB(120, 120, 130), Enum.Material.Metal)
+			end
+		end
+	end
+
 	local state = ReplicatedStorage:FindFirstChild("ClubState")
 	if state then
 		WorldBuilder.setClubName((state:GetAttribute("ClubName") :: string?) or Config.ClubName)
+	end
+end
+
+-- Rebuilds every plot. `levels` is keyed by Config.StandPlots[i].key.
+function WorldBuilder.buildStands(levels: { [string]: number })
+	for i, plot in PLOTS do
+		WorldBuilder.buildPlot(i, levels[plot.key] or 0)
 	end
 end
 
@@ -712,75 +905,110 @@ local SKIN_TONES = {
 	Color3.fromRGB(100, 65, 45),
 }
 local FAN_SPACING = 2.6 -- seated fans at character scale need this much elbow room
--- Fan budget for a full house (mobile); each fan is two parts.
-local MAX_FAN_BLOCKS = 500
+-- Fan budget for a full house across the whole ground (mobile); 2 parts each.
+local MAX_FAN_BLOCKS = 600
 
--- Fills the stand with simple block fans at a density matching attendance.
--- One block stands for several fans, so a full house means every slot filled.
-function WorldBuilder.buildCrowd(standLevel: number, attendance: number, capacity: number)
+-- Fills every built stand with simple block fans at a density matching
+-- attendance. One block stands for several fans, so a full house means every
+-- slot filled. The budget is shared across all four plots.
+function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: number, capacity: number)
 	local club = workspace:FindFirstChild("Club") :: Model
-	local stand = club:FindFirstChild("Stand") :: Model
-	local crowd = stand:FindFirstChild("Crowd") :: Folder
-	crowd:ClearAllChildren()
-
-	local spec = standSpec(standLevel)
-	local spacing = math.max(FAN_SPACING, (spec.length - 2) * spec.rows / MAX_FAN_BLOCKS)
-	local perRow = math.floor((spec.length - 2) / spacing)
-	local slots = perRow * spec.rows
+	local stands = club:FindFirstChild("Stands") :: Folder
 	local fill = math.clamp(attendance / math.max(capacity, 1), 0, 1)
 	local rng = Random.new(attendance)
 
-	local count = 0
-	for row = 1, spec.rows do
-		local top = GROUND_Y + spec.stepHeight * row
-		-- sit toward the front of the step so heads clear the row behind
-		local x = STAND_X + STEP_DEPTH * (row - 1) + STEP_DEPTH / 2 - 1.0
-		for i = 1, perRow do
-			-- deterministic scatter: skip seats so density visibly tracks attendance
-			if rng:NextNumber() > fill then
-				continue
+	-- count the seat slots first, so the block budget is shared across the ground
+	local totalSlots = 0
+	for _, plot in PLOTS do
+		local geo = plotGeometry(plot, levels[plot.key] or 0)
+		if geo then
+			for _, span in geo.spans do
+				totalSlots += math.floor((span[2] - span[1] - 2) / FAN_SPACING) * geo.rows
 			end
-			local z = -spec.length / 2 + 1 + spacing * (i - 0.5)
-			-- seated fan at character scale (a standing character is ~5 studs):
-			-- torso block plus a head; a little height jitter so rows do not look stamped
-			local bodyH = 2.6 + rng:NextNumber(-0.2, 0.2)
-			local fan = box("Fan", Vector3.new(1.8, bodyH, 1.4), Vector3.new(x, top + 0.9 + bodyH / 2, z),
-				CROWD_COLORS[rng:NextInteger(1, #CROWD_COLORS)], Enum.Material.SmoothPlastic, crowd)
-			fan.CanCollide = false
-			fan.CastShadow = false
-			local head = part({
-				Name = "Head",
-				Shape = Enum.PartType.Ball,
-				Size = Vector3.new(1.2, 1.2, 1.2),
-				CFrame = CFrame.new(x, top + 0.9 + bodyH + 0.6, z),
-				Color = SKIN_TONES[rng:NextInteger(1, #SKIN_TONES)],
-				Material = Enum.Material.SmoothPlastic,
-				CanCollide = false,
-				CastShadow = false,
-				Parent = crowd,
-			})
-			head.Name = "Head"
-			count += 1
 		end
 	end
-	stand:SetAttribute("CrowdSlots", slots)
-	stand:SetAttribute("CrowdCount", count)
+	local spacing = FAN_SPACING
+	if totalSlots > MAX_FAN_BLOCKS then
+		spacing = FAN_SPACING * totalSlots / MAX_FAN_BLOCKS
+	end
+
+	local placed, slots = 0, 0
+	for _, plot in PLOTS do
+		local stand = stands:FindFirstChild(plot.key)
+		local crowd = stand and stand:FindFirstChild("Crowd")
+		if not crowd then
+			continue
+		end
+		crowd:ClearAllChildren()
+		local geo = plotGeometry(plot, levels[plot.key] or 0)
+		if not geo then
+			continue
+		end
+		for _, span in geo.spans do
+			local perRow = math.floor((span[2] - span[1] - 2) / spacing)
+			slots += perRow * geo.rows
+			for row = 1, geo.rows do
+				local top = DECK_Y + geo.stepHeight * row
+				-- sit toward the front of the step so heads clear the row behind
+				local x = STAND_X0 + STEP_DEPTH * (row - 1) + STEP_DEPTH / 2 - 0.5
+				for i = 1, perRow do
+					-- deterministic scatter: skip seats so density visibly tracks attendance
+					if rng:NextNumber() > fill then
+						continue
+					end
+					local z = span[1] + 1 + spacing * (i - 0.5)
+					-- seated fan at character scale (a standing character is ~5 studs):
+					-- torso block plus a head; a little height jitter so rows do not look stamped
+					local bodyH = 2.6 + rng:NextNumber(-0.2, 0.2)
+					part({
+						Name = "Fan",
+						Size = Vector3.new(1.8, bodyH, 1.4),
+						CFrame = geo.frame * CFrame.new(x, top + 0.9 + bodyH / 2, z),
+						Color = CROWD_COLORS[rng:NextInteger(1, #CROWD_COLORS)],
+						Material = Enum.Material.SmoothPlastic,
+						CanCollide = false,
+						CastShadow = false,
+						Parent = crowd,
+					})
+					part({
+						Name = "Head",
+						Shape = Enum.PartType.Ball,
+						Size = Vector3.new(1.2, 1.2, 1.2),
+						CFrame = geo.frame * CFrame.new(x, top + 0.9 + bodyH + 0.6, z),
+						Color = SKIN_TONES[rng:NextInteger(1, #SKIN_TONES)],
+						Material = Enum.Material.SmoothPlastic,
+						CanCollide = false,
+						CastShadow = false,
+						Parent = crowd,
+					})
+					placed += 1
+				end
+			end
+		end
+	end
+	club:SetAttribute("CrowdSlots", slots)
+	club:SetAttribute("CrowdCount", placed)
 end
 
--- Fans go home at full time; the stand is empty between matches.
+-- Fans go home at full time; the stands are empty between matches.
 function WorldBuilder.clearCrowd()
 	local club = workspace:FindFirstChild("Club")
-	local stand = club and club:FindFirstChild("Stand")
-	local crowd = stand and stand:FindFirstChild("Crowd")
-	if crowd and stand then
-		crowd:ClearAllChildren()
-		stand:SetAttribute("CrowdCount", 0)
+	local stands = club and club:FindFirstChild("Stands")
+	if not (club and stands) then
+		return
 	end
+	for _, stand in stands:GetChildren() do
+		local crowd = stand:FindFirstChild("Crowd")
+		if crowd then
+			crowd:ClearAllChildren()
+		end
+	end
+	club:SetAttribute("CrowdCount", 0)
 end
 
--- Concourse amenity chain (snack bar -> club shop -> fan zone), opposite the
--- matchday board on the walk from the office. Rebuilt on each upgrade.
-local AMENITY_POS = Vector3.new(-(FENCE_X + CONCOURSE + 10), GROUND_Y, -(FENCE_GAP / 2 + 14))
+-- Concourse amenity chain (snack bar -> club shop -> fan zone), on the
+-- forecourt between the office and the turnstiles. Rebuilt on each upgrade.
+local AMENITY_POS = Vector3.new(OFFICE_CX - 2, GROUND_Y, OFFICE_CZ + 23)
 
 function WorldBuilder.buildAmenity(level: number)
 	local club = workspace:FindFirstChild("Club") :: Model
@@ -791,7 +1019,7 @@ function WorldBuilder.buildAmenity(level: number)
 	local amenity = Instance.new("Model")
 	amenity.Name = "Amenity"
 	amenity.Parent = club
-	local p = AMENITY_POS
+	local p = AMENITY_POS + Vector3.new(0, DECK_Y, 0)
 	if level >= 1 then
 		-- snack bar: hut with a serving hatch and a striped awning
 		box("Hut", Vector3.new(10, 7, 8), p + Vector3.new(0, 3.5, 0), Color3.fromRGB(190, 120, 70), Enum.Material.Wood, amenity)
@@ -801,46 +1029,57 @@ function WorldBuilder.buildAmenity(level: number)
 	end
 	if level >= 2 then
 		-- club shop: larger unit beside the hut, club-coloured facade
-		box("Shop", Vector3.new(12, 9, 12), p + Vector3.new(-1, 4.5, -13), Color3.fromRGB(220, 220, 225), Enum.Material.Concrete, amenity)
-		box("ShopFascia", Vector3.new(0.4, 2.5, 12), p + Vector3.new(5.2, 8, -13), Config.HomeKit, Enum.Material.SmoothPlastic, amenity)
-		local window = box("ShopWindow", Vector3.new(0.3, 4, 8), p + Vector3.new(5.1, 4, -13), Color3.fromRGB(150, 200, 230), Enum.Material.Glass, amenity)
+		box("Shop", Vector3.new(12, 9, 12), p + Vector3.new(-1, 4.5, 14), Color3.fromRGB(220, 220, 225), Enum.Material.Concrete, amenity)
+		box("ShopFascia", Vector3.new(0.4, 2.5, 12), p + Vector3.new(5.2, 8, 14), Config.HomeKit, Enum.Material.SmoothPlastic, amenity)
+		local window = box("ShopWindow", Vector3.new(0.3, 4, 8), p + Vector3.new(5.1, 4, 14), Color3.fromRGB(150, 200, 230), Enum.Material.Glass, amenity)
 		window.Transparency = 0.4
 	end
 	if level >= 3 then
-		-- fan zone: paved square with flag poles and a small stage. It grows
-		-- away from the pitch (further -X, towards the office) so nothing
-		-- crosses the fence or the touchline.
-		box("Paving", Vector3.new(30, 0.3, 24), p + Vector3.new(-14, 0.15, -6), Color3.fromRGB(160, 160, 150), Enum.Material.Cobblestone, amenity)
-		box("Stage", Vector3.new(10, 2, 6), p + Vector3.new(-24, 1, -14), Color3.fromRGB(60, 60, 65), Enum.Material.Metal, amenity)
+		-- fan zone: paved square with flag poles and a small stage, growing
+		-- away from the ground (further -X) so nothing blocks the way in
+		box("Paving", Vector3.new(30, 0.3, 24), p + Vector3.new(-13, 0.15, 7), Color3.fromRGB(160, 160, 150), Enum.Material.Cobblestone, amenity)
+		box("Stage", Vector3.new(10, 2, 6), p + Vector3.new(-22, 1, 14), Color3.fromRGB(60, 60, 65), Enum.Material.Metal, amenity)
 		for i = 0, 3 do
-			local pole = box("Pole", Vector3.new(0.4, 14, 0.4), p + Vector3.new(-(8 + i * 7), 7, 4), Color3.fromRGB(220, 220, 220), Enum.Material.Metal, amenity)
-			box("Flag", Vector3.new(0.1, 2.5, 4), pole.Position + Vector3.new(0, 5.5, -2), Config.HomeKit, Enum.Material.Fabric, amenity)
+			local pole = box("Pole", Vector3.new(0.4, 14, 0.4), p + Vector3.new(-(6 + i * 7), 7, -4), Color3.fromRGB(220, 220, 220), Enum.Material.Metal, amenity)
+			box("Flag", Vector3.new(0.1, 2.5, 4), pole.Position + Vector3.new(0, 5.5, 2), Config.HomeKit, Enum.Material.Fabric, amenity)
 		end
 	end
 end
 
 local function buildAmenitySign(parent: Instance): ProximityPrompt
-	local sign = box("AmenitySign", Vector3.new(1, 4, 3), AMENITY_POS + Vector3.new(6, 2, 8),
+	local sign = box("AmenitySign", Vector3.new(5, 4, 0.8), AMENITY_POS + Vector3.new(9, DECK_Y + 3, -7),
 		Color3.fromRGB(200, 170, 40), Enum.Material.Wood, parent)
 	addSign(sign, "CONCOURSE")
 	return addPrompt(sign, "Concourse", "Build")
 end
 
-local function buildStandSign(parent: Instance): ProximityPrompt
-	local sign = box("StandSign", Vector3.new(1, 4, 3), Vector3.new(0, 0, 0),
-		Color3.fromRGB(200, 170, 40), Enum.Material.Wood, parent)
-	addSign(sign, "STAND")
-	return addPrompt(sign, "Stand", "Expand")
+-- One upgrade sign per plot, standing on the hardstanding in front of it, so
+-- the player has to walk round the ground to find them.
+local SIGN_OFFSET: { [string]: number } = { East = 40, West = -60, North = -34, South = 34 }
+
+local function buildStandSign(parent: Instance, plot: any): ProximityPrompt
+	local frame = plotFrame(plot)
+	local sign = part({
+		Name = "StandSign_" .. plot.key,
+		Size = Vector3.new(0.8, 4, 6),
+		CFrame = frame * CFrame.new(-6, DECK_Y + 3, SIGN_OFFSET[plot.key] or 0),
+		Color = Color3.fromRGB(200, 170, 40),
+		Material = Enum.Material.Wood,
+		Parent = parent,
+	})
+	addSign(sign, string.upper(plot.label), { Enum.NormalId.Left, Enum.NormalId.Right })
+	return addPrompt(sign, plot.label, "Expand")
 end
 
 export type World = {
 	model: Model,
 	matchdayPrompt: ProximityPrompt,
-	standPrompt: ProximityPrompt,
+	standPrompts: { [string]: ProximityPrompt },
 	amenityPrompt: ProximityPrompt,
 }
 
--- Every place the club's name is painted in the world (tunnel arch, stand wall).
+-- Every place the club's name is painted in the world (tunnel, turnstiles,
+-- roof fascias).
 function WorldBuilder.setClubName(name: string)
 	local club = workspace:FindFirstChild("Club")
 	if not club then
@@ -853,7 +1092,7 @@ function WorldBuilder.setClubName(name: string)
 	end
 end
 
-function WorldBuilder.build(standLevel: number, amenityLevel: number?): World
+function WorldBuilder.build(standLevels: { [string]: number }, amenityLevel: number?): World
 	local existing = workspace:FindFirstChild("Club")
 	if existing then
 		existing:Destroy()
@@ -868,21 +1107,32 @@ function WorldBuilder.build(standLevel: number, amenityLevel: number?): World
 	club.Parent = workspace
 
 	buildPitch(club)
-	buildFence(club)
+	buildHardstanding(club)
+	buildPerimeter(club)
 	buildAdBoards(club)
 	buildDugouts(club)
 	buildTunnel(club)
+	buildTurnstiles(club)
+	buildForecourt(club)
 	buildOffice(club)
-	-- the team coach, parked on the concourse beside the office (decorative)
-	Assets.place("Bus", Vector3.new(OFFICE_CX + 6, GROUND_Y, OFFICE_CZ + OFFICE_D / 2 + 14), club, {
-		lookAt = Vector3.new(OFFICE_CX + 60, GROUND_Y, OFFICE_CZ + OFFICE_D / 2 + 14),
+	-- the team coach, parked on the forecourt beside the office (decorative)
+	Assets.place("Bus", Vector3.new(OFFICE_CX + 18, DECK_Y, OFFICE_CZ - 22), club, {
+		lookAt = Vector3.new(OFFICE_CX + 80, DECK_Y, OFFICE_CZ - 22),
 		flip = true, -- windscreen is on the model's far side
 		name = "TeamBus",
 	})
+
+	local stands = Instance.new("Folder")
+	stands.Name = "Stands"
+	stands.Parent = club
+
 	local matchdayPrompt = buildMatchdayBoard(club)
-	local standPrompt = buildStandSign(club)
+	local standPrompts: { [string]: ProximityPrompt } = {}
+	for _, plot in PLOTS do
+		standPrompts[plot.key] = buildStandSign(club, plot)
+	end
 	local amenityPrompt = buildAmenitySign(club)
-	WorldBuilder.buildStand(standLevel)
+	WorldBuilder.buildStands(standLevels)
 	WorldBuilder.buildAmenity(amenityLevel or 0)
 	local state = ReplicatedStorage:FindFirstChild("ClubState")
 	if state then
@@ -892,7 +1142,7 @@ function WorldBuilder.build(standLevel: number, amenityLevel: number?): World
 	return {
 		model = club,
 		matchdayPrompt = matchdayPrompt,
-		standPrompt = standPrompt,
+		standPrompts = standPrompts,
 		amenityPrompt = amenityPrompt,
 	}
 end

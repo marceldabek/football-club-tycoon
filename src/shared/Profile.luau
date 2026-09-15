@@ -12,14 +12,14 @@ local Pitch = require(ReplicatedStorage.Shared.Pitch)
 
 local Profile = {}
 
-Profile.VERSION = 1
+Profile.VERSION = 2
 
 export type Profile = {
 	version: number,
 	clubName: string,
 	named: boolean,
 	cash: number,
-	standLevel: number,
+	stands: { [string]: number }, -- level per Config.StandPlots key; 0 = empty plot
 	amenityLevel: number,
 	matchesPlayed: number,
 	wins: number,
@@ -48,6 +48,15 @@ local function int(v: any, default: number, min: number?, max: number?): number
 	return n
 end
 
+-- A fresh ground: the east plot has the club's one bleacher, the rest are empty.
+function Profile.newStands(): { [string]: number }
+	local stands = {}
+	for _, plot in Config.StandPlots do
+		stands[plot.key] = plot.start
+	end
+	return stands
+end
+
 function Profile.new(clubName: string, now: number?): Profile
 	local t = now or os.time()
 	return {
@@ -55,7 +64,7 @@ function Profile.new(clubName: string, now: number?): Profile
 		clubName = clubName,
 		named = false,
 		cash = Config.StartingCash,
-		standLevel = 1,
+		stands = Profile.newStands(),
 		amenityLevel = 0,
 		matchesPlayed = 0,
 		wins = 0,
@@ -93,6 +102,22 @@ end
 
 -- Version upgrades. Each entry migrates from its index to index + 1.
 local MIGRATIONS: { [number]: (any) -> () } = {}
+
+-- v1 -> v2: one stand became four plots. The old level was the east stand.
+-- A profile with no version at all also lands here, so leave an existing
+-- `stands` table alone rather than overwriting it with defaults.
+MIGRATIONS[1] = function(raw: any)
+	if type(raw.stands) == "table" then
+		raw.standLevel = nil
+		return
+	end
+	local stands = Profile.newStands()
+	if type(raw.standLevel) == "number" then
+		stands.East = raw.standLevel
+	end
+	raw.stands = stands
+	raw.standLevel = nil
+end
 
 -- Returns a profile every service can restore from, and whether anything
 -- had to be changed (missing, invalid or migrated).
@@ -139,7 +164,6 @@ function Profile.normalize(raw: any, now: number?): (Profile, boolean)
 	-- { key, default, min?, max? }
 	local ints: { { any } } = {
 		{ "cash", defaults.cash, 0, nil },
-		{ "standLevel", 1, 1, #Config.StandLevels },
 		{ "amenityLevel", 0, 0, #Config.AmenityLevels - 1 },
 		{ "matchesPlayed", 0, 0, nil },
 		{ "wins", 0, 0, nil },
@@ -157,6 +181,21 @@ function Profile.normalize(raw: any, now: number?): (Profile, boolean)
 			changed = true
 		end
 	end
+
+	-- stand plots: one level per side, clamped to the chain
+	local rawStands = if type(raw.stands) == "table" then raw.stands else nil
+	if not rawStands then
+		changed = true
+	end
+	local stands = {}
+	for _, plot in Config.StandPlots do
+		local value = int(rawStands and rawStands[plot.key], plot.start, 0, #Config.StandLevels)
+		stands[plot.key] = value
+		if rawStands and value ~= rawStands[plot.key] then
+			changed = true
+		end
+	end
+	out.stands = stands
 
 	if type(raw.club) == "table" then
 		out.club = raw.club
