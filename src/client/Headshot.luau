@@ -54,9 +54,9 @@ local function buildBust(look: number): Model?
 	head.Parent = bust
 	bust.PrimaryPart = head
 
-	-- Shoulders for the wider "bust" framing: a torso block and two short
-	-- sleeves, painted with the kit colour when the bust is attached. Hidden
-	-- by the tight face camera in the default framing.
+	-- Shoulders for the wider "bust" framing: the standard blocky Roblox torso
+	-- and square sleeves / upper arms, painted with the kit colour when the
+	-- bust is attached. Hidden by the tight face camera in the default framing.
 	local function block(name: string, size: Vector3, offset: Vector3, color: Color3, shape: Enum.PartType?)
 		local b = Instance.new("Part")
 		b.Name = name
@@ -73,13 +73,12 @@ local function buildBust(look: number): Model?
 	end
 	local neckY = -0.75 * spec.headScale
 	local kitPlaceholder = Color3.fromRGB(200, 40, 50)
-	block("Shirt", Vector3.new(1.7, 1.6, 1.0), Vector3.new(0, neckY - 0.95, 0), kitPlaceholder)
-	block("Neck", Vector3.new(0.6, 0.3, 0.6), Vector3.new(0, neckY - 0.1, 0), spec.skin)
+	block("Shirt", Vector3.new(1.9, 1.7, 1.0), Vector3.new(0, neckY - 1.0, 0), kitPlaceholder)
+	block("Neck", Vector3.new(0.62, 0.3, 0.62), Vector3.new(0, neckY - 0.1, 0), spec.skin)
 	for _, side in { -1, 1 } do
-		-- round shoulder caps, then a rounded upper arm below
-		block("Sleeve", Vector3.new(0.95, 0.95, 0.95), Vector3.new(side * 1.1, neckY - 0.55, 0), kitPlaceholder, Enum.PartType.Ball)
-		block("Arm", Vector3.new(0.8, 0.8, 0.8), Vector3.new(side * 1.2, neckY - 1.25, 0), spec.skin, Enum.PartType.Ball)
-		block("ArmLower", Vector3.new(0.55, 0.9, 0.55), Vector3.new(side * 1.22, neckY - 1.7, 0), spec.skin)
+		-- square sleeve at the shoulder, then the upper arm below it
+		block("Sleeve", Vector3.new(0.72, 0.66, 0.96), Vector3.new(side * 1.31, neckY - 0.48, 0), kitPlaceholder)
+		block("Arm", Vector3.new(0.72, 1.1, 0.96), Vector3.new(side * 1.31, neckY - 1.36, 0), spec.skin)
 	end
 
 	-- Accessories were never welded (the rig is torn down before physics ran),

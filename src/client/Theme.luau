@@ -13,6 +13,7 @@ Theme.colors = {
 	text = Color3.fromRGB(245, 247, 250),
 	muted = Color3.fromRGB(158, 166, 178),
 	accent = Color3.fromRGB(255, 205, 80), -- club gold: titles, highlights
+	outline = Color3.fromRGB(140, 162, 200), -- the one outline colour for every box
 	cash = Color3.fromRGB(120, 230, 130),
 	good = Color3.fromRGB(70, 175, 95),
 	bad = Color3.fromRGB(215, 75, 75),
@@ -27,8 +28,16 @@ Theme.fonts = {
 	body = Enum.Font.Gotham,
 }
 
-Theme.radius = 12
-Theme.buttonRadius = 8
+-- One outline for the whole game: same colour, same weight, same softness. Only
+-- state changes it (selected / drop target / danger), never decoration.
+Theme.outlineTransparency = 0.7
+
+-- Corner radii, generous enough that nothing reads as a square box. Anything
+-- rounded should pick one of these rather than inventing its own number.
+Theme.radius = 16 -- panels, cards, big surfaces
+Theme.cardRadius = 12 -- player cards, list rows, inner panels
+Theme.buttonRadius = 10
+Theme.chipRadius = 8 -- small chips, dots, meters
 
 local function apply(inst: Instance, props: { [string]: any }?)
 	if props then
@@ -45,14 +54,39 @@ function Theme.corner(inst: Instance, radius: number?)
 	return c
 end
 
-function Theme.stroke(inst: Instance, transparency: number?, color: Color3?)
+-- Every box outline in the game comes from here. Callers do not pick a colour:
+-- they pick a state, so the resting look is identical on every panel.
+export type StrokeState = "rest" | "selected" | "target" | "danger"
+
+function Theme.stroke(inst: Instance, state: StrokeState?): UIStroke
 	local s = Instance.new("UIStroke")
-	s.Color = color or Theme.colors.line
-	s.Transparency = transparency or 0.88
-	s.Thickness = 1
 	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	s.LineJoinMode = Enum.LineJoinMode.Round
 	s.Parent = inst
+	Theme.setStroke(s, state)
 	return s
+end
+
+-- Retints an existing stroke, so a card can change state without being rebuilt.
+function Theme.setStroke(s: UIStroke, state: StrokeState?)
+	local st = state or "rest"
+	if st == "selected" then
+		s.Color = Theme.colors.accent
+		s.Transparency = 0
+		s.Thickness = 2
+	elseif st == "target" then
+		s.Color = Theme.colors.cash
+		s.Transparency = 0
+		s.Thickness = 3
+	elseif st == "danger" then
+		s.Color = Theme.colors.bad
+		s.Transparency = 0.25
+		s.Thickness = 2
+	else
+		s.Color = Theme.colors.outline
+		s.Transparency = Theme.outlineTransparency
+		s.Thickness = 1
+	end
 end
 
 function Theme.padding(inst: Instance, all: number, horizontal: number?)
@@ -151,7 +185,7 @@ function Theme.button(parent: Instance, text: string, variant: ButtonVariant?, p
 	end
 	apply(b, props)
 	Theme.corner(b, Theme.buttonRadius)
-	Theme.stroke(b, 0.85)
+	Theme.stroke(b)
 	b.Parent = parent
 	return b
 end

@@ -90,12 +90,18 @@ refreshMusicButton()
 -- the always-visible way to start the next fixture.
 local playButton = Theme.button(gui, "PLAY MATCH", "primary", {
 	Name = "PlayMatch",
-	Size = UDim2.fromOffset(300, 44),
+	Size = UDim2.fromOffset(300, 48),
 	Position = UDim2.new(0.5, 0, 0, 48),
 	AnchorPoint = Vector2.new(0.5, 0),
 	TextSize = 18,
+	-- the button grows with its label, so the text can never outrun the box
+	AutomaticSize = Enum.AutomaticSize.X,
 	Visible = false,
 })
+Theme.padding(playButton, 0, 26)
+local playSize = Instance.new("UISizeConstraint")
+playSize.MinSize = Vector2.new(300, 48)
+playSize.Parent = playButton
 local playCooldown = false
 playButton.Activated:Connect(function()
 	if playCooldown then
@@ -114,11 +120,10 @@ local function refreshPlayButton()
 		return
 	end
 	local nextOpp = get("NextOpponent") or ""
-	local round, rounds = get("Round") or 0, get("Rounds") or 10
 	if (get("MatchesPlayed") or 0) == 0 then
 		playButton.Text = "PLAY YOUR FIRST MATCH"
 	elseif nextOpp ~= "" then
-		playButton.Text = ("PLAY MATCH  ·  vs %s  (%d/%d)"):format(nextOpp, round + 1, rounds)
+		playButton.Text = ("PLAY MATCH  ·  vs %s"):format(nextOpp)
 	else
 		playButton.Text = "PLAY MATCH"
 	end

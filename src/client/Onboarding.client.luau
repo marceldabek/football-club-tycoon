@@ -40,7 +40,7 @@ box.ClearTextOnFocus = false
 box.Text = ""
 box.Parent = card.frame
 Theme.corner(box, Theme.buttonRadius)
-Theme.stroke(box, 0.8)
+Theme.stroke(box)
 Theme.padding(box, 0, 12)
 
 local hintText = ("%d to %d characters."):format(Config.ClubNameMinLength, Config.ClubNameMaxLength)

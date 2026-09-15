@@ -64,8 +64,8 @@ local function section(parent: Instance, name: string, height: number, order: nu
 	f.Size = UDim2.new(1, 0, 0, height)
 	f.LayoutOrder = order
 	f.Parent = parent
-	Theme.corner(f, 10)
-	Theme.stroke(f, 0.9)
+	Theme.corner(f, Theme.cardRadius)
+	Theme.stroke(f)
 	return f
 end
 
@@ -123,7 +123,7 @@ local function crest(parent: Instance, name: string, size: number): (Frame, Text
 	shield.BorderSizePixel = 0
 	shield.Parent = holder
 	Theme.corner(shield, math.floor(size * 0.28))
-	Theme.stroke(shield, 0.3, Color3.new(1, 1, 1))
+	Theme.stroke(shield)
 	local inner = Instance.new("Frame")
 	inner.Name = "Inner"
 	inner.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -240,7 +240,7 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		TextColor3 = Color3.new(1, 1, 1),
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
-	Theme.corner(resultPill, 8)
+	Theme.corner(resultPill, Theme.chipRadius)
 
 	-- ------------------------------------------------------------ league
 	local league = section(body, "League", 48, 2)
@@ -434,8 +434,8 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		card.BorderSizePixel = 0
 		card.LayoutOrder = order
 		card.Parent = devCards
-		Theme.corner(card, 8)
-		Theme.stroke(card, 0.75)
+		Theme.corner(card, Theme.cardRadius)
+		Theme.stroke(card)
 		local face = Instance.new("Frame")
 		face.Name = "Face"
 		face.Position = UDim2.fromOffset(6, 6)
@@ -443,9 +443,9 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		face.BackgroundTransparency = 1
 		face.ClipsDescendants = true
 		face.Parent = card
-		Theme.corner(face, 6)
+		Theme.corner(face, Theme.chipRadius)
 		Headshot.attach(face, c.look or c.id, Config.HomeKit, c.number, { shoulders = true })
-		Theme.stroke(face, 0.35, Color3.fromRGB(120, 150, 210))
+		Theme.stroke(face)
 		Theme.text(card, (c.name :: string):match("(%S+)$") or c.name, "body", {
 			Size = UDim2.new(1, -8, 0, 18),
 			Position = UDim2.fromOffset(4, 106),
@@ -493,8 +493,8 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		pill.BackgroundColor3 = if up then Color3.fromRGB(32, 92, 52) else Color3.fromRGB(110, 40, 40)
 		pill.BorderSizePixel = 0
 		pill.Parent = card
-		Theme.corner(pill, 6)
-		Theme.stroke(pill, 0.6, color)
+		Theme.corner(pill, Theme.chipRadius)
+		Theme.stroke(pill)
 		local icon = chevron(pill, "up", color, 12)
 		icon.Position = UDim2.new(0, 8, 0.5, 0)
 		icon.AnchorPoint = Vector2.new(0, 0.5)

@@ -1,9 +1,16 @@
 --!strict
--- Squad board: a STARTING XI panel with headshot cards on a full pitch, and a
--- BENCH / RESERVES column of list rows on the right. Cards drag onto each
--- other to swap; a tap selects and a second tap swaps (the touch fallback).
--- Selecting a bench or reserve player shows a Sell strip. All rules stay on
--- the server: the board only fires `swap` and `release` with player ids.
+-- Squad board: a STARTING XI panel with headshot cards on a full pitch, a
+-- scrolling BENCH / RESERVES column, and a player detail window under it.
+--
+-- The board is built once and then *updated* — cards and rows belong to a
+-- player id for as long as that player is on screen, so a swap moves two
+-- widgets instead of rebuilding the screen (no flash, no headshot reload).
+--
+-- Cards drag onto each other to swap: the pressed card lights up immediately,
+-- a ghost follows the cursor, and the card under the cursor is outlined as the
+-- drop target. A tap selects, and a second tap on another card swaps (the
+-- touch fallback). All rules stay on the server: the board only reports
+-- `onSwap`, `onSelect` and `onSell` with player ids.
 
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -22,7 +29,10 @@ export type Player = {
 	role: string,
 	age: number,
 	overall: number,
+	potential: number?,
 	injured: number,
+	apps: number?,
+	goals: number?,
 	look: number?,
 }
 export type Club = {
@@ -30,16 +40,10 @@ export type Club = {
 	lineup: { xi: { number }, bench: { number } },
 }
 export type Options = {
-	club: Club,
 	kit: Color3,
-	canDrag: boolean,
-	canRelease: boolean,
-	selectedId: number?,
-	layoutOrder: number,
 	onSwap: (number, number) -> (),
 	onSelect: (number?) -> (),
 	onSell: (number) -> (),
-	lockScroll: (boolean) -> (),
 }
 
 -- Optional pitch artwork (rbxassetid://...). Empty draws the pitch from frames.
@@ -48,10 +52,10 @@ LineupBoard.BACKGROUND_IMAGE = "rbxassetid://109275890815433" -- assets/referenc
 -- TEMP layout
 local CARD_W, CARD_H = 86, 108
 local ROW_H = 62
-local PITCH_H = 500 -- the artwork is 3:2; Crop trims the sides a little
-local PITCH_FRACTION = 0.64
+local PITCH_FRACTION = 0.63
 local COLUMN_GAP = 12
-local DRAG_THRESHOLD = 6 -- pixels before a press becomes a drag rather than a tap
+local DETAIL_H = 286 -- the player window under the bench
+local DRAG_THRESHOLD = 4 -- pixels before a press becomes a drag rather than a tap
 
 local PANEL_BG = Color3.fromRGB(23, 30, 44)
 local CARD_BG = Color3.fromRGB(16, 24, 44)
@@ -88,13 +92,15 @@ local function circle(parent: Instance, size: number, pos: UDim2, filled: boolea
 	c.Parent = parent
 	Theme.corner(c, math.ceil(size / 2))
 	if not filled then
-		Theme.stroke(c, 0.3, LINE)
+		local s = Theme.stroke(c)
+		s.Color = LINE
+		s.Transparency = 0.3
 	end
 end
 
 -- Full pitch, our goal at the bottom. Mowing stripes, both boxes, centre circle.
 local function drawPitch(parent: Frame)
-	Theme.corner(parent, 8)
+	Theme.corner(parent, Theme.cardRadius)
 	parent.ClipsDescendants = true
 	if LineupBoard.BACKGROUND_IMAGE ~= "" then
 		local img = Instance.new("ImageLabel")
@@ -139,7 +145,14 @@ local function drawPitch(parent: Frame)
 	end
 end
 
--- ------------------------------------------------------------------- cards
+-- Where slot `i` of the formation sits on the artwork.
+local function slotPosition(slot: number): UDim2
+	local spec = Pitch.FORMATION[slot]
+	-- GK on the goal line of the artwork, FWD near the far box
+	return UDim2.fromScale(0.5 + spec.x * 0.42, 0.9 - spec.depth * 1.0)
+end
+
+-- ------------------------------------------------------------------- widgets
 
 local function injuryDot(parent: Instance)
 	local inj = Instance.new("Frame")
@@ -151,20 +164,21 @@ local function injuryDot(parent: Instance)
 	inj.ZIndex = 3
 	inj.Parent = parent
 	Theme.corner(inj, 6)
-	Theme.stroke(inj, 0.2, Color3.new(1, 1, 1))
+	Theme.stroke(inj)
 end
 
 -- Pitch card: shoulder headshot, surname, role bottom-left, OVR bottom-right.
-local function card(parent: Instance, p: Player, kit: Color3, selected: boolean): Frame
+local function card(parent: Instance, p: Player, kit: Color3): Frame
 	local f = Instance.new("Frame")
 	f.Name = ("Card%d"):format(p.id)
 	f.Size = UDim2.fromOffset(CARD_W, CARD_H)
+	f.AnchorPoint = Vector2.new(0.5, 0.5)
 	f.BackgroundColor3 = CARD_BG
 	f.BackgroundTransparency = 0.08
 	f.BorderSizePixel = 0
 	f.Parent = parent
-	Theme.corner(f, 8)
-	Theme.stroke(f, if selected then 0 else 0.55, if selected then Theme.colors.accent else Color3.fromRGB(120, 150, 210))
+	Theme.corner(f, Theme.cardRadius)
+	Theme.stroke(f)
 
 	local face = Instance.new("Frame")
 	face.Name = "Face"
@@ -173,9 +187,9 @@ local function card(parent: Instance, p: Player, kit: Color3, selected: boolean)
 	face.BackgroundTransparency = 1
 	face.ClipsDescendants = true
 	face.Parent = f
-	Theme.corner(face, 6)
+	Theme.corner(face, Theme.chipRadius)
 	Headshot.attach(face, p.look or p.id, kit, p.number, { shoulders = true })
-	Theme.stroke(face, 0.35, Color3.fromRGB(120, 150, 210))
+	Theme.stroke(face)
 
 	Theme.text(f, surname(p.name), "body", {
 		Name = "Name",
@@ -207,16 +221,15 @@ local function card(parent: Instance, p: Player, kit: Color3, selected: boolean)
 end
 
 -- Bench / reserve row: headshot left, name + role, OVR right.
-local function row(parent: Instance, p: Player, kit: Color3, selected: boolean, order: number): Frame
+local function row(parent: Instance, p: Player, kit: Color3): Frame
 	local f = Instance.new("Frame")
 	f.Name = ("Row%d"):format(p.id)
-	f.Size = UDim2.new(1, 0, 0, ROW_H)
+	f.Size = UDim2.new(1, -6, 0, ROW_H)
 	f.BackgroundColor3 = CARD_BG
 	f.BorderSizePixel = 0
-	f.LayoutOrder = order
 	f.Parent = parent
-	Theme.corner(f, 8)
-	Theme.stroke(f, if selected then 0 else 0.6, if selected then Theme.colors.accent else Color3.fromRGB(120, 150, 210))
+	Theme.corner(f, Theme.cardRadius)
+	Theme.stroke(f)
 
 	local face = Instance.new("Frame")
 	face.Name = "Face"
@@ -225,9 +238,9 @@ local function row(parent: Instance, p: Player, kit: Color3, selected: boolean, 
 	face.BackgroundTransparency = 1
 	face.ClipsDescendants = true
 	face.Parent = f
-	Theme.corner(face, 6)
+	Theme.corner(face, Theme.chipRadius)
 	Headshot.attach(face, p.look or p.id, kit, p.number, { shoulders = true })
-	Theme.stroke(face, 0.35, Color3.fromRGB(120, 150, 210))
+	Theme.stroke(face)
 
 	Theme.text(f, surname(p.name), "body", {
 		Name = "Name",
@@ -258,9 +271,50 @@ local function row(parent: Instance, p: Player, kit: Color3, selected: boolean, 
 	return f
 end
 
--- ------------------------------------------------------------- drag & drop
+-- Dark rounded panel with a gold display title and an optional right-hand label.
+local function panel(parent: Instance, name: string, title: string, size: UDim2, position: UDim2?): (Frame, Frame, TextLabel)
+	local f = Instance.new("Frame")
+	f.Name = name
+	f.BackgroundColor3 = PANEL_BG
+	f.BorderSizePixel = 0
+	f.Size = size
+	f.Position = position or UDim2.fromOffset(0, 0)
+	f.Parent = parent
+	Theme.corner(f, Theme.radius)
+	Theme.stroke(f)
+	Theme.text(f, title, "display", {
+		Name = "Title",
+		Size = UDim2.new(0.6, 0, 0, 30),
+		Position = UDim2.fromOffset(14, 10),
+		TextSize = 22,
+	})
+	local right = Theme.text(f, "", "muted", {
+		Name = "Right",
+		Size = UDim2.new(0.4, -14, 0, 30),
+		Position = UDim2.new(1, -14, 0, 10),
+		AnchorPoint = Vector2.new(1, 0),
+		TextSize = 14,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		TextYAlignment = Enum.TextYAlignment.Center,
+	})
+	local inner = Instance.new("Frame")
+	inner.Name = "Inner"
+	inner.BackgroundTransparency = 1
+	inner.Position = UDim2.fromOffset(12, 48)
+	inner.Size = UDim2.new(1, -24, 1, -60)
+	inner.Parent = f
+	return f, inner, right
+end
 
-type CardEntry = { frame: Frame, id: number }
+-- --------------------------------------------------------------- the board
+
+type Entry = { frame: Frame, id: number }
+
+export type Board = {
+	frame: Frame,
+	update: (club: Club, selectedId: number?, canDrag: boolean, canRelease: boolean) -> (),
+	destroy: () -> (),
+}
 
 local function pointerInside(frame: GuiObject, pos: Vector2): boolean
 	local a, s = frame.AbsolutePosition, frame.AbsoluteSize
@@ -274,263 +328,30 @@ local function guiPos(input: InputObject): Vector2
 	return Vector2.new(input.Position.X, input.Position.Y)
 end
 
-local function cardAt(entries: { CardEntry }, pos: Vector2, except: number?): CardEntry?
-	for _, entry in entries do
-		if entry.id ~= except and entry.frame.Parent and pointerInside(entry.frame, pos) then
-			return entry
-		end
-	end
-	return nil
-end
-
--- One listener per board on UserInputService with manual hit-testing, so
--- mouse and touch behave the same and nothing depends on which child of the
--- card happens to be under the pointer.
-local function wireDrag(board: Frame, entries: { CardEntry }, opts: Options, overlay: ScreenGui)
-	local began = UserInputService.InputBegan:Connect(function(input)
-		if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then
-			return
-		end
-		-- taps always select (so a reserve can be sold with Auto Squad on);
-		-- dragging and swapping need canDrag
-		if not board.Parent then
-			return
-		end
-		local start = guiPos(input)
-		local entry = cardAt(entries, start, nil)
-		if not entry then
-			return
-		end
-		local frame, id = entry.frame, entry.id
-		local moved = false
-		local ghost: Frame? = nil
-		local grab = start - frame.AbsolutePosition
-		local changed: RBXScriptConnection
-		local ended: RBXScriptConnection
-
-		local function finish(pos: Vector2)
-			changed:Disconnect()
-			ended:Disconnect()
-			opts.lockScroll(false)
-			if ghost then
-				ghost:Destroy()
-			end
-			if moved then
-				local target = cardAt(entries, pos, id)
-				if target then
-					opts.onSwap(id, target.id)
-				end
-				return
-			end
-			-- a tap: select, or swap with the earlier selection
-			local sel = opts.selectedId
-			if sel == nil then
-				opts.onSelect(id)
-			elseif sel == id then
-				opts.onSelect(nil)
-			elseif opts.canDrag then
-				opts.onSwap(sel, id)
-			else
-				opts.onSelect(id)
-			end
-		end
-
-		changed = UserInputService.InputChanged:Connect(function(i)
-			if i.UserInputType ~= Enum.UserInputType.MouseMovement and i.UserInputType ~= Enum.UserInputType.Touch then
-				return
-			end
-			local pos = guiPos(i)
-			if not opts.canDrag or (not moved and (pos - start).Magnitude < DRAG_THRESHOLD) then
-				return
-			end
-			if not moved then
-				moved = true
-				opts.lockScroll(true)
-				local g = frame:Clone()
-				g.Name = "Ghost"
-				g.AnchorPoint = Vector2.zero
-				g.Size = UDim2.fromOffset(frame.AbsoluteSize.X, frame.AbsoluteSize.Y)
-				g.ZIndex = 50
-				for _, d in g:GetDescendants() do
-					if d:IsA("GuiObject") then
-						d.ZIndex = 50
-					end
-				end
-				g.BackgroundTransparency = 0.15
-				g.Parent = overlay
-				ghost = g
-			end
-			local g = ghost :: Frame
-			g.Position = UDim2.fromOffset(pos.X - grab.X, pos.Y - grab.Y)
-		end)
-		ended = UserInputService.InputEnded:Connect(function(i)
-			if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-				finish(guiPos(i))
-			end
-		end)
-	end)
-	board.AncestryChanged:Connect(function()
-		if not board:IsDescendantOf(game) then
-			began:Disconnect()
-		end
-	end)
-end
-
--- ------------------------------------------------------------------- render
-
--- Dark rounded panel with a gold display title and an optional right-hand label.
-local function panel(parent: Instance, name: string, title: string, right: string?): (Frame, Frame)
-	local f = Instance.new("Frame")
-	f.Name = name
-	f.BackgroundColor3 = PANEL_BG
-	f.BorderSizePixel = 0
-	f.Size = UDim2.new(1, 0, 0, 0)
-	f.AutomaticSize = Enum.AutomaticSize.Y
-	f.Parent = parent
-	Theme.corner(f, 10)
-	Theme.stroke(f, 0.88)
-	Theme.text(f, title, "display", {
-		Name = "Title",
-		Size = UDim2.new(0.6, 0, 0, 30),
-		Position = UDim2.fromOffset(14, 10),
-		TextSize = 22,
-	})
-	if right then
-		Theme.text(f, right, "muted", {
-			Name = "Right",
-			Size = UDim2.new(0.4, -14, 0, 30),
-			Position = UDim2.new(1, -14, 0, 10),
-			AnchorPoint = Vector2.new(1, 0),
-			TextSize = 14,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			TextYAlignment = Enum.TextYAlignment.Center,
-		})
-	end
-	local inner = Instance.new("Frame")
-	inner.Name = "Inner"
-	inner.BackgroundTransparency = 1
-	inner.Position = UDim2.fromOffset(12, 48)
-	inner.Size = UDim2.new(1, -24, 0, 0)
-	inner.AutomaticSize = Enum.AutomaticSize.Y
-	inner.Parent = f
-	local pad = Instance.new("UIPadding")
-	pad.PaddingBottom = UDim.new(0, 12)
-	pad.Parent = f
-	return f, inner
-end
-
-local function listSection(parent: Instance, title: string, count: number, order: number): Frame
-	local holder = Instance.new("Frame")
-	holder.Name = title
-	holder.BackgroundTransparency = 1
-	holder.Size = UDim2.new(1, 0, 0, 0)
-	holder.AutomaticSize = Enum.AutomaticSize.Y
-	holder.LayoutOrder = order
-	holder.Parent = parent
-	local layout = Instance.new("UIListLayout")
-	layout.Padding = UDim.new(0, 8)
-	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Parent = holder
-	local head = Instance.new("Frame")
-	head.Name = "Head"
-	head.BackgroundTransparency = 1
-	head.Size = UDim2.new(1, 0, 0, 22)
-	head.LayoutOrder = 0
-	head.Parent = holder
-	Theme.text(head, title, "display", { Size = UDim2.new(0.6, 0, 1, 0), TextSize = 16 })
-	Theme.text(head, ("%d players"):format(count), "muted", {
-		Size = UDim2.new(0.4, 0, 1, 0),
-		Position = UDim2.fromScale(1, 0),
-		AnchorPoint = Vector2.new(1, 0),
-		TextSize = 13,
-		TextXAlignment = Enum.TextXAlignment.Right,
-	})
-	return holder
-end
-
--- Sell strip for the selected bench / reserve player. Two taps: the first
--- arms the button and shows the fee, the second sells.
-local function sellStrip(parent: Instance, p: Player, order: number, onSell: (number) -> ())
-	local value = Squad.value(p :: any)
-	local strip = Instance.new("Frame")
-	strip.Name = "Sell"
-	strip.BackgroundColor3 = CARD_BG
-	strip.BorderSizePixel = 0
-	strip.Size = UDim2.new(1, 0, 0, 78)
-	strip.LayoutOrder = order
-	strip.Parent = parent
-	Theme.corner(strip, 8)
-	Theme.stroke(strip, 0.2, Theme.colors.accent)
-	Theme.text(strip, ("%s  ·  %s  ·  OVR %d  ·  age %d"):format(p.name, p.role, p.overall, p.age), "body", {
-		Size = UDim2.new(1, -16, 0, 20),
-		Position = UDim2.fromOffset(8, 6),
-		TextSize = 13,
-		Font = Theme.fonts.bold,
-		TextTruncate = Enum.TextTruncate.AtEnd,
-	})
-	Theme.text(strip, ("Transfer value %s. Selling adds it to club cash."):format(Theme.money(value)), "muted", {
-		Size = UDim2.new(1, -16, 0, 16),
-		Position = UDim2.fromOffset(8, 26),
-		TextSize = 12,
-	})
-	local sell = Theme.button(strip, ("SELL  ·  %s"):format(Theme.money(value)), "danger", {
-		Size = UDim2.new(1, -16, 0, 28),
-		Position = UDim2.fromOffset(8, 44),
-		TextSize = 13,
-	})
-	local armed = false
-	sell.Activated:Connect(function()
-		if not armed then
-			armed = true
-			sell.Text = ("TAP AGAIN TO CONFIRM  ·  %s"):format(Theme.money(value))
-			sell.BackgroundColor3 = Theme.colors.accent
-			sell.TextColor3 = Theme.colors.bg
-			return
-		end
-		onSell(p.id)
-	end)
-end
-
-function LineupBoard.render(parent: GuiObject, opts: Options): Frame
-	local club = opts.club
-	local byId: { [number]: Player } = {}
-	for _, p in club.players do
-		byId[p.id] = p
-	end
-
+function LineupBoard.new(parent: GuiObject, opts: Options): Board
 	local board = Instance.new("Frame")
 	board.Name = "LineupBoard"
 	board.BackgroundTransparency = 1
-	board.Size = UDim2.new(1, -10, 0, 0)
-	board.AutomaticSize = Enum.AutomaticSize.Y
-	board.LayoutOrder = opts.layoutOrder
+	board.Size = UDim2.fromScale(1, 1)
 	board.Parent = parent
 
-	-- ghosts live on their own ScreenGui so they float above the panel
-	local overlay = Instance.new("ScreenGui")
-	overlay.Name = "LineupDrag"
-	overlay.DisplayOrder = 50
-	overlay.ResetOnSpawn = false
-	overlay.IgnoreGuiInset = false -- same GUI space as the cards' AbsolutePosition
-	overlay.Parent = parent:FindFirstAncestorOfClass("ScreenGui") and (parent:FindFirstAncestorOfClass("ScreenGui") :: ScreenGui).Parent or parent
-	board.AncestryChanged:Connect(function()
-		if not board:IsDescendantOf(game) then
-			overlay:Destroy()
-		end
-	end)
+	-- ghosts float above everything in the same absolute space as the cards, so
+	-- a drag can be positioned by simple subtraction whatever the GUI inset is
+	local overlay = Instance.new("Frame")
+	overlay.Name = "DragOverlay"
+	overlay.BackgroundTransparency = 1
+	overlay.Size = UDim2.fromScale(1, 1)
+	overlay.ZIndex = 100
+	overlay.Active = false
+	overlay.Parent = parent:FindFirstAncestorOfClass("ScreenGui") or parent
 
-	local entries: { CardEntry } = {}
-	local used: { [number]: boolean } = {}
-	local inXi: { [number]: boolean } = {}
-
-	-- left: STARTING XI panel with the pitch
+	-- ---------------------------------------------------------- left: the XI
 	local left = Instance.new("Frame")
 	left.Name = "Left"
 	left.BackgroundTransparency = 1
-	left.Size = UDim2.new(PITCH_FRACTION, -COLUMN_GAP / 2, 0, 0)
-	left.AutomaticSize = Enum.AutomaticSize.Y
+	left.Size = UDim2.new(PITCH_FRACTION, -COLUMN_GAP / 2, 1, 0)
 	left.Parent = board
-	local xiPanel, xiInner = panel(left, "StartingXI", "STARTING XI")
+	local xiPanel, xiInner = panel(left, "StartingXI", "STARTING XI", UDim2.fromScale(1, 1))
 	local formation = Theme.text(xiPanel, "4 - 4 - 2", "body", {
 		Name = "Formation",
 		Size = UDim2.fromOffset(96, 30),
@@ -542,113 +363,492 @@ function LineupBoard.render(parent: GuiObject, opts: Options): Frame
 		TextSize = 15,
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
-	Theme.corner(formation, 8)
-	Theme.stroke(formation, 0.6, Color3.fromRGB(120, 150, 210))
+	Theme.corner(formation, Theme.chipRadius)
+	Theme.stroke(formation)
 
 	local pitch = Instance.new("Frame")
 	pitch.Name = "Pitch"
 	pitch.BackgroundColor3 = PITCH_GREEN
 	pitch.BorderSizePixel = 0
-	pitch.Size = UDim2.new(1, 0, 0, PITCH_H)
+	pitch.Size = UDim2.fromScale(1, 1)
 	pitch.Parent = xiInner
 	drawPitch(pitch)
-	for slot, spec in Pitch.FORMATION do
-		local u = 0.5 + spec.x * 0.42
-		local v = 0.9 - spec.depth * 1.0 -- GK on the goal line of the artwork, FWD near the far box
-		local id = club.lineup.xi[slot]
-		local p = if id then byId[id] else nil
-		if p then
-			used[p.id] = true
-			inXi[p.id] = true
-			local c = card(pitch, p, opts.kit, opts.selectedId == p.id)
-			c.AnchorPoint = Vector2.new(0.5, 0.5)
-			c.Position = UDim2.fromScale(u, v)
-			table.insert(entries, { frame = c, id = p.id })
-		else
-			local empty = Instance.new("Frame")
-			empty.Size = UDim2.fromOffset(CARD_W, CARD_H)
-			empty.AnchorPoint = Vector2.new(0.5, 0.5)
-			empty.Position = UDim2.fromScale(u, v)
-			empty.BackgroundColor3 = CARD_BG
-			empty.BackgroundTransparency = 0.4
-			empty.BorderSizePixel = 0
-			empty.Parent = pitch
-			Theme.corner(empty, 8)
-			Theme.stroke(empty, 0.3, Theme.colors.bad)
-			Theme.text(empty, Pitch.ROLES[slot] .. "\nempty", "body", {
-				Size = UDim2.fromScale(1, 1),
-				TextSize = 12,
-				TextColor3 = Theme.colors.bad,
-				TextXAlignment = Enum.TextXAlignment.Center,
-			})
-		end
-	end
 
-	-- right: BENCH panel with the bench rows, reserves below, sell strip
+	-- ------------------------------------------------------ right: the bench
 	local right = Instance.new("Frame")
 	right.Name = "Right"
 	right.BackgroundTransparency = 1
 	right.Position = UDim2.new(PITCH_FRACTION, COLUMN_GAP / 2, 0, 0)
-	right.Size = UDim2.new(1 - PITCH_FRACTION, -COLUMN_GAP / 2, 0, 0)
-	right.AutomaticSize = Enum.AutomaticSize.Y
+	right.Size = UDim2.new(1 - PITCH_FRACTION, -COLUMN_GAP / 2, 1, 0)
 	right.Parent = board
-	local benchPanel, benchInner = panel(right, "Bench", "BENCH", ("%d players"):format(#club.lineup.bench))
+
+	local _, benchInner, benchCount = panel(right, "Bench", "SQUAD", UDim2.new(1, 0, 1, -DETAIL_H - COLUMN_GAP))
+
+	-- the one and only scrolling region on this screen
+	local benchScroll = Instance.new("ScrollingFrame")
+	benchScroll.Name = "BenchList"
+	benchScroll.BackgroundTransparency = 1
+	benchScroll.BorderSizePixel = 0
+	benchScroll.Size = UDim2.fromScale(1, 1)
+	benchScroll.ScrollBarThickness = 5
+	benchScroll.ScrollBarImageTransparency = 0.4
+	benchScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	benchScroll.CanvasSize = UDim2.new()
+	benchScroll.Parent = benchInner
 	local benchLayout = Instance.new("UIListLayout")
-	benchLayout.Padding = UDim.new(0, 10)
+	benchLayout.Padding = UDim.new(0, 8)
 	benchLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	benchLayout.Parent = benchInner
+	benchLayout.Parent = benchScroll
 
-	local benchList = Instance.new("Frame")
-	benchList.Name = "BenchList"
-	benchList.BackgroundTransparency = 1
-	benchList.Size = UDim2.new(1, 0, 0, 0)
-	benchList.AutomaticSize = Enum.AutomaticSize.Y
-	benchList.LayoutOrder = 1
-	benchList.Parent = benchInner
-	local benchListLayout = Instance.new("UIListLayout")
-	benchListLayout.Padding = UDim.new(0, 8)
-	benchListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	benchListLayout.Parent = benchList
-	for i, id in club.lineup.bench do
-		local p = byId[id]
-		if p then
-			used[p.id] = true
-			local r = row(benchList, p, opts.kit, opts.selectedId == p.id, i)
-			table.insert(entries, { frame = r, id = p.id })
+	local _, detailInner = panel(right, "Detail", "PLAYER", UDim2.new(1, 0, 0, DETAIL_H), UDim2.new(0, 0, 1, -DETAIL_H))
+
+	-- ------------------------------------------------------------- the state
+	local cards: { [number]: Frame } = {} -- player id -> pitch card
+	local rows: { [number]: Frame } = {} -- player id -> bench / reserve row
+	local headers: { [string]: Frame } = {} -- section heading rows, reused
+	local empties: { [number]: Frame } = {} -- slot -> "empty" placeholder
+	local entries: { Entry } = {}
+	local byId: { [number]: Player } = {}
+	local selectedId: number? = nil
+	local canDrag, canRelease = false, false
+	local detailFor: number? = nil
+	local detailDirty = true
+
+	local function strokeOf(frame: Frame): UIStroke?
+		return frame:FindFirstChildOfClass("UIStroke")
+	end
+
+	local function setState(frame: Frame, state: Theme.StrokeState?)
+		local s = strokeOf(frame)
+		if s then
+			Theme.setStroke(s, state)
 		end
 	end
 
-	local reserves = {}
-	for _, p in club.players do
-		if not used[p.id] then
-			table.insert(reserves, p)
-		end
+	local function restingState(id: number): Theme.StrokeState?
+		return if selectedId == id then "selected" else nil
 	end
-	if #reserves > 0 then
-		local list = listSection(benchInner, "RESERVES", #reserves, 2)
-		for i, p in reserves do
-			local r = row(list, p, opts.kit, opts.selectedId == p.id, i)
-			table.insert(entries, { frame = r, id = p.id })
+
+	-- ------------------------------------------------------- detail window
+	local function clearDetail()
+		for _, child in detailInner:GetChildren() do
+			child:Destroy()
 		end
 	end
 
-	-- selling: only the owner, only players outside the XI (the server enforces both too)
-	local selected = if opts.selectedId then byId[opts.selectedId] else nil
-	if selected and opts.canRelease and not inXi[selected.id] then
-		sellStrip(benchInner, selected, 3, opts.onSell)
-	else
-		Theme.text(benchInner, "Select a reserve to view details or sell.", "muted", {
-			Name = "Hint",
-			Size = UDim2.new(1, 0, 0, 24),
-			TextSize = 13,
-			TextXAlignment = Enum.TextXAlignment.Center,
-			LayoutOrder = 3,
+	local function stat(parent: Instance, index: number, title: string, value: string, color: Color3?)
+		local col, line = (index - 1) % 3, math.floor((index - 1) / 3)
+		local box = Instance.new("Frame")
+		box.Name = title
+		box.BackgroundColor3 = CARD_BG
+		box.BorderSizePixel = 0
+		box.Size = UDim2.new(1 / 3, -6, 0, 50)
+		box.Position = UDim2.new(col / 3, col * 3, 0, line * 56)
+		box.Parent = parent
+		Theme.corner(box, Theme.chipRadius)
+		Theme.stroke(box)
+		Theme.text(box, title, "muted", {
+			Size = UDim2.new(1, -12, 0, 14),
+			Position = UDim2.fromOffset(8, 6),
+			TextSize = 11,
+			Font = Theme.fonts.bold,
+		})
+		Theme.text(box, value, "body", {
+			Size = UDim2.new(1, -12, 0, 26),
+			Position = UDim2.fromOffset(8, 20),
+			TextSize = 22,
+			Font = Theme.fonts.display,
+			TextColor3 = color or Theme.colors.text,
+			TextTruncate = Enum.TextTruncate.AtEnd,
 		})
 	end
-	benchPanel.Visible = true
 
-	wireDrag(board, entries, opts, overlay)
-	return board
+	-- Rebuilt only when the selection changes: one small panel, never the screen.
+	local function renderDetail()
+		clearDetail()
+		local p = if selectedId then byId[selectedId] else nil
+		if not p then
+			Theme.text(detailInner, "Select a player to see their details.", "muted", {
+				Size = UDim2.fromScale(1, 1),
+				TextSize = 14,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
+			})
+			return
+		end
+
+		local face = Instance.new("Frame")
+		face.Name = "Face"
+		face.Size = UDim2.fromOffset(64, 64)
+		face.BackgroundTransparency = 1
+		face.ClipsDescendants = true
+		face.Parent = detailInner
+		Theme.corner(face, Theme.chipRadius)
+		Headshot.attach(face, p.look or p.id, opts.kit, p.number, { shoulders = true })
+		Theme.stroke(face)
+
+		Theme.text(detailInner, p.name, "body", {
+			Size = UDim2.new(1, -76, 0, 26),
+			Position = UDim2.fromOffset(74, 4),
+			TextSize = 20,
+			Font = Theme.fonts.display,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+		})
+		local status = if p.injured > 0
+			then ("Injured · out %d match%s"):format(p.injured, if p.injured == 1 then "" else "es")
+			else ("Squad number %d"):format(p.number)
+		Theme.text(detailInner, ("%s  ·  %s"):format(p.role, status), "muted", {
+			Size = UDim2.new(1, -76, 0, 20),
+			Position = UDim2.fromOffset(74, 30),
+			TextSize = 13,
+			TextColor3 = if p.injured > 0 then Theme.colors.bad else Theme.colors.muted,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+		})
+		local value = Squad.value(p :: any)
+		Theme.text(detailInner, ("Value %s"):format(Theme.money(value)), "cash", {
+			Size = UDim2.new(1, -76, 0, 20),
+			Position = UDim2.fromOffset(74, 48),
+			TextSize = 14,
+		})
+
+		local grid = Instance.new("Frame")
+		grid.Name = "Stats"
+		grid.BackgroundTransparency = 1
+		grid.Position = UDim2.fromOffset(0, 74)
+		grid.Size = UDim2.new(1, 0, 0, 106)
+		grid.Parent = detailInner
+		stat(grid, 1, "OVERALL", tostring(p.overall), Theme.colors.accent)
+		stat(grid, 2, "POTENTIAL", tostring(p.potential or p.overall), Theme.colors.info)
+		stat(grid, 3, "AGE", tostring(p.age))
+		stat(grid, 4, "APPS", tostring(p.apps or 0))
+		stat(grid, 5, "GOALS", tostring(p.goals or 0))
+		stat(grid, 6, "SHIRT", ("#%d"):format(p.number))
+
+		-- Sell sits in the window, always on screen. Two taps: arm, then confirm.
+		local inXi = cards[p.id] ~= nil
+		if not canRelease then
+			return
+		end
+		if inXi then
+			Theme.text(detailInner, "In the starting XI. Move them out of the team to sell.", "muted", {
+				Size = UDim2.new(1, 0, 0, 30),
+				Position = UDim2.new(0, 0, 1, -30),
+				TextSize = 12,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
+			})
+			return
+		end
+		local sell = Theme.button(detailInner, ("SELL  ·  %s"):format(Theme.money(value)), "danger", {
+			Size = UDim2.new(1, 0, 0, 34),
+			Position = UDim2.new(0, 0, 1, -34),
+			TextSize = 14,
+			Font = Theme.fonts.display,
+		})
+		local armed = false
+		sell.Activated:Connect(function()
+			if not armed then
+				armed = true
+				sell.Text = ("TAP AGAIN TO CONFIRM  ·  %s"):format(Theme.money(value))
+				sell.BackgroundColor3 = Theme.colors.accent
+				sell.TextColor3 = Theme.colors.bg
+				return
+			end
+			opts.onSell(p.id)
+		end)
+	end
+
+	-- ------------------------------------------------------------ list header
+	local function sectionHeader(key: string, title: string, count: number, order: number)
+		local head = headers[key]
+		if not head then
+			head = Instance.new("Frame")
+			head.Name = key
+			head.BackgroundTransparency = 1
+			head.Size = UDim2.new(1, -6, 0, 24)
+			head.Parent = benchScroll
+			Theme.text(head, title, "display", { Name = "Title", Size = UDim2.new(0.6, 0, 1, 0), TextSize = 16 })
+			Theme.text(head, "", "muted", {
+				Name = "Count",
+				Size = UDim2.new(0.4, 0, 1, 0),
+				Position = UDim2.fromScale(1, 0),
+				AnchorPoint = Vector2.new(1, 0),
+				TextSize = 13,
+				TextXAlignment = Enum.TextXAlignment.Right,
+			});
+			headers[key] = head
+		end
+		(head:FindFirstChild("Count") :: TextLabel).Text = ("%d player%s"):format(count, if count == 1 then "" else "s")
+		head.LayoutOrder = order
+		head.Visible = true
+	end
+
+	-- ------------------------------------------------------------- the update
+	local function update(club: Club, newSelected: number?, drag: boolean, release: boolean)
+		local previous = selectedId
+		selectedId, canDrag, canRelease = newSelected, drag, release
+		table.clear(byId)
+		for _, p in club.players do
+			byId[p.id] = p
+		end
+
+		-- starting XI: a card belongs to a player, so a swap only moves cards
+		local wantCard: { [number]: boolean } = {}
+		for slot = 1, #Pitch.FORMATION do
+			local id = club.lineup.xi[slot]
+			local p = if id then byId[id] else nil
+			if p then
+				wantCard[p.id] = true
+				local c = cards[p.id]
+				if not c then
+					c = card(pitch, p, opts.kit)
+					cards[p.id] = c
+				end
+				c.Position = slotPosition(slot)
+				if empties[slot] then
+					empties[slot]:Destroy()
+					empties[slot] = nil
+				end
+			elseif not empties[slot] then
+				local empty = Instance.new("Frame")
+				empty.Name = ("Empty%d"):format(slot)
+				empty.Size = UDim2.fromOffset(CARD_W, CARD_H)
+				empty.AnchorPoint = Vector2.new(0.5, 0.5)
+				empty.Position = slotPosition(slot)
+				empty.BackgroundColor3 = CARD_BG
+				empty.BackgroundTransparency = 0.4
+				empty.BorderSizePixel = 0
+				empty.Parent = pitch
+				Theme.corner(empty, Theme.cardRadius)
+				Theme.stroke(empty, "danger")
+				Theme.text(empty, Pitch.ROLES[slot] .. "\nempty", "body", {
+					Size = UDim2.fromScale(1, 1),
+					TextSize = 12,
+					TextColor3 = Theme.colors.bad,
+					TextXAlignment = Enum.TextXAlignment.Center,
+				})
+				empties[slot] = empty
+			end
+		end
+		for id, frame in cards do
+			if not wantCard[id] then
+				frame:Destroy()
+				cards[id] = nil
+			end
+		end
+
+		-- bench then reserves, as one scrolling list with two headings
+		local onBench: { [number]: boolean } = {}
+		local order, wantRow = 0, {}
+		local function place(p: Player)
+			order += 1
+			local r = rows[p.id]
+			if not r then
+				r = row(benchScroll, p, opts.kit)
+				rows[p.id] = r
+			end
+			r.LayoutOrder = order
+			wantRow[p.id] = true
+		end
+		local bench: { Player } = {}
+		for _, id in club.lineup.bench do
+			local p = byId[id]
+			if p then
+				onBench[id] = true
+				table.insert(bench, p)
+			end
+		end
+		local reserves: { Player } = {}
+		for _, p in club.players do
+			if not onBench[p.id] and not wantCard[p.id] then
+				table.insert(reserves, p)
+			end
+		end
+		order += 1
+		sectionHeader("BenchHead", "BENCH", #bench, order)
+		for _, p in bench do
+			place(p)
+		end
+		if #reserves > 0 then
+			order += 1
+			sectionHeader("ReserveHead", "RESERVES", #reserves, order)
+			for _, p in reserves do
+				place(p)
+			end
+		elseif headers.ReserveHead then
+			headers.ReserveHead.Visible = false
+		end
+		for id, frame in rows do
+			if not wantRow[id] then
+				frame:Destroy()
+				rows[id] = nil
+			end
+		end
+		benchCount.Text = ("%d players"):format(#club.players)
+
+		-- hit-test list, and the resting outline for everything on screen
+		table.clear(entries)
+		for id, frame in cards do
+			table.insert(entries, { frame = frame, id = id })
+			setState(frame, restingState(id))
+		end
+		for id, frame in rows do
+			table.insert(entries, { frame = frame, id = id })
+			setState(frame, restingState(id))
+		end
+
+		-- the detail window is the only thing rebuilt, and only when it changed
+		if detailDirty or previous ~= selectedId or detailFor ~= selectedId then
+			detailDirty = false
+			detailFor = selectedId
+			renderDetail()
+		end
+	end
+
+	-- ---------------------------------------------------------- drag & drop
+	local function cardAt(pos: Vector2, except: number?): Entry?
+		for _, entry in entries do
+			if entry.id ~= except and entry.frame.Parent and pointerInside(entry.frame, pos) then
+				return entry
+			end
+		end
+		return nil
+	end
+
+	-- One listener with manual hit-testing, so mouse and touch behave the same
+	-- and nothing depends on which child of the card is under the pointer.
+	local began = UserInputService.InputBegan:Connect(function(input)
+		if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then
+			return
+		end
+		if not board.Parent or not board.Visible then
+			return
+		end
+		local start = guiPos(input)
+		local entry = cardAt(start, nil)
+		if not entry then
+			return
+		end
+		local frame, id = entry.frame, entry.id
+		local restBackground = frame.BackgroundTransparency
+		-- press feedback straight away, so a click never looks ignored
+		setState(frame, "selected")
+		local moved = false
+		local ghost: Frame? = nil
+		local target: Entry? = nil
+		local grab = start - frame.AbsolutePosition
+		local changed: RBXScriptConnection
+		local ended: RBXScriptConnection
+
+		local function clearTarget()
+			if target then
+				setState(target.frame, restingState(target.id))
+				target = nil
+			end
+		end
+
+		local function finish(pos: Vector2)
+			changed:Disconnect()
+			ended:Disconnect()
+			if ghost then
+				ghost:Destroy()
+			end
+			frame.BackgroundTransparency = restBackground
+			for _, d in frame:GetChildren() do
+				if d:IsA("GuiObject") then
+					d.Visible = true
+				end
+			end
+			setState(frame, restingState(id))
+			local dropped = target
+			clearTarget()
+			benchScroll.ScrollingEnabled = true
+			if moved then
+				if dropped then
+					opts.onSwap(id, dropped.id)
+				end
+				return
+			end
+			-- a tap: select, or swap with the earlier selection
+			if selectedId == nil then
+				opts.onSelect(id)
+			elseif selectedId == id then
+				opts.onSelect(nil)
+			elseif canDrag then
+				opts.onSwap(selectedId, id)
+			else
+				opts.onSelect(id)
+			end
+		end
+
+		changed = UserInputService.InputChanged:Connect(function(i)
+			if i.UserInputType ~= Enum.UserInputType.MouseMovement and i.UserInputType ~= Enum.UserInputType.Touch then
+				return
+			end
+			local pos = guiPos(i)
+			if not canDrag or (not moved and (pos - start).Magnitude < DRAG_THRESHOLD) then
+				return
+			end
+			if not moved then
+				moved = true
+				benchScroll.ScrollingEnabled = false
+				local g = frame:Clone()
+				g.Name = "Ghost"
+				g.AnchorPoint = Vector2.zero
+				g.Size = UDim2.fromOffset(frame.AbsoluteSize.X, frame.AbsoluteSize.Y)
+				g.Visible = true
+				g.ZIndex = 100
+				for _, d in g:GetDescendants() do
+					if d:IsA("GuiObject") then
+						d.ZIndex = 100
+					end
+				end
+				g.BackgroundTransparency = 0 -- opaque, so it reads over any panel
+				g.Parent = overlay
+				ghost = g
+				-- the card is "in hand": leave an empty slot behind rather than
+				-- hiding the frame, so the bench list does not reflow mid-drag
+				frame.BackgroundTransparency = 0.75
+				for _, d in frame:GetChildren() do
+					if d:IsA("GuiObject") then
+						d.Visible = false
+					end
+				end
+			end
+			-- overlay and cards share one absolute space, whatever the GUI inset is
+			local origin = overlay.AbsolutePosition
+			local g = ghost :: Frame
+			g.Position = UDim2.fromOffset(pos.X - grab.X - origin.X, pos.Y - grab.Y - origin.Y)
+			local hit = cardAt(pos, id)
+			if hit ~= target then
+				clearTarget()
+				if hit then
+					target = hit
+					setState(hit.frame, "target")
+				end
+			end
+		end)
+		ended = UserInputService.InputEnded:Connect(function(i)
+			if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+				finish(guiPos(i))
+			end
+		end)
+	end)
+
+	local function destroy()
+		began:Disconnect()
+		overlay:Destroy()
+		board:Destroy()
+	end
+	board.AncestryChanged:Connect(function()
+		if not board:IsDescendantOf(game) then
+			began:Disconnect()
+			overlay:Destroy()
+		end
+	end)
+
+	renderDetail()
+	return { frame = board, update = update, destroy = destroy }
 end
 
 return LineupBoard
