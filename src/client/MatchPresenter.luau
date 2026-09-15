@@ -30,6 +30,8 @@ type Team = {
 	keeperKit: Color3,
 	squad: { Player },
 	players: { [number]: Footballer.Footballer }, -- keyed by formation slot 1..11
+	bench: { [number]: Footballer.Footballer }, -- keyed by squad index 12..n
+	benchSeats: { [number]: Vector3 }, -- where each of them is sitting
 	slots: { Vector3 },
 	push: number, -- extra shift toward the goal being attacked, in studs
 }
@@ -179,12 +181,26 @@ function Presenter.new(timeline: Timeline, duration: number): Presenter
 			keeperKit = KEEPER_KITS[teamName],
 			squad = data.squad,
 			players = {},
+			bench = {},
+			benchSeats = {},
 			slots = Pitch.formationSlots(teamName, "Balanced"),
 			push = 0,
 		}
 		for idx = 1, #Pitch.ROLES do
 			local p = data.squad[idx]
 			team.players[idx] = Footballer.new(folder, idx == 1 and team.keeperKit or kit, p.number, p.name, Pitch.TUNNEL, p.look, idx == 1)
+		end
+		-- Substitutes sit in the dugout for the whole match, which is what
+		-- makes a substitution read: one of them gets up and walks on.
+		for idx = #Pitch.ROLES + 1, #data.squad do
+			local p = data.squad[idx]
+			local seat = Pitch.benchSeat(teamName, idx - #Pitch.ROLES)
+			local fb = Footballer.new(folder, kit, p.number, p.name, seat, p.look, false)
+			fb:setTagVisible(false)
+			fb:face(centre())
+			fb:sit()
+			team.bench[idx] = fb
+			team.benchSeats[idx] = seat
 		end
 		self.teams[teamName] = team
 	end
@@ -202,6 +218,9 @@ function Presenter.step(self: Presenter, dt: number)
 	end
 	for _, team in self.teams do
 		for _, fb in team.players do
+			fb:update(dt)
+		end
+		for _, fb in team.bench do
 			fb:update(dt)
 		end
 	end
@@ -663,22 +682,49 @@ function Presenter.start(self: Presenter, kickoffAt: number)
 end
 
 -- Applies any substitutions not yet shown. `subs` is the server's full list.
+-- The replacement is the footballer already sitting in the dugout: they stand
+-- up and run on, and the player coming off walks over and takes their seat.
 function Presenter.applySubs(self: Presenter, subs: { { out: number, ["in"]: number } })
 	local team = self.teams.Home
 	for i = self.appliedSubs + 1, #subs do
 		local sub = subs[i]
 		local outgoing = team.players[sub.out]
+		local fb = team.bench[sub["in"]]
 		local incoming = team.squad[sub["in"]]
-		if outgoing and incoming then
+		if not fb and incoming then
+			-- no seat for them (a squad shorter than the bench): come out of the tunnel
+			fb = Footballer.new(self.folder, team.kit, incoming.number, incoming.name, Pitch.TUNNEL, incoming.look, false)
+		end
+		if outgoing and fb then
+			local seat = team.benchSeats[sub["in"]]
 			outgoing.busy = true
 			outgoing.speed = WALK_SPEED
-			outgoing:setTarget(Pitch.TUNNEL)
-			task.delay(8, function()
-				outgoing:destroy()
+			outgoing:setTarget(seat or Pitch.TUNNEL)
+			if seat then
+				task.delay(10, function()
+					outgoing:teleport(seat)
+					outgoing:face(centre())
+					outgoing:sit()
+				end)
+			else
+				task.delay(8, function()
+					outgoing:destroy()
+				end)
+			end
+			fb:stand()
+			fb:setTagVisible(true)
+			fb.busy = false
+			fb.speed = RUN_SPEED
+			-- out to the touchline first, so they do not run through the dugout
+			local slot = team.slots[sub.out]
+			fb:setTarget(Vector3.new(-(Pitch.WIDTH / 2 - 3), Pitch.SURFACE_Y, (seat or slot).Z))
+			task.delay(2, function()
+				fb:setTarget(slot)
 			end)
-			local fb = Footballer.new(self.folder, team.kit, incoming.number, incoming.name, Pitch.TUNNEL, incoming.look, false)
-			fb:setTarget(team.slots[sub.out])
+			-- they swap places: the bench slot now belongs to the player who
+			-- came off, which also keeps them in the per-frame update
 			team.players[sub.out] = fb
+			team.bench[sub["in"]] = if seat then outgoing else nil
 		end
 	end
 	self.appliedSubs = #subs
@@ -694,6 +740,14 @@ function Presenter.finish(self: Presenter)
 		fb.speed = WALK_SPEED
 		fb:setTarget(Pitch.TUNNEL)
 	end)
+	-- the bench gets up and goes in too
+	for _, team in self.teams do
+		for _, fb in team.bench do
+			fb:stand()
+			fb.speed = WALK_SPEED
+			fb:setTarget(Pitch.TUNNEL)
+		end
+	end
 	task.delay(6, function()
 		self:destroy()
 	end)

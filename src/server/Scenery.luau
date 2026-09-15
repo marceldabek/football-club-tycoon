@@ -169,17 +169,23 @@ local function tree(parent: Instance, pos: Vector3, rng: Random)
 	trunk.CanCollide = true
 end
 
+-- Everything the club occupies, as a rectangle trees have to stay out of. It
+-- is lopsided because the club is: the tunnel runs west through the stand into
+-- the dressing rooms and the office, and the forecourt and car park sit off
+-- the north-west corner. A tree was growing through the office before this was
+-- measured from the real extents rather than guessed from the pitch.
+local KEEP_OUT_WEST = -(Pitch.SIDE_EDGE + 140)
+local KEEP_OUT_EAST = Pitch.SIDE_EDGE + 80
+local KEEP_OUT_Z = Pitch.END_EDGE + 80 -- covers the forecourt and the floodlight masts
+
 local function setupTrees(parent: Instance)
 	local rng = Random.new(21)
-	local fenceX = Pitch.WIDTH / 2 + 5
-	local fenceZ = Pitch.LENGTH / 2 + 12
 	local kinds = Assets.list("Trees") -- Creator Store low-poly trees when the place has them
 	local placed = 0
 	while placed < 46 do
 		local x = rng:NextNumber(-520, 520)
 		local z = rng:NextNumber(-520, 520)
-		-- keep clear of the club footprint (pitch, stand to the east, office to the west)
-		local insideClub = math.abs(x) < fenceX + 110 and math.abs(z) < fenceZ + 40
+		local insideClub = x > KEEP_OUT_WEST and x < KEEP_OUT_EAST and math.abs(z) < KEEP_OUT_Z
 		if insideClub then
 			continue
 		end
@@ -199,7 +205,8 @@ local function setupTrees(parent: Instance)
 		end
 		placed += 1
 	end
-	-- a hedge line along the north end behind the goal, with a gap for the eye
+	-- A hedge line along the north end behind the goal, with a gap for the eye.
+	-- Far enough back to clear a full-depth north stand.
 	for i = -6, 6 do
 		if i == 0 then
 			continue
@@ -207,7 +214,7 @@ local function setupTrees(parent: Instance)
 		part({
 			Name = "Hedge",
 			Size = Vector3.new(24, 4, 3),
-			CFrame = CFrame.new(i * 26, GROUND_Y + 2, -(fenceZ + 30)),
+			CFrame = CFrame.new(i * 26, GROUND_Y + 2, -(Pitch.END_EDGE + 70)),
 			Color = Color3.fromRGB(55, 110, 50),
 			Material = Enum.Material.Grass,
 			Parent = parent,

@@ -13,12 +13,13 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Appearance = require(ReplicatedStorage.Shared.Appearance)
+local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local BlockFootballer = require(script.Parent.BlockFootballer)
 
 local Footballer = {}
 Footballer.__index = Footballer
 
-export type Pose = "idle" | "kick" | "celebrate" | "dive"
+export type Pose = "idle" | "kick" | "celebrate" | "dive" | "sit"
 
 export type Footballer = typeof(setmetatable(
 	{} :: {
@@ -56,13 +57,19 @@ export type Footballer = typeof(setmetatable(
 ))
 
 -- Roblox-owned animation assets (playable from any experience).
-local ANIM = { idle = 507766388, walk = 507777826, run = 507767714 }
+local ANIM = { idle = 507766388, walk = 507777826, run = 507767714, sit = 2506281703 }
 local CELEBRATE = { 507770677, 507771019, 507770453 } -- cheer, dance, point
 -- TEMP tuning
 local WALK_MAX = 15 -- studs/s; faster than this plays the run track
 local WALK_ANIM_SPEED = 8 -- studs/s at which the walk track plays at 1x
 local RUN_ANIM_SPEED = 16 -- studs/s at which the run track plays at 1x
-local POSE_LENGTH: { [Pose]: number } = { idle = 0, kick = 0.4, celebrate = 2.5, dive = 1.3 }
+-- `sit` never expires on its own: a substitute stays on the bench until they
+-- are brought on.
+local POSE_LENGTH: { [Pose]: number } = { idle = 0, kick = 0.4, celebrate = 2.5, dive = 1.3, sit = math.huge }
+-- Hip height while sitting, measured from the footballer's position. Shared
+-- with the dugout geometry so a substitute neither floats above the bench nor
+-- sinks through it.
+local SIT_HIP = Pitch.BENCH_HIP_Y
 local KEEPER_SHORTS = Color3.fromRGB(25, 25, 25)
 
 local warnedFallback = false
@@ -315,6 +322,26 @@ function Footballer.celebrate(self: Footballer)
 	end
 end
 
+-- Substitutes wait on the bench rather than standing in the tunnel. Sitting
+-- holds until stand() is called, which is what a substitution looks like.
+function Footballer.sit(self: Footballer)
+	self.target = nil
+	self.velocity = Vector3.zero
+	setPose(self, "sit")
+	if self.fallback then
+		self.fallback:sit()
+	end
+end
+
+function Footballer.stand(self: Footballer)
+	if self.pose == "sit" then
+		setPose(self, "idle")
+	end
+	if self.fallback then
+		self.fallback:stand()
+	end
+end
+
 -- dir: -1 dives to the player's left, 1 to the right.
 function Footballer.dive(self: Footballer, dir: number)
 	self.diveDir = dir >= 0 and 1 or -1
@@ -402,12 +429,16 @@ function Footballer.update(self: Footballer, dt: number)
 		local k = math.min(self.poseT / 0.25, 1)
 		tilt = self.diveDir * 1.35 * k
 		lift = -1.6 * k
+	elseif self.pose == "sit" then
+		lift = SIT_HIP - self.hipHeight
 	end
 	root.CFrame = CFrame.new(self.position + Vector3.new(0, self.hipHeight + lift, 0))
 		* CFrame.Angles(0, self.yaw, 0)
 		* CFrame.Angles(0, 0, tilt)
 
-	if self.pose == "celebrate" or self.pose == "dive" then
+	if self.pose == "sit" then
+		playTrack(self, "sit", 1)
+	elseif self.pose == "celebrate" or self.pose == "dive" then
 		playTrack(self, "idle", 1)
 	elseif speedNow < 1.5 then
 		playTrack(self, "idle", 1)

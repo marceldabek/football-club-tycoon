@@ -67,9 +67,10 @@ game.ServerScriptService.Server:SetAttribute("DebugRun", "playMatch|20|3")
 ## Ground layout
 
 Pitch centred on the origin, long axis along Z (`Pitch.luau` owns the numbers). Working
-outward: ad boards at the touchline, then the **hardstanding** — the paved ring fans walk on
-and the dugouts sit on — then the **perimeter wall** on the line `Pitch.SIDE_EDGE` /
-`Pitch.END_EDGE`, then the stands.
+outward: the **turf run-off** carrying `Pitch.GRASS_MARGIN` past the markings (the nets, the
+corner flags and the technical areas all stand on it), then the ad boards, then the
+**hardstanding** — the paved ring fans walk on and the dugouts sit on — then the **perimeter
+wall** on the line `Pitch.SIDE_EDGE` / `Pitch.END_EDGE`, then the stands.
 
 Each of the four sides is an independent **plot** (`Config.StandPlots`) on the shared
 `Config.StandLevels` chain, so the ground grows asymmetrically like a real lower-league
@@ -78,10 +79,16 @@ local frame where +X points away from the pitch and +Z runs along the stand, so 
 serves all four sides. The wall stops short of all four corners: three are closed with a
 diagonal panel, and the open north-west one is the turnstile entrance.
 
-Two ways in, deliberately separate: the player spawns in the **office** on the paved
-forecourt outside that corner and walks through the **turnstiles**; the footballers use the
-**tunnel** mouth in the middle of the west wall (`Pitch.TUNNEL`). Keeping them apart is what
-frees all four sides for stands.
+The **tunnel** runs from the middle of the west wall straight back through the gap in the
+west stand to the **dressing rooms** and, at the far end, the **office**. The player spawns
+at the desk and walks out down the tunnel onto the pitch, passing the matchday board on the
+way — the same way the team comes out. The terrace stops against the tunnel's own side walls
+and carries over its roof from the row that clears it, so the only hole in the west stand is
+the mouth, and it closes itself as the stand is upgraded.
+
+The **turnstiles** in the open north-west corner are the public way in, onto a paved
+forecourt with the concourse, the car park and the team bus. Nothing the player needs is
+there except what they choose to build.
 
 ## Architecture
 

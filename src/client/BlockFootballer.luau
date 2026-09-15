@@ -13,7 +13,7 @@ local LEG = Vector3.new(0.7, 2, 0.7)
 local ARM = Vector3.new(0.6, 2, 0.6)
 local SKIN = Color3.fromRGB(230, 190, 150) -- TEMP: single tone for now
 
-export type Pose = "idle" | "kick" | "celebrate" | "dive"
+export type Pose = "idle" | "kick" | "celebrate" | "dive" | "sit"
 
 export type BlockFootballer = typeof(setmetatable(
 	{} :: {
@@ -37,7 +37,10 @@ export type BlockFootballer = typeof(setmetatable(
 	BlockFootballer
 ))
 
-local POSE_LENGTH: { [Pose]: number } = { idle = 0, kick = 0.4, celebrate = 2.5, dive = 1.3 }
+local POSE_LENGTH: { [Pose]: number } = { idle = 0, kick = 0.4, celebrate = 2.5, dive = 1.3, sit = math.huge }
+-- Sitting on the dugout bench: the legs fold forward, so the torso rides a
+-- little higher than standing leg length would put it.
+local SIT_LIFT = 0.25
 
 local function part(name: string, size: Vector3, color: Color3, parent: Instance): Part
 	local p = Instance.new("Part")
@@ -169,6 +172,18 @@ function BlockFootballer.celebrate(self: BlockFootballer)
 end
 
 -- dir: -1 dives to the player's left, 1 to the right.
+function BlockFootballer.sit(self: BlockFootballer)
+	self.target = nil
+	self.velocity = Vector3.zero
+	setPose(self, "sit")
+end
+
+function BlockFootballer.stand(self: BlockFootballer)
+	if self.pose == "sit" then
+		setPose(self, "idle")
+	end
+end
+
 function BlockFootballer.dive(self: BlockFootballer, dir: number)
 	self.diveDir = dir >= 0 and 1 or -1
 	setPose(self, "dive")
@@ -226,6 +241,11 @@ function BlockFootballer.update(self: BlockFootballer, dt: number)
 		tilt = self.diveDir * 1.35 * k
 		lift = -1.6 * k
 		armLA, armRA = math.pi / 2, math.pi / 2
+	elseif self.pose == "sit" then
+		-- thighs forward, hips resting on the bench
+		lift = SIT_LIFT
+		legLA, legRA = math.pi / 2, math.pi / 2
+		armLA, armRA = 0.25, 0.25
 	end
 
 	local torsoCenterY = LEG.Y + TORSO.Y / 2 + bob + lift
