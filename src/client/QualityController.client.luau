@@ -142,10 +142,19 @@ end
 
 -- The HUD only exists once a plot is claimed (HUD.client.luau waits for the
 -- club), so wait for it rather than making a second ScreenGui. Sits directly
--- under the Music toggle, same size and style.
+-- under the Music toggle, same size and style. X279: a visitor never gets that
+-- HUD, so the toggle attaches to whichever screen turns up — theirs is
+-- VisitorOverlay.
 task.spawn(function()
-	local hud = player:WaitForChild("PlayerGui"):WaitForChild("TycoonHUD", math.huge)
-	local button = Theme.button(hud, "", "ghost", {
+	local playerGui = player:WaitForChild("PlayerGui")
+	local host: Instance? = nil
+	while not host do
+		host = playerGui:FindFirstChild("TycoonHUD") or playerGui:FindFirstChild("VisitorOverlay")
+		if not host then
+			task.wait(0.5)
+		end
+	end
+	local button = Theme.button(host :: Instance, "", "ghost", {
 		Name = "QualityToggle",
 		Size = UDim2.fromOffset(130, 34),
 		Position = UDim2.new(1, -20, 0, 92),
@@ -154,6 +163,15 @@ task.spawn(function()
 	local function refresh()
 		button.Text = "Quality: " .. level
 		button.TextColor3 = if level == "High" then Theme.colors.text else Theme.colors.muted
+	end
+	-- X279: a visitor has no club to read a saved choice from, so don't wait for one
+	if not player:GetAttribute("ClubPlot") and host and host.Name == "VisitorOverlay" then
+		button.Activated:Connect(function()
+			setLevel(Quality.other(level))
+			refresh()
+		end)
+		refresh()
+		return
 	end
 	local state = require(script.Parent.ClubRef).waitState()
 	local savedApplied = false
