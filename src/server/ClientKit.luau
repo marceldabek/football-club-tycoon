@@ -4,9 +4,9 @@
 -- ReplicatedStorage.ClientKit. Only single-mesh models go here, to keep what
 -- every client downloads small.
 --
---   ClientKit.Cars   one-MeshPart hatchbacks for MatchdayLife's car park cars.
---                    Each copy's WorldPivot is moved to the mesh centre with no
---                    rotation, so its long axis is the pivot's Z.
+--   ClientKit.Cars   one-MeshPart hatchbacks for MatchdayLife's car park cars
+--                    and Traffic. Each copy's WorldPivot is the mesh's own
+--                    CFrame: pivot Z is the car's length, -Z its front.
 --
 -- Place-file models that are already in ReplicatedStorage.ClientKit (the swan,
 -- X113) are left alone.
@@ -17,6 +17,10 @@ local ServerStorage = game:GetService("ServerStorage")
 local ClientKit = {}
 
 ClientKit.CARS = { "HatchbackOrange", "HatchbackNavy", "HatchbackRed", "HatchbackSilver" }
+-- X128: checked in Studio: with the mesh unrotated, the store orange car's
+-- front faces -Z but the three generated ones face +Z. Published as a
+-- FrontYaw attribute (radians to add so the front faces -Z).
+ClientKit.FRONT_YAW = { HatchbackNavy = math.pi, HatchbackRed = math.pi, HatchbackSilver = math.pi } :: { [string]: number }
 
 function ClientKit.publish(): string
 	local kit = ServerStorage:FindFirstChild("Kit")
@@ -58,7 +62,10 @@ function ClientKit.publish(): string
 		mesh.CanCollide = false
 		mesh.CanQuery = false
 		mesh.CanTouch = false
-		copy.WorldPivot = CFrame.new(mesh.Position)
+		-- the generated meshes sit turned 45 degrees inside their models: pivot on
+		-- the mesh itself, so pivot Z is the car's length and -Z its front
+		copy.WorldPivot = mesh.CFrame
+		copy:SetAttribute("FrontYaw", ClientKit.FRONT_YAW[name] or 0)
 		copy.Parent = cars
 		count += 1
 	end

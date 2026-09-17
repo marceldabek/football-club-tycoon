@@ -163,6 +163,8 @@ local BUS_DESTINATIONS = { "21  TOWN CENTRE", "7  STATION", "12  RIVERSIDE", "23
 type Car = {
 	model: Model,
 	parts: { BasePart },
+	meshOffsets: { Vector3 }?, -- X128: a kit mesh car's single offset (replaces CAR_OFFSETS)
+	meshYaw: number, -- X128: turn so the kit mesh's front faces the root's -Z
 	isBus: boolean,
 	isBike: boolean,
 	roadIndex: number,
@@ -323,6 +325,15 @@ local function buildBike(parent: Instance, color: Color3): { BasePart }
 	return { front, rear, frame, torso, head, legL, legR }
 end
 
+-- X128: kit hatchbacks published by the server's ClientKit, if any. Scaled so
+-- they are about the primitive car's size (a real car beside the characters).
+local KIT_CAR_SCALE = 0.5
+local function kitCarTemplates(): { Instance }
+	local clientKit = ReplicatedStorage:FindFirstChild("ClientKit")
+	local cars = clientKit and clientKit:FindFirstChild("Cars")
+	return if cars then cars:GetChildren() else {}
+end
+
 -- ------------------------------------------------------------------ spawn / despawn
 
 local function spawnCar(roadIndex: number, distance: number, direction: number)
@@ -336,11 +347,31 @@ local function spawnCar(roadIndex: number, distance: number, direction: number)
 	model.Name = if isBike then "Bike" elseif isBus then "Bus" else "Car"
 	model.Parent = root
 
-	local parts = if isBike then buildBike(model, color) elseif isBus then buildBus(model, color) else buildCar(model, color)
+	local parts: { BasePart }
+	local meshOffsets: { Vector3 }? = nil
+	local meshYaw = 0
+	local kitCars = kitCarTemplates()
+	if not isBike and not isBus and #kitCars > 0 then
+		-- X128: one of the town's hatchback meshes (ClientKit.Cars; pivot Z is
+		-- the length, -Z the front, like the root), scaled to traffic size
+		local template = kitCars[math.random(1, #kitCars)]
+		local mesh = (template:FindFirstChildWhichIsA("BasePart", true) :: BasePart):Clone()
+		mesh.Size *= KIT_CAR_SCALE
+		mesh.CastShadow = true
+		mesh.Parent = model
+		parts = { mesh }
+		meshOffsets = { Vector3.new(0, mesh.Size.Y / 2 + 0.05, 0) }
+		local yaw = template:GetAttribute("FrontYaw")
+		meshYaw = if type(yaw) == "number" then yaw else 0
+	else
+		parts = if isBike then buildBike(model, color) elseif isBus then buildBus(model, color) else buildCar(model, color)
+	end
 
 	local car: Car = {
 		model = model,
 		parts = parts,
+		meshOffsets = meshOffsets,
+		meshYaw = meshYaw,
 		isBus = isBus,
 		isBike = isBike,
 		roadIndex = roadIndex,
@@ -573,7 +604,11 @@ local function moveCar(car: Car, dt: number)
 	end
 
 	local currentRoad = TownLayout.ROADS[car.roadIndex]
-	local point, direction = TrafficMath.pointAt(currentRoad.points, car.distance)
+	local point, lineDirection = TrafficMath.pointAt(currentRoad.points, car.distance)
+	-- X128: face (and keep left for) the way the car is actually travelling. The
+	-- polyline's own direction put cars going the other way in the same lane,
+	-- driving backwards, which the old box cars hid.
+	local direction = lineDirection * car.direction
 	local flatPos = point
 		+ (if car.isBike
 			then TrafficMath.kerbOffset(direction, currentRoad.width, BIKE_KERB_INSET)
@@ -586,11 +621,12 @@ local function moveCar(car: Car, dt: number)
 	local yaw = math.atan2(-direction.X, -direction.Z)
 	local rootCFrame = CFrame.new(flatPos.X, y, flatPos.Z) * CFrame.Angles(0, yaw, 0)
 
-	local offsets = if car.isBike then BIKE_OFFSETS elseif car.isBus then BUS_OFFSETS else CAR_OFFSETS
+	local offsets = if car.meshOffsets then car.meshOffsets elseif car.isBike then BIKE_OFFSETS elseif car.isBus then BUS_OFFSETS else CAR_OFFSETS
 	local parts = car.parts
 	for i = 1, #parts do
 		table.insert(moveParts, parts[i])
-		table.insert(moveCFrames, rootCFrame * CFrame.new(offsets[i]))
+		local cf = rootCFrame * CFrame.new(offsets[i])
+		table.insert(moveCFrames, if car.meshYaw ~= 0 then cf * CFrame.Angles(0, car.meshYaw, 0) else cf)
 	end
 end
 

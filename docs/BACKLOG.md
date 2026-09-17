@@ -240,4 +240,5 @@
 - [x] X125 (10:06 four supporters with pints huddle on the supporters' bar patio while the crowd is out, visible to everyone; 5 parts each) Matchday life at the X97 bar `[studio]` S
 - [x] X126 (10:07 three fans queue at the snack kiosk hatch while the crowd is out; 3-4 parts each) Matchday life at the X95 kiosk `[studio]` S
 - [x] X127 (10:10 matchday car park cars are the town's one-mesh hatchbacks, published to ReplicatedStorage.ClientKit.Cars by the new ClientKit server module and scaled 0.85 to fit the bays; 1 part per car instead of 2 grey blocks) `[studio]` S
+- [x] X128 (10:16 traffic cars are the town's hatchback meshes (1 part instead of 8); fixed a traffic bug on the way: cars travelling against a road's polyline drove backwards in the same lane) `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
