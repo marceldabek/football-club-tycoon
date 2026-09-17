@@ -710,7 +710,9 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 	-- ---------------------------------------------------------- drag & drop
 	local function cardAt(pos: Vector2, except: number?): Entry?
 		for _, entry in entries do
-			if entry.id ~= except and entry.frame.Parent and pointerInside(entry.frame, pos) then
+			-- X241: bench cards scrolled out of the list's view can't be hit
+			local clipped = entry.frame:IsDescendantOf(benchScroll) and not pointerInside(benchScroll, pos)
+			if entry.id ~= except and entry.frame.Parent and not clipped and pointerInside(entry.frame, pos) then
 				return entry
 			end
 		end
@@ -736,6 +738,8 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 		-- press feedback straight away, so a click never looks ignored
 		setState(frame, "selected")
 		local moved = false
+		local travelled = 0 -- furthest the pointer got from the press, in pixels
+		local onBench = frame:IsDescendantOf(benchScroll)
 		local ghost: Frame? = nil
 		local target: Entry? = nil
 		local grab = start - frame.AbsolutePosition
@@ -765,8 +769,10 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 			local dropped = target
 			clearTarget()
 			benchScroll.ScrollingEnabled = true
-			if moved then
-				if dropped then
+			if moved or travelled >= DRAG_THRESHOLD * 3 then
+				-- X241: a press that wandered is never a tap (a scroll, or a drag
+				-- attempt with Auto Squad on)
+				if moved and dropped then
 					opts.onSwap(id, dropped.id)
 				end
 				return
@@ -783,12 +789,27 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 			end
 		end
 
+		-- X241: follow only the finger (or mouse) that pressed; a second touch
+		-- (thumbstick, camera) must not move or drop the card
+		local isTouch = input.UserInputType == Enum.UserInputType.Touch
+		local function ours(i: InputObject, moving: boolean): boolean
+			if isTouch then
+				return i == input
+			end
+			return i.UserInputType == (if moving then Enum.UserInputType.MouseMovement else Enum.UserInputType.MouseButton1)
+		end
+
 		changed = UserInputService.InputChanged:Connect(function(i)
-			if i.UserInputType ~= Enum.UserInputType.MouseMovement and i.UserInputType ~= Enum.UserInputType.Touch then
+			if not ours(i, true) then
 				return
 			end
 			local pos = guiPos(i)
+			travelled = math.max(travelled, (pos - start).Magnitude)
 			if not canDrag or (not moved and (pos - start).Magnitude < DRAG_THRESHOLD) then
+				return
+			end
+			if not moved and onBench and math.abs(pos.Y - start.Y) > math.abs(pos.X - start.X) then
+				-- a mostly vertical swipe on the bench list scrolls it instead
 				return
 			end
 			if not moved then
@@ -831,7 +852,7 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 			end
 		end)
 		ended = UserInputService.InputEnded:Connect(function(i)
-			if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			if ours(i, false) then
 				finish(guiPos(i))
 			end
 		end)
