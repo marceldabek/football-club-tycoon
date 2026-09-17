@@ -188,11 +188,18 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	}))
 	ClubState.set("Phase", "PreMatch")
 
-	task.wait(walkout)
+	-- Review of X314: filling the ground on the kick-off frame rebuilt every
+	-- fan (up to MAX_FANS rigs) in the first frame of the match, where a phone
+	-- would feel it. The build happens in the last second and a half of the
+	-- walkout instead, under the presentation, and the ground is still full
+	-- when the whistle goes.
+	local settle = math.min(walkout, 1.5)
+	task.wait(math.max(walkout - settle, 0))
+	fill(1)
+	task.wait(settle)
 
 	ClubState.set("KickoffAt", workspace:GetServerTimeNow())
 	ClubState.set("Phase", "Match")
-	fill(1) -- X314: the ground is full by the time the whistle goes
 
 	-- Presentation layer (scoreboard): replay goal events against the clock.
 	local startClock = os.clock()
@@ -252,8 +259,13 @@ local function finishCore()
 		if not ok then
 			WorldBuilder.clearCrowd()
 		end
+		-- Review of X314: the timer only checked `running`, but the owner can
+		-- leave inside those 40 s and the plot be claimed again; clearCrowd
+		-- resolves the club lazily, so it would have emptied the new
+		-- claimant's stands mid-match. Bail if the club is not ours any more.
+		local ourClub = PlotContext.clubModel()
 		task.delay(Config.CrowdEmptySeconds, function()
-			if not running then
+			if not running and ourClub and ourClub.Parent and PlotContext.clubModel() == ourClub then
 				WorldBuilder.clearCrowd()
 			end
 		end)

@@ -213,6 +213,13 @@ local function generateFresh()
 	shortlist = {}
 	academy = {} -- X289: a brand-new club has produced nobody yet
 	lineup = { xi = {}, bench = {} }
+	-- Review of X325: the intake is published on the restore path only, and
+	-- ReplicatedStorage.Clubs.PlotN is found-or-created and never cleared, so a
+	-- new player claiming a plot whose last owner had an intake saw that
+	-- stranger's youngsters chalked on their board (and a youth session on
+	-- pitch 2 for players they do not have). A fresh club publishes an empty
+	-- one.
+	ClubState.set("Academy", "[]")
 	recomputeLineup()
 end
 

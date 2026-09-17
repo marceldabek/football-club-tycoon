@@ -274,6 +274,22 @@ local function cell(parent: Instance, text: string, x: number, w: number, props:
 	end
 end
 
+-- A cell pinned to the right-hand end of its row, so it survives a narrow
+-- screen (review of X325).
+local function rightCell(parent: Instance, text: string, w: number, props: { [string]: any }?)
+	local l = label(parent, text, {
+		Position = UDim2.new(1, -(w + 10), 0, 0),
+		Size = UDim2.fromOffset(w, 30),
+		TextSize = 15,
+		TextXAlignment = Enum.TextXAlignment.Right,
+	})
+	if props then
+		for k, v in props do
+			(l :: any)[k] = v
+		end
+	end
+end
+
 -- Visitors (anyone but the owner) can look but not touch.
 local function canManage(): boolean
 	return get("OwnerUserId") == player.UserId
@@ -810,23 +826,41 @@ local function renderFinance()
 
 	if #matches > 0 then
 		section(if #matches == 1 then "LAST MATCHDAY" else ("LAST %d MATCHDAYS"):format(#matches))
+		-- Review of X325: six money columns need a 621-wide row, and a phone in
+		-- portrait gives about 310 - so Sponsor and Total, the two the sponsor
+		-- column was added to reconcile, fell off the right-hand edge of a
+		-- ScrollingFrame that does not scroll sideways. Total is pinned to the
+		-- row's right edge, and a narrow row drops the two middle columns
+		-- (which are both spelled out in MONEY IN just above).
+		local wide = content.AbsoluteSize.X >= 560
 		local head = row(false)
 		head.BackgroundColor3 = PANEL_BG
 		cell(head, "Match", 10, 60, { TextColor3 = GREY })
 		cell(head, "Tickets", 75, 85, { TextColor3 = GREY })
-		cell(head, "Concessions", 165, 105, { TextColor3 = GREY })
-		cell(head, "Bonus", 275, 70, { TextColor3 = GREY })
-		cell(head, "Sponsor", 350, 80, { TextColor3 = GREY })
-		cell(head, "Total", 435, 90, { TextColor3 = GREY })
+		if wide then
+			cell(head, "Concessions", 165, 105, { TextColor3 = GREY })
+			cell(head, "Bonus", 275, 70, { TextColor3 = GREY })
+			cell(head, "Sponsor", 350, 80, { TextColor3 = GREY })
+		else
+			cell(head, "Conc.", 165, 80, { TextColor3 = GREY })
+		end
+		rightCell(head, "Total", 90, { TextColor3 = GREY })
 		for i = #matches, 1, -1 do
 			local m = matches[i]
 			local f = row(i % 2 == 0)
 			cell(f, ("%d"):format(m.round or 0), 10, 60, { TextColor3 = GREY })
 			cell(f, money(m.gate or 0), 75, 85)
-			cell(f, money(m.concessions or 0), 165, 105)
-			cell(f, money(m.bonus or 0), 275, 70)
-			cell(f, money(m.sponsor or 0), 350, 80)
-			cell(f, money(m.total or 0), 435, 90, { TextColor3 = Theme.colors.cash, Font = Enum.Font.GothamBold })
+			if wide then
+				cell(f, money(m.concessions or 0), 165, 105)
+				cell(f, money(m.bonus or 0), 275, 70)
+				cell(f, money(m.sponsor or 0), 350, 80)
+			else
+				cell(f, money(m.concessions or 0), 165, 80)
+			end
+			rightCell(f, money(m.total or 0), 90, { TextColor3 = Theme.colors.cash, Font = Enum.Font.GothamBold })
+		end
+		if not wide then
+			note("Bonus and sponsor are in MONEY IN above.", GREY)
 		end
 	end
 end

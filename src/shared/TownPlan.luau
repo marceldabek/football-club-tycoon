@@ -101,7 +101,7 @@ end
 -- "360 m" / "1.4 km", rounded the way a signpost rounds.
 function TownPlan.distanceText(studs: number): string
 	local m = TownPlan.metres(studs)
-	if m >= 950 then
+	if m >= 1000 then
 		return ("%.1f km"):format(m / 1000)
 	end
 	if m >= 100 then

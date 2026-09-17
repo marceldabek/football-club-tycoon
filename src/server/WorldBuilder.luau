@@ -1291,8 +1291,15 @@ local function bindDressingRooms()
 				for _, p in club.players do
 					byId[p.id] = p
 				end
-				for _, id in club.lineup.xi do
-					local p = byId[id]
+				-- Review of X317: an XI with a hole in it is sparse, and JSON
+				-- turns a sparse array into an object with string keys, so
+				-- `for _, id in xi` walked a hash table and the numbers landed
+				-- on arbitrary pegs. Walk the slots in order, the way the panel
+				-- does with the same field.
+				local slots = club.lineup.xi :: any
+				for slot = 1, #Pitch.ROLES do
+					local id = slots[slot] or slots[tostring(slot)]
+					local p = if id then byId[id] else nil
 					if p then
 						table.insert(xi, { number = p.number, name = p.name })
 					end
@@ -2542,6 +2549,17 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 	-- the front rows would pass 100%; capping them there used to lose ~13% of fans
 	local swing = if base > 0 then math.min(0.5, (1 - base) / base) else 0.5
 
+	-- Review of X314: one RNG stream decided both which seats were taken and
+	-- what each fan looked like, so raising the share re-rolled the whole
+	-- ground: the three-stage fill moved everybody rather than adding to them.
+	-- Each seat now has its own number, from where it is, so a bigger share
+	-- only ever adds fans and the ones already in keep their seat and shirt.
+	local function seatHash(key: string, row: number, i: number): number
+		local h = bit32.bxor(row * 73856093, i * 19349663, (string.byte(key) or 65) * 83492791)
+		h = bit32.bxor(h, bit32.rshift(h, 13))
+		return h % 2147483647
+	end
+
 	local placed, slots = 0, 0
 	for _, plot in PLOTS do
 		local stand = stands:FindFirstChild(plot.key)
@@ -2573,12 +2591,13 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 				slots += perRow
 				for i = 1, perRow do
 					-- deterministic scatter: skip seats so density visibly tracks attendance
-					if rng:NextNumber() > chance then
+					local seat = seatHash(plot.key, row, i)
+					if (seat % 10007) / 10007 > chance then
 						continue
 					end
 					local z = run[1] + 1 + nudge + spacing * (i - 0.5)
 					-- yaw so the fan's front faces the pitch (local -X)
-					buildFan(PlotContext.cframe * geo.frame * CFrame.new(x, top, z) * CFrame.Angles(0, math.pi / 2, 0), rng, crowd, row <= FAN_LEG_ROWS, if awayEnd then awayColours else homeColours)
+					buildFan(PlotContext.cframe * geo.frame * CFrame.new(x, top, z) * CFrame.Angles(0, math.pi / 2, 0), Random.new(seat), crowd, row <= FAN_LEG_ROWS, if awayEnd then awayColours else homeColours)
 					placed += 1
 				end
 			end

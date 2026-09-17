@@ -173,8 +173,33 @@ function T.fastForwardHasAnOccasionalOvercastWeek()
 		assert(track.keys[#track.keys].at == track.duration, "and end at the end")
 	end
 	assert(wet > 0 and dry > wet, ("about a third of weeks should be grey: %d wet, %d dry"):format(wet, dry))
-	-- deterministic, and a season sweep behaves the same way
-	assert(DayCycle.isOvercastWeek(4) == DayCycle.isOvercastWeek(4), "the same week always looks the same")
+	-- Deterministic in the sense that matters: the same seed gives the same
+	-- track, key for key, and a different seed is allowed to differ. (The first
+	-- version compared isOvercastWeek(4) with itself, which asserts nothing.)
+	local a = DayCycle.fastForward("match", false, 4)
+	local b = DayCycle.fastForward("match", false, 4)
+	assert(#a.keys == #b.keys, "the same week should give the same number of keys")
+	for i, key in a.keys do
+		assert(key.look == b.keys[i].look and key.at == b.keys[i].at, "the same week must sweep the same way")
+	end
+	local wetWeek, dryWeek = nil, nil
+	for week = 1, 12 do
+		if DayCycle.isOvercastWeek(week) then
+			wetWeek = wetWeek or week
+		else
+			dryWeek = dryWeek or week
+		end
+	end
+	assert(wetWeek and dryWeek, "there should be both kinds of week in the first dozen")
+	local wetTrack = DayCycle.fastForward("match", false, wetWeek)
+	local dryTrack = DayCycle.fastForward("match", false, dryWeek)
+	local differs = false
+	for i, key in wetTrack.keys do
+		if key.look ~= dryTrack.keys[i].look then
+			differs = true
+		end
+	end
+	assert(differs, "a grey week and a clear week should not sweep identically")
 	assert(not DayCycle.isOvercastWeek(nil), "no seed means no weather")
 	local season = DayCycle.fastForward("season", false, 1)
 	assert(season.keys[#season.keys].look == "HeroAfternoon", "the season sweep ends on the hero afternoon too")

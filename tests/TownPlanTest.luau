@@ -18,11 +18,14 @@ function T.boundsHoldEveryStopAndPlot()
 end
 
 function T.everyStopProjectsInsideTheRectangle()
-	local plan = TownPlan.fit(332, 150)
-	for _, stop in TownLayout.BUS_STOPS do
-		local p = TownPlan.project(plan, stop.position)
-		assert(p.X >= 0 and p.X <= 332, stop.name .. " projected off the card in X: " .. tostring(p.X))
-		assert(p.Y >= 0 and p.Y <= 150, stop.name .. " projected off the card in Y: " .. tostring(p.Y))
+	-- the card's own size, and a narrow phone's, since the card shrinks
+	for _, size in { Vector2.new(332, 148), Vector2.new(260, 120), Vector2.new(166, 74) } do
+		local plan = TownPlan.fit(size.X, size.Y)
+		for _, stop in TownLayout.BUS_STOPS do
+			local p = TownPlan.project(plan, stop.position)
+			assert(p.X >= 0 and p.X <= size.X, ("%s projected off a %d-wide card: %s"):format(stop.name, size.X, tostring(p.X)))
+			assert(p.Y >= 0 and p.Y <= size.Y, ("%s projected off a %d-tall card: %s"):format(stop.name, size.Y, tostring(p.Y)))
+		end
 	end
 end
 
@@ -63,6 +66,9 @@ function T.distanceTextRoundsLikeASignpost()
 	assert(TownPlan.distanceText(137.5) == "50 m", "137.5 studs is 50 m, got " .. TownPlan.distanceText(137.5))
 	assert(TownPlan.distanceText(1100) == "400 m", "1100 studs is 400 m, got " .. TownPlan.distanceText(1100))
 	assert(TownPlan.distanceText(3850) == "1.4 km", "3850 studs is 1.4 km, got " .. TownPlan.distanceText(3850))
+	-- review: 950-999 m used to round up into "1.0 km"
+	assert(TownPlan.distanceText(2700) == "980 m", "2700 studs is 980 m, got " .. TownPlan.distanceText(2700))
+	assert(TownPlan.distanceText(2750) == "1.0 km", "2750 studs is exactly 1 km, got " .. TownPlan.distanceText(2750))
 end
 
 function T.walkTimeIsMinutesAtWalkingPace()

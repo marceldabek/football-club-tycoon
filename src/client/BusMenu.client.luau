@@ -83,6 +83,12 @@ plan.Size = UDim2.new(1, -28, 0, PLAN_H)
 plan.Parent = card
 Theme.corner(plan, Theme.cardRadius)
 Theme.stroke(plan)
+-- Review of X324: the plan is projected once at the full card width, but the
+-- card itself shrinks to fit a narrow phone - so on anything under 384 wide the
+-- frame was smaller than the drawing and the eastern grounds were clipped off
+-- the paper. One UIScale shrinks the whole plan with the card instead.
+local planScale = Instance.new("UIScale")
+planScale.Parent = plan
 
 local PLAN_RIVER = Color3.fromRGB(58, 96, 132)
 local PLAN_ROAD = Color3.fromRGB(86, 96, 110)
@@ -159,8 +165,12 @@ local there = drawDot(Vector2.zero, DOT + 4, Theme.colors.info, 6)
 there.Name = "There"
 there.Visible = false
 local LABEL_SIZE = 13
-local thereLabel = Theme.text(plan, "", "bold", {
+-- Review of X324: Theme has no "bold" style, so this fell through to the body
+-- font; the weight comes from the font, and the colour is set here.
+local thereLabel = Theme.text(plan, "", "body", {
 	Name = "ThereLabel",
+	Font = Theme.fonts.bold,
+	TextColor3 = Theme.colors.text,
 	Size = UDim2.fromOffset(60, 18),
 	TextSize = LABEL_SIZE,
 	TextXAlignment = Enum.TextXAlignment.Center,
@@ -172,16 +182,18 @@ local thereLabel = Theme.text(plan, "", "bold", {
 Theme.corner(thereLabel, 6)
 
 -- which way is up, since the plan has no street names on it
-Theme.text(plan, "N", "bold", {
+Theme.text(plan, "N", "muted", {
 	Name = "North",
+	Font = Theme.fonts.bold,
 	Size = UDim2.fromOffset(16, 16),
 	Position = UDim2.fromOffset(6, 4),
 	TextSize = 12,
 	TextColor3 = Theme.colors.muted,
 	TextXAlignment = Enum.TextXAlignment.Center,
 })
-Theme.text(plan, "\u{2191}", "bold", {
+Theme.text(plan, "\u{2191}", "muted", {
 	Name = "NorthArrow",
+	Font = Theme.fonts.bold,
 	Size = UDim2.fromOffset(16, 14),
 	Position = UDim2.fromOffset(6, 18),
 	TextSize = 12,
@@ -283,7 +295,13 @@ local function layoutCard()
 	local width = math.min(CARD_W, math.floor(viewport.X) - 2 * SCREEN_MARGIN)
 	card.Size = UDim2.fromOffset(width, cardHeight(rowCount, viewport.Y))
 	-- X324: the plan comes and goes with the room for it, and the list follows
+	local scale = math.clamp((width - 28) / (CARD_W - 28), 0.5, 1)
+	planScale.Scale = scale
 	local planBlock = planFor(viewport.Y)
+	if planBlock > 0 then
+		planBlock = math.floor(PLAN_H * scale) + PLAN_GAP
+		plan.Size = UDim2.new(1, -28, 0, math.floor(PLAN_H * scale))
+	end
 	plan.Visible = planBlock > 0
 	local top = HEADER_H + planBlock
 	list.Position = UDim2.fromOffset(14, top)
@@ -385,8 +403,15 @@ local function addDestinationButton(order: number, dest: Destination, fromStop: 
 			TextColor3 = if TownPlan.isWalkable(studs) then Theme.colors.cash else Color3.fromRGB(214, 222, 232),
 		})
 		away.ZIndex = 2
-		-- and a long club name gives way to it rather than running underneath
+		-- and a long club name gives way to it rather than running underneath.
+		-- Review of X324: TextTruncate measures against the button's own text
+		-- area, so widening the right-hand padding is what actually keeps the
+		-- name clear of the distance.
 		button.TextTruncate = Enum.TextTruncate.AtEnd
+		local pad = button:FindFirstChildOfClass("UIPadding")
+		if pad then
+			pad.PaddingRight = UDim.new(0, 122)
+		end
 	end
 	button.MouseEnter:Connect(function()
 		pointAt(dest.name)
