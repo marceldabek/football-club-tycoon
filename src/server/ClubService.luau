@@ -506,7 +506,7 @@ function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.Ma
 	end
 	-- X302: the award is picked before afterMatch's injuries and ratings move,
 	-- so it is about the match that was just played
-	local award = Squad.manOfTheMatch(players, lineup.xi, scorerIds, conceded or 0)
+	local award = Squad.manOfTheMatch(players, lineup.xi, scorerIds, conceded or 0, matchSquad)
 	local news, changes = Squad.afterMatch(players, lineup.xi, scorerIds, coachLevel, rng, subIds)
 	ageShortlist()
 	recomputeLineup()

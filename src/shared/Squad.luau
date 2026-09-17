@@ -385,6 +385,18 @@ function Squad.afterMatch(players: { Player }, xi: { number }, scorerIds: { numb
 			table.insert(news, ("%s scores a hat-trick!"):format(map[id].name))
 		end
 	end
+	-- X308: a trialist filling an empty slot is not in the squad, so there is
+	-- nobody to credit — but the summary card lists them as the scorer, so the
+	-- news has to admit it happened.
+	local trialGoals = 0
+	for _, id in scorerIds do
+		if not map[id] then
+			trialGoals += 1
+		end
+	end
+	if trialGoals > 0 then
+		table.insert(news, ("A trialist scored %d (no contract, no record)"):format(trialGoals))
+	end
 	local coach = Config.CoachLevels[coachLevel + 1]
 	local developMul = if coach then coach.developMultiplier else 1
 
@@ -431,9 +443,17 @@ end
 -- X302: one player to talk about after a match. TEMP rule: whoever scored the
 -- most, then the keeper if he kept a clean sheet, then the best player on the
 -- pitch — so there is always someone, even in a 0-0.
-function Squad.manOfTheMatch(players: { Player }, xi: { number }, scorerIds: { number }, conceded: number): Award?
-	local map = byId(players)
-	local function award(p: Player, reason: string): Award
+-- X308: `matchSquad` is optional and only matters when a trialist played: they
+-- hold an empty slot (id = -slot) and are not in `players`, so without it the
+-- award skipped the man the card lists as the scorer.
+function Squad.manOfTheMatch(players: { Player }, xi: { number }, scorerIds: { number }, conceded: number, matchSquad: { MatchPlayer }?): Award?
+	local map: { [number]: any } = byId(players)
+	for _, m in matchSquad or {} do
+		if map[m.id] == nil then
+			map[m.id] = m
+		end
+	end
+	local function award(p: any, reason: string): Award
 		return { id = p.id, name = p.name, number = p.number, look = p.look, reason = reason }
 	end
 
@@ -453,22 +473,22 @@ function Squad.manOfTheMatch(players: { Player }, xi: { number }, scorerIds: { n
 		return award(p, if bestGoals > 1 then ("%d goals"):format(bestGoals) else "the goal")
 	end
 
-	local keeper, best = nil, nil
+	local keeper: any, best: any = nil, nil
 	for _, id in xi do
 		local p = map[id]
 		if p then
 			if p.role == "GK" then
 				keeper = p
 			end
-			if not best or p.overall > (best :: Player).overall then
+			if not best or p.overall > (best :: any).overall then
 				best = p
 			end
 		end
 	end
 	if conceded == 0 and keeper then
-		return award(keeper :: Player, "a clean sheet")
+		return award(keeper :: any, "a clean sheet")
 	end
-	return if best then award(best :: Player, "the best display on the pitch") else nil
+	return if best then award(best :: any, "the best display on the pitch") else nil
 end
 
 -- New season: everyone a year older. Returns nothing notable.

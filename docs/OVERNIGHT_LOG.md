@@ -1669,3 +1669,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Left open as **X308**: a trialist filling an empty slot is not in the squad table, so their goals are not recorded and they cannot win man of the match, while the card lists them as the scorer. Pre-existing, and only reachable with a squad short of fit players.
 - RunAll 463 passed, 0 failed.
 
+### 2026-09-17 18:11 — A trialist's goals are admitted (X308)
+- A trialist fills an empty XI slot with a negative id and is not in the squad table, so `Squad.afterMatch` and `manOfTheMatch` both skipped them: the summary card listed the trialist as the scorer while the award went to somebody else and the goals left no trace anywhere.
+- `manOfTheMatch` now takes the matchday squad as well, so whoever the card names can win it, and `afterMatch` adds a line for goals it cannot credit: "A trialist scored 2 (no contract, no record)" - which is the honest version, since there is no player record to put them on.
+- RunAll 464 passed, including a new test that builds a ten-man squad, finds the trialist the board hands the eleventh slot to, and checks both.
+

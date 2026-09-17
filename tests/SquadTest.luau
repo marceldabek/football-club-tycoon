@@ -523,4 +523,29 @@ function T.peakAgePlayersStillImproveWithACoach()
 	assert(seasonsOfDevelopment(3, 29) == 0, "28-30 is a plateau, not a growth window")
 end
 
+-- X308: a trialist holds an empty slot and is not in the squad table.
+function T.aTrialistCanWinTheAwardAndTheirGoalsAreAdmitted()
+	local players = Squad.generate(51, 45)
+	-- leave one slot unfillable: only ten fit players
+	while #players > 10 do
+		table.remove(players)
+	end
+	local lineup = Squad.autoLineup(players)
+	local matchSquad = Squad.matchSquad(players, lineup)
+	local trialist = nil
+	for _, m in matchSquad do
+		if m.id < 0 then
+			trialist = m
+			break
+		end
+	end
+	assert(trialist, "a short squad should get a trialist")
+	local award = Squad.manOfTheMatch(players, lineup.xi, { trialist.id, trialist.id }, 2, matchSquad)
+	assert(award and award.id == trialist.id, "the trialist scored twice and should take the award")
+	assert(award.name == "Trialist", "with their name on it")
+	local news = Squad.afterMatch(players, lineup.xi, { trialist.id, trialist.id }, 0, Random.new(52))
+	local joined = table.concat(news, " | ")
+	assert(string.find(joined, "A trialist scored 2", 1, true), "the goals should be admitted: " .. joined)
+end
+
 return T
