@@ -24,7 +24,7 @@
 - [x] A1.2 `DayCycle` pure module: named presets (hero afternoon, evening match, dusk, night, dawn, overcast), `lerp(a,b,t)`, `fastForward(kind)` keyframe track (short ~4 s, season ~10 s), with tests `[disk]` S
 - [x] A1.3 Evening fixtures: TEMP 1 in 4 league matches is an evening kick-off (seeded by fixture index), match-start event carries `evening=true`; client tweens to the evening preset, floodlights on `[studio]` S dep: A1.1
 - [x] A2.1 Post-match fast-forward: after the summary closes, client plays the ~4 s sweep (sun → sunset → lights → night → morning → hero afternoon); tap/click or key to skip `[studio]` S dep: A1.1
-- [x] A2.2 (wired, not playtested yet: needs a season end) Season-end long fast-forward (~10 s) hooked to the season rollover `[studio]` S dep: A2.1
+- [x] A2.2 (server season rollover verified 02:23 on the Studio store: two seasons, stayed then promoted; the client 10 s sweep itself not watched) Season-end long fast-forward (~10 s) hooked to the season rollover `[studio]` S dep: A2.1
 - [x] A3.1 DepthOfField hooks: on for club panel / lineup board / intro, off otherwise `[studio]` S dep: A1.1
 - [ ] A1.4 Before/after screenshots of the hero look saved in `assets/screenshots/overnight/` `[studio]` S
 

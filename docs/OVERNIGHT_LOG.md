@@ -29,7 +29,7 @@ Nothing is sitting unmerged.
 **Known bugs**
 1. Up to 02:20 Studio playtests used your real DataStore club. Agent tests added matches, cash and one North-stand level to Dino FC (it went from 7 to 8 matches tonight). Since 02:20 Studio uses a separate store (see question 1).
 2. Studio holds condensed copies of the new modules (comments trimmed). Reconnect Rojo to overwrite them from disk.
-3. Season-end fast-forward is wired but not playtested.
+3. Season-end fast-forward: the server rollover is verified; the client 10 s sweep has not been watched.
 4. Studio shows "Assistant plugin version changed ... restart Roblox Studio" warnings; the MCP kept working, but restart Studio before trusting the Assistant.
 
 **Questions for Marcel**
@@ -140,3 +140,7 @@ Nothing is sitting unmerged.
 - `SaveService.storeNameFor` adds `Config.Save.studioStoreSuffix` (TEMP `"_Studio"`) to the DataStore name when `RunService:IsStudio()`, for both the profile and the save lock. Verified: Studio play created a new "MDino24 FC" profile (0 matches, onboarding) in the Studio store; the Dino FC save is untouched from now on. Question 1 updated with how to switch it back.
 - Four more worktree agents are running: bridge arches + station roof (X19/X21), marina basin + backdrop fields (X18/X16), imperfection pass (E10.1), forecourt/semis polish (X25–X27/X29).
 - RunAll 233/233.
+
+### 2026-09-17 02:23 — Season end played through (A2.2)
+- On the new Studio store, looped DebugRun `playMatch` for 23 matches. Season 1 ended 3rd, "Stayed", £1,200 prize. Season 2 ended 1st, "Promoted", £3,000 prize, honours 1 title / 1 promotion. Season 3 started in the County League (tier 2) with every save succeeding. No server errors. The client long fast-forward was not watched.
+- Note for testing: `playMatch` returns false while a match is still running, so drive it by waiting for `Phase == "Manage"`.
