@@ -892,7 +892,7 @@ local function buildTurnstiles(parent: Instance)
 	gui.Face = Enum.NormalId.Left
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = 22
-	gui.LightInfluence = 0.85
+	gui.LightInfluence = 0.25 -- X270: near-unlit, so it still reads at an evening fixture
 	gui.Parent = fascia
 	local label = Instance.new("TextLabel")
 	label.Name = "ClubName"
@@ -971,7 +971,7 @@ local function buildTurnstiles(parent: Instance)
 		bannerGui.Face = face
 		bannerGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 		bannerGui.PixelsPerStud = 40
-		bannerGui.LightInfluence = 0.85
+		bannerGui.LightInfluence = 0.25 -- X270: near-unlit, so it still reads at an evening fixture
 		bannerGui.Parent = banner
 		local bannerName = Instance.new("TextLabel")
 		bannerName.Name = "ClubName" -- WorldBuilder.setClubName repaints it
@@ -1545,7 +1545,7 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 				wallGui.Face = Enum.NormalId.Right -- +X local, away from the pitch
 				wallGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 				wallGui.PixelsPerStud = 20
-				wallGui.LightInfluence = 0.9
+				wallGui.LightInfluence = 0.25 -- X270: near-unlit, so it still reads at an evening fixture
 				wallGui.MaxDistance = 300
 				wallGui.Parent = backWall
 				-- between two roof pillars (every length/6 along the wall, see the
@@ -1619,7 +1619,7 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 			gui.Face = Enum.NormalId.Left -- -X local, toward the pitch
 			gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 			gui.PixelsPerStud = 16
-			gui.LightInfluence = 0.9
+			gui.LightInfluence = 0.25 -- X270: near-unlit, so it still reads at an evening fixture
 			gui.Parent = fascia
 			local label = Instance.new("TextLabel")
 			label.Name = "ClubName"

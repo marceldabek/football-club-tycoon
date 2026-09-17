@@ -164,7 +164,7 @@ local function addSign(target: BasePart, text: string, faces: { Enum.NormalId },
 		gui.Face = face
 		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 		gui.PixelsPerStud = 24
-		gui.LightInfluence = 0.85
+		gui.LightInfluence = 0.25 -- X270: near-unlit, so it still reads at an evening fixture
 		gui.MaxDistance = 260
 		gui.Parent = target
 		local label = Instance.new("TextLabel")

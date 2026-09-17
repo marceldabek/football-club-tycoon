@@ -35,6 +35,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
+local TownCrest = require(ReplicatedStorage.Shared.TownCrest)
 
 local TownBuilder = {}
 
@@ -1102,6 +1103,8 @@ local function buildBusStop(parent: Instance, stop: TownLayout.BusStop)
 	band.TextColor3 = Color3.fromRGB(212, 176, 90)
 	band.Text = "LITTER"
 	band.Parent = binGui
+	-- X269: the town crest under the word, as on the reference bins
+	TownCrest.draw(binGui, Color3.fromRGB(212, 176, 90), UDim2.fromScale(0.42, 0.34), UDim2.fromScale(0.5, 0.36), Vector2.new(0.5, 0))
 
 	-- X47: an advert panel across the shelter's open end, like the poster in
 	-- RivermereCenter.png; clear of the back panel (z 1.6) and the post (z -1.6)

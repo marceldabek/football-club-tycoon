@@ -1486,3 +1486,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - X266 `ClubPanel` League tab: promotion and relegation places carry a small up/down chevron built from two rotated bars (like `MatchSummary`'s, so no font glyph is needed) next to the position number. The first attempt put it under the crest badge, so the crest and name columns moved right by 8 px. Screenshot checked: 1st and 2nd show up marks, 5th and 6th down marks, and the club's own row is unmarked in mid-table.
 - RunAll 438 passed.
 
+### 2026-09-17 15:32 — The crest on the bins, and club signs that read at night (X269, X270 done)
+- X269 `TownBuilder`: the bus-stop bins carry the town crest in gold under the LITTER band, on the same SurfaceGui (0 parts). 11 bins, one per stop. Screenshot checked at the Town Centre stop.
+- X270: the club's outdoor signs sat at `LightInfluence` 0.85–0.9, so they went dark exactly at the evening fixtures they should look best in (there is no real light on them; X157 was closed as won't-do). The turnstile fascia, the lamp-post banner, the stand street boards and the stand roof fascia in `WorldBuilder`, and the plot signs in `PlotGrounds`, are now 0.25 — the matchday board already used 0 for this reason.
+- Checked at a real evening fixture (match index 71, `Evening` true): the turnstile fascia and the North stand street board both read clearly under the floodlights (screenshots). The generic in-ground signs (lane signs, plaques, stand signs, addSign at 0.85) and the pitch-side name plate (0.8) were left alone — they're lit differently and read as painted signs; worth a look with fresh eyes.
+- RunAll 438 passed.
+
