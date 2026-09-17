@@ -464,6 +464,8 @@ local function buildTurbines(parent: Instance): number
 		local turbine = Instance.new("Model")
 		turbine.Name = "WindTurbine"
 		turbine:SetAttribute("Spin", true)
+		-- landmark seen from across town: never stream out (a few parts each)
+		turbine.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 
 		local towerH = 120
 		part({

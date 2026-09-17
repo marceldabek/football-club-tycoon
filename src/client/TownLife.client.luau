@@ -60,6 +60,7 @@ type TurbineBlade = { part: BasePart, offset: CFrame }
 type Turbine = { hub: Vector3, phase: number, blades: { TurbineBlade } }
 
 local turbines: { Turbine } = {}
+local trackedTurbines: { [Model]: boolean } = {}
 
 -- Backdrop.buildTurbines makes the nacelle axis-aligned, so the hub is simply
 -- 8 studs along world +X from it (CLAUDE.md task brief / Backdrop.luau).
@@ -83,9 +84,10 @@ local function trackTurbine(inst: Instance)
 			table.insert(blades, { part = child, offset = hubFrame:Inverse() * child.CFrame })
 		end
 	end
-	if #blades == 0 then
+	if #blades == 0 or trackedTurbines[model] then
 		return
 	end
+	trackedTurbines[model] = true
 	table.insert(turbines, { hub = hub, phase = math.random() * math.pi * 2, blades = blades })
 end
 
@@ -104,6 +106,12 @@ local function watchTurbines()
 		trackTurbine(child)
 	end
 	container.ChildAdded:Connect(trackTurbine)
+	-- parts can stream in after their model; retry once the blades arrive
+	container.DescendantAdded:Connect(function(d)
+		if d:IsA("BasePart") and d.Parent then
+			trackTurbine(d.Parent)
+		end
+	end)
 end
 task.spawn(watchTurbines)
 
