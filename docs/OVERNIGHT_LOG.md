@@ -337,3 +337,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Bug found and fixed:** the X49 commit added a second `local GLASS` that shadowed the entrance and footbridge glass colour below it. It's renamed to WINDOW_GLASS, so the entrance and footbridge glass have their original pale colour back.
 - **Screenshot** Station_verge_1: paving runs from the station front right to the Station Road pavement.
 - RunAll 332/332.
+
+### 2026-09-17 04:23 — Taxi rank markings (X50 done)
+- The station drop-off lane has a yellow edge line and "TAXIS" painted on the free bay: a clear plate 0.02 above the tarmac with a Top-face SurfaceGui. The line is sunk 0.02 into the lane so no top faces share a plane. The reference's newsagent kiosk was already there, green, at the west end of the frontage.
+- **Screenshot** Station_taxis_1: the markings read clearly beside the two taxis.
+- **Found:** the drop-off lane stands in the grass with no road reaching it, because Station Road ends east of the entrance (new X51).

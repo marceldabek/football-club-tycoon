@@ -59,6 +59,7 @@ end
 local WINDOW_GLASS = Color3.fromRGB(58, 74, 90)
 local FORECOURT_MAX = 70 -- no road within this of the front wall: keep the grass (X50)
 local SASH_WHITE = Color3.fromRGB(236, 234, 226)
+local MARKING_YELLOW = Color3.fromRGB(236, 196, 40)
 
 -- A vertical mullion and a horizontal transom across a window centred on x
 -- (half width hw, from y0 to y1), standing 0.1 proud of the glass (X49).
@@ -446,6 +447,13 @@ function StationDresser.build(): string
 	for _, x in { -60, -44 } do
 		buildTaxi(m, f * CFrame.new(x, 0.25, 30) * CFrame.Angles(0, math.pi / 2, 0))
 	end
+	-- X50: yellow rank markings like RivermereStation.png: an edge line along the
+	-- lane and TAXIS painted on the free bay (a clear plate 0.02 above the tarmac)
+	slab(m, f, "RankLine", -90, -14, 0.23, 0.28, 36.9, 37.3, MARKING_YELLOW, Enum.Material.SmoothPlastic).CastShadow = false
+	local word = slab(m, f, "TaxiMarking", -34, -18, 0.25, 0.27, 24, 36, MARKING_YELLOW)
+	word.Transparency = 1
+	word.CastShadow = false
+	sign(word, Enum.NormalId.Top, "TAXIS", MARKING_YELLOW, nil, Enum.Font.GothamBlack)
 
 	-- platform side (X20): read the greybox platform so its depth stays TownBuilder's call
 	local platform = greybox and greybox:FindFirstChild("Platform")
