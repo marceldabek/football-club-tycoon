@@ -1,7 +1,7 @@
 --!strict
 -- Swans on the River Lune (backlog X111, RivermereRiverside.png). A pair at
 -- each spot in Shared.TownLifeMath.SWAN_SPOTS glides slowly round an ellipse
--- on the water, half a lap apart. Client-only: 4 parts a swan moved with one
+-- on the water, half a lap apart. Client-only: 1 mesh (or 4 parts) a swan moved with one
 -- BulkMoveTo, only while the camera is within NEAR of a spot, and gone on
 -- Quality "Low".
 
@@ -42,29 +42,51 @@ local function part(name: string, size: Vector3, colour: Color3, ball: boolean):
 	return p
 end
 
+-- X113: the free Creator Store "Swan" mesh (asset 15968285610, yiypoo1024;
+-- ReplicatedStorage.ClientKit.Swan, place file only, MANIFEST) when it's there:
+-- one MeshPart facing +Z, 4 long, sunk SWAN_SINK into the water. Without it,
+-- the 4-part primitive swan below (body half in the water, neck rising from
+-- the front, head on top, beak forward along -Z).
+local SWAN_SINK = 0.6
+local clientKit = ReplicatedStorage:WaitForChild("ClientKit", 5)
+local swanModel = clientKit and clientKit:FindFirstChild("Swan")
+local swanMesh = swanModel and swanModel:FindFirstChildWhichIsA("BasePart", true)
+
+local OFFSETS: { CFrame }
+if swanMesh then
+	OFFSETS = { CFrame.new(0, swanMesh.Size.Y / 2 - SWAN_SINK, 0) * CFrame.Angles(0, math.pi, 0) }
+else
+	OFFSETS = {
+		CFrame.new(0, 0.25, 0),
+		CFrame.new(0, 1.3, -0.95),
+		CFrame.new(0, 2.15, -1.05),
+		CFrame.new(0, 2.1, -1.45),
+	}
+end
+
 for i in TownLifeMath.SWAN_SPOTS do
 	for k = 1, PER_SPOT do
-		table.insert(swans, {
+		local parts: { BasePart }
+		if swanMesh then
+			local mesh = swanMesh:Clone()
+			mesh.Anchored = true
+			mesh.CanCollide = false
+			mesh.CanQuery = false
+			mesh.CanTouch = false
+			mesh.CastShadow = false
+			mesh.Parent = folder
+			parts = { mesh }
+		else
 			parts = {
 				part("SwanBody", Vector3.new(1.8, 1.1, 2.6), WHITE, false),
 				part("SwanNeck", Vector3.new(0.3, 1.6, 0.3), WHITE, false),
 				part("SwanHead", Vector3.one * 0.55, WHITE, true),
 				part("SwanBeak", Vector3.new(0.18, 0.18, 0.45), BEAK, false),
-			},
-			spot = i,
-			phase = (k - 1) / PER_SPOT + i * 0.13,
-		})
+			}
+		end
+		table.insert(swans, { parts = parts, spot = i, phase = (k - 1) / PER_SPOT + i * 0.13 })
 	end
 end
-
--- Body sits half in the water; the neck rises from the front, the head tops
--- it and the beak points forward (-Z of the pose).
-local OFFSETS = {
-	CFrame.new(0, 0.25, 0),
-	CFrame.new(0, 1.3, -0.95),
-	CFrame.new(0, 2.15, -1.05),
-	CFrame.new(0, 2.1, -1.45),
-}
 
 local function near(camPos: Vector3): boolean
 	for _, spot in TownLifeMath.SWAN_SPOTS do
