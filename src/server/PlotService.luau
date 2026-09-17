@@ -33,6 +33,7 @@ local PER_CLUB = {
 	"SaveService",
 	"SaveLock",
 	"Scenery",
+	"PlotGrounds",
 }
 
 -- TEMP plot sites until Shared.TownLayout exists: the four corners of the
