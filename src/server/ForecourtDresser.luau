@@ -515,6 +515,56 @@ local function postBox(parent: Instance, base: CFrame)
 	(cap :: any).Shape = Enum.PartType.Ball
 end
 
+-- X103: a red oval POST OFFICE sign projecting from the first floor of a
+-- corner shop at the far end from its post box (RiveremereWestdale.png). A
+-- clear board across the street direction carries the oval on both faces;
+-- an iron bar ties it to the facade.
+ForecourtDresser.POST_SIGN_END = 1.4 -- board from the row's -Z end (baskets keep 2 clear)
+local POST_SIGN_Y = ShopBuilder.GROUND_FLOOR + 2.6
+
+function ForecourtDresser.postOfficeSignZ(length: number): number
+	return -(length / 2 - ForecourtDresser.POST_SIGN_END)
+end
+
+local function postOfficeSign(parent: Instance, frame: CFrame, frontX: number, z: number)
+	local x = frontX - FACADE_T
+	local reach, w, h = 0.6, 2.6, 1.8
+	part(parent, "PostSignBar", Vector3.new(reach + w + 0.05, 0.15, 0.15), frame * CFrame.new(x - (reach + w) / 2 + 0.025, POST_SIGN_Y + h / 2 + 0.1, z), IRON, Enum.Material.Metal, false).CastShadow = false
+	local board = part(parent, "PostSign", Vector3.new(w, h, 0.1), frame * CFrame.new(x - reach - w / 2, POST_SIGN_Y, z), POST_RED, Enum.Material.SmoothPlastic, false)
+	board.Transparency = 1
+	board.CastShadow = false
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.LightInfluence = 0.9
+		gui.MaxDistance = 200
+		gui.Parent = board
+		local oval = Instance.new("Frame")
+		oval.Size = UDim2.fromScale(1, 1)
+		oval.BackgroundColor3 = POST_RED
+		oval.Parent = gui
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0.5, 0)
+		corner.Parent = oval
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.fromRGB(245, 230, 120)
+		stroke.Thickness = 3
+		stroke.Parent = oval
+		local label = Instance.new("TextLabel")
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(0.7, 0.62)
+		label.Position = UDim2.fromScale(0.15, 0.19)
+		label.Font = Enum.Font.GothamBlack
+		label.TextScaled = true
+		label.TextWrapped = true
+		label.TextColor3 = Color3.fromRGB(255, 244, 150)
+		label.Text = "POST OFFICE"
+		label.Parent = oval
+	end
+end
+
 local function aBoard(parent: Instance, base: CFrame, text: string)
 	local m = Instance.new("Model")
 	m.Name = "ABoard"
@@ -756,6 +806,9 @@ function ForecourtDresser.build(): string
 			if clearOfRoads(p, 1) and not nearBusStop(p) then
 				postBox(shopsModel, rec.frame * CFrame.new(x, ForecourtDresser.PAVE_TOP, z))
 				postBoxes += 1
+				if room(2) then
+					postOfficeSign(shopsModel, rec.frame, frontX, ForecourtDresser.postOfficeSignZ(rec.length))
+				end
 			end
 		end
 		if g >= 2 then

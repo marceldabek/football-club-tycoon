@@ -126,4 +126,17 @@ function T.basketsHangOnShopfrontJoinsClearOfTheRowEnds()
 	end
 end
 
+-- X103: the POST OFFICE sign hangs inside the row's -Z end but outside the
+-- stretch where hanging baskets can go, so the two never meet.
+function T.postOfficeSignSitsPastTheBaskets()
+	for _, length in { 20, 40, 60, 100 } do
+		local z = ForecourtDresser.postOfficeSignZ(length)
+		assert(z > -length / 2 and z < -length / 2 + 2, ("length %d: sign z %.2f"):format(length, z))
+		local bays = { { z = -length / 4, width = length / 2, key = nil }, { z = length / 4, width = length / 2, key = nil } }
+		for _, bz in ForecourtDresser.basketZs(bays, length) do
+			assert(math.abs(bz - z) > 1.5, ("length %d: basket at %.2f by the sign"):format(length, bz))
+		end
+	end
+end
+
 return T
