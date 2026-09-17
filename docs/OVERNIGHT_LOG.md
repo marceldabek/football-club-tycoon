@@ -15,8 +15,11 @@ services, picker, go-home, despawn, for-sale lots (B1–B4), save lock (B3), tow
 (C1, X5, X6), greybox builder (C2.1), perf baseline (C3.1), KitPlacer + free kit (D1, D4.1), Mill Street
 kit street (E3.1), textured low-part terraces town-wide (X12/X13), market square (E1.1), backdrop
 (E9.2), bus fast travel (E7.2), plot grounds: car park, club shop, training pitches (E8.1/H2/H3),
-ambient audio (F1.1), matchday fans (G1.1), 10-part team coach (X14).
-**Half-done:** nothing in flight at the moment.
+ambient audio (F1.1), matchday fans (G1.1), 10-part team coach (X14), church (E9.1), riverside
+promenade (E6.1), station frontage (E7.1 part).
+**Half-done:** E7.1 station (frontage only; platform side, footbridge and viaduct are X20). Subagent branches
+still being written in worktrees and not merged yet: shopfronts (E2.1), semis/industrial (E4.1/E5.1),
+town life (F4.1/H1.1/G2.1), traffic (F2.1).
 **Reverted:** none.
 
 **Known bugs**
@@ -97,3 +100,8 @@ ambient audio (F1.1), matchday fans (G1.1), 10-part team coach (X14).
 - Kit church with broach spire replaces the greybox landmark at (-220, -230), scaled to 130 tall; spire reads above the centre roofs.
 - `RiverDresser` (reference `RivermereRiverside.png`): quay wall, promenade, railings, benches, planters, lamps along the north bank, pontoons and boats on the marina reach; 813 parts. Where to look: (660, 9, 316) looking east. Follow-ups: marina slab, empty grass behind the promenade (X18), plain bridges (X19).
 - RunAll 130/130.
+
+### 2026-09-17 01:40 — Station frontage (E7.1 part)
+- `StationDresser` (reference `RivermereStation.png`): re-skins the greybox station in brick and slate, adds forecourt paving, glazed entrance with a navy "RIVERMERE STATION" canopy, a Next Trains board (fictional Hollingford/Mapleford/Greenbridge), a green OnTrack kiosk, bollards, planters, kit bench and bin, window rows with stone lintels, and a drop-off lane with two black taxis. 79 parts. Where to look: (-720, 16, -310) looking at (-800, 9, -385).
+- Biggest differences from the reference: flat roofline with no gable or clock (X21); platform side not dressed yet, no footbridge or viaduct (X20); no people on the forecourt; the bus shelter sits on the forecourt edge.
+- RunAll 131/131.
