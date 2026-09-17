@@ -46,7 +46,7 @@ ForecourtDresser.MAX_GAP = 40
 ForecourtDresser.TUCK = 1 -- the slab runs this far under the pavement
 ForecourtDresser.PAVE_TOP = 0.40
 ForecourtDresser.ZONE_TOP = 0.14
-ForecourtDresser.PART_BUDGET = 860 -- TEMP; +80 for the X103 post office signs, X108 parasols and X109 awnings, +80 for X133 planter flowers
+ForecourtDresser.PART_BUDGET = 900 -- TEMP; +80 for the X103 post office signs, X108 parasols and X109 awnings, +80 for X133 planter flowers, +40 for X145 window boxes
 
 local CARRIAGEWAY_MARGIN = 0.5
 local RAY_STEP = 0.25
@@ -612,6 +612,52 @@ end
 local PHARMACY_GREEN = Color3.fromRGB(40, 190, 90)
 local CROSS_PARTS = 3
 
+-- X145: flower window boxes under the first-floor windows of pub, café and
+-- deli fronts (RivermereRiverside.png). ShopBuilder's "Upper" facade tiles
+-- upper_floors_*.png every bay width along the row and every two storeys up
+-- it (V from the top): three windows a tile at u 0.166 / 0.5 / 0.834, sill
+-- tops at v 212/512 (upper storey of the pair) and 466/512 (lower).
+ForecourtDresser.WINDOW_BOX_USES = { shop_front_pub = true, shop_front_cafe = true, shop_front_deli = true } :: { [string]: boolean }
+ForecourtDresser.WINDOW_BOX_W = 2
+local WINDOW_BOX_MAX = 16
+local WINDOW_BOX_PARTS = 4
+local WINDOW_US = { 0.166, 0.5, 0.834 }
+
+-- Pure: { z, y } of the window boxes for one bay, in the row frame. `top` is
+-- the Upper facade's top edge, `storeys` how many it has; only the lowest
+-- storey (the first floor) gets boxes, at most two a bay.
+function ForecourtDresser.windowBoxSpots(top: number, storeys: number, tileU: number, tileV: number, length: number, bayZ: number, bayW: number): { Vector2 }
+	local out: { Vector2 } = {}
+	if storeys < 1 or tileU <= 0 or tileV <= 0 then
+		return out
+	end
+	local k = storeys - 1
+	local sill = top - (math.floor(k / 2) * tileV + (if k % 2 == 0 then 212 else 466) / 512 * tileV)
+	local half = ForecourtDresser.WINDOW_BOX_W / 2 + 0.6
+	for j = 0, math.ceil(length / tileU) do
+		for _, u in WINDOW_US do
+			local z = -length / 2 + tileU * (j + u)
+			if z - half >= bayZ - bayW / 2 and z + half <= bayZ + bayW / 2 and #out < 2 then
+				table.insert(out, Vector2.new(z, sill))
+			end
+		end
+	end
+	return out
+end
+
+local function windowBox(parent: Instance, frame: CFrame, faceX: number, z: number, sill: number, rng: Random)
+	local w = ForecourtDresser.WINDOW_BOX_W
+	local x = faceX - 0.3
+	part(parent, "WindowBox", Vector3.new(0.6, 0.5, w), frame * CFrame.new(x, sill - 0.3, z), Color3.fromRGB(30, 34, 30), Enum.Material.SmoothPlastic, false).CastShadow = false
+	local colour = FLOWERS[rng:NextInteger(1, #FLOWERS)]
+	part(parent, "Flowers", Vector3.new(0.5, 0.3, w - 0.1), frame * CFrame.new(x, sill + 0.1, z), Color3.fromRGB(70, 110, 52), Enum.Material.LeafyGrass, false).CastShadow = false
+	for _, dz in { -0.45, 0.45 } do
+		local head = part(parent, "Flowers", Vector3.one * 0.55, frame * CFrame.new(x - 0.05, sill + 0.35, z + dz), colour, Enum.Material.LeafyGrass, false);
+		(head :: any).Shape = Enum.PartType.Ball
+		head.CastShadow = false
+	end
+end
+
 local function pharmacyCross(parent: Instance, frame: CFrame, frontX: number, z: number)
 	local x = frontX - FACADE_T
 	local reach, arm, t = 0.5, 2.2, 0.7
@@ -881,7 +927,7 @@ function ForecourtDresser.build(): string
 
 	-- X23: cafe seating, A-boards, hanging baskets
 	local rows = modelsByName(town:FindFirstChild("Shops"), "ShopRow")
-	local sets, boards, baskets, postBoxes, awnings, pubSigns = 0, 0, 0, 0, 0, 0
+	local sets, boards, baskets, postBoxes, awnings, pubSigns, windowBoxes = 0, 0, 0, 0, 0, 0, 0
 	for _, rec in shops do
 		local row = modelAt(rows, rec.frame.Position)
 		local bays = baysFor(row, rec.frame, rec.length, rec.block.use)
@@ -933,6 +979,24 @@ function ForecourtDresser.build(): string
 				pubSigns += 1
 			end
 		end
+		local upper = row and row:FindFirstChild("Upper")
+		local upperTex = upper and upper:FindFirstChildWhichIsA("Texture")
+		if upper and upper:IsA("BasePart") and upperTex then
+			local local0 = rec.frame:PointToObjectSpace(upper.Position)
+			local top = local0.Y + upper.Size.Y / 2
+			local storeys = math.floor(2 * upper.Size.Y / upperTex.StudsPerTileV + 0.5)
+			for _, bay in bays do
+				if bay.key and ForecourtDresser.WINDOW_BOX_USES[bay.key] then
+					for _, spot in ForecourtDresser.windowBoxSpots(top, storeys, upperTex.StudsPerTileU, upperTex.StudsPerTileV, upper.Size.Z, bay.z - local0.Z, bay.width) do
+						if windowBoxes >= WINDOW_BOX_MAX or not room(WINDOW_BOX_PARTS) then
+							break
+						end
+						windowBox(shopsModel, rec.frame, local0.X - upper.Size.X / 2, spot.X + local0.Z, spot.Y, rng)
+						windowBoxes += 1
+					end
+				end
+			end
+		end
 		if g >= ForecourtDresser.AWNING_OUT then
 			for _, bay in bays do
 				local colours = bay.key and ForecourtDresser.AWNINGS[bay.key]
@@ -954,7 +1018,7 @@ function ForecourtDresser.build(): string
 	end
 
 	folder.Parent = town
-	return ("forecourts: %d shop forecourts, %d semi paths, %d zone slabs, %d planters, %d cafe sets, %d A-boards, %d baskets, %d awnings, %d pub/pharmacy signs, %d parts"):format(
+	return ("forecourts: %d shop forecourts, %d semi paths, %d zone slabs, %d planters, %d cafe sets, %d A-boards, %d baskets, %d awnings, %d pub/pharmacy signs, %d window boxes, %d parts"):format(
 		#shops,
 		paths,
 		#spans,
@@ -964,6 +1028,7 @@ function ForecourtDresser.build(): string
 		baskets,
 		awnings,
 		pubSigns,
+		windowBoxes,
 		partCount
 	)
 end

@@ -183,4 +183,19 @@ function T.pubSignStaysInsideItsBay()
 	assert(#ForecourtDresser.PUB_NAME > 0, "pub name")
 end
 
+-- X145: window boxes sit under first-floor windows inside their bay, two at most
+function T.windowBoxesSitUnderFirstFloorWindowsInTheBay()
+	-- one upper storey of 10 over a 12 ground floor: Upper 12..22, tile V 20
+	local spots = ForecourtDresser.windowBoxSpots(22, 1, 12, 20, 36, 0, 12)
+	assert(#spots >= 1 and #spots <= 2, #spots .. " boxes")
+	for _, s in spots do
+		assert(math.abs(s.X) + ForecourtDresser.WINDOW_BOX_W / 2 <= 6, "box inside the bay at z " .. s.X)
+		assert(math.abs(s.Y - (22 - 212 / 512 * 20)) < 1e-6, "box at the first-floor sill, got " .. s.Y)
+	end
+	-- two storeys: the first floor is the lower row of the tile
+	local two = ForecourtDresser.windowBoxSpots(32, 2, 12, 20, 36, 0, 12)
+	assert(math.abs(two[1].Y - (32 - 466 / 512 * 20)) < 1e-6, "lower row sill for two storeys")
+	assert(#ForecourtDresser.windowBoxSpots(22, 0, 12, 20, 36, 0, 12) == 0, "no upper storey, no boxes")
+end
+
 return T

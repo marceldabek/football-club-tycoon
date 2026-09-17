@@ -60,6 +60,7 @@ Quality.DECOR_PART_NAMES = {
 	Hedge = true, -- EstateBuilder front gardens, Backdrop field hedgerows
 	CanopyTop = true, -- Backdrop tree second crown (far detail)
 	HangingBasket = true, -- ForecourtDresser / StationDresser flower baskets
+	WindowBox = true, -- ForecourtDresser first-floor window boxes (X145)
 	Basket = true, -- SquareDresser lamp baskets, RiverDresser heritage lamps
 	ForkliftBody = true, -- EstateBuilder shed yard forklift (X55)
 	ForkliftSeat = true, -- EstateBuilder shed yard forklift (X55)
