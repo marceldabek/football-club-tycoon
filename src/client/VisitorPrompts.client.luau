@@ -13,33 +13,37 @@ local plots = workspace:WaitForChild("Plots", math.huge) :: Instance
 
 -- prompt -> the Enabled value the server last set
 local serverEnabled: { [ProximityPrompt]: boolean } = {}
-local applying = false
+-- prompt -> a value this script just wrote. Changed signals are deferred, so
+-- the echo of our own write arrives later and must not be taken as the server's.
+local pendingWrite: { [ProximityPrompt]: boolean } = {}
 
 local function apply(prompt: ProximityPrompt)
 	local hide = PlotVisit.hidePrompt(PlotVisit.plotOf(prompt, plots), player:GetAttribute("ClubPlot"))
 	local want = if hide then false else serverEnabled[prompt]
 	if prompt.Enabled ~= want then
-		applying = true
+		pendingWrite[prompt] = want
 		prompt.Enabled = want
-		applying = false
 	end
 end
 
 local function track(inst: Instance)
-	if not inst:IsA("ProximityPrompt") or serverEnabled[inst] ~= nil then
+	if not inst:IsA("ProximityPrompt") or inst.Name == "VisitPrompt" or serverEnabled[inst] ~= nil then
 		return
 	end
 	local prompt = inst :: ProximityPrompt
 	serverEnabled[prompt] = prompt.Enabled
 	prompt:GetPropertyChangedSignal("Enabled"):Connect(function()
-		if applying then
+		if pendingWrite[prompt] ~= nil and pendingWrite[prompt] == prompt.Enabled then
+			pendingWrite[prompt] = nil
 			return
 		end
+		pendingWrite[prompt] = nil
 		serverEnabled[prompt] = prompt.Enabled
 		apply(prompt)
 	end)
 	prompt.Destroying:Connect(function()
 		serverEnabled[prompt] = nil
+		pendingWrite[prompt] = nil
 	end)
 	apply(prompt)
 end
@@ -51,6 +55,7 @@ plots.DescendantAdded:Connect(track)
 plots.DescendantRemoving:Connect(function(inst)
 	if inst:IsA("ProximityPrompt") then
 		serverEnabled[inst] = nil
+		pendingWrite[inst] = nil
 	end
 end)
 

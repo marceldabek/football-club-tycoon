@@ -89,7 +89,7 @@
 - [x] H3.1 Training pitches on the plot (visual) `[studio]` S dep: E8.1
 
 ## Phase I — Social (after B2)
-- [ ] I1.1 Visit a club: walk into another plot's office, read-only squad board + club card `[studio]` M
+- [x] I1.1 (card, not a board: View club prompt on the office computer) Visit a club: walk into another plot's office, read-only squad board + club card `[studio]` M
 - [ ] I2.1 Watch another club's match from their stands `[studio]` M
 - [ ] I3.1 Local friendly: challenge/accept, no injuries, small home payout, no league effect `[studio]` L
 - [ ] I4.1 Same-server player trades (cash only as part of a deal) `[studio]` L

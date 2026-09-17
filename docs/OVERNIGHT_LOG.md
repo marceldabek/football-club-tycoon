@@ -26,7 +26,7 @@ station pitched roof + gable clock (X21), stone road bridges (X19), semis gable 
 (X25–X29), floodlight tag lookup (X2), separate Studio save store (X1, TEMP), season end verified (A2.2),
 marina quay + riverside gardens (X18), hedged backdrop fields (X16), road imperfections (E10.1), semis with driveways
 (X30), square flags + chimney smoke + matchday pub drinkers (F4.1/G2.1), smaller plot car park + bus menu sizing (X9/X15),
-Mill Street front gardens, railings, street trees, signs and parked cars (X11), visitors see other clubs read-only (B2.1c).
+Mill Street front gardens, railings, street trees, signs and parked cars (X11), visitors see other clubs read-only (B2.1c), read-only club card in other clubs' offices (I1.1).
 **Half-done:** none.
 **Reverted:** none.
 
@@ -193,3 +193,11 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Bus menu:** stood at the Town Centre stop, held E, and the card opened with 10 destinations (your club, 3 for-sale plots, 6 districts). Clicking Station, the 9th row near the bottom, moved the character to (-740, 3, -360) and closed the card. Screenshots BusMenu_1 and BusStation_1.
 - **Bug found and fixed:** a returning owner whose club still needs a name (the Studio test club) got "Welcome back" and "Name your club" on top of each other. HUD now skips the welcome card while NeedsName is set, because the naming card is already the greeting. Re-tested: only the naming card shows (NameOnly_1).
 - Follow-up: the bus menu can still open over the naming card. That's low priority, since you can only reach a bus stop after walking away from it.
+
+### 2026-09-17 03:12 — Visit a club: read-only club card (I1.1)
+- **What:** for a visitor, another club's office computer shows a local "View club" prompt. The card lists the club name, league and season, current position, record, capacity and stand upgrades, and its 5 best players (overall, role, goals). It is built entirely on the client from `ReplicatedStorage.Clubs.PlotN`; nothing goes to the server. Close it with Close or Esc, or by walking more than 24 studs away. Pure summary in shared `ClubCard`; test is ClubCardTest.
+- **Not a squad board:** I used a card instead of the 3D squad board in the backlog, because it is cheap on mobile and reuses Theme. A physical board in the office can come later.
+- **Bug found and fixed in B2.1c:** with deferred signals, VisitorPrompts took the echo of its own `Enabled = false` as the server's value, so after going visitor → owner your own prompts stayed off. It now tracks the pending local write. Re-tested: owner 7 on → visitor 0 on (visit prompt on) → owner 7 on. Also tested switching to visitor mid-match and back: prompts stayed off until Manage, then came back on.
+- **Test method:** one Studio player; the client sets `ClubPlot` locally to 99 to act as a visitor at Plot1. The real two-player case is still B2.1d. Screenshots ClubVisit_1 and ClubVisit_2 (the second has the owner's own match summary behind it, because the test player is both owner and visitor).
+- The Studio test club was also named through the naming card ("Found the club"), in the Studio store only.
+- RunAll 305/305.
