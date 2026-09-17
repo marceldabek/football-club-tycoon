@@ -104,7 +104,7 @@
 - [ ] X3 A player who leaves mid-match: the old club copy finishes the match loop before the plot frees (up to 180 s); check no errors in that path `[studio]` S
 - [ ] X5 Districts are far too sparse next to `RivermereAImap.png`: add many more terraced rows / semis / shops so every block between roads is built up `[disk]` M
 - [ ] X6 Plot access lanes in TownLayout end at local z≈0 but the PlotGrounds vehicle gate is at local z 60..100: align the lane end with the gate `[disk]` S
-- [ ] X7 Picker viewpoint is too high and hazy; lower/closer view onto the FOR SALE board; reduce Atmosphere density for town scale (HeroAfternoon 0.32 hides anything past ~600 studs) `[studio]` S
+- [x] X7 Picker viewpoint is too high and hazy; lower/closer view onto the FOR SALE board; reduce Atmosphere density for town scale (HeroAfternoon 0.32 hides anything past ~600 studs) `[studio]` S
 - [ ] X8 Town edge: terrain stops dead at x ±2800 / z ±2200; needs a backdrop (hills, tree belt) `[studio]` M
 - [ ] X9 Car park (100 × 300) dominates the plot entrance; halve it or turn it `[disk]` S
 - [ ] X10 Roads z-fight risk: overlapping tops only 0.004–0.01 apart; check at distance on a mid phone `[studio]` S
