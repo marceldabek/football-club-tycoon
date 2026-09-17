@@ -40,7 +40,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 6. The Rojo panel in Studio shows "Unknown HTTP error: NetFail", although `rojo serve` is running on port 34872 and serving this branch. Click Connect (or Disconnect, then Connect) in the Rojo panel before editing, so Studio's hand-pasted copies are replaced from disk. The HTTP sync fallback in `tools/studio-sync.luau` no longer works from the MCP, because its sandbox lacks the Network capability.
 7. Created in Studio through the MCP tonight, not by Rojo: `ReplicatedStorage.Shared.TrainMath`, `StarterPlayerScripts.Client.ClubScarves`, `StarterPlayerScripts.Client.Deliveries`, `ServerScriptService.Server.SportsCentreDresser`, `StarterPlayerScripts.Client.Train`, and tests `TrainMathTest` / `SportsCentreDresserTest`. The disk versions carry full comments; a Rojo reconnect replaces the Studio copies.
 8. Traffic's roundabout fix (X79) is only visual: vehicles are pushed onto a ring round the island, with no give-way or real circulation, so two cars can overlap at a busy roundabout. The train (X82) runs under the station footbridge without a clearance check (deck 16, carriage roof about 9, so it's fine today).
-9. Last RunAll in Studio: **379 passed, 0 failed** (08:11).
+9. Last RunAll in Studio: **380 passed, 0 failed** (08:18).
 
 **Questions for Marcel**
 1. **Done as TEMP, please confirm:** Studio playtests now use the DataStore `ClubProfiles_Studio`, so Studio opens a fresh club and onboarding instead of Dino FC. To get your real club back in Studio, set `Config.Save.studioStoreSuffix = ""`. *Rec: keep it; live servers are unchanged.*
@@ -56,7 +56,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 
 10. Car colours (X45): **resolved at 07:41 without the tint.** Three generated hatchbacks (navy, red, silver, `generate_mesh`, one textured MeshPart each) now mix with the orange kit car in every car list (streets, terrace streets, station and sports car parks). The flat `tint` option stays in KitPlacer but is unused. *Rec: keep them; if you dislike the AI look, the next step is a bought car pack (see buy list).*
 
-11. Quality Low barely lightens the scene (X96). Standing in the market square, a client shows 15,607 visible parts on High and 15,233 on Low: the decor Low hides is small next to the Mill Street kit dressing (8,371 parts) and the terrace rows. *Rec: before phone testing, make Low also hide the kit Dressing street rows further than about 300 studs from the camera (a client-side check every couple of seconds). A lower server `StreamingTargetRadius` would affect everyone including PCs, so keep that as the fallback.*
+11. How far should Quality Low go (X96)? Standing in the market square, pressing the toggle to Low hides 4,574 of 15,243 parts (30%, now including terrace lamp details). The 10,670 left are mostly the Mill Street kit dressing and the terrace rows. (An earlier note said Low hid only 2%; that count was wrong, see 08:18.) *Rec: before phone testing, make Low also hide the kit Dressing street rows further than about 300 studs from the camera (a client-side check every couple of seconds). A lower server `StreamingTargetRadius` would affect everyone including PCs, so keep that as the fallback.*
 
 **Buy list for Marcel**
 - Nothing new yet. Free store terraces are a flat-fronted Victorian row. If you want bay windows like `RiveremereWestdale.png`, "UK Housing – Terraced Set 1" (Macwelshman, Fab, $39.99) is the best paid match (see docs/ASSET_KIT.md).
@@ -791,3 +791,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 ### 2026-09-17 08:13 — Quality Low measured (X96)
 - At the market square after claiming Plot 1, both levels ran at 60 fps on this PC. High showed 15,607 visible BaseParts and Low 15,233: Low hides about 2%. The decor list (pots, hedges, baskets, trees, forklifts, kit cars and benches) is a small share of what renders; the bulk is kit street dressing and terrace rows. Logged X96 and question 11 with a recommendation. No code change.
 - Also tried a dusk look by setting `ClockTime` 20.2 by hand. It isn't representative, because the Sky script sets ambient and exposure only through a real evening look, so no conclusion from it.
+
+### 2026-09-17 08:18 — Quality Low recount, lamp details hidden (X96)
+- The 08:13 count was wrong: it set the Quality attribute directly, which does not run the controller. Pressing the HUD toggle instead, Low at the market square hides 4,574 of 15,243 parts (30%). Road wear, markings, weeds, clutter and street trees already carry their own Decor flag.
+- New: on Low a TerraceLamp keeps only its Post and Lantern (Base, Arm, Glass, Cap hide), which hides 782 more parts in view. Added `Quality.DECOR_PARTS_IN_MODEL` and a QualityTest case. RunAll 380 passed.
+- Also tried marking the Imperfections folders Decor; it changed nothing because each part is already flagged, so it was reverted.
+- A background review of today's Luau diff (42 files) found no syntax, ordering or require-cycle problems.

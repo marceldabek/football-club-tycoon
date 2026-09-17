@@ -92,6 +92,17 @@ function T.decorPartNamesAreDecorative()
 	end
 end
 
+function T.terraceLampDetailIsDecorativeButPostStays()
+	local lamp = model("TerraceLamp")
+	for _, name in { "Base", "Arm", "Glass", "Cap" } do
+		assert(Quality.isDecorative(part(name, lamp)), name .. " in a TerraceLamp should hide")
+	end
+	for _, name in { "Post", "Lantern" } do
+		assert(not Quality.isDecorative(part(name, lamp)), name .. " in a TerraceLamp should stay")
+	end
+	assert(not Quality.isDecorative(part("Base", model("Stand"))), "Base elsewhere stays")
+end
+
 function T.structuralPartsAreNotDecorative()
 	for _, name in { "Body", "RoofFront", "Ridge", "Stack", "Stack1", "Shopfront2", "Upper", "Post", "Canopy", "Trunk", "Yard", "Field" } do
 		assert(not Quality.isDecorative(part(name)), name .. " should stay")

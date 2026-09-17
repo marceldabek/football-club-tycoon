@@ -70,6 +70,13 @@ Quality.DECOR_PART_NAMES = {
 	ForkliftWheels = true, -- EstateBuilder shed yard forklift (X55)
 } :: { [string]: boolean }
 
+-- X96: parts that are decoration only inside a model of this name (the names
+-- alone are too common to hide town-wide). A terrace lamp keeps its post and
+-- lantern on Low; there are ~280 of them in view from the square.
+Quality.DECOR_PARTS_IN_MODEL = {
+	TerraceLamp = { Base = true, Arm = true, Glass = true, Cap = true },
+} :: { [string]: { [string]: boolean } }
+
 -- Model names whose whole contents are decoration.
 Quality.DECOR_MODEL_NAMES = {
 	Boat = true, -- RiverDresser moorings
@@ -146,6 +153,11 @@ function Quality.isDecorative(inst: Instance): boolean
 		return true
 	end
 	if Quality.DECOR_PART_NAMES[Quality.baseName(inst.Name)] then
+		return true
+	end
+	local parent = inst.Parent
+	local inModel = parent and Quality.DECOR_PARTS_IN_MODEL[parent.Name]
+	if inModel and parent:IsA("Model") and inModel[inst.Name] then
 		return true
 	end
 	local node = inst.Parent
