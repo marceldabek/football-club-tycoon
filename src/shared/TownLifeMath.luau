@@ -1,12 +1,14 @@
 --!strict
--- Pure maths for TownLife.client.luau (backlog F4.1 wind turbines, H1.1 club
--- banners, G2.1 matchday bunting). Kept separate from the LocalScript so the
+-- Pure maths for TownLife.client.luau (backlog F4.1 wind turbines, square
+-- flags and chimney smoke, H1.1 club banners, G2.1 matchday bunting and busy
+-- pubs). Kept separate from the LocalScript so the
 -- geometry can be unit tested without building anything in the workspace,
 -- same split as StreetDresser.stations / MatchdayRoutes.
 
 local TownLifeMath = {}
 
 export type Station = { position: Vector3, direction: Vector3 }
+type Scored = { i: number, d: number }
 
 -- Short label for a club banner: the full name if it's short enough to read
 -- on a 1.6-stud-wide panel, otherwise its initials (one letter per word,
@@ -58,6 +60,207 @@ end
 -- touch the blade's own orientation each frame.
 function TownLifeMath.bladeCFrame(hub: Vector3, offset: CFrame, angle: number): CFrame
 	return CFrame.new(hub) * CFrame.Angles(angle, 0, 0) * offset
+end
+
+-- ================================================================== flags
+
+-- Flag wave (F4.1a). TEMP look values, tune in Studio.
+TownLifeMath.FLAG_AMPLITUDE = 0.22 -- radians of yaw added at each hinge at the peak of the wave
+TownLifeMath.FLAG_SPEED = 2.6 -- radians of wave phase per second
+TownLifeMath.FLAG_WAVE = 0.9 -- phase lag between successive hinges, so the wave runs outwards
+
+-- `count` points on a circle of `radius` round `centre` (y = centre.Y),
+-- starting at angle `offset` radians and evenly spaced.
+function TownLifeMath.ringPoints(centre: Vector3, radius: number, count: number, offset: number): { Vector3 }
+	local out: { Vector3 } = {}
+	for i = 0, count - 1 do
+		local a = offset + i * 2 * math.pi / count
+		table.insert(out, centre + Vector3.new(math.cos(a) * radius, 0, math.sin(a) * radius))
+	end
+	return out
+end
+
+-- World CFrames of a flag's `count` segments at wave time `t` (seconds plus
+-- any per-flag phase). `attach` is the hinge on the pole: its +X is the
+-- direction the flag flies, +Y is up, and its position is the middle height
+-- of the flag. Each segment is a box `segmentWidth` long along its own X; the
+-- chain yaws a little about the vertical at every hinge, so segments stay
+-- joined edge to edge and never leave the attach height.
+function TownLifeMath.flagSegmentCFrames(attach: CFrame, segmentWidth: number, count: number, t: number): { CFrame }
+	local out: { CFrame } = {}
+	local hinge = attach
+	for i = 1, count do
+		local yaw = TownLifeMath.FLAG_AMPLITUDE * math.sin(t * TownLifeMath.FLAG_SPEED - (i - 1) * TownLifeMath.FLAG_WAVE)
+		hinge = hinge * CFrame.Angles(0, yaw, 0)
+		table.insert(out, hinge * CFrame.new(segmentWidth / 2, 0, 0))
+		hinge = hinge * CFrame.new(segmentWidth, 0, 0)
+	end
+	return out
+end
+
+-- ================================================================== smoke
+
+-- A stable pseudo-random bucket for a world position (rounded to whole studs
+-- in XZ), so "every Nth chimney" picks the same chimneys whatever order they
+-- stream in. Result is in 0..every-1. Every product stays below 2^53, so the
+-- float maths is exact.
+function TownLifeMath.positionBucket(p: Vector3, every: number): number
+	local x = math.floor(p.X + 0.5)
+	local z = math.floor(p.Z + 0.5)
+	local h = bit32.bxor((x * 73856093) % 4294967296, (z * 19349663) % 4294967296)
+	h = bit32.bxor(h, bit32.rshift(h, 15))
+	h = (h * 1664525 + 1013904223) % 4294967296
+	h = bit32.bxor(h, bit32.rshift(h, 16))
+	return h % every
+end
+
+-- Indices into `points` of the (at most) `n` points nearest `target` in XZ,
+-- nearest first; points further than `radius` (if given) are skipped. Ties
+-- keep the input order.
+function TownLifeMath.nearestIndices(points: { Vector3 }, target: Vector3, n: number, radius: number?): { number }
+	local scored: { Scored } = {}
+	for i, p in points do
+		local d = Vector3.new(p.X - target.X, 0, p.Z - target.Z).Magnitude
+		if radius == nil or d <= radius then
+			table.insert(scored, { i = i, d = d })
+		end
+	end
+	table.sort(scored, function(a: Scored, b: Scored): boolean
+		if a.d ~= b.d then
+			return a.d < b.d
+		end
+		return a.i < b.i
+	end)
+	local out: { number } = {}
+	for k = 1, math.min(n, #scored) do
+		out[k] = scored[k].i
+	end
+	return out
+end
+
+-- Which chimney tops smoke (F4.1b): of the tops in bucket 0 of `every`
+-- (about one in `every`) within `radius` of the camera, the `max` nearest.
+-- Returns indices into `tops`.
+function TownLifeMath.smokeChimneys(tops: { Vector3 }, camPos: Vector3, radius: number, every: number, max: number): { number }
+	local candidates: { Vector3 } = {}
+	local map: { number } = {}
+	for i, p in tops do
+		if TownLifeMath.positionBucket(p, every) == 0 then
+			table.insert(candidates, p)
+			table.insert(map, i)
+		end
+	end
+	local out: { number } = {}
+	for k, ci in TownLifeMath.nearestIndices(candidates, camPos, max, radius) do
+		out[k] = map[ci]
+	end
+	return out
+end
+
+-- ================================================================ drinkers
+
+TownLifeMath.PAVEMENT_TOP = 0.45 -- TownBuilder.Y.PAVEMENT; forecourt paving is 0.40
+TownLifeMath.DRINKER_OUT = 6.4 -- huddle centres this far out from the shopfront face
+TownLifeMath.DRINKER_GROUP = 3 -- at most this many to a huddle
+TownLifeMath.DRINKER_RADIUS = 1.5 -- huddle radius for 3 (a pair uses 1.1)
+TownLifeMath.DRINKER_GROUP_SPACING = 5 -- min distance between huddle centres along the frontage
+
+local function flat(v: Vector3): Vector3
+	return Vector3.new(v.X, 0, v.Z)
+end
+
+-- Feet CFrames (-Z = facing) for `count` standing drinkers outside a pub.
+-- `front` / `frontSize` are a ShopBuilder Shopfront part: its local -X points
+-- out of the building, its Z runs along the frontage (Size.Z = bay width) and
+-- its bottom sits at the row's ground (y 0, under the pavement, so feet go on
+-- PAVEMENT_TOP). Drinkers stand in huddles of up to 3 facing each other,
+-- DRINKER_OUT studs out -- past ForecourtDresser's cafe set and A-board (both
+-- end <= ~4.3 out) -- on the forecourt or the 8-stud pavement. Huddles spread
+-- evenly along the frontage, spilling past it when the bay is too narrow.
+-- Deterministic for a given `seed`.
+function TownLifeMath.drinkerSpots(front: CFrame, frontSize: Vector3, count: number, seed: number): { CFrame }
+	local out: { CFrame } = {}
+	if count <= 0 then
+		return out
+	end
+	local outward = flat(front:VectorToWorldSpace(Vector3.new(-1, 0, 0)))
+	local along = flat(front:VectorToWorldSpace(Vector3.new(0, 0, 1)))
+	if outward.Magnitude < 1e-6 or along.Magnitude < 1e-6 then
+		return out
+	end
+	outward = outward.Unit
+	along = along.Unit
+	local groundY = math.max(front.Position.Y - frontSize.Y / 2, TownLifeMath.PAVEMENT_TOP)
+	local faceCentre = Vector3.new(front.Position.X, groundY, front.Position.Z) + outward * (frontSize.X / 2)
+	local rng = Random.new(seed)
+
+	local groups = math.ceil(count / TownLifeMath.DRINKER_GROUP)
+	local span = math.max(frontSize.Z * 0.9, groups * TownLifeMath.DRINKER_GROUP_SPACING)
+	local placed = 0
+	for g = 1, groups do
+		local members = math.min(TownLifeMath.DRINKER_GROUP, count - placed)
+		local z = ((g - 0.5) / groups - 0.5) * span
+		local centre = faceCentre + outward * TownLifeMath.DRINKER_OUT + along * z
+		if members == 1 then
+			-- a lone drinker faces the pub window
+			local pos = centre + along * (rng:NextNumber() - 0.5)
+			table.insert(out, CFrame.lookAt(pos, pos - outward))
+		else
+			local radius = if members == 2 then 1.1 else TownLifeMath.DRINKER_RADIUS
+			local a0 = rng:NextNumber() * 2 * math.pi
+			for k = 0, members - 1 do
+				local a = a0 + k * 2 * math.pi / members
+				local pos = centre + (outward * math.cos(a) + along * math.sin(a)) * radius
+				table.insert(out, CFrame.lookAt(pos, centre))
+			end
+		end
+		placed += members
+	end
+	return out
+end
+
+-- The cheap standing figure (Pedestrians.client.luau's 6-part style).
+TownLifeMath.FIGURE = {
+	leg = Vector3.new(0.8, 2.1, 0.8),
+	torso = Vector3.new(1.8, 2.0, 0.9),
+	arm = Vector3.new(0.45, 1.9, 0.5),
+	head = 1.1,
+	pint = Vector3.new(0.75, 0.45, 0.45), -- cylinder: X is its length (up once placed)
+}
+TownLifeMath.PINT_ARM_RAISE = 1.1 -- radians the drinking arm swings forward
+
+-- Part CFrames for a standing figure with feet at `feet` (-Z forward), in the
+-- order torso, head, legL, legR, armL, armR. With `pint`, the right arm is
+-- raised forward and a 7th CFrame is the upright pint glass in that hand (a
+-- cylinder part, so its X axis is turned to point up).
+function TownLifeMath.figureCFrames(feet: CFrame, pint: boolean): { CFrame }
+	local F = TownLifeMath.FIGURE
+	local hipY = F.leg.Y
+	local shoulderY = hipY + F.torso.Y - 0.1
+	local legX = 0.45
+	local armX = F.torso.X / 2 + F.arm.X / 2 + 0.03
+	local legHang = CFrame.new(0, -F.leg.Y / 2, 0)
+	local armHang = CFrame.new(0, -F.arm.Y / 2 + 0.1, 0)
+
+	local out: { CFrame } = {
+		feet * CFrame.new(0, hipY + F.torso.Y / 2, 0),
+		feet * CFrame.new(0, hipY + F.torso.Y + F.head / 2, 0),
+		feet * CFrame.new(-legX, hipY, 0) * legHang,
+		feet * CFrame.new(legX, hipY, 0) * legHang,
+		feet * CFrame.new(-armX, shoulderY, 0) * armHang,
+	}
+	if pint then
+		-- CFrame.Angles(+a, 0, 0) swings a hanging arm towards -Z (forward)
+		local shoulder = feet * CFrame.new(armX, shoulderY, 0) * CFrame.Angles(TownLifeMath.PINT_ARM_RAISE, 0, 0)
+		table.insert(out, shoulder * armHang)
+		local hand = shoulder:PointToWorldSpace(Vector3.new(0, -F.arm.Y + 0.1, 0))
+		-- the glass stands upright in the hand, turned with the figure rather than the arm
+		local glass = feet.Rotation + hand + Vector3.new(0, F.pint.X / 2 - 0.1, 0)
+		table.insert(out, glass * CFrame.Angles(0, 0, math.pi / 2))
+	else
+		table.insert(out, feet * CFrame.new(armX, shoulderY, 0) * armHang)
+	end
+	return out
 end
 
 return TownLifeMath
