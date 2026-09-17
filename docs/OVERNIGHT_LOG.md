@@ -27,7 +27,7 @@ Nothing is sitting unmerged.
 **Reverted:** none.
 
 **Known bugs**
-1. Up to 02:25 Studio playtests used your real DataStore club. Agent tests added matches, cash and one North-stand level to Dino FC (it went from 7 to 8 matches tonight). Since 02:25 Studio uses a separate store (see question 1).
+1. Up to 02:20 Studio playtests used your real DataStore club. Agent tests added matches, cash and one North-stand level to Dino FC (it went from 7 to 8 matches tonight). Since 02:20 Studio uses a separate store (see question 1).
 2. Studio holds condensed copies of the new modules (comments trimmed). Reconnect Rojo to overwrite them from disk.
 3. Season-end fast-forward is wired but not playtested.
 4. Studio shows "Assistant plugin version changed ... restart Roblox Studio" warnings; the MCP kept working, but restart Studio before trusting the Assistant.
@@ -136,7 +136,7 @@ Nothing is sitting unmerged.
 - **Town part totals:** streets 8,371, shops 695, estates 1,284, forecourts 505, riverside 813, park 429, square+church 499, station 111, viaduct 56. Client-side extras: 24 cars, 30 walkers, up to 60 banners.
 - RunAll 232/232.
 
-### 2026-09-17 02:25 — Studio saves kept apart from the live club (X1)
+### 2026-09-17 02:20 — Studio saves kept apart from the live club (X1)
 - `SaveService.storeNameFor` adds `Config.Save.studioStoreSuffix` (TEMP `"_Studio"`) to the DataStore name when `RunService:IsStudio()`, for both the profile and the save lock. Verified: Studio play created a new "MDino24 FC" profile (0 matches, onboarding) in the Studio store; the Dino FC save is untouched from now on. Question 1 updated with how to switch it back.
 - Four more worktree agents are running: bridge arches + station roof (X19/X21), marina basin + backdrop fields (X18/X16), imperfection pass (E10.1), forecourt/semis polish (X25–X27/X29).
 - RunAll 233/233.
