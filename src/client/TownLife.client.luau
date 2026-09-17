@@ -45,6 +45,12 @@ local function newPart(name: string, size: Vector3, cframe: CFrame, color: Color
 	return p
 end
 
+-- C3.2: QualityController publishes "High" | "Low" on the LocalPlayer.
+local function isLowQuality(): boolean
+	local player = game:GetService("Players").LocalPlayer
+	return player ~= nil and player:GetAttribute("Quality") == "Low"
+end
+
 local function currentCameraPosition(): Vector3
 	local camera = workspace.CurrentCamera
 	return if camera then camera.CFrame.Position else Vector3.zero
@@ -154,6 +160,7 @@ local BANNER_THICK = 0.1
 local BANNER_NEAR = 700
 local BANNER_FAR = 900
 local BANNER_BUDGET = 60
+local BANNER_BUDGET_LOW = 20 -- TEMP, Quality "Low" (mirrors Shared.Quality.BUDGETS.Low.banners)
 local BANNER_RESCAN_SECONDS = 5
 
 type LampEntry = { model: Model, ground: Vector3, roadDir: Vector3, index: number }
@@ -311,6 +318,17 @@ end
 local function rescanBanners()
 	local camPos = currentCameraPosition()
 	local clubName = currentClubName()
+	local budget = if isLowQuality() then BANNER_BUDGET_LOW else BANNER_BUDGET
+
+	-- quality dropped to Low: take down banners over the new budget
+	if activeBannerCount > budget then
+		for lampModel in activeBanners do
+			if activeBannerCount <= budget then
+				break
+			end
+			removeBanner(lampModel)
+		end
+	end
 
 	for _, lamp in allLamps do
 		local dist = (camPos - lamp.ground).Magnitude
@@ -319,7 +337,7 @@ local function rescanBanners()
 			if dist > BANNER_FAR then
 				removeBanner(lamp.model)
 			end
-		elseif dist <= BANNER_NEAR and lamp.index % 2 == 0 and activeBannerCount < BANNER_BUDGET then
+		elseif dist <= BANNER_NEAR and lamp.index % 2 == 0 and activeBannerCount < budget then
 			activeBanners[lamp.model] = buildBanner(lamp, clubName)
 			activeBannerCount += 1
 		end
@@ -331,6 +349,7 @@ end
 local BUNTING_SPACING = 60
 local BUNTING_HEIGHT = 14
 local BUNTING_STRING_BUDGET = 40
+local BUNTING_STRING_BUDGET_LOW = 12 -- TEMP, Quality "Low" (mirrors Shared.Quality.BUDGETS.Low.buntingStrings)
 local BUNTING_ROAD_COUNT = 3
 local BUNTING_FLAG_COUNT = 8
 local BUNTING_FLAG_SIZE = Vector3.new(1, 1.2, 0.1)
@@ -392,15 +411,16 @@ local function buildBunting(plotCFrame: CFrame, clubName: string)
 	local folder = Instance.new("Folder")
 	folder.Name = "Bunting"
 	local kit = Config.clubCrest(clubName, true)
+	local stringBudget = if isLowQuality() then BUNTING_STRING_BUDGET_LOW else BUNTING_STRING_BUDGET
 
 	local built = 0
 	for _, road in closestResidentialRoads(plotCFrame.Position) do
-		if built >= BUNTING_STRING_BUDGET then
+		if built >= stringBudget then
 			break
 		end
 		local width = road.width + 16
 		for _, station in TownLifeMath.stationsAlong(road.points, BUNTING_SPACING) do
-			if built >= BUNTING_STRING_BUDGET then
+			if built >= stringBudget then
 				break
 			end
 			buildBuntingCrossing(folder, station, width, kit)
