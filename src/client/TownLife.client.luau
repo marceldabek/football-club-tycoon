@@ -197,6 +197,11 @@ local function lampPlacement(model: Model): (Vector3?, Vector3?)
 end
 
 local function registerLamp(inst: Instance)
+	-- StreamingEnabled: a lamp model can arrive before its Post, so a part
+	-- arriving later retries its parent model
+	if inst:IsA("BasePart") and inst.Parent then
+		inst = inst.Parent
+	end
 	if not inst:IsA("Model") then
 		return
 	end
@@ -208,11 +213,11 @@ local function registerLamp(inst: Instance)
 	if not isLamp then
 		return
 	end
-	seenLamps[model] = true
 	local ground, roadDir = lampPlacement(model)
 	if not (ground and roadDir) then
 		return
 	end
+	seenLamps[model] = true
 	lampCounter += 1
 	table.insert(allLamps, { model = model, ground = ground :: Vector3, roadDir = roadDir :: Vector3, index = lampCounter })
 end
