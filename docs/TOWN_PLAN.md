@@ -48,12 +48,15 @@ With Roblox yaw θ, local −X maps to world (−cos θ, 0, sin θ).
 
 | Plot | Site | Centre (x, z) | Yaw | Entrance faces | World bounds x / z | Access | Bus stop (x, z) | River clearance |
 |---|---|---|---|---|---|---|---|---|
-| 1 | SE | (1050, 1250) | 270° | north | 670..1430 / 870..1630 | Plot 1 Lane off Ring S (1050, 750) | (1090, 835) | 491 |
-| 2 | NE | (1900, −1200) | 0° | west | 1520..2280 / −1580..−820 | Plot 2 Lane off Plot 2 Roundabout | (1470, −1160) | 380 |
-| 3 | E | (1950, 420) | 0° | west | 1570..2330 / 40..800 | Plot 3 Lane off Plot 3 Roundabout | (1520, 460) | 123 |
-| 4 | NW | (−1900, −1200) | 180° | east | −2280..−1520 / −1580..−820 | Plot 4 Lane off Plot 4 Roundabout | (−1470, −1160) | 1006 |
+| 1 | SE | (1050, 1250) | 270° | north | 670..1430 / 870..1630 | Plot 1 Lane off Ring S (970, 761) | (992, 840) | 491 |
+| 2 | NE | (1900, −1200) | 0° | west | 1520..2280 / −1580..−820 | Plot 2 Lane off Plot 2 Roundabout | (1490, −1142) | 380 |
+| 3 | E | (1950, 420) | 0° | west | 1570..2330 / 40..800 | Plot 3 Lane off Plot 3 Roundabout | (1540, 522) | 123 |
+| 4 | NW | (−1900, −1200) | 180° | east | −2280..−1520 / −1580..−820 | Plot 4 Lane off Plot 4 Roundabout | (−1490, −1302) | 1006 |
 
-Nearest road edge to any plot is 20 studs (the access lane ends). Rail clearance: Plot 4 270, others > 1200.
+Every access lane (X6) ends at `plotCFrame(i) * TownLayout.PLOT_LANE_END` = plot-local (−390, 0, 80), 10 studs
+outside the vehicle gate (`PlotGrounds`: gate at local x −380, z 60..100). Gate ends in world: Plot 1 (970, 860),
+Plot 2 (1510, −1120), Plot 3 (1560, 500), Plot 4 (−1510, −1280). Each plot bus stop sits 22 beside its lane, 20 back
+from the lane end, outside the plot. Rail clearance: Plot 4 270, others > 1200.
 
 ### Inside a plot (local frame, TEMP zoning)
 
@@ -95,19 +98,54 @@ The current office/entrance sits at local x ≈ −150..−300; it stays inside 
 | main | 26 | Bridge Street | (0,60) (100,300) (100,540) (0,800) |
 | main | 26 | Station Road | (−460,−60) (−700,−300) (−800,−340) |
 | main | 26 | Estate Road | (−1250,−100) → (−2300,−110) |
-| residential | 20 | Mill Street | (0,−200) → (450,−200) |
-| residential | 20 | Weaver Street | (0,−330) → (450,−330) |
-| residential | 20 | Elm Grove | (−350,−440) → (450,−440) |
-| residential | 20 | Northfields Avenue | (−350,−600) → (900,−600) |
-| residential | 20 | Hayfield Close | (400,−600) → (400,−900) |
-| residential | 20 | Rowan Close | (−200,−600) → (−200,−900) |
-| residential | 20 | Westdale Avenue | (−1100,950) → (−720,950) |
-| residential | 20 | Westdale Crescent | (−1100,1250) → (−720,1250) |
-| residential | 20 | Sports Centre Road | (0,800) (0,1200) (450,1200) |
-| lane | 20 | Plot 1 Lane | (1050,750) → (1050,850) |
-| lane | 20 | Plot 2 Lane | (1300,−800) (1320,−1200) (1500,−1200) |
-| lane | 20 | Plot 3 Lane | (1400,400) → (1550,420) |
-| lane | 20 | Plot 4 Lane | (−1300,−800) (−1320,−1200) (−1500,−1200) |
+| residential | 20 | Mill Street | (0,−200) → (900,−200) |
+| residential | 20 | Weaver Street | (−430,−330) → (900,−330) |
+| residential | 20 | Elm Grove | (−500,−440) → (900,−440) |
+| residential | 20 | Northfields Avenue | (−1320,−600) → (1345,−600) |
+| residential | 20 | Hayfield Close | (400,−600) → (400,−920) |
+| residential | 20 | Rowan Close | (−200,−600) → (−200,−920) |
+| residential | 20 | Westdale Avenue | (−1100,950) → (−690,950) |
+| residential | 20 | Westdale Crescent | (−1250,1250) → (−690,1250) |
+| residential | 20 | Sports Centre Road | (0,800) (0,1200) (520,1200) |
+| residential | 20 | Linden Way | (−700,−920) → (700,−920) |
+| residential | 20 | Elder Close | (−1200,−600) → (−1200,−827) |
+| residential | 20 | Ash Close | (−1000,−600) → (−1000,−888) |
+| residential | 20 | Birch Close | (−800,−600) → (−800,−950) |
+| residential | 20 | Cherry Close | (−600,−600) → (−600,−920) |
+| residential | 20 | Hazel Close | (−400,−600) → (−400,−920) |
+| residential | 20 | Holly Close | (225,−600) → (225,−920) |
+| residential | 20 | Laurel Close | (650,−600) → (650,−920) |
+| residential | 20 | Maple Close | (850,−600) → (850,−935) |
+| residential | 20 | Oak Close | (1050,−600) → (1050,−873) |
+| residential | 20 | Poplar Close | (1250,−600) → (1250,−812) |
+| residential | 20 | Church Lane | (−360,−45) → (−360,−330) |
+| residential | 20 | Cooper Street | (−1296,−240) → (−640,−240) |
+| residential | 20 | Lock Street | (−1160,150) → (−540,150) |
+| residential | 20 | Lune Street | (−440,260) → (480,260) |
+| residential | 20 | Meadow Road | (92,560) → (1325,560) |
+| residential | 20 | Viaduct Road | (−545,620) → (69,620) |
+| residential | 20 | Weir Road | (−1126,560) → (−615,560) |
+| residential | 20 | Westdale Road | (−915,737) → (−915,1400) |
+| residential | 20 | Brook Street | (−1100,1100) → (−690,1100) |
+| residential | 20 | Orchard Road | (−1700,1400) → (−690,1400) |
+| residential | 20 | Alder Road | (−1250,1146) → (−1250,1400) |
+| residential | 20 | Cedar Road | (−470,800) → (−470,1500) |
+| residential | 20 | Moss Lane | (−1800,560) → (−1134,560) |
+| residential | 20 | Fern Street | (−1800,800) → (−1113,800) |
+| residential | 20 | Reed Road | (−1600,380) → (−1600,1110) |
+| residential | 20 | Hollins Road | (520,800) → (520,1500) |
+| residential | 20 | Foundry Way | (−1480,−397) → (−1480,120) |
+| lane | 20 | Plot 1 Lane | (970,761) → (970,860) |
+| lane | 20 | Plot 2 Lane | (1300,−800) (1300,−1120) (1510,−1120) |
+| lane | 20 | Plot 3 Lane | (1400,400) (1460,500) (1560,500) |
+| lane | 20 | Plot 4 Lane | (−1300,−800) (−1300,−1280) (−1510,−1280) |
+
+Streets added or lengthened in the X5 densify pass: Mill, Weaver and Elm Grove run on to x 900; Northfields Avenue
+spans the ring; twelve closes (Elder … Poplar) run north to Linden Way or the ring; Church Lane, Cooper Street and
+Lock Street fill the centre and station side; Lune Street, Meadow Road, Viaduct Road and Weir Road line the river
+banks; Westdale Road, Brook Street, Orchard Road, Alder Road, Cedar Road, Moss Lane, Fern Street and Reed Road make
+Westdale; Hollins Road runs beside Plot 1; Foundry Way serves the industrial estate. Moss Lane and Weir Road meet the
+ring as a plain crossroads (TEMP, no roundabout).
 
 ### Roundabouts (radius 40) and square
 
@@ -128,15 +166,22 @@ The current office/entrance sits at local x ≈ −150..−300; it stays inside 
 
 | District | Kind | Area x / z | Blocks | Contents |
 |---|---|---|---|---|
-| Town Centre | centre | −310..450 / −275..230 | 12 | 4 shop blocks around the square (h 36–40), 6 high-street shops/pub/supermarket (h 30–34), town hall (−150,200), church (−220,−230) |
-| Mill Street Terraces | terraced | 35..365 / −370..−160 | 8 | terraced rows 130 × 24 × 24 both sides of Mill St and Weaver St, back-to-back gardens between. **First district to dress (E3.1)** |
-| Northfields | estate | −340..800 / −890..−458 | 23 | semis on Elm Grove, rows both sides of Northfields Avenue, Hayfield Close and Rowan Close |
-| Riverside | riverside | 500..970 / 110..280 | 4 | pub/cafés, flats, waterfront flats on the north bank, marina basin (900,240) |
+| Town Centre | centre | −455..539 / −275..340 | 49 | shops, shops with flats and pubs wrapping the market square and lining High Street, Riverside Road, North Road and Bridge Street, flats behind; supermarket, town hall (−150,200), church (−220,−230), school (−250,310) |
+| Mill Street Terraces | terraced | −444..950 / −414..−115 | 48 | terraced rows (100–140 × 22–26 × 24) both sides of Mill St, Weaver St and Church Lane, back-to-back. The original 8 rows (x 100 / 300) moved 8 studs off the street to clear the pavement (z −164, −236, −294, −366). **First district to dress (E3.1)** |
+| Northfields | estate | −1300..1296 / −1004..−458 | 168 | terraced rows and semis on Elm Grove, Northfields Avenue, North Road, Linden Way and the twelve closes; corner shops; school (−1100,−750) |
+| Riverside | riverside | −620..1302 / −88..1570 | 167 | flats on Riverside Road and Lune Street, marina basin (900,240); south bank terraces on Meadow Road, Viaduct Road, Bridge Street, the ring and Hollins Road |
 | Riverside Park | park | 970..1330 / −560..−80 | 3 | lawn 360 × 480, bandstand, park café |
-| Station | station | −1060..−680 / −420..−320 | 1 + station | station building, car park (−1000,−350) |
-| Industrial Estate | industrial | −2230..−1570 / −300..65 | 6 | two rows of sheds (160 × 100, h 26–30) either side of Estate Road |
-| Westdale | estate | −1610..−770 / 508..1292 | 13 | rows by the West Bridge, Westdale Avenue and Crescent, semis on Greenbridge Road |
-| Community Sports Centre | sports | −300..340 / 920..1500 | 4 | three pitches and a sports hall (220,1300) |
+| Station | station | −1286..−489 / −380..234 | 55 | station car park (−1000,−350), shops on Station Road, terraced rows on Cooper Street, High Street west and Lock Street |
+| Industrial Estate | industrial | −2390..−1300 / −560..123 | 43 | the six big sheds plus warehouses, workshops and trade counters on Estate Road, Mapleford Road and Foundry Way |
+| Westdale | estate | −1800..−386 / 380..1550 | 143 | terraced rows on Weir Road, the ring, Westdale Avenue / Crescent / Road, Brook Street, Orchard, Alder and Cedar Roads, and Moss Lane / Fern Street / Reed Road west of the ring; corner shops; school (−1250,1000) |
+| Community Sports Centre | sports | −300..340 / 920..1500 | 6 | three grass pitches, two 3G pitches and a sports hall (220,1300) |
+
+Total **682** blocks (was 74). Rules checked by `tests/TownLayoutTest.luau`: all yaw 0; no two blocks overlap (1-stud
+tolerance; a building may stand on a flat ground piece); every block clears carriageway + 8 pavement, river width/2 + 20
+(marina excepted), rail width/2 + 10, roundabouts and the square (+8), bus stops (12), landmarks (30, the church nave
+excepted) and plots (+20); at least 400 blocks. Rows were laid by a frontage script (set back 6 from the pavement,
+back-to-back pairs with a 12 alley, terraces 100–140 long with 10 gaps, semis 40–50 with 10–16 gaps, industrial
+sheds 120–180 with yards between) and checked numerically before commit.
 
 ## 4. Road hierarchy
 
@@ -145,7 +190,7 @@ The current office/entrance sits at local x ≈ −150..−300; it stays inside 
 | ring | 32 | 8 + 8 | loop linking every plot, district and exit; bus route | two lanes, roundabouts |
 | main | 26 | 8 + 8 | spokes from the square, exits, station, estate | two-way with parking bays |
 | residential | 20 | 8 + 8 | terraced and estate streets | parked cars one side |
-| lane | 20 | 8 one side | plot access, ends at the plot edge | club traffic, matchday queues |
+| lane | 20 | none (greybox) | plot access, ends 10 outside the plot's vehicle gate | club traffic, matchday queues |
 
 ## 5. Walking times
 
@@ -153,17 +198,17 @@ Route length TEMP = straight line × 1.3. Centre = market square; plots = their 
 
 | From → To | Route (studs) | Walk 16/s | Sprint 26/s |
 |---|---|---|---|
-| Centre → Plot 1 | 1785 | 1 m 52 s | 69 s |
-| Centre → Plot 2 | 2434 | 2 m 32 s | 94 s |
-| Centre → Plot 3 | 2065 | 2 m 09 s | 79 s |
-| Centre → Plot 4 | 2434 | 2 m 32 s | 94 s |
+| Centre → Plot 1 | 1690 | 1 m 46 s | 65 s |
+| Centre → Plot 2 | 2440 | 2 m 33 s | 94 s |
+| Centre → Plot 3 | 2114 | 2 m 12 s | 81 s |
+| Centre → Plot 4 | 2572 | 2 m 41 s | 99 s |
 | Centre → Station | 1067 | 67 s | 41 s |
-| Plot 1 → Plot 3 | 742 | 46 s | 29 s |
-| Plot 1 → Plot 2 | 2640 | 2 m 45 s | 102 s |
-| Plot 2 → Plot 3 | 2107 | 2 m 12 s | 81 s |
-| Plot 2 → Plot 4 | 3822 | 3 m 59 s | 147 s |
-| Plot 1 → Plot 4 | 4219 | 4 m 24 s | 162 s |
-| Plot 3 → Plot 4 | 4421 | 4 m 36 s | 170 s |
+| Plot 1 → Plot 3 | 824 | 51 s | 32 s |
+| Plot 1 → Plot 2 | 2657 | 2 m 46 s | 102 s |
+| Plot 2 → Plot 3 | 2164 | 2 m 15 s | 83 s |
+| Plot 2 → Plot 4 | 3880 | 4 m 02 s | 149 s |
+| Plot 1 → Plot 4 | 4262 | 4 m 26 s | 164 s |
+| Plot 3 → Plot 4 | 4598 | 4 m 47 s | 177 s |
 
 Anything over ~2 minutes is what the bus stops and the "go to my club" button are for.
 
@@ -176,12 +221,12 @@ Anything over ~2 minutes is what the bus stops and the "go to my club" button ar
 | Riverside | (700, 80) | 0 | Riverside Road |
 | Riverside Park | (1180, −40) | 0 | Riverside Road |
 | Industrial Estate | (−1600, −130) | 0 | Estate Road |
-| Westdale | (−1060, 930) | 0 | Westdale Avenue |
+| Westdale | (−1075, 964) | 0 | Westdale Avenue |
 | Sports Centre | (40, 1180) | 0 | Sports Centre Road |
-| Plot 1 | (1090, 835) | 0 | Plot 1 Lane |
-| Plot 2 | (1470, −1160) | 90 | Plot 2 Lane |
-| Plot 3 | (1520, 460) | 90 | Plot 3 Lane |
-| Plot 4 | (−1470, −1160) | 270 | Plot 4 Lane |
+| Plot 1 | (992, 840) | 90 | Plot 1 Lane |
+| Plot 2 | (1490, −1142) | 180 | Plot 2 Lane |
+| Plot 3 | (1540, 522) | 0 | Plot 3 Lane |
+| Plot 4 | (−1490, −1302) | 180 | Plot 4 Lane |
 
 ## 7. Landmarks and sightlines
 
@@ -193,12 +238,12 @@ Anything over ~2 minutes is what the bus stops and the "go to my club" button ar
 
 | From (bus stop) | Spire distance / bearing | Viaduct distance / bearing |
 |---|---|---|
-| Plot 1 | 1695 / 309° (NW) | 1697 / 285° (W) |
-| Plot 2 | 1924 / 241° (WSW) | 2552 / 232° (SW) |
-| Plot 3 | 1876 / 292° (WNW) | 2071 / 272° (W) |
-| Plot 4 | 1552 / 126° (SE) | 1811 / 149° (SSE) |
+| Plot 1 | 1623 / 312° (NW) | 1604 / 286° (W) |
+| Plot 2 | 1933 / 242° (WSW) | 2557 / 233° (SW) |
+| Plot 3 | 1918 / 293° (WNW) | 2094 / 273° (W) |
+| Plot 4 | 1656 / 130° (SE) | 1944 / 151° (SSE) |
 | Station | 533 / 102° (E) | 779 / 166° (S) |
-| Westdale | 1440 / 36° (NE) | 736 / 44° (NE) |
+| Westdale | 1477 / 35° (NE) | 771 / 43° (NE) |
 
 Rules: keep a gap in tree lines on each plot's entrance side along the spire bearing; nothing in town taller than
 60 except the spire, floodlights and endgame stand roofs; the spire must clear roofs from 560+ studs away

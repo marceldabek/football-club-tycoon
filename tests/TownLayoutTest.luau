@@ -143,13 +143,236 @@ function T.plotBusStopsAreOnARoadOutsideThePlot()
 	end
 end
 
+-- X6: the access lane no longer meets the middle of the entrance side; it ends
+-- at the vehicle gate (PlotGrounds: plot-local x = -380, z 60..100), so check
+-- the gate point 10 outside the wall instead of the side centre.
 function T.plotEntranceFacesAnAccessRoad()
-	local h = TownLayout.PLOT_SIZE / 2
-	for i, plot in TownLayout.PLOTS do
-		local gate = plot.centre + TownLayout.plotEntranceDirection(i) * (h + 30)
+	for i in TownLayout.PLOTS do
+		local gate = TownLayout.plotCFrame(i) * TownLayout.PLOT_LANE_END
 		local d = nearestRoadDistance(gate)
-		assert(d <= 60, ("plot %d entrance side is %.0f from a road"):format(i, d))
+		assert(d <= 1, ("plot %d vehicle gate is %.0f from a road"):format(i, d))
+		assert(not TownLayout.pointInPlot(gate, i), ("plot %d lane end is inside the plot"):format(i))
 	end
+end
+
+local function roadNamed(name: string): TownLayout.Road?
+	for _, road in TownLayout.ROADS do
+		if road.name == name then
+			return road
+		end
+	end
+	return nil
+end
+
+function T.plotLanesRunFromTheRingToTheVehicleGate()
+	local ring = roadNamed("Ring Road")
+	assert(ring, "no Ring Road")
+	for i, plot in TownLayout.PLOTS do
+		local lane = roadNamed(plot.name .. " Lane")
+		assert(lane, "no lane for " .. plot.name)
+		local gate = TownLayout.plotCFrame(i) * TownLayout.PLOT_LANE_END
+		local last = lane.points[#lane.points]
+		assert(
+			math.abs(last.X - gate.X) < EPS and math.abs(last.Z - gate.Z) < EPS,
+			("%s ends at %s, gate is %s"):format(lane.name, tostring(last), tostring(gate))
+		)
+		local first = lane.points[1]
+		local joined = TownLayout.distanceToPolyline(first, ring.points) <= ring.width / 2
+		for _, r in TownLayout.ROUNDABOUTS do
+			local offset = first - r.centre
+			if Vector3.new(offset.X, 0, offset.Z).Magnitude <= r.radius then
+				joined = true
+			end
+		end
+		assert(joined, lane.name .. " does not start on the ring road")
+		local stop = plot.busStop
+		assert(TownLayout.distanceToPolyline(stop, lane.points) <= 30, plot.name .. " bus stop is not beside its lane")
+		assert(Vector3.new(stop.X - gate.X, 0, stop.Z - gate.Z).Magnitude <= 60, plot.name .. " bus stop is far from the gate")
+		local listed = false
+		for _, busStop in TownLayout.BUS_STOPS do
+			if busStop.name == plot.name then
+				listed = (busStop.position - stop).Magnitude < EPS
+			end
+		end
+		assert(listed, plot.name .. " BUS_STOPS entry does not match PLOTS busStop")
+	end
+end
+
+-- District blocks ---------------------------------------------------------------
+
+type Rect = { minX: number, maxX: number, minZ: number, maxZ: number }
+type Placed = { district: string, block: TownLayout.Box, rect: Rect }
+
+local function blockRect(block: TownLayout.Box): Rect
+	assert(block.yaw % 90 == 0, block.use .. " yaw is not a multiple of 90")
+	local sx, sz = block.size.X, block.size.Z
+	if block.yaw % 180 ~= 0 then
+		sx, sz = sz, sx
+	end
+	local c = block.centre
+	return { minX = c.X - sx / 2, maxX = c.X + sx / 2, minZ = c.Z - sz / 2, maxZ = c.Z + sz / 2 }
+end
+
+local function allBlocks(): { Placed }
+	local out: { Placed } = {}
+	for _, district in TownLayout.DISTRICTS do
+		for _, block in district.blocks do
+			table.insert(out, { district = district.name, block = block, rect = blockRect(block) })
+		end
+	end
+	return out
+end
+
+-- The block's centre plus its outline every 5 studs, at ground level.
+local function rectSamples(r: Rect): { Vector3 }
+	local out = { Vector3.new((r.minX + r.maxX) / 2, 0, (r.minZ + r.maxZ) / 2) }
+	local nx = math.max(1, math.ceil((r.maxX - r.minX) / 5))
+	local nz = math.max(1, math.ceil((r.maxZ - r.minZ) / 5))
+	for k = 0, nx do
+		local x = r.minX + (r.maxX - r.minX) * k / nx
+		table.insert(out, Vector3.new(x, 0, r.minZ))
+		table.insert(out, Vector3.new(x, 0, r.maxZ))
+	end
+	for k = 1, nz - 1 do
+		local z = r.minZ + (r.maxZ - r.minZ) * k / nz
+		table.insert(out, Vector3.new(r.minX, 0, z))
+		table.insert(out, Vector3.new(r.maxX, 0, z))
+	end
+	return out
+end
+
+local function rectPointDistance(r: Rect, p: Vector3): number
+	local dx = math.max(r.minX - p.X, 0, p.X - r.maxX)
+	local dz = math.max(r.minZ - p.Z, 0, p.Z - r.maxZ)
+	return math.sqrt(dx * dx + dz * dz)
+end
+
+local function describe(p: Placed): string
+	local r = p.rect
+	return ("%s %s x %.0f..%.0f z %.0f..%.0f"):format(p.district, p.block.use, r.minX, r.maxX, r.minZ, r.maxZ)
+end
+
+-- A building may stand on a flat ground piece (the bandstand on the park lawn).
+local function standsOn(ground: Placed, other: Placed): boolean
+	local g, o = ground.rect, other.rect
+	return ground.block.size.Y <= 2
+		and other.block.size.Y > 2
+		and o.minX >= g.minX
+		and o.maxX <= g.maxX
+		and o.minZ >= g.minZ
+		and o.maxZ <= g.maxZ
+end
+
+function T.townIsBuiltUp()
+	local count = #allBlocks()
+	assert(count >= 400, ("only %d district blocks; the greybox reads as empty grass"):format(count))
+end
+
+function T.districtBlocksDoNotOverlap()
+	local blocks = allBlocks()
+	for i = 1, #blocks do
+		local a = blocks[i].rect
+		for j = i + 1, #blocks do
+			local b = blocks[j].rect
+			-- 1-stud tolerance: faces that touch or graze are fine
+			if a.maxX - b.minX > 1 and b.maxX - a.minX > 1 and a.maxZ - b.minZ > 1 and b.maxZ - a.minZ > 1 then
+				assert(
+					standsOn(blocks[i], blocks[j]) or standsOn(blocks[j], blocks[i]),
+					("%s overlaps %s"):format(describe(blocks[i]), describe(blocks[j]))
+				)
+			end
+		end
+	end
+end
+
+function T.districtBlocksClearOfRoads()
+	for _, placed in allBlocks() do
+		local r = placed.rect
+		local samples: { Vector3 }? = nil
+		for _, road in TownLayout.ROADS do
+			local clear = road.width / 2 + TownLayout.PAVEMENT_WIDTH - 0.5
+			for i = 1, #road.points - 1 do
+				local a, b = road.points[i], road.points[i + 1]
+				if
+					math.min(a.X, b.X) - clear > r.maxX
+					or math.max(a.X, b.X) + clear < r.minX
+					or math.min(a.Z, b.Z) - clear > r.maxZ
+					or math.max(a.Z, b.Z) + clear < r.minZ
+				then
+					continue
+				end
+				local points = samples or rectSamples(r)
+				samples = points
+				for _, p in points do
+					local d = TownLayout.segmentDistance(p, a, b)
+					assert(d > clear, ("%s is %.1f from %s"):format(describe(placed), d, road.name))
+				end
+			end
+		end
+	end
+end
+
+function T.districtBlocksClearOfRiver()
+	local clear = TownLayout.RIVER.width / 2 + 20
+	for _, placed in allBlocks() do
+		if placed.block.use == "marina" then
+			continue -- the marina basin opens onto the river by design
+		end
+		for _, p in rectSamples(placed.rect) do
+			local d = TownLayout.distanceToPolyline(p, TownLayout.RIVER.points)
+			assert(d > clear, ("%s is %.1f from the river"):format(describe(placed), d))
+		end
+	end
+end
+
+function T.districtBlocksClearOfRailPlotsStopsAndLandmarks()
+	local railClear = TownLayout.RAIL.width / 2 + 10
+	local plotReach = TownLayout.PLOT_SIZE / 2 + 20
+	local circles: { { name: string, centre: Vector3, radius: number } } = {}
+	for _, r in TownLayout.ROUNDABOUTS do
+		table.insert(circles, { name = r.name, centre = r.centre, radius = r.radius + TownLayout.PAVEMENT_WIDTH })
+	end
+	local square = TownLayout.SQUARE
+	table.insert(circles, { name = square.name, centre = square.centre, radius = square.radius + TownLayout.PAVEMENT_WIDTH })
+	for _, placed in allBlocks() do
+		local r = placed.rect
+		for _, p in rectSamples(r) do
+			local d = TownLayout.distanceToPolyline(p, TownLayout.RAIL.points)
+			assert(d > railClear, ("%s is %.1f from the railway"):format(describe(placed), d))
+			for _, c in circles do
+				local offset = p - c.centre
+				assert(Vector3.new(offset.X, 0, offset.Z).Magnitude > c.radius, describe(placed) .. " is on " .. c.name)
+			end
+			for i = 1, #TownLayout.PLOTS do
+				local localP = TownLayout.plotCFrame(i):PointToObjectSpace(p)
+				assert(
+					math.abs(localP.X) > plotReach or math.abs(localP.Z) > plotReach,
+					("%s is within 20 of plot %d"):format(describe(placed), i)
+				)
+			end
+		end
+		for _, stop in TownLayout.BUS_STOPS do
+			local d = rectPointDistance(r, stop.position)
+			assert(d > 12, ("%s is %.1f from the %s bus stop"):format(describe(placed), d, stop.name))
+		end
+		for _, landmark in TownLayout.LANDMARKS do
+			local d = rectPointDistance(r, landmark.position)
+			if placed.block.use == "church" and d == 0 then
+				continue -- the church nave stands under its own spire
+			end
+			assert(d > 30, ("%s is %.1f from %s"):format(describe(placed), d, landmark.name))
+		end
+	end
+end
+
+function T.millStreetTerracesKeepTheirRows()
+	for _, district in TownLayout.DISTRICTS do
+		if district.name == "Mill Street Terraces" then
+			assert(#district.blocks >= 8, "Mill Street Terraces lost blocks")
+			return
+		end
+	end
+	error("no Mill Street Terraces district")
 end
 
 function T.roadPointsInsideExtent()
