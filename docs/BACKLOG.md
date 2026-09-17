@@ -291,7 +291,7 @@
 - [x] X176 (12:22 one delay per seat, recovered from buildFan's part offsets) Crowd goal jump pulls fans apart: `MatchPresenter.crowdReact` delays each crowd BasePart independently (0-0.35 s) but a fan is 5-6 loose parts, so heads/arms/torsos hop at different times; one delay per fan, 0 parts. Stadium matchday `[studio]` S
 - [ ] X177 Nobody walks the riverside promenade: a few client walkers along RiverDresser's promenade runs within 300, off on Low, 0 server parts. RivermereRiverside.png `[studio]` S
 - [ ] X178 Market stalls have no stallholders: one client figure behind each MarketStall within 200, facing out, idle sway, off on Low. RivermereCenter.png `[studio]` S
-- [ ] X179 The club shop is empty inside: counter with till, a wall shelf with folded home-kit shirts, a scarf rail, ~9 parts per club. RivermereTurnstileEntrance.png `[studio]` S
+- [x] X179 (12:30 counter, till, shelf with 3 folded-shirt stacks, scarf rail with striped scarves, warm light; 8 parts per club) The club shop is empty inside: counter with till, a wall shelf with folded home-kit shirts, a scarf rail, ~9 parts per club. RivermereTurnstileEntrance.png `[studio]` S
 - [ ] X180 Training pitches are always empty: client home-kit figures jogging a cone loop plus a coach on the nearest TrainingPitch within 300, only in Manage, off on Low `[studio]` S
 - [ ] X181 Sports Centre pitches never used: a client kickabout of 6 figures and a ball on a pitch within 300, off on Low. RivermereAImap.png `[studio]` S
 - [ ] X182 Walkers never cross the market square: 4-6 client strollers on loops across the paved square within 200, off on Low. RivermereCenter.png `[studio]` S

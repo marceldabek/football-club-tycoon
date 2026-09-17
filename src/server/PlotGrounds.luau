@@ -601,6 +601,51 @@ local function buildShop(parent: Instance)
 	extents("Floor", x0 + t, fx0, GROUND_Y, GROUND_Y + PATH_TOP, z0 + t, z1 - t, CONCRETE, Enum.Material.Concrete, shop)
 	extents("Threshold", fx0, fx1, GROUND_Y, GROUND_Y + PATH_TOP, doorZ0, doorZ1, CONCRETE, Enum.Material.Concrete, shop)
 	extents("Apron", fx1, PATH_X - PATH_W / 2, GROUND_Y, GROUND_Y + PATH_TOP, doorZ0 - 2, doorZ1 + 2, CONCRETE, Enum.Material.Concrete, shop)
+
+	-- X179: stock inside (8 parts): a counter with a till facing the door, a
+	-- shelf of folded shirts on the back wall and a scarf rail on the north wall
+	local floorTop = GROUND_Y + PATH_TOP
+	local wood = Color3.fromRGB(110, 78, 50)
+	local white = Color3.fromRGB(236, 236, 232)
+	extents("Counter", x0 + t + 8, x0 + t + 10, floorTop, floorTop + 3.4, z0 + t + 6, z0 + t + 16, wood, Enum.Material.Wood, shop)
+	extents("Till", x0 + t + 8.5, x0 + t + 9.5, floorTop + 3.4, floorTop + 4.3, z0 + t + 13, z0 + t + 14.2, Color3.fromRGB(40, 40, 44), Enum.Material.SmoothPlastic, shop)
+	local shelfX0, shelfX1 = x0 + t, x0 + t + 1.4
+	local shelfY = floorTop + 4.5
+	extents("Shelf", shelfX0, shelfX1, shelfY - 0.3, shelfY, z0 + t + 6, z1 - t - 6, wood, Enum.Material.Wood, shop)
+	for k, colour in { Config.HomeKit, white, Config.HomeKit } do
+		local zc = z0 + t + 6 + k * (SHOP_D - 2 * t - 12) / 4
+		extents("FoldedShirts", shelfX0 + 0.1, shelfX1 - 0.1, shelfY, shelfY + 0.9, zc - 1.2, zc + 1.2, colour, Enum.Material.Fabric, shop)
+	end
+	local railZ0 = z0 + t
+	extents("ScarfRail", x0 + t + 12, x0 + t + 20, floorTop + 6.4, floorTop + 6.6, railZ0 + 0.3, railZ0 + 0.5, IRON, Enum.Material.Metal, shop)
+	local scarves = extents("Scarves", x0 + t + 12.3, x0 + t + 19.7, floorTop + 3.4, floorTop + 6.4, railZ0 + 0.35, railZ0 + 0.45, Config.HomeKit, Enum.Material.Fabric, shop)
+	-- white bars on the room side so the block reads as a row of striped scarves
+	local scarfGui = Instance.new("SurfaceGui")
+	scarfGui.Face = Enum.NormalId.Back -- +Z, into the shop
+	scarfGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	scarfGui.PixelsPerStud = 20
+	scarfGui.Parent = scarves
+	for k = 0, 5 do
+		local gap = Instance.new("Frame")
+		gap.BackgroundColor3 = white
+		gap.BorderSizePixel = 0
+		gap.Position = UDim2.fromScale(k / 6 + 0.13, 0)
+		gap.Size = UDim2.fromScale(0.03, 1)
+		gap.Parent = scarfGui
+		local band = Instance.new("Frame")
+		band.BackgroundColor3 = white
+		band.BorderSizePixel = 0
+		band.Position = UDim2.fromScale(k / 6 + 0.02, 0.62)
+		band.Size = UDim2.fromScale(0.1, 0.1)
+		band.Parent = scarfGui
+	end
+	-- a warm ceiling light over the counter
+	local shopLight = Instance.new("PointLight")
+	shopLight.Color = Color3.fromRGB(255, 232, 196)
+	shopLight.Brightness = 1.3
+	shopLight.Range = 20
+	shopLight.Shadows = false
+	shopLight.Parent = scarves
 end
 
 -- ----------------------------------------------------------- training pitches
