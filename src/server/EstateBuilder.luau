@@ -26,8 +26,9 @@
 -- Part budget: semiPair <= 16 (body 1, attic wedges 2, roof slabs 2, ridge 1,
 -- chimney 2, garden wall <= 3 segments, hedge <= 3 segments, porch hoods 2) against a
 -- target of <= 16. driveway <= 3 (slab 1, optional parked car body + cabin 2).
--- shed ~15-16 (body 1, roof 2, sign 1, yard 1, fence 7, pallets 2-3, +1 sand
--- heap for "builders yard") against <= 25.
+-- shed body 1, roof 2, sign 1, yard 1, fence 7, and either a lorry (X55),
+-- pallets 2-3, or (every third unit) a forklift 8 + pallets 1-2, +1 sand heap
+-- for "builders yard"; kept <= 30.
 --
 -- Plot layout (backlog X30): a semis block is split into rowLayout slots,
 -- each pair centred in its slot with a SIDE_GAP driveway strip between
@@ -624,8 +625,30 @@ function EstateBuilder.shed(cframe: CFrame, size: Vector3, parent: Instance, rng
 		end
 	end
 
-	-- a couple of pallets tucked against the yard fence
-	for i = 1, if kind == "warehouse" and width >= 40 then 0 else r:NextInteger(2, 3) do
+	-- X55: every third yard without a lorry (by unit number, TEMP for the part
+	-- budget) gets a forklift facing the shed door, on the +Z side clear of the
+	-- pallets (which stop at z = 0) and the sand heap
+	local hasLorry = kind == "warehouse" and width >= 40
+	local hasForklift = not hasLorry and (unit or 1) % 3 == 1
+	if hasForklift then
+		local fork = cframe * CFrame.new(-depth / 2 - 9, 0, hw - 5) -- local +X toward the shed
+		local orange, dark = Color3.fromRGB(226, 118, 32), Color3.fromRGB(38, 38, 42)
+		block("Part", "ForkliftBody", Vector3.new(3.4, 1.8, 2.4), fork * CFrame.new(0, 1.4, 0), orange, Enum.Material.SmoothPlastic, model, true)
+		block("Part", "ForkliftSeat", Vector3.new(1, 0.9, 1.2), fork * CFrame.new(-0.4, 2.75, 0), dark, Enum.Material.Fabric, model, false)
+		block("Part", "ForkliftGuardPost", Vector3.new(0.2, 2, 2.2), fork * CFrame.new(-1.35, 3.3, 0), dark, Enum.Material.Metal, model, false)
+		block("Part", "ForkliftGuardRoof", Vector3.new(3.2, 0.15, 2.4), fork * CFrame.new(0.15, 4.3, 0), dark, Enum.Material.Metal, model, false)
+		block("Part", "ForkliftMast", Vector3.new(0.3, 4.4, 2), fork * CFrame.new(1.85, 2.4, 0), dark, Enum.Material.Metal, model, false)
+		block("Part", "ForkliftForks", Vector3.new(2.8, 0.15, 1.6), fork * CFrame.new(3.4, 0.35, 0), dark, Enum.Material.Metal, model, false)
+		for _, wx in { -1.1, 1.1 } do
+			-- a cylinder's axis is its local X: turn it across the forklift
+			local wheels = block("Part", "ForkliftWheels", Vector3.new(2.6, 1.2, 1.2), fork * CFrame.new(wx, 0.6, 0) * CFrame.Angles(0, math.pi / 2, 0), Color3.fromRGB(22, 22, 24), Enum.Material.SmoothPlastic, model, false)
+			wheels.Shape = Enum.PartType.Cylinder
+		end
+	end
+
+	-- a few pallets tucked against the yard fence (one fewer beside a forklift)
+	local pallets = if hasLorry then 0 elseif hasForklift then r:NextInteger(1, 2) else r:NextInteger(2, 3)
+	for i = 1, pallets do
 		local px = -depth / 2 - 3 - i * 3.4
 		local pz = -hw + 3 + i * (width - 6) / 4
 		block("Part", "Pallet" .. i, Vector3.new(3.5, 1.2, 3.5), cframe * CFrame.new(px, 0.7, pz), PALLET_COLOUR, Enum.Material.WoodPlanks, model, true)

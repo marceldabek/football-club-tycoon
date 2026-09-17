@@ -487,3 +487,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Question 7's recommendation, done as TEMP: `EstateDresser.wantsBlockCar` (pure, 1 new test) only gives a drive the primitive block car when it is at least `DRIVE_CAR_MIN_WIDTH` (8) across. Before, the 5.1- and 3-wide drives held undersized cars. The town now has 2 kit cars on the 10.2-wide drives and 117 empty drives. Widening the gap between pairs is left for the estate rework, because it changes the layout.
 - **Screenshot** SemisNoToyCars_1: a Northfields semis street with clear drives and pink flower borders.
 - RunAll 351/351.
+
+### 2026-09-17 05:46 — Forklifts in the estate yards (X55 part), yard overlap found (X64)
+- `EstateBuilder.shed`: every third unit (by unit number, TEMP for the part budget) without a lorry gets an 8-part orange forklift facing the shed door. It has a body, seat, guard post and roof, mast, forks and two wheel axles, and stands on the +Z side of the yard clear of the pallets and the sand heap. Those yards get 1–2 pallets; the rest keep 2–3. Doing all 39 lorry-free yards would have added about 270 parts, hence one in three.
+- 1 new test over 6 unit numbers × 3 kinds covers the forklift on every third unit, ≤30 parts, no overlap with pallets or sand, and no forklift in a lorry yard.
+- **Screenshot** Forklift_1: a forklift at Mill Lane Motors. The same shot shows a pre-existing bug: that yard's slab and fence run onto the pavement, with a corner post in the carriageway. Logged as X64.
+- Not done on X55: palisade fencing (no pale texture, and pales as parts cost too much), and the mini roundabout (client traffic would drive through a planted island).
+- RunAll 352/352.

@@ -415,4 +415,48 @@ function T.flowerBedsSitOffTheFrontWallInsideTheGardenClearOfDoorPaths()
 	end
 end
 
+function T.shedYardsGetAForkliftClearOfPalletsAndSandUnlessALorryIsThere()
+	local function aabb(p: BasePart): (Vector3, Vector3)
+		local half = p.CFrame:VectorToWorldSpace(p.Size / 2)
+		local ext = Vector3.new(math.abs(half.X), math.abs(half.Y), math.abs(half.Z))
+		-- a rotated box: use its largest horizontal half-extent both ways
+		local r = math.max(p.Size.X, p.Size.Z) / 2
+		ext = Vector3.new(math.max(ext.X, r), ext.Y, math.max(ext.Z, r))
+		return p.Position - ext, p.Position + ext
+	end
+	for seed = 1, 6 do
+		for _, kind in { "workshop", "builders yard", "trade counter" } do
+			local holder = Instance.new("Folder")
+			local shed = EstateBuilder.shed(CFrame.new(), Vector3.new(24 + seed * 2, 16, 30), holder, Random.new(seed), kind, seed)
+			local forklift, others, parts = {}, {}, 0
+			for _, d in shed:GetChildren() do
+				if d:IsA("BasePart") then
+					parts += 1
+					if string.sub(d.Name, 1, 8) == "Forklift" then
+						table.insert(forklift, d)
+					elseif string.sub(d.Name, 1, 6) == "Pallet" or d.Name == "SandHeap" then
+						table.insert(others, d)
+					end
+				end
+			end
+			local want = if seed % 3 == 1 then 8 else 0 -- every third unit
+			assert(#forklift == want, ("%s seed %d: %d forklift parts"):format(kind, seed, #forklift))
+			assert(parts <= 30, ("%s seed %d: %d parts"):format(kind, seed, parts))
+			for _, f in forklift do
+				local fMin, fMax = aabb(f)
+				for _, o in others do
+					local oMin, oMax = aabb(o)
+					local apart = fMax.X <= oMin.X or oMax.X <= fMin.X or fMax.Z <= oMin.Z or oMax.Z <= fMin.Z
+					assert(apart, ("%s seed %d: %s overlaps %s"):format(kind, seed, f.Name, o.Name))
+				end
+			end
+			holder:Destroy()
+		end
+	end
+	local holder = Instance.new("Folder")
+	local warehouse = EstateBuilder.shed(CFrame.new(), Vector3.new(44, 20, 30), holder, Random.new(1), "warehouse", 1)
+	assert(warehouse:FindFirstChild("Trailer") and not warehouse:FindFirstChild("ForkliftBody"), "a lorry yard has no forklift")
+	holder:Destroy()
+end
+
 return T
