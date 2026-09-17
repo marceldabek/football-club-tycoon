@@ -197,4 +197,5 @@
 - [x] X82 (07:05 client Train.client.luau + pure TrainMath: one 3-carriage unit, 12 parts, runs the whole line on the left-hand track, climbs the viaduct ramps, dwells TEMP 10 s at Rivermere Station, turns back at each end) No train ever used the railway, station or viaduct `[studio]` S
 - [x] X83 (07:07 pure StationDresser.carParkBays: 19 bays in two rows with the near row clear of the Station Road entrance, 38 bay lines, 7 kit cars, a blue P sign) The station car park was a plain greybox slab `[studio]` S
 - [x] X84 (07:13 navy PRIDE PEOPLE RIVERMERE / MATCH DAYS BRING PEOPLE TOGETHER plaques on the outer faces of the end piers, shrub planter beside the gates; 4 parts per club) Turnstile entrance vs RivermereTurnstileEntrance.png: no slogan plaques or planters by the gates `[studio]` S
+- [x] X85 (07:15 worn footpath from the sign, 6 dark rough-grass patches, 12 bramble clumps; +19 parts per free lot, own random stream) For-sale lots looked like a mown lawn from the picker camera (PickerView_1) `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

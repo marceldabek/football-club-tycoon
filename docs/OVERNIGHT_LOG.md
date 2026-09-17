@@ -679,3 +679,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - `WorldBuilder.buildTurnstiles` adds two navy plaques, PRIDE / PEOPLE / RIVERMERE and MATCH DAYS / BRING PEOPLE / TOGETHER, on the outer side faces of the two end piers, and a concrete planter with a shrub beside the gates, as in RivermereTurnstileEntrance.png. The walk-up faces of the piers carry the open gate leaves, so the plaques go on the side faces. That's 4 parts per club, and the plaques don't collide.
 - **Screenshot** TurnstilePlaques_2.
 - RunAll 371/371.
+
+### 2026-09-17 07:15 — For-sale lots look overgrown (X85)
+- A new player's first view is the plot picker looking at a for-sale lot, and it read as a flat mown lawn (PickerView_1). `PlotService.buildLot` now adds a worn footpath from the FOR SALE board across the lot, 6 darker patches of long rough grass, and 12 bramble clumps. Tops are stepped 0.2 / 0.26 / 0.32 so no faces share a plane, and they use their own random stream so the trees and rocks don't move. That's 19 parts per free lot; lots are Persistent-streamed.
+- After tuning, the patches are darker and the brambles 9–16 across so they read from the picker height. **Screenshots** PickerView_1 (before) and PickerView_3.
+- RunAll 371/371.

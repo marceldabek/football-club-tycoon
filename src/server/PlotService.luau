@@ -226,6 +226,30 @@ local function buildLot(plot: number)
 				Color3.fromRGB(120, 118, 112), Enum.Material.Slate)
 		end
 	end
+
+	-- X85: overgrown waste ground rather than a mown lawn: a worn footpath from
+	-- the sign across the lot, patches of long rough grass, bramble clumps.
+	-- Tops step 0.2 (scrub) < 0.26 (path) < 0.32 (patches) so no faces share a plane.
+	-- A separate random stream keeps the trees and rocks where they were.
+	local rough = Random.new(plot * 131)
+	lotPart(lot, "Footpath", Vector3.new(PLOT_SIZE - 120, 0.26, 5), frame * CFrame.new(-half + 60 + (PLOT_SIZE - 120) / 2, 0.13, 8) * CFrame.Angles(0, 0.08, 0),
+		Color3.fromRGB(128, 112, 86), Enum.Material.Ground).CastShadow = false
+	for _ = 1, 6 do
+		local w, d = rough:NextNumber(60, 140), rough:NextNumber(40, 110)
+		local patch = lotPart(lot, "RoughGrass", Vector3.new(w, 0.32, d),
+			frame * CFrame.new(rough:NextNumber(-half + 90, half - 90), 0.16, rough:NextNumber(-half + 80, half - 80)) * CFrame.Angles(0, rough:NextNumber(0, math.pi), 0),
+			Color3.fromRGB(84, 104, 46), Enum.Material.LeafyGrass)
+		patch.CastShadow = false
+		patch.CanCollide = false
+	end
+	for _ = 1, 12 do
+		local r = rough:NextNumber(9, 16)
+		local bramble = lotPart(lot, "Bramble", Vector3.one * r,
+			frame * CFrame.new(rough:NextNumber(-half + 50, half - 30), r * 0.25, rough:NextNumber(-half + 30, half - 30)),
+			Color3.fromRGB(58, 80, 42), Enum.Material.LeafyGrass)
+		bramble.Shape = Enum.PartType.Ball
+		bramble.CastShadow = false
+	end
 	lot.Parent = model
 end
 
