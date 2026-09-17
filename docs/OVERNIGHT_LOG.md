@@ -290,3 +290,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - EstateDresser places the kit HatchbackOrange on a driveway when `driveCarFit` can fit it at 70% scale or more: the width leaves 0.6 each side, the length leaves 1 at each end, and the long axis is turned along the drive. Otherwise the block car stays. `driveCarFit` is pure, with a test. The car sits 0.02 above the slab.
 - **Result:** 5 kit cars. Drive widths are 5.1 (76), 2.8–3 (30) and 10.2 (13), so only the wide ones qualify. A 0.35-scale trial filled 26 drives but looked like a toy next to a character (DriveCar_small_1), so the minimum went back to 0.7. New X44 and question 7 cover the narrow drives.
 - RunAll 328/328. Estates are now 1,629 parts.
+
+### 2026-09-17 04:02 — Terrace street part budget (X35)
+- Counting parts by name showed the Mill Street and Weaver Street showpiece spent 426 of its 1,013 parts on six VanWhite kits (71 parts each). The one-mesh hatchback is 1 part, and the railing bars were only 241.
+- TerraceStreetDresser now picks a van 1 time in 6 instead of 1 in 3 (StreetDresser unchanged). The showpiece is 733 parts, and the budget now fits 3 light streets instead of 1: Weaver Street and Mill Street beyond the showpiece, plus Church Lane. The railings keep a bar every 2 studs.
+- **Screenshot** MillStreet_cars_1: still a lived-in terrace street, but the parked cars are almost all orange (new X45).
