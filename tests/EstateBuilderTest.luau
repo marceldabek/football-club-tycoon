@@ -280,4 +280,15 @@ function T.layoutSemisPlotsStayInsideTheirBlocks()
 	assert(checked > 0, "no semis blocks found")
 end
 
+function T.driveCarFitShrinksTheKitCarOntoTheDrive()
+	local kit = Vector3.new(9.8, 6, 19.4) -- long axis on Z
+	local scale, yaw = EstateDresser.driveCarFit(kit, 10, 40)
+	assert(scale and math.abs(scale - 8.8 / 9.8) < 1e-6, "width-limited scale, got " .. tostring(scale))
+	assert(math.abs(yaw - math.rad(90)) < 1e-6, "long axis turned onto local X")
+	local s2, yaw2 = EstateDresser.driveCarFit(Vector3.new(19.4, 6, 9.8), 30, 40)
+	assert(s2 == 1 and yaw2 == 0, "never scaled up; already along X")
+	assert(EstateDresser.driveCarFit(kit, 7, 40) == nil, "too narrow: block car")
+	assert(EstateDresser.driveCarFit(kit, 10, 12) == nil, "too short: block car")
+end
+
 return T

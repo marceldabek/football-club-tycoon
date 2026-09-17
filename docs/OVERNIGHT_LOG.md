@@ -45,6 +45,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 4. Walking from the market square to a club takes about 2–3 minutes (70–100 s sprinting); the buses cover it in seconds. Is that the scale you want? *Rec: keep it for now, because the buses and the "Go to my club" button carry most trips. Shrink the plot ring by ~25% only if playtesters walk rather than bus.*
 5. Friendlies (I3.1), all TEMP in `src/shared/Friendly.luau`: (a) the challenged club is the home side, (b) an invite lasts 45 s, and you can have one outgoing at a time, (c) the home club gets 25% of a full league gate, and the away club gets nothing, (d) no injuries, no player development, and friendlies don't count in W/D/L or matches played. *Rec: keep all four. A friendly is a social extra, so it shouldn't be a better money route than league matches.*
 6. Trades (I4.1), TEMP in `src/shared/Trade.luau`: up to 3 players each way; cash moves one way and only alongside a player; both squads stay within 14–20 and keep a goalkeeper; an offer lasts 60 s; traded players keep their age, ratings, injuries, apps and goals. There are no value checks, so a lopsided trade is allowed (s27: no anti-abuse limits for now). *Rec: keep these. Add a "fair value" warning, not a block, once transfer values are tuned.*
+7. Semis driveways are mostly 5.1 studs wide (76 of 119) or about 3 wide (30). A car sized for the characters is about 9–10 studs wide (the street kit cars are 9.8), so narrow drives can only hold toy-sized cars (DriveCar_small_1). *Rec: drop cars from drives under 8 studs now (no layout change), and widen the gap between pairs to 11 studs when the estates are next reworked, accepting roughly one pair fewer per long row.*
 
 **Buy list for Marcel**
 - Nothing new yet. Free store terraces are a flat-fronted Victorian row. If you want bay windows like `RiveremereWestdale.png`, "UK Housing – Terraced Set 1" (Macwelshman, Fab, $39.99) is the best paid match (see docs/ASSET_KIT.md).
@@ -284,3 +285,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 ### 2026-09-17 03:55 — Rojo reconnect attempt (X34): blocked
 - `rojo serve` is running (port 34872) and serves the current branch: TradePanel, FriendlyService and the X43 colours are all in its tree. The Studio plugin panel shows NetFail.
 - I tried the memory's HTTP fallback (`tools/studio-sync.luau` through execute_luau). The MCP thread now "cannot read 'HttpEnabled' (lacking capability Network)", so it can't run from here. Nothing was changed. Clicking Connect in the Rojo panel is the fix, and that has to be done by hand (handoff known bug 6).
+
+### 2026-09-17 04:00 — Kit cars on the wide driveways (X33)
+- EstateDresser places the kit HatchbackOrange on a driveway when `driveCarFit` can fit it at 70% scale or more: the width leaves 0.6 each side, the length leaves 1 at each end, and the long axis is turned along the drive. Otherwise the block car stays. `driveCarFit` is pure, with a test. The car sits 0.02 above the slab.
+- **Result:** 5 kit cars. Drive widths are 5.1 (76), 2.8–3 (30) and 10.2 (13), so only the wide ones qualify. A 0.35-scale trial filled 26 drives but looked like a toy next to a character (DriveCar_small_1), so the minimum went back to 0.7. New X44 and question 7 cover the narrow drives.
+- RunAll 328/328. Estates are now 1,629 parts.

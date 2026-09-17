@@ -18,6 +18,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local EstateBuilder = require(script.Parent.EstateBuilder)
+local KitPlacer = require(script.Parent.KitPlacer)
 
 local EstateDresser = {}
 
@@ -81,6 +82,27 @@ function EstateDresser.pairFit(depth: number): (number, number)
 	return EstateBuilder.fitPair(depth, EstateBuilder.GARDEN_REACH, EstateBuilder.MIN_HOUSE_DEPTH)
 end
 
+-- X33: driveway cars use the kit hatchback shrunk to the drive. The kit car is
+-- 9.8 x 19.4, wider than a 10-stud drive, so it is scaled down; below
+-- DRIVE_CAR_MIN_SCALE it would look like a toy next to the street cars, and
+-- the block car stays.
+local DRIVE_CAR_KIT = "HatchbackOrange"
+local DRIVE_CAR_MIN_SCALE = 0.7 -- TEMP
+local DRIVE_TOP = 0.35 -- EstateBuilder's driveway slab top; tyres sit 0.02 above it (no shared plane)
+
+-- Pure: scale and yaw for a kit car of `footprint` on a drive `width` across
+-- (placement local Z) and `length` long (local X). The yaw turns the car's
+-- long axis onto local X. nil when it would need shrinking below the minimum.
+function EstateDresser.driveCarFit(footprint: Vector3, width: number, length: number): (number?, number)
+	local long, wide = math.max(footprint.X, footprint.Z), math.min(footprint.X, footprint.Z)
+	local yaw = if footprint.Z > footprint.X then math.rad(90) else 0
+	local scale = math.min(1, (width - 1.2) / wide, (length - 2) / long)
+	if scale < DRIVE_CAR_MIN_SCALE then
+		return nil, yaw
+	end
+	return scale, yaw
+end
+
 -- Removes the greybox body + roof for this exact block (matched by name and
 -- XZ position, since a district's greybox has many same-named siblings).
 local function removeGreyboxFor(greybox: Instance?, block: TownLayout.Box)
@@ -111,7 +133,7 @@ function EstateDresser.build(): string
 	local districts = town:FindFirstChild("Districts")
 	local rng = Random.new(2026)
 	local driveRng = Random.new(3030) -- separate stream so the pairs' front picks are unchanged
-	local pairCount, shedCount, driveCount = 0, 0, 0
+	local pairCount, shedCount, driveCount, kitCars = 0, 0, 0, 0
 
 	for _, district in TownLayout.DISTRICTS do
 		local hasBlocks = false
@@ -153,7 +175,20 @@ function EstateDresser.build(): string
 				for _, drive in drives do
 					local withCar = driveRng:NextInteger(1, 3) == 1
 					local centre = CFrame.new((driveFront + driveBack) / 2, 0, (drive.z0 + drive.z1) / 2)
-					EstateBuilder.driveway(cf * centre, drive.z1 - drive.z0, driveBack - driveFront, m, withCar, driveRng)
+					local driveWidth, driveLength = drive.z1 - drive.z0, driveBack - driveFront
+					local footprint = if withCar then KitPlacer.footprint(DRIVE_CAR_KIT) else nil
+					local scale, yaw = nil, 0
+					if footprint then
+						scale, yaw = EstateDresser.driveCarFit(footprint, driveWidth, driveLength)
+					end
+					local drivewayModel = EstateBuilder.driveway(cf * centre, driveWidth, driveLength, m, withCar and scale == nil, driveRng)
+					if footprint and scale then
+						-- nose 1 stud inside the road end, like the block car
+						local carLength = math.max(footprint.X, footprint.Z) * scale
+						local at = cf * centre * CFrame.new(-driveLength / 2 + 1 + carLength / 2, DRIVE_TOP + 0.02, 0) * CFrame.Angles(0, yaw, 0)
+						KitPlacer.place(DRIVE_CAR_KIT, at, drivewayModel, { scale = scale })
+						kitCars += 1
+					end
 					driveCount += 1
 				end
 			else
@@ -170,7 +205,7 @@ function EstateDresser.build(): string
 			parts += 1
 		end
 	end
-	return ("estates: %d semis pairs, %d driveways, %d sheds, %d parts"):format(pairCount, driveCount, shedCount, parts)
+	return ("estates: %d semis pairs, %d driveways (%d kit cars), %d sheds, %d parts"):format(pairCount, driveCount, kitCars, shedCount, parts)
 end
 
 return EstateDresser
