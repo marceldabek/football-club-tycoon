@@ -69,7 +69,14 @@ function T.opponentsFollowDivisionStrengthAndNames()
 		for _, t in s.teams do
 			if not t.isPlayer then
 				assert(math.abs(t.strength - division.baseStrength) <= 4, "strength off base in tier " .. tier)
-				assert(table.find(Config.TeamNamePools[tier], t.name), t.name .. " not in tier " .. tier .. " pool")
+				local inPool = false
+				for _, club in Config.Clubs[tier] do
+					if club.name == t.name then
+						inPool = true
+						break
+					end
+				end
+				assert(inPool, t.name .. " not in tier " .. tier .. " pool")
 				assert(not names[t.name], "duplicate opponent " .. t.name)
 				names[t.name] = true
 			end
@@ -144,6 +151,62 @@ function T.isValidAcceptsSeasonsAndRejectsGarbage()
 	local wrongPlayer = season(1, 9)
 	wrongPlayer.playerIndex = 99
 	assert(not League.isValid(wrongPlayer), "player index out of range")
+end
+
+-- Crests are drawn from these colours, so a division must not field two clubs
+-- the eye cannot separate, and a club has to look the same in every season.
+function T.everyClubHasItsOwnColours()
+	for tier in Config.Divisions do
+		local seen = {}
+		for _, club in Config.Clubs[tier] do
+			assert(#club.kit == 3 and #club.accent == 3, club.name .. " has a malformed colour")
+			for _, channel in club.kit do
+				assert(channel >= 0 and channel <= 255, club.name .. " kit channel out of range")
+			end
+			for _, channel in club.accent do
+				assert(channel >= 0 and channel <= 255, club.name .. " accent channel out of range")
+			end
+			local key = table.concat(club.kit, ",")
+			assert(not seen[key], "two clubs share a kit in tier " .. tier .. ": " .. club.name)
+			seen[key] = true
+		end
+	end
+end
+
+function T.opponentKitsComeFromTheClubNotTheSlot()
+	-- The same club drawn into two different seasons must wear the same kit.
+	local kits: { [string]: string } = {}
+	for seed = 1, 12 do
+		for tier in Config.Divisions do
+			for _, t in season(tier, seed * 31 + tier).teams do
+				if not t.isPlayer then
+					local key = table.concat(t.kit, ",")
+					if kits[t.name] then
+						assert(kits[t.name] == key, t.name .. " changed kit between seasons")
+					else
+						kits[t.name] = key
+					end
+				end
+			end
+		end
+	end
+end
+
+function T.clubCrestLookupCoversEveryClub()
+	for tier in Config.Divisions do
+		for _, club in Config.Clubs[tier] do
+			local kit, accent = Config.clubCrest(club.name)
+			assert(typeof(kit) == "Color3" and typeof(accent) == "Color3", club.name .. " has no crest colours")
+			assert(kit ~= accent, club.name .. " crest is invisible against itself")
+		end
+	end
+	-- The player's club is named at runtime and is never in the table.
+	local playerKit = Config.clubCrest("Anything At All", true)
+	assert(playerKit == Config.HomeKit, "player club should wear the home kit")
+	-- An unknown club still gets a stable colour rather than erroring.
+	local a = Config.clubCrest("Nonexistent Wanderers")
+	local b = Config.clubCrest("Nonexistent Wanderers")
+	assert(a == b, "unknown club colour is not stable")
 end
 
 function T.ordinals()

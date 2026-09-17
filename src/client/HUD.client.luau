@@ -11,6 +11,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Co
 local Theme = require(script.Parent.Theme)
 local MatchAudio = require(script.Parent.MatchAudio)
 local MatchSummary = require(script.Parent.MatchSummary)
+local Crest = require(script.Parent.Crest)
 
 local player = Players.LocalPlayer
 local state = ReplicatedStorage:WaitForChild("ClubState")
@@ -136,10 +137,14 @@ local scoreboard = Theme.panel(gui, "Scoreboard", {
 	AnchorPoint = Vector2.new(0.5, 0),
 	Visible = false,
 })
+-- Both crests sit on the scoreboard so a glance up mid-match says who is who
+-- without reading the names.
+local homeCrest = Crest.draw(scoreboard, Config.ClubName, 34, { isPlayer = true, position = UDim2.fromOffset(14, 8) })
+local awayCrest = Crest.draw(scoreboard, nil, 34, { position = UDim2.new(1, -48, 0, 8) })
 local scoreLabel = Theme.text(scoreboard, "", "body", {
 	Name = "Score",
-	Size = UDim2.new(1, -24, 0, 34),
-	Position = UDim2.fromOffset(12, 6),
+	Size = UDim2.new(1, -112, 0, 34),
+	Position = UDim2.fromOffset(56, 6),
 	Font = Theme.fonts.display,
 	TextSize = 24,
 	TextXAlignment = Enum.TextXAlignment.Center,
@@ -442,7 +447,10 @@ local function refreshScoreboard()
 	if not inMatch then
 		return
 	end
-	scoreLabel.Text = ("%s   %d - %d   %s"):format(get("ClubName") or "Home", get("HomeGoals") or 0, get("AwayGoals") or 0, get("Opponent") or "Away")
+	local homeName, awayName = get("ClubName") or "Home", get("Opponent") or "Away"
+	Crest.update(homeCrest, homeName, true)
+	Crest.update(awayCrest, awayName)
+	scoreLabel.Text = ("%s   %d - %d   %s"):format(homeName, get("HomeGoals") or 0, get("AwayGoals") or 0, awayName)
 	local total = get("TimeLeft") or 0
 	-- show a football minute rather than raw seconds; the real clock is hidden
 	local elapsedFrac = 1 - (total / math.max(get("MatchDuration") or 90, 1))

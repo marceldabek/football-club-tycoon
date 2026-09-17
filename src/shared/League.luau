@@ -85,7 +85,7 @@ function League.newSeason(tier: number, seed: number, clubName: string, playerSe
 	local division = Config.Divisions[tier]
 	local n = Config.TeamsPerDivision
 
-	local pool = table.clone(Config.TeamNamePools[tier] or Config.TeamNamePools[1])
+	local pool = table.clone(Config.Clubs[tier] or Config.Clubs[1])
 	local teams: { Team } = {}
 	local function newTeam(name: string, strength: number, kit: { number }, isPlayer: boolean, teamSeed: number): Team
 		return {
@@ -105,10 +105,11 @@ function League.newSeason(tier: number, seed: number, clubName: string, playerSe
 	end
 	table.insert(teams, newTeam(clubName, 0, colorToJson(Config.HomeKit), true, playerSeed))
 	for i = 2, n do
-		local pick = table.remove(pool, rng:NextInteger(1, #pool)) :: string
-		local kit = Config.AwayKits[((i - 2) % #Config.AwayKits) + 1]
+		local pick = table.remove(pool, rng:NextInteger(1, #pool)) :: Config.Club
 		local strength = division.baseStrength + rng:NextInteger(-4, 4)
-		table.insert(teams, newTeam(pick, strength, colorToJson(kit), false, seed * 10 + i))
+		-- The club's own kit, not a per-slot colour: the shirt in the 3D match
+		-- has to agree with the crest drawn beside its name in the table.
+		table.insert(teams, newTeam(pick.name, strength, table.clone(pick.kit), false, seed * 10 + i))
 	end
 	-- shuffle so the player is not always team 1 in the schedule
 	for i = #teams, 2, -1 do

@@ -36,13 +36,97 @@ Config.RelegationSpots = 2
 Config.PrizeByPosition = { 3000, 2000, 1200, 600, 500, 400 }
 
 -- TEMP fictional opponent pools, one per division. 5 are drawn each season.
-Config.TeamNamePools = {
-	{ "Bramblewick Rovers", "Oakhollow United", "Fenmoor Athletic", "Kestrel Green FC", "Ashby Wanderers", "Millpond Town", "Sunday Legends", "Hedgerow FC" },
-	{ "Thornbury Town", "Redcliffe Rangers", "Saltmarsh United", "Wexford Vale", "Brindle Heath", "Copperfield Celtic", "Norbury Athletic", "Larkspur Rovers" },
-	{ "Harrowgate City", "Blackwater Albion", "Ironbridge FC", "Greyfriars United", "Stonemoor Town", "Kingsmere Rovers", "Eastwick Athletic", "Dunmore Wanderers" },
-	{ "Northgate United", "Silverton City", "Marlow Park FC", "Whitcombe Town", "Ravensmoor", "Castlebridge Albion", "Ferndale Athletic", "Highfield Rovers" },
-	{ "Royal Kingsbury", "Meridian City", "Old Aldgate", "Wentworth United", "Crownhill FC", "Lancaster Park", "Westbrook Athletic", "Sovereign Town" },
+--
+-- Each club owns two colours: `kit` is the shirt and the crest fill, `accent`
+-- is the crest stroke and initials. They belong to the club rather than to a
+-- squad slot, so a club looks the same in every table it ever appears in and
+-- no two clubs in a division collide. The prose descriptions these were mixed
+-- from are in docs/CRESTS.md, alongside the crest art prompts.
+export type Club = { name: string, kit: { number }, accent: { number } }
+
+Config.Clubs = {
+	{ -- Sunday Parks League
+		{ name = "Bramblewick Rovers", kit = { 94, 32, 48 }, accent = { 240, 232, 210 } },
+		{ name = "Oakhollow United", kit = { 32, 78, 46 }, accent = { 224, 176, 48 } },
+		{ name = "Fenmoor Athletic", kit = { 88, 64, 44 }, accent = { 176, 206, 226 } },
+		{ name = "Kestrel Green FC", kit = { 58, 142, 62 }, accent = { 245, 245, 245 } },
+		{ name = "Ashby Wanderers", kit = { 26, 42, 84 }, accent = { 240, 240, 240 } },
+		{ name = "Millpond Town", kit = { 92, 100, 108 }, accent = { 150, 204, 198 } },
+		{ name = "Sunday Legends", kit = { 196, 44, 44 }, accent = { 30, 30, 32 } },
+		{ name = "Hedgerow FC", kit = { 46, 92, 52 }, accent = { 198, 48, 44 } },
+	},
+	{ -- County League
+		{ name = "Thornbury Town", kit = { 112, 30, 52 }, accent = { 110, 186, 228 } },
+		{ name = "Redcliffe Rangers", kit = { 170, 66, 44 }, accent = { 226, 202, 160 } },
+		{ name = "Saltmarsh United", kit = { 104, 126, 106 }, accent = { 240, 240, 236 } },
+		{ name = "Wexford Vale", kit = { 20, 72, 48 }, accent = { 212, 172, 60 } },
+		{ name = "Brindle Heath", kit = { 108, 62, 130 }, accent = { 62, 60, 62 } },
+		{ name = "Copperfield Celtic", kit = { 184, 96, 42 }, accent = { 26, 132, 84 } },
+		{ name = "Norbury Athletic", kit = { 30, 66, 168 }, accent = { 242, 242, 242 } },
+		{ name = "Larkspur Rovers", kit = { 72, 96, 186 }, accent = { 238, 230, 206 } },
+	},
+	{ -- Regional Premier
+		{ name = "Harrowgate City", kit = { 32, 140, 140 }, accent = { 214, 178, 72 } },
+		{ name = "Blackwater Albion", kit = { 26, 26, 28 }, accent = { 242, 242, 242 } },
+		{ name = "Ironbridge FC", kit = { 38, 40, 44 }, accent = { 230, 118, 34 } },
+		{ name = "Greyfriars United", kit = { 120, 118, 112 }, accent = { 102, 26, 44 } },
+		{ name = "Stonemoor Town", kit = { 126, 124, 118 }, accent = { 84, 116, 62 } },
+		{ name = "Kingsmere Rovers", kit = { 28, 54, 122 }, accent = { 196, 200, 208 } },
+		{ name = "Eastwick Athletic", kit = { 106, 28, 50 }, accent = { 232, 172, 40 } },
+		{ name = "Dunmore Wanderers", kit = { 26, 62, 44 }, accent = { 238, 238, 234 } },
+	},
+	{ -- National League
+		{ name = "Northgate United", kit = { 58, 96, 138 }, accent = { 240, 240, 242 } },
+		{ name = "Silverton City", kit = { 188, 192, 198 }, accent = { 22, 34, 68 } },
+		{ name = "Marlow Park FC", kit = { 38, 96, 82 }, accent = { 240, 242, 240 } },
+		{ name = "Whitcombe Town", kit = { 238, 236, 228 }, accent = { 124, 30, 32 } },
+		{ name = "Ravensmoor", kit = { 24, 24, 28 }, accent = { 118, 124, 134 } },
+		{ name = "Castlebridge Albion", kit = { 206, 176, 108 }, accent = { 132, 28, 34 } },
+		{ name = "Ferndale Athletic", kit = { 46, 104, 58 }, accent = { 28, 28, 30 } },
+		{ name = "Highfield Rovers", kit = { 86, 42, 136 }, accent = { 242, 242, 244 } },
+	},
+	{ -- Premier Division
+		{ name = "Royal Kingsbury", kit = { 74, 34, 118 }, accent = { 198, 166, 96 } },
+		{ name = "Meridian City", kit = { 20, 32, 72 }, accent = { 110, 226, 120 } },
+		{ name = "Old Aldgate", kit = { 96, 24, 44 }, accent = { 238, 232, 216 } },
+		{ name = "Wentworth United", kit = { 18, 18, 20 }, accent = { 214, 190, 138 } },
+		{ name = "Crownhill FC", kit = { 188, 32, 48 }, accent = { 244, 244, 244 } },
+		{ name = "Lancaster Park", kit = { 192, 44, 44 }, accent = { 72, 78, 88 } },
+		{ name = "Westbrook Athletic", kit = { 104, 178, 228 }, accent = { 56, 58, 64 } },
+		{ name = "Sovereign Town", kit = { 206, 172, 78 }, accent = { 20, 26, 56 } },
+	},
 }
+
+-- Name -> colours, built once. Any UI holding only a club name can draw that
+-- club's crest without the colours being threaded through its payload.
+local crestByName: { [string]: { kit: Color3, accent: Color3 } } = {}
+for _, tierClubs in Config.Clubs do
+	for _, club in tierClubs do
+		crestByName[club.name] = {
+			kit = Color3.fromRGB(club.kit[1], club.kit[2], club.kit[3]),
+			accent = Color3.fromRGB(club.accent[1], club.accent[2], club.accent[3]),
+		}
+	end
+end
+
+-- The player's club is named at runtime, so it is never in the table above and
+-- falls through to the home kit. Any other unknown name gets a stable colour
+-- derived from the name itself rather than a shared default, so a club added
+-- later still reads as its own side until it is given real colours.
+function Config.clubCrest(name: string?, isPlayer: boolean?): (Color3, Color3)
+	if isPlayer or name == nil or name == "" then
+		return Config.HomeKit, Color3.fromRGB(245, 245, 245)
+	end
+	local known = crestByName[name]
+	if known then
+		return known.kit, known.accent
+	end
+	local hash = 0
+	for i = 1, #name do
+		hash = (hash * 31 + name:byte(i)) % 360
+	end
+	return Color3.fromHSV(hash / 360, 0.55, 0.55), Color3.fromRGB(240, 240, 240)
+end
 
 -- Squad (Milestone 3). All TEMP.
 Config.StartingSquadOverall = 45
@@ -108,15 +192,6 @@ Config.AmenityLevels = {
 	{ name = "Snack Bar", cost = 1200, perFan = 2, demandBonus = 0.1 },
 	{ name = "Club Shop", cost = 6000, perFan = 4, demandBonus = 0.2 },
 	{ name = "Fan Zone", cost = 15000, perFan = 6, demandBonus = 0.35 },
-}
-
--- Opponent kit colours, assigned in order to each season's teams.
-Config.AwayKits = {
-	Color3.fromRGB(240, 220, 60),
-	Color3.fromRGB(240, 240, 240),
-	Color3.fromRGB(40, 160, 220),
-	Color3.fromRGB(60, 170, 80),
-	Color3.fromRGB(150, 60, 200),
 }
 
 Config.ClubName = "Your Club" -- TEMP: club naming flow is undecided

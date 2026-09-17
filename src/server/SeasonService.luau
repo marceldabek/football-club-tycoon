@@ -233,6 +233,17 @@ function SeasonService.endSeason(): SeasonSummary
 	}
 end
 
+-- Studio only: jump straight to a division to look at its clubs and crests
+-- without playing up to it. Starts that division's season from scratch.
+function SeasonService.setTier(newTier: number): (boolean, string)
+	local clamped = math.clamp(math.floor(newTier), 1, League.topTier())
+	tier = clamped
+	popularity = Config.StartingPopularity
+	startSeason()
+	publish()
+	return true, ("tier %d: %s"):format(clamped, League.divisionName(clamped))
+end
+
 function SeasonService.refreshDemand()
 	ClubState.set("Demand", SeasonService.demand())
 end

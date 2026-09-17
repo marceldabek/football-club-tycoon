@@ -14,6 +14,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Co
 local Theme = require(script.Parent.Theme)
 local LineupBoard = require(script.Parent.LineupBoard)
 local Headshot = require(script.Parent.Headshot)
+local Crest = require(script.Parent.Crest)
 
 local player = Players.LocalPlayer
 local state = ReplicatedStorage:WaitForChild("ClubState")
@@ -112,36 +113,8 @@ local sizeLimit = Instance.new("UISizeConstraint")
 sizeLimit.MaxSize = Vector2.new(1040, 800)
 sizeLimit.Parent = panel
 
--- club crest: rounded shield in the kit colour with the club initials
-local crest = Instance.new("Frame")
-crest.Name = "Crest"
-crest.Size = UDim2.fromOffset(44, 44)
-crest.Position = UDim2.fromOffset(18, 10)
-crest.BackgroundColor3 = Config.HomeKit
-crest.BorderSizePixel = 0
-crest.Parent = panel
-Theme.corner(crest, 12)
-Theme.stroke(crest)
-local crestInitials = Theme.text(crest, "", "display", {
-	Name = "Initials",
-	Size = UDim2.fromScale(1, 1),
-	TextSize = 18,
-	TextColor3 = Color3.new(1, 1, 1),
-	TextXAlignment = Enum.TextXAlignment.Center,
-	TextYAlignment = Enum.TextYAlignment.Center,
-})
-local function initials(name: string): string
-	local out = ""
-	for word in name:gmatch("%S+") do
-		if word:upper() ~= "FC" or out == "" then
-			out ..= word:sub(1, 1):upper()
-		end
-		if #out >= 2 then
-			break
-		end
-	end
-	return if out == "" then "?" else out
-end
+-- club crest: the player's own club, so it wears the home kit
+local crest = Crest.draw(panel, Config.ClubName, 44, { isPlayer = true, position = UDim2.fromOffset(18, 10) })
 
 local title = Theme.text(panel, "CLUB OFFICE", "display", {
 	TextSize = 30,
@@ -623,12 +596,35 @@ local function renderLeague()
 	local played, rounds = get("Round") or 0, get("Rounds") or 10
 	local nextOpp = get("NextOpponent") or ""
 	if nextOpp ~= "" then
-		note(("Match %d of %d next: vs %s.  You are %s."):format(played + 1, rounds, nextOpp, ordinal(get("Position") or 1)))
+		-- Both crests side by side, so the next opponent is recognisable at a
+		-- glance before the name is read.
+		local fixture = Instance.new("Frame")
+		fixture.Name = "NextFixture"
+		fixture.Size = UDim2.new(1, -10, 0, 46)
+		fixture.BackgroundColor3 = ROW_BG
+		fixture.BorderSizePixel = 0
+		fixture.LayoutOrder = nextOrder()
+		Theme.corner(fixture, Theme.chipRadius)
+		fixture.Parent = content
+		Crest.draw(fixture, get("ClubName") or Config.ClubName, 30, { isPlayer = true, position = UDim2.fromOffset(10, 8) })
+		label(fixture, "v", {
+			Position = UDim2.fromOffset(46, 8),
+			Size = UDim2.fromOffset(14, 30),
+			TextSize = 15,
+			TextColor3 = GREY,
+			TextXAlignment = Enum.TextXAlignment.Center,
+		})
+		Crest.draw(fixture, nextOpp, 30, { position = UDim2.fromOffset(64, 8) })
+		label(fixture, ("Match %d of %d next: %s.  You are %s."):format(played + 1, rounds, nextOpp, ordinal(get("Position") or 1)), {
+			Position = UDim2.fromOffset(106, 8),
+			Size = UDim2.new(1, -116, 0, 30),
+			TextSize = 15,
+		})
 	end
 	local head = row(false)
 	head.BackgroundColor3 = PANEL_BG
 	cell(head, "#", 10, 30, { TextColor3 = GREY })
-	cell(head, "Team", 40, 220, { TextColor3 = GREY })
+	cell(head, "Team", 68, 192, { TextColor3 = GREY })
 	cell(head, "P", 270, 30, { TextColor3 = GREY })
 	cell(head, "W", 305, 30, { TextColor3 = GREY })
 	cell(head, "D", 340, 30, { TextColor3 = GREY })
@@ -643,7 +639,8 @@ local function renderLeague()
 		end
 		local posColor = if i <= promo then Color3.fromRGB(120, 230, 120) elseif i > #rows - releg then Color3.fromRGB(240, 110, 110) else Color3.new(1, 1, 1)
 		cell(f, tostring(r.position), 10, 30, { TextColor3 = posColor, Font = Enum.Font.GothamBold })
-		cell(f, r.name, 40, 220, { Font = if r.isPlayer then Enum.Font.GothamBold else Enum.Font.Gotham })
+		Crest.draw(f, r.name, 24, { isPlayer = r.isPlayer, position = UDim2.fromOffset(40, 3) })
+		cell(f, r.name, 68, 192, { Font = if r.isPlayer then Enum.Font.GothamBold else Enum.Font.Gotham })
 		cell(f, tostring(r.played), 270, 30)
 		cell(f, tostring(r.won), 305, 30)
 		cell(f, tostring(r.drawn), 340, 30)
@@ -738,7 +735,7 @@ render = function()
 		return
 	end
 	cashLine.Text = money(get("Cash") or 0)
-	crestInitials.Text = initials(get("ClubName") or Config.ClubName)
+	Crest.update(crest, get("ClubName") or Config.ClubName, true)
 	for name, b in tabButtons do
 		b.BackgroundColor3 = if name == currentTab then ACCENT else Theme.colors.bg3
 		b.TextColor3 = if name == currentTab then Theme.colors.bg else Theme.colors.text

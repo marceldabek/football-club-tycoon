@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Theme = require(script.Parent.Theme)
 local Headshot = require(script.Parent.Headshot)
+local Crest = require(script.Parent.Crest)
 
 local MatchSummary = {}
 
@@ -35,25 +36,7 @@ local function withCommas(n: number): string
 	return (out:gsub("^,", ""))
 end
 
-local function colorFromJson(c: any, fallback: Color3): Color3
-	if type(c) == "table" and type(c[1]) == "number" then
-		return Color3.fromRGB(c[1], c[2], c[3])
-	end
-	return fallback
-end
-
-local function initials(name: string): string
-	local out = ""
-	for word in name:gmatch("%S+") do
-		if word:upper() ~= "FC" or out == "" then
-			out ..= word:sub(1, 1):upper()
-		end
-		if #out >= 2 then
-			break
-		end
-	end
-	return if out == "" then "?" else out
-end
+local initials = Crest.initials
 
 -- Dark inset panel used for every section.
 local function section(parent: Instance, name: string, height: number, order: number): Frame
@@ -105,6 +88,16 @@ local function chevron(parent: Instance, direction: "up" | "right", color: Color
 	end
 	Theme.corner(holder, 2)
 	return holder
+end
+
+-- Recolour a shield's outline to the club's accent, which is what keeps two
+-- dark-kitted clubs apart on the card.
+local function tintStroke(shield: Frame, accent: Color3)
+	local stroke = shield:FindFirstChildOfClass("UIStroke")
+	if stroke then
+		stroke.Color = accent
+		stroke.Transparency = 0.15
+	end
 end
 
 -- Simple club crest: rounded shield in the kit colour with the club initials.
@@ -518,13 +511,21 @@ function MatchSummary.new(gui: ScreenGui): Summary
 			clubName = stateFolder:GetAttribute("ClubName") or clubName
 		end
 		matchLine.Text = ("MATCH %d / %d"):format(data.round or 0, data.rounds or 10)
+		-- Same colours the crest uses everywhere else, looked up by club name.
+		local homeKit, homeAccent = Config.clubCrest(clubName, true)
 		homeInitials.Text = initials(clubName)
-		homeShield.BackgroundColor3 = Config.HomeKit
+		homeInitials.TextColor3 = homeAccent
+		homeShield.BackgroundColor3 = homeKit
+		tintStroke(homeShield, homeAccent)
 		homeName.Text = clubName
 		homeSub.Text = if data.scorers and #data.scorers > 0 then table.concat(data.scorers, "\n") else ""
-		awayInitials.Text = initials(data.opponent or "Away")
-		awayShield.BackgroundColor3 = colorFromJson(data.awayKit, C.bg3)
-		awayName.Text = data.opponent or "Away"
+		local opponent = data.opponent or "Away"
+		local awayKit, awayAccent = Config.clubCrest(opponent)
+		awayInitials.Text = initials(opponent)
+		awayInitials.TextColor3 = awayAccent
+		awayShield.BackgroundColor3 = awayKit
+		tintStroke(awayShield, awayAccent)
+		awayName.Text = opponent
 		awaySub.Text = ""
 		score.Text = ("%d - %d"):format(data.homeGoals, data.awayGoals)
 		if data.outcome == "Win" then

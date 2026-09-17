@@ -7,6 +7,7 @@ local UpgradeService = require(script.Parent.UpgradeService)
 local ClubService = require(script.Parent.ClubService)
 local ClubState = require(script.Parent.ClubState)
 local WorldBuilder = require(script.Parent.WorldBuilder)
+local SeasonService = require(script.Parent.SeasonService)
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 
 -- Studio-only debug hook so agent/manual playtests can drive the real services
@@ -15,7 +16,7 @@ local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 --   ("expandStand", "East"|"West"|"North"|"South") / ("amenity")
 --   ("tactic", "Attack" | "Defend" | "Balanced" | "Sub")
 --   ("club", action, a?, b?)  e.g. ("club", "hireScout"), ("club", "swap", 3, 14)
---   ("cash", amount) adds money
+--   ("cash", amount) adds money / ("tier", 1..5) jumps to that division
 --   ("save") flush now / ("reload") snapshot -> restore round trip / ("wipe") fresh club
 --   ("preview", "4,2,1,0") rebuild the ground at those East/West/North/South plot
 --       levels and fill the crowd; for looking at layout changes, not a real purchase
@@ -41,6 +42,8 @@ if game:GetService("RunService"):IsStudio() then
 		elseif command == "cash" then
 			ClubState.addCash((...) or 1000)
 			return true
+		elseif command == "tier" then
+			return SeasonService.setTier(tonumber((...)) or 1)
 		elseif command == "save" then
 			return Session.saveNow()
 		elseif command == "reload" then
