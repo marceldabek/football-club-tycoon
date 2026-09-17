@@ -218,6 +218,11 @@ Config.Save = {
 	autosaveSeconds = 30, -- save this often while something changed
 	loadRetries = 3,
 	retryBackoffSeconds = 1,
+	-- TEMP: save-lock timing (backlog B3.2, CLAUDE.md s27 "Save lock"). Tune once
+	-- real servers show how long a stale session actually takes to notice.
+	lockStaleSeconds = 90, -- a holder silent this long is treated as dead
+	lockMaxWaitSeconds = 30, -- longest a new server waits before stealing anyway
+	lockPollSeconds = 3, -- how often a waiting server rechecks the lock
 }
 -- Club naming (onboarding). TEMP: the naming flow is an open question (CLAUDE.md §25).
 Config.ClubNameMinLength = 3
