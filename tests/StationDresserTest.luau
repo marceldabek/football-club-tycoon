@@ -17,4 +17,16 @@ function T.frontFacesAwayFromTheRailway()
 	assert(near > far, "the forecourt should be further from the rails than the building")
 end
 
+function T.platformFrameSitsOnTheRearWall()
+	local f = StationDresser.frontFrame()
+	local size = TownLayout.RAIL.station.size
+	local p = StationDresser.platformFrame(f, size)
+	assert(math.abs((p.Position - f.Position).Magnitude - size.Z) < 0.01, "rear wall is one depth behind the front")
+	assert(p.LookVector:Dot(f.LookVector) < -0.99, "platform frame faces the other way")
+	local towardsRails = p.LookVector * -1
+	local near = TownLayout.distanceToPolyline(p.Position + towardsRails * 5, TownLayout.RAIL.points)
+	local far = TownLayout.distanceToPolyline(p.Position - towardsRails * 5, TownLayout.RAIL.points)
+	assert(near < far, "platform +Z should point at the rails")
+end
+
 return T

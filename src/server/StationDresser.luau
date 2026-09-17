@@ -112,6 +112,41 @@ local function buildTaxi(parent: Instance, cf: CFrame)
 	end
 end
 
+-- Pure: the frame on the platform side: origin at ground level in the middle
+-- of the rear wall, +Z towards the rails.
+function StationDresser.platformFrame(front: CFrame, stationSize: Vector3): CFrame
+	return front * CFrame.new(0, 0, -stationSize.Z) * CFrame.Angles(0, math.pi, 0)
+end
+
+-- Yellow edge line, benches, bin, running-in boards and end railings (~25 parts).
+function StationDresser.dressPlatform(parent: Instance, front: CFrame, stationSize: Vector3, platformSize: Vector3)
+	local p = StationDresser.platformFrame(front, stationSize)
+	local top = platformSize.Y
+	local depth = platformSize.Z
+	local halfLen = platformSize.X / 2
+	slab(parent, p, "EdgeLine", -halfLen, halfLen, top - 0.1, top + 0.06, depth - 3, depth - 2.4, Color3.fromRGB(240, 200, 30), Enum.Material.SmoothPlastic)
+	for _, x in { -63, -21, 21, 63 } do
+		KitPlacer.place("UKSP__ParkBenches__ParkBench01", p * CFrame.new(x, top, 2.5), parent, { fallbackSize = Vector3.new(6, 3, 2), fallbackColor = Color3.fromRGB(120, 80, 50) })
+	end
+	KitPlacer.place("UKSP__LitterBin__LitterBin", p * CFrame.new(-40, top, 1.8), parent, { fallbackSize = Vector3.new(2, 3.5, 2), fallbackColor = IRON })
+	local boardZ = math.max(depth / 2, 3)
+	for _, x in { -104, 104 } do
+		for _, dx in { -4.5, 4.5 } do
+			slab(parent, p, "BoardPost", x + dx - 0.3, x + dx + 0.3, top, top + 9, boardZ - 0.3, boardZ + 0.3, IRON, Enum.Material.Metal)
+		end
+		local board = slab(parent, p, "NameBoard", x - 6, x + 6, top + 6, top + 8.5, boardZ - 0.25, boardZ + 0.25, NAVY, Enum.Material.SmoothPlastic)
+		sign(board, Enum.NormalId.Back, "RIVERMERE", Color3.new(1, 1, 1))
+		sign(board, Enum.NormalId.Front, "RIVERMERE", Color3.new(1, 1, 1))
+	end
+	for _, x in { -halfLen + 0.3, halfLen - 0.3 } do
+		slab(parent, p, "EndRail", x - 0.15, x + 0.15, top + 3.3, top + 3.6, 0.3, depth - 0.3, IRON, Enum.Material.Metal)
+		slab(parent, p, "EndRailMid", x - 0.1, x + 0.1, top + 1.6, top + 1.8, 0.3, depth - 0.3, IRON, Enum.Material.Metal)
+		for _, z in { 0.6, depth / 2, depth - 0.6 } do
+			slab(parent, p, "EndRailPost", x - 0.15, x + 0.15, top, top + 3.3, z - 0.15, z + 0.15, IRON, Enum.Material.Metal)
+		end
+	end
+end
+
 function StationDresser.build(): string
 	local town = workspace:FindFirstChild("Town")
 	if not town then
@@ -206,6 +241,12 @@ function StationDresser.build(): string
 	slab(m, f, "DropOff", -90, -14, 0, 0.25, 22, 38, Color3.fromRGB(70, 72, 76), Enum.Material.Asphalt)
 	for _, x in { -60, -44 } do
 		buildTaxi(m, f * CFrame.new(x, 0.25, 30) * CFrame.Angles(0, math.pi / 2, 0))
+	end
+
+	-- platform side (X20): read the greybox platform so its depth stays TownBuilder's call
+	local platform = greybox and greybox:FindFirstChild("Platform")
+	if platform and platform:IsA("BasePart") then
+		StationDresser.dressPlatform(m, f, station.size, platform.Size)
 	end
 
 	m.Parent = town
