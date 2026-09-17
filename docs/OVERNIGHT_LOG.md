@@ -40,7 +40,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 6. The Rojo panel in Studio shows "Unknown HTTP error: NetFail", although `rojo serve` is running on port 34872 and serving this branch. Click Connect (or Disconnect, then Connect) in the Rojo panel before editing, so Studio's hand-pasted copies are replaced from disk. The HTTP sync fallback in `tools/studio-sync.luau` no longer works from the MCP, because its sandbox lacks the Network capability.
 7. Created in Studio through the MCP tonight, not by Rojo: `ReplicatedStorage.Shared.TrainMath`, `StarterPlayerScripts.Client.ClubScarves`, `StarterPlayerScripts.Client.Deliveries`, `ServerScriptService.Server.SportsCentreDresser`, `StarterPlayerScripts.Client.Train`, and tests `TrainMathTest` / `SportsCentreDresserTest`. The disk versions carry full comments; a Rojo reconnect replaces the Studio copies.
 8. Traffic's roundabout fix (X79) is only visual: vehicles are pushed onto a ring round the island, with no give-way or real circulation, so two cars can overlap at a busy roundabout. The train (X82) runs under the station footbridge without a clearance check (deck 16, carriage roof about 9, so it's fine today).
-9. Last RunAll in Studio: **384 passed, 0 failed** (08:31). TownBuilderTest now exists in Studio as a shortened copy (made with multi_edit); the disk file is the full one.
+9. Last RunAll in Studio: **384 passed, 0 failed** (08:22). TownBuilderTest now exists in Studio as a shortened copy (made with multi_edit); the disk file is the full one.
 
 **Questions for Marcel**
 1. **Done as TEMP, please confirm:** Studio playtests now use the DataStore `ClubProfiles_Studio`, so Studio opens a fresh club and onboarding instead of Dino FC. To get your real club back in Studio, set `Config.Save.studioStoreSuffix = ""`. *Rec: keep it; live servers are unchanged.*
@@ -798,6 +798,6 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Also tried marking the Imperfections folders Decor; it changed nothing because each part is already flagged, so it was reverted.
 - A background review of today's Luau diff (42 files) found no syntax, ordering or require-cycle problems.
 
-### 2026-09-17 08:31 — Grass verges on the Northfields closes (X75 done)
+### 2026-09-17 08:22 — Grass verges on the Northfields closes (X75 done)
 - Hayfield Close and Rowan Close pavements now carry a 1.8-wide grass verge along the kerb, like RivermereNorthfields.png. It sits 0.04 above the pavement and 0.05 in from the kerb, below the tree pit tops, so no faces share a plane. 4 parts in total.
 - TownBuilderTest was on disk but missing in Studio, so its suite never ran there; a shortened copy was added with the new verge-road check. RunAll 384 passed. Screenshot from Hayfield Close checked: verges both sides, street trees standing in them.
