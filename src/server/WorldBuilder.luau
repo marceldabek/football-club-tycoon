@@ -833,7 +833,7 @@ local function buildTurnstiles(parent: Instance)
 		signText.Font = Enum.Font.GothamBold
 		signText.TextScaled = true
 		signText.TextColor3 = Color3.fromRGB(240, 240, 240)
-		signText.Text = if i == 2 then "TICKETS" else "HOME FANS"
+		signText.Text = if i == 2 then "TICKETS" else "HOME SUPPORTERS" -- X155: the reference board's wording
 		signText.Parent = signGui
 		for _, side in { -1, 1 } do
 			-- X153: a barred leaf (top and bottom rails, four uprights) rather than a
