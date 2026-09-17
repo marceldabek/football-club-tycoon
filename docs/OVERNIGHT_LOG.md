@@ -5,7 +5,8 @@
 **What to look at:** Press Play. Pick a ground with the picker (‹ › then BUILD MY CLUB HERE).
 You spawn in your office on that plot; the other plots are FOR SALE lots. Walk or take a bus (prompt on
 any bus-stop sign) around Rivermere: dense textured terraced streets (try Cherry Close at (-600, 9, -640)),
-the Mill Street kit showpiece at (30, 7, -192), the market square with its clock tower at (70, 30, 90),
+the Mill Street kit showpiece at (30, 7, -192), the market square with its clock tower at (70, 30, 90), the high street shops from (70, 9, 5) looking north-east,
+Northfields semis at (215, 10, -420), the industrial estate at (-1490, 16, -170), Rivermere Station at (-720, 16, -310),
 fields/hills/turbines past the edge. Play a match: fans and stewards walk to your turnstiles; every
 4th fixture from match 3 is an evening game under floodlights; "Back to Club" plays the week
 fast-forward. Open CLUB OFFICE for the menu depth of field.
@@ -16,10 +17,10 @@ services, picker, go-home, despawn, for-sale lots (B1–B4), save lock (B3), tow
 kit street (E3.1), textured low-part terraces town-wide (X12/X13), market square (E1.1), backdrop
 (E9.2), bus fast travel (E7.2), plot grounds: car park, club shop, training pitches (E8.1/H2/H3),
 ambient audio (F1.1), matchday fans (G1.1), 10-part team coach (X14), church (E9.1), riverside
-promenade (E6.1), station frontage (E7.1 part).
-**Half-done:** E7.1 station (frontage only; platform side, footbridge and viaduct are X20). Subagent branches
-still being written in worktrees and not merged yet: shopfronts (E2.1), semis/industrial (E4.1/E5.1),
-town life (F4.1/H1.1/G2.1), traffic (F2.1).
+promenade (E6.1), station frontage and platform (E7.1 part), textured shops/flats/civic buildings (E2.1),
+Northfields semis and industrial sheds (E4.1/E5.1), client traffic (F2.1), club banners on lamp posts (H1.1).
+**Half-done:** E7.1 station (no footbridge/viaduct yet, X20). F4.1/G2.1 town life: turbines and matchday bunting are
+wired but not seen in a match yet (X24).
 **Reverted:** none.
 
 **Known bugs**
@@ -105,3 +106,13 @@ town life (F4.1/H1.1/G2.1), traffic (F2.1).
 - `StationDresser` (reference `RivermereStation.png`): re-skins the greybox station in brick and slate, adds forecourt paving, glazed entrance with a navy "RIVERMERE STATION" canopy, a Next Trains board (fictional Hollingford/Mapleford/Greenbridge), a green OnTrack kiosk, bollards, planters, kit bench and bin, window rows with stone lintels, and a drop-off lane with two black taxis. 79 parts. Where to look: (-720, 16, -310) looking at (-800, 9, -385).
 - Biggest differences from the reference: flat roofline with no gable or clock (X21); platform side not dressed yet, no footbridge or viaduct (X20); no people on the forecourt; the bus shelter sits on the forecourt edge.
 - RunAll 131/131.
+
+### 2026-09-17 01:55 — Platform, shops, estates, traffic, banners merged
+- Station platform (X20 part): yellow edge line, 4 kit benches, bin, two "RIVERMERE" running-in boards, end railings; station now 101 parts. Reference `RivermereStation.png`. Footbridge and viaduct still missing.
+- Merged the four subagent branches, synced them to Studio and playtested each:
+  - Shops (E2.1, reference `RivermereCenter.png`): generated 18 shopfront/upper-floor/flats/civic textures with `tools/kit/make_shopfronts.py`, uploaded through `upload_kit.py`, ids filled. 127 blocks, 695 parts. The Riverside Arms, Daily Bean, Sharp Cuts etc. read clearly from the square. Differences: grass between pavement and fronts (X22), no A-boards/baskets (X23), 30-stud corner blocks look squat.
+  - Estates (E4.1/E5.1, references `RivermereNorthfields.png`, `rivermer.industrialestate.png`): 9 textures from `make_buildings.py` uploaded; 66 semis pairs, 43 sheds, 1284 parts. Semis have render + brick, bay windows, hedges; sheds have shutters, signs (Lune Logistics / Rivermere Plant Hire / Mill Lane Motors), yards, pallets. Differences: hip-end roof wedges look tall from some angles (X25), no cars in drives, no loading-bay markings.
+  - Traffic (F2.1): 22 cars/buses near the camera, moving (73 studs in 2 s), client fps 53 in Studio with the whole town loaded.
+  - Town life (H1.1 + wired F4.1/G2.1): banners were missing under StreamingEnabled because lamp models arrive before their parts; fixed, now 38 "Dino FC" banners on Cherry Close. Bunting and turbines not yet eyeballed (X24).
+- Town part totals now: streets 8,371, shops 695, estates 1,284, riverside 813, square+church 499, station 101.
+- RunAll 170/170.

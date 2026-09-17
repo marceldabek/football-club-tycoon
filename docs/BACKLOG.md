@@ -63,28 +63,28 @@
 - [x] E3.1 Terraced street 1 beside the town centre: 12 houses (MEH kit), front walls, pavements, lamp posts, bins, parked cars; layout data + builder; reference `RiveremereWestdale.png`/`RivermereNorthfields.png` `[studio]` M dep: C2.1, D4.1
 - [x] E3.2 Terraced street 2 + back alley with wheelie bins and garden walls `[studio]` M dep: E3.1
 - [x] E1.1 Market square: round paved square, market stall ring, monument/clock, benches, planters, bunting; reference `RivermereCenter.png` `[studio]` M dep: C2.1
-- [ ] E2.1 High street frontage: red-brick shops with ground-floor shopfronts (bakery, grocer, café, pub, barbers), flats above, A-boards, club banners on lamp posts; reference `RivermereCenter.png` `[studio]` L
+- [x] E2.1 (no A-boards yet, X23) High street frontage: red-brick shops with ground-floor shopfronts (bakery, grocer, café, pub, barbers), flats above, A-boards, club banners on lamp posts; reference `RivermereCenter.png` `[studio]` L
 - [x] E6.1 River Lune banks, stone road bridge (multi-arch), riverside path with railings and benches; reference `RivermereRiverside.png` `[studio]` M dep: C2.1
 - [ ] E7.1 (frontage done 01:40, platform side/footbridge/viaduct left in X20) Station: platform, canopy, station building, footbridge, car park; railway viaduct over the river; reference `RivermereStation.png` `[studio]` M dep: C2.1
 - [x] E7.2 Bus stops: shelter + flag at centre, station, each plot, park; bus-stop fast-travel UI (pick a destination → fade → teleport) `[studio]` M dep: C2.1
 - [x] E9.1 Church with spire (landmark) near the centre, visible from every plot `[studio]` S dep: C2.1
-- [ ] E5.1 Industrial estate greybox → sheds, yards, fences, loading bays; reference `rivermer.industrialestate.png` `[studio]` M
+- [x] E5.1 Industrial estate greybox → sheds, yards, fences, loading bays; reference `rivermer.industrialestate.png` `[studio]` M
 - [x] E8.1 Plot surroundings: approach road, car park, club shop box, two training pitches per plot; reference `RivermereTurnstileEntrance.png` `[studio]` M dep: B1.2a, C2.1
 - [ ] E6.2 Riverside Park: paths, pond, playground, trees, bandstand `[studio]` M
-- [ ] E4.1 Northfields semis and small flats `[studio]` M
+- [x] E4.1 (semis; flats are ShopBuilder.flats) Northfields semis and small flats `[studio]` M
 - [x] E9.2 Backdrop: hills, wind turbines, distant floodlights, low detail `[studio]` S
 - [ ] E10.1 Imperfection pass: patches, faded markings, weeds, posters, clutter `[studio]` M
 
 ## Phase F — Life & sound
 - [x] F1.1 Ambient audio zones (town, river, station, park) from the Roblox library `[studio]` M
-- [ ] F2.1 Client-side traffic on road polylines, distance-budgeted `[studio]` M
+- [x] F2.1 Client-side traffic on road polylines, distance-budgeted `[studio]` M
 - [ ] F3.1 Client-side pedestrians on pavements, distance-budgeted `[studio]` M
-- [ ] F4.1 Small motion: flags, bunting sway, chimney smoke `[studio]` S
+- [~] F4.1 (turbines spin, wired not eyeballed; flags/smoke not done) Small motion: flags, bunting sway, chimney smoke `[studio]` S
 
 ## Phase G/H — Matchday town & influence
 - [x] G1.1 Matchday around a plot (all players): fans walking to the ground, stewards, barriers; fades after `[studio]` M dep: B2.1c
-- [ ] G2.1 Matchday town for the playing player only: banners on lamp posts, busy pub `[studio]` M
-- [ ] H1.1 Club identity banners in town (client-side, player's own club colours/name) `[studio]` S
+- [~] G2.1 (bunting near the plot during PreMatch/Match, not yet seen in a match; busy pub not done) Matchday town for the playing player only: banners on lamp posts, busy pub `[studio]` M
+- [x] H1.1 Club identity banners in town (client-side, player's own club colours/name) `[studio]` S
 - [x] H2.1 Club shop building on the plot (visual) `[studio]` S dep: E8.1
 - [x] H3.1 Training pitches on the plot (visual) `[studio]` S dep: E8.1
 
@@ -119,4 +119,8 @@
 - [ ] X19 Road bridges are plain decks; add stone arch spandrels/cutwaters so the Lune Bridge reads like RivermereRiverside.png `[studio]` M
 - [ ] X20 Station: platform-side dressing (yellow edge, benches, railings, name boards), footbridge, viaduct over the Lune, path from the car park `[studio]` M
 - [ ] X21 Station roofline is a flat box; the reference has a pitched slate roof with a gable/clock over the entrance `[studio]` S
+- [ ] X22 Grass strip between the pavement and shop/semi fronts; pave the forecourt up to the building line `[studio]` S
+- [ ] X23 High street A-boards and hanging baskets in front of ShopBuilder rows (RivermereCenter.png) `[studio]` S
+- [ ] X24 Watch bunting during a real match and turbines spinning; TownLife is only verified for banners so far `[studio]` S
+- [ ] X25 Semis hip-end roof wedges look tall from some angles; check against RivermereNorthfields.png and consider a plain gable `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
