@@ -64,6 +64,7 @@ type PlotCrowd = {
 	fans: { Fan },
 	stewards: { Model },
 	cars: { Model },
+	queue: { Model },
 	near: boolean,
 	alive: boolean,
 	plotCFrame: CFrame,
@@ -260,6 +261,39 @@ local function buildMediaVan(crowd: PlotCrowd)
 	table.insert(crowd.stewards, model)
 end
 
+-- ------------------------------------------------------------------ queues
+
+-- X104: fans standing in line at the turnstiles before kick-off
+-- (MatchdayRoutes.queueSpots), a little turned and shuffled so the lines don't
+-- look drilled. Static parts; rebuilt when the wanted count changes (Phase ->
+-- Match empties them).
+local function rebuildQueue(crowd: PlotCrowd)
+	for _, fan in crowd.queue do
+		fan:Destroy()
+	end
+	table.clear(crowd.queue)
+	local want = MatchdayRoutes.queueCount(numberAttribute(crowd.folder, "Attendance"), numberAttribute(crowd.folder, "Capacity"), crowd.folder:GetAttribute("Phase"))
+	for i, spot in MatchdayRoutes.queueSpots(want) do
+		local model = Instance.new("Model")
+		model.Name = "QueueFan" .. i
+		local kit = if math.random() < 0.5 then Config.HomeKit else NEUTRAL_KITS[math.random(1, #NEUTRAL_KITS)]
+		local base = crowd.plotCFrame
+			* spot
+			* CFrame.new(math.random() * 0.6 - 0.3, 0.3, math.random() * 0.6 - 0.3) -- on the forecourt paving
+			* CFrame.Angles(0, math.rad(math.random(-20, 20)), 0)
+		part("Legs", LEG, DARK_TROUSERS, model).CFrame = base * CFrame.new(0, LEG.Y / 2, 0)
+		part("Torso", TORSO, kit, model).CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y / 2, 0)
+		local head = part("Head", Vector3.new(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE), SKIN_TONES[math.random(1, #SKIN_TONES)], model)
+		head.Shape = Enum.PartType.Ball
+		head.CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y + HEAD_SIZE / 2, 0)
+		if math.random() < 0.5 then
+			part("Scarf", SCARF, Config.HomeKit, model).CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y * 0.85, 0.1)
+		end
+		model.Parent = crowd.model
+		table.insert(crowd.queue, model)
+	end
+end
+
 -- ------------------------------------------------------------------ parked cars
 
 -- G1.2: the club car park fills with supporters' cars on matchday. Bays come
@@ -324,6 +358,7 @@ local function spawnCrowd(crowd: PlotCrowd)
 	buildBarriers(crowd)
 	buildMediaVan(crowd)
 	buildCars(crowd)
+	rebuildQueue(crowd)
 	adjustFanCount(crowd)
 end
 
@@ -339,6 +374,10 @@ local function despawnCrowd(crowd: PlotCrowd)
 		car:Destroy()
 	end
 	table.clear(crowd.cars)
+	for _, fan in crowd.queue do
+		fan:Destroy()
+	end
+	table.clear(crowd.queue)
 end
 
 local function recheckCrowd(crowd: PlotCrowd, camPos: Vector3)
@@ -368,6 +407,10 @@ local function recheckCrowd(crowd: PlotCrowd, camPos: Vector3)
 		despawnCrowd(crowd)
 	elseif shouldBeAlive and crowd.alive then
 		adjustFanCount(crowd)
+		local wantQueue = MatchdayRoutes.queueCount(numberAttribute(folder, "Attendance"), numberAttribute(folder, "Capacity"), phase)
+		if wantQueue ~= #crowd.queue then
+			rebuildQueue(crowd)
+		end
 	end
 end
 
@@ -397,6 +440,7 @@ local function trackPlot(folder: Folder)
 		fans = {},
 		stewards = {},
 		cars = {},
+		queue = {},
 		near = false,
 		alive = false,
 		plotCFrame = CFrame.identity,

@@ -129,4 +129,38 @@ function T.mediaVanComesWithACrowdAndStaysOffTheWalk()
 	assert(p.X + 7 < -160 or p.Z - 3 > -213, "clear of the team coach")
 end
 
+-- X104: queues only before kick-off, bigger with a fuller ground, standing
+-- inside the barriers, facing the turnstiles, clear of each other and of the
+-- turnstile stewards.
+function T.queuesFormOnlyBeforeKickOffAndGrowWithTheCrowd()
+	assert(MatchdayRoutes.queueCount(500, 1000, "Match") == 0, "none once the match is on")
+	assert(MatchdayRoutes.queueCount(500, 1000, nil) == 0, "none outside matchday")
+	assert(MatchdayRoutes.queueCount(0, 1000, "PreMatch") == 0, "none with no crowd")
+	local small, full = MatchdayRoutes.queueCount(100, 1000, "PreMatch"), MatchdayRoutes.queueCount(1000, 1000, "PreMatch")
+	assert(small > 0 and full > small and full <= MatchdayRoutes.QUEUE_MAX, ("small %d full %d"):format(small, full))
+end
+
+function T.queueSpotsStandInTheBarrieredLaneFacingTheTurnstiles()
+	local spots = MatchdayRoutes.queueSpots(MatchdayRoutes.QUEUE_MAX)
+	assert(#spots == MatchdayRoutes.QUEUE_MAX, "count")
+	local turnstile = MatchdayRoutes.ROUTES.fromTown[#MatchdayRoutes.ROUTES.fromTown]
+	local edge = MatchdayRoutes.ROUTES.fromTown[#MatchdayRoutes.ROUTES.fromTown - 1]
+	local a = Vector3.new(turnstile.X, 0, turnstile.Z)
+	local walk = Vector3.new(edge.X - a.X, 0, edge.Z - a.Z)
+	for i, cf in spots do
+		local rel = cf.Position - a
+		local along = rel:Dot(walk.Unit)
+		local lateral = math.abs(rel:Cross(walk.Unit).Y)
+		assert(along > 2 and along < walk.Magnitude, "spot " .. i .. " between the turnstile and the forecourt edge")
+		assert(lateral < MatchdayRoutes.BARRIER_OFFSET - 1, "spot " .. i .. " inside the barriers")
+		assert(cf.LookVector:Dot(-walk.Unit) > 0.99, "spot " .. i .. " faces the turnstiles")
+		for j = i + 1, #spots do
+			assert((spots[j].Position - cf.Position).Magnitude >= 2, ("spots %d and %d crowd each other"):format(i, j))
+		end
+		for _, steward in MatchdayRoutes.STEWARD_SPOTS do
+			assert((steward.Position - cf.Position).Magnitude >= 2, "spot " .. i .. " on a steward")
+		end
+	end
+end
+
 return T

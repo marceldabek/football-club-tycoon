@@ -92,6 +92,36 @@ function MatchdayRoutes.barrierSections(): { CFrame }
 	return out
 end
 
+-- X104 (roadmap G1 "queues"): fans standing in two short lines behind the
+-- turnstile stewards before kick-off. Pitch-local ground CFrames facing the
+-- turnstiles, filled alternately left/right from QUEUE_START back along the
+-- walk, QUEUE_LANE either side of it (inside the barriers). Only in PreMatch:
+-- once the game is on everyone is in. TEMP numbers.
+MatchdayRoutes.QUEUE_MAX = 14
+MatchdayRoutes.QUEUE_START = 4
+MatchdayRoutes.QUEUE_SPACING = 2.2
+MatchdayRoutes.QUEUE_LANE = 3.2
+function MatchdayRoutes.queueCount(attendance: number, capacity: number, phase: any): number
+	if phase ~= "PreMatch" or capacity <= 0 or attendance <= 0 then
+		return 0
+	end
+	return math.clamp(math.round(4 + 10 * (attendance / capacity)), 0, MatchdayRoutes.QUEUE_MAX)
+end
+
+function MatchdayRoutes.queueSpots(count: number): { CFrame }
+	local a = Vector3.new(TURNSTILE.X, 0, TURNSTILE.Z)
+	local back = Vector3.new(FORECOURT_EDGE.X - a.X, 0, FORECOURT_EDGE.Z - a.Z).Unit
+	local side = Vector3.new(-back.Z, 0, back.X)
+	local out = {}
+	for i = 1, math.min(count, MatchdayRoutes.QUEUE_MAX) do
+		local line = if i % 2 == 1 then -1 else 1
+		local d = MatchdayRoutes.QUEUE_START + math.floor((i - 1) / 2) * MatchdayRoutes.QUEUE_SPACING
+		local c = a + back * d + side * line * MatchdayRoutes.QUEUE_LANE
+		table.insert(out, CFrame.lookAt(c, c - back))
+	end
+	return out
+end
+
 -- X93 (roadmap H1 "media presence"): an outside-broadcast van on the forecourt
 -- on matchday once the club draws a crowd. Pitch-local ground CFrame, long axis
 -- along local X, clear of the team coach (x -160..-126, z -221..-213) and the
