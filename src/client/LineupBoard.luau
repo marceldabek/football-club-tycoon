@@ -213,6 +213,38 @@ local function refreshInjury(frame: Frame, p: Player, dotParent: Instance, withC
 	end
 end
 
+-- X287: age belongs on the card now that players retire (X277). X285 coloured
+-- it in the detail panel, but a player scanning the XI could not see who was 36
+-- without tapping every face, so a retirement still arrived as a surprise.
+local function ageColour(age: number): Color3
+	if age >= Config.RetireMaxAge then
+		return Theme.colors.bad
+	elseif age >= Config.RetireAge then
+		return Theme.colors.accent
+	end
+	return Theme.colors.muted
+end
+
+-- A player with no appearances yet: an academy graduate or a new signing.
+local function newChip(parent: Instance)
+	if parent:FindFirstChild("NewChip") then
+		return
+	end
+	local chip = Instance.new("TextLabel")
+	chip.Name = "NewChip"
+	chip.Size = UDim2.fromOffset(34, 15)
+	chip.Position = UDim2.fromOffset(4, 4)
+	chip.BackgroundColor3 = Theme.colors.info
+	chip.BorderSizePixel = 0
+	chip.Font = Theme.fonts.bold
+	chip.TextSize = 11
+	chip.TextColor3 = Color3.new(1, 1, 1)
+	chip.Text = "NEW"
+	chip.ZIndex = 3
+	chip.Parent = parent
+	Theme.corner(chip, Theme.chipRadius)
+end
+
 -- Pitch card: shoulder headshot, surname, role bottom-left, OVR bottom-right.
 local function card(parent: Instance, p: Player, kit: Color3): Frame
 	local f = Instance.new("Frame")
@@ -247,10 +279,18 @@ local function card(parent: Instance, p: Player, kit: Color3): Frame
 		TextTruncate = Enum.TextTruncate.AtEnd,
 	})
 	Theme.text(f, p.role, "muted", {
-		Size = UDim2.fromOffset(34, 16),
+		Size = UDim2.fromOffset(30, 16),
 		Position = UDim2.fromOffset(6, 88),
 		TextSize = 11,
 		Font = Theme.fonts.bold,
+	})
+	Theme.text(f, ("%d"):format(p.age), "muted", {
+		Name = "Age",
+		Size = UDim2.fromOffset(24, 16),
+		Position = UDim2.fromOffset(36, 88),
+		TextSize = 11,
+		Font = Theme.fonts.bold,
+		TextColor3 = ageColour(p.age),
 	})
 	Theme.text(f, ("%d"):format(p.overall), "body", {
 		Size = UDim2.fromOffset(30, 18),
@@ -262,6 +302,9 @@ local function card(parent: Instance, p: Player, kit: Color3): Frame
 	})
 	if p.injured > 0 then
 		injuryDot(f)
+	end
+	if (p.apps or 0) == 0 then
+		newChip(f)
 	end
 	return f
 end
@@ -297,10 +340,18 @@ local function row(parent: Instance, p: Player, kit: Color3): Frame
 		TextTruncate = Enum.TextTruncate.AtEnd,
 	})
 	Theme.text(f, p.role, "muted", {
-		Size = UDim2.fromOffset(60, 16),
+		Size = UDim2.fromOffset(34, 16),
 		Position = UDim2.fromOffset(ROW_H + 2, 34),
 		TextSize = 12,
 		Font = Theme.fonts.bold,
+	})
+	Theme.text(f, ("aged %d"):format(p.age), "muted", {
+		Name = "Age",
+		Size = UDim2.fromOffset(60, 16),
+		Position = UDim2.fromOffset(ROW_H + 38, 34),
+		TextSize = 12,
+		Font = Theme.fonts.bold,
+		TextColor3 = ageColour(p.age),
 	})
 	Theme.text(f, ("%d"):format(p.overall), "body", {
 		Size = UDim2.fromOffset(50, ROW_H),

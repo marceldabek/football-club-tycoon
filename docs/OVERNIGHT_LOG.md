@@ -1638,3 +1638,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Not photographed:** I could not frame the notice from the scripted camera (the office is small and the desk and cladding kept getting in the way), so this is verified from the label's text, not on camera. Worth a look in the morning: spawn in the office and turn to the wall behind the desk.
 - RunAll 457 passed.
 
+### 2026-09-17 17:47 — Age on the squad screen itself (X287)
+- X285 coloured the age in the player window, but a player scanning the XI still could not see who was 36 without tapping every face. Every pitch card now carries the age beside the role and every bench row reads "FWD  aged 33", gold from 34 and red at 37 - the same thresholds the retirement window uses.
+- A player with no appearances yet - an academy graduate (X277) or a new signing - gets a small blue NEW chip in the corner of their card.
+- The squad bar says the average age: "Squad 16 / 20  ·  avg age 29.9", which is the number that tells you a squad is about to fall off a cliff. The debug save reads 29.9, which is exactly the kind of squad X277 was written for.
+- Verified in play by reading the labels and colours off the live GUI: 11 cards and 5 rows all carry an age, the one 34-year-old is gold, the rest muted, no NEW chips on a squad where everyone has played. Widened the squad-bar label after the first screenshot showed the line wrapping, and re-checked that it now fits (203px of text in a 240px label).
+- RunAll 457 passed.
+

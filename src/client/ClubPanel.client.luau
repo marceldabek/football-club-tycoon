@@ -333,7 +333,8 @@ end)
 
 local capacityLabel = Theme.text(squadBar, "", "body", {
 	Name = "Capacity",
-	Size = UDim2.fromOffset(150, SQUAD_BAR_H),
+	-- X287: wide enough for "Squad 16 / 20 · avg age 29.9" on one line
+	Size = UDim2.fromOffset(240, SQUAD_BAR_H),
 	Position = UDim2.fromOffset(218, 0),
 	TextSize = 15,
 	Font = Theme.fonts.bold,
@@ -341,7 +342,7 @@ local capacityLabel = Theme.text(squadBar, "", "body", {
 })
 local capacityTrack = Instance.new("Frame")
 capacityTrack.Name = "Track"
-capacityTrack.Position = UDim2.new(0, 372, 0.5, 0)
+capacityTrack.Position = UDim2.new(0, 462, 0.5, 0)
 capacityTrack.AnchorPoint = Vector2.new(0, 0.5)
 capacityTrack.Size = UDim2.new(0, 150, 0, 12)
 capacityTrack.BackgroundColor3 = Theme.colors.bg3
@@ -399,9 +400,15 @@ local function renderSquad(club: Club)
 	autoKnob.AnchorPoint = if on then Vector2.new(1, 0.5) else Vector2.new(0, 0.5)
 
 	local count, max = #club.players, Config.SquadMax
-	capacityLabel.Text = ("Squad %d / %d"):format(count, max)
+	-- X287: the average age says whether the squad is about to fall off a cliff
+	local years = 0
+	for _, p in club.players do
+		years += p.age
+	end
+	local average = if count > 0 then years / count else 0
+	capacityLabel.Text = ("Squad %d / %d   ·   avg age %.1f"):format(count, max, average)
 	capacityLabel.Position = UDim2.fromOffset(if manage then 218 else 14, 0)
-	capacityTrack.Position = UDim2.new(0, if manage then 372 else 168, 0.5, 0)
+	capacityTrack.Position = UDim2.new(0, if manage then 462 else 258, 0.5, 0)
 	capacityFill.Size = UDim2.fromScale(math.clamp(count / max, 0, 1), 1)
 
 	if not manage then
