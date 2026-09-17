@@ -277,6 +277,109 @@ local function buildDistrictSign(parent: Instance, name: string, at: Vector3, fa
 	end
 end
 
+-- X75: a low brick wall with a black-and-white street name plate beside the
+-- district stone, like the HAYFIELD CLOSE wall in RivermereNorthfields.png.
+local NAME_WALL_BRICK = Color3.fromRGB(150, 76, 56)
+local NAME_WALL_OFFSET = 11
+
+-- Pure: where the name wall stands beside a district stone at `spot` facing the
+-- road point `facing`: NAME_WALL_OFFSET to one side along the verge (right
+-- first), on grass clear of every road's pavement by 1.5 and of every block by
+-- 2. Returns the spot and the name of the nearest road (for the plate), or nil.
+function EstateDresser.nameWallSpot(spot: Vector3, facing: Vector3, roads: { TownLayout.Road }, blocks: { TownLayout.Box }): (Vector3?, string?)
+	local toRoad = Vector3.new(facing.X - spot.X, 0, facing.Z - spot.Z)
+	if toRoad.Magnitude < 1e-3 then
+		return nil, nil
+	end
+	local right = Vector3.new(-toRoad.Unit.Z, 0, toRoad.Unit.X)
+	for _, side in { 1, -1 } do
+		local p = Vector3.new(spot.X, 0, spot.Z) + right * side * NAME_WALL_OFFSET
+		local clear, nearest, nearestName = true, math.huge, nil
+		for _, road in roads do
+			local d = TownLayout.distanceToPolyline(p, road.points)
+			if d < road.width / 2 + TownLayout.PAVEMENT_WIDTH + 1.5 then
+				clear = false
+				break
+			end
+			if d < nearest then
+				nearest, nearestName = d, road.name
+			end
+		end
+		if clear then
+			for _, box in blocks do
+				if insideBox(p, box, 2) then
+					clear = false
+					break
+				end
+			end
+		end
+		if clear and nearestName then
+			return p, nearestName
+		end
+	end
+	return nil, nil
+end
+
+local function buildNameWall(parent: Instance, at: Vector3, toRoad: Vector3, roadName: string, district: string)
+	local m = Instance.new("Model")
+	m.Name = "NameWall"
+	m:SetAttribute("Road", roadName)
+	m.Parent = parent
+	-- local -Z (the plate side) faces the road, square to it like the stone
+	local cf = CFrame.lookAt(at, at + Vector3.new(toRoad.X, 0, toRoad.Z))
+	local function piece(name: string, size: Vector3, offset: CFrame, colour: Color3, material: Enum.Material): BasePart
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Anchored = true
+		p.Size = size
+		p.CFrame = cf * offset
+		p.Color = colour
+		p.Material = material
+		p.TopSurface = Enum.SurfaceType.Smooth
+		p.BottomSurface = Enum.SurfaceType.Smooth
+		p.Parent = m
+		return p
+	end
+	-- wall -0.2 .. 2.6 (sunk into the ground), coping 2.55 .. 2.85 overhanging 0.15
+	piece("Wall", Vector3.new(8, 2.8, 1), CFrame.new(0, 1.2, 0), NAME_WALL_BRICK, Enum.Material.Brick)
+	piece("Coping", Vector3.new(8.3, 0.3, 1.3), CFrame.new(0, 2.7, 0), Color3.fromRGB(198, 188, 168), Enum.Material.Concrete)
+	local plate = piece("Plate", Vector3.new(6.2, 1.5, 0.15), CFrame.new(0, 1.45, -0.55), Color3.fromRGB(246, 246, 242), Enum.Material.SmoothPlastic)
+	plate.CastShadow = false
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 40
+	gui.LightInfluence = 1
+	gui.Parent = plate
+	local frame = Instance.new("Frame")
+	frame.BackgroundTransparency = 1
+	frame.Size = UDim2.fromScale(1, 1)
+	frame.Parent = gui
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(20, 20, 22)
+	stroke.Thickness = 4
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = frame
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Position = UDim2.fromScale(0.05, 0.08)
+	nameLabel.Size = UDim2.fromScale(0.9, 0.58)
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.TextScaled = true
+	nameLabel.TextColor3 = Color3.fromRGB(20, 20, 22)
+	nameLabel.Text = string.upper(roadName)
+	nameLabel.Parent = frame
+	local areaLabel = Instance.new("TextLabel")
+	areaLabel.BackgroundTransparency = 1
+	areaLabel.Position = UDim2.fromScale(0.2, 0.68)
+	areaLabel.Size = UDim2.fromScale(0.6, 0.24)
+	areaLabel.Font = Enum.Font.Gotham
+	areaLabel.TextScaled = true
+	areaLabel.TextColor3 = Color3.fromRGB(20, 20, 22)
+	areaLabel.Text = district
+	areaLabel.Parent = frame
+end
+
 -- Pure: the block of `district` nearest `centre` (where the district meets town), or nil.
 function EstateDresser.gatewayBlock(district: TownLayout.District, centre: Vector3): TownLayout.Box?
 	local best, bestDistance = nil, math.huge
@@ -692,6 +795,11 @@ function EstateDresser.build(): string
 				if spot and facing then
 					buildDistrictSign(estates, district.name, spot, facing)
 					signSpots[district.name] = spot
+					-- X75: the street name wall beside the stone
+					local wallAt, roadName = EstateDresser.nameWallSpot(spot, facing, TownLayout.ROADS, allBlocks)
+					if wallAt and roadName then
+						buildNameWall(estates, wallAt, facing - spot, roadName, district.name)
+					end
 				end
 			end
 		end

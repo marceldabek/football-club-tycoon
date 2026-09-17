@@ -563,3 +563,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshot** SemisTrees_1.
 - Logged X75: a brick corner wall with a street name plate, and grass verges.
 - RunAll 359/359.
+
+### 2026-09-17 06:25 — Street name walls beside the district stones (X75 part)
+- RivermereNorthfields.png has a low brick wall with a HAYFIELD CLOSE plate beside the NORTHFIELDS stone. New pure `EstateDresser.nameWallSpot` (1 test: 11 along the verge from the stone, on grass, flips side when a block is in the way) returns the spot and the nearest road's name. `buildNameWall` builds a brick wall, coping and a black-bordered white plate with the road name and district (3 parts), square to the road like the stone. The town now has ELM GROVE / Northfields, LUNE STREET / Riverside and WEIR ROAD / Westdale.
+- **Screenshot** NameWall_1: the ELM GROVE wall beside the NORTHFIELDS stone. The first try faced the stone's road point and stood at a slant, so it now takes the stone's direction.
+- RunAll 360/360.

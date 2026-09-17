@@ -498,4 +498,20 @@ function T.kerbTreeSpotSitsOnTheKerbSideOfTheFrontRoad()
 	assert(EstateDresser.kerbTreeSpot(o + Vector3.new(0, 0, 30), { lane }, {}) == nil, "no trees on lanes")
 end
 
+function T.nameWallSpotStandsBesideTheStoneOnTheVerge()
+	local o = Vector3.new(5000, 0, 5000)
+	local street: TownLayout.Road = { name = "Hayfield Close", kind = "residential", width = 20, points = { o + Vector3.new(-200, 0, 0), o + Vector3.new(200, 0, 0) } }
+	local stone = o + Vector3.new(0, 0, 21.5)
+	local facing = o
+	local at, name = EstateDresser.nameWallSpot(stone, facing, { street }, {})
+	assert(at and name == "Hayfield Close", "found a spot and the road name")
+	assert(math.abs((at - stone).Magnitude - 11) < 1e-3, "11 along the verge from the stone")
+	assert(math.abs(at.Z - stone.Z) < 1e-3, "same distance from the road as the stone")
+	-- a block on the right-hand side pushes it to the left
+	local rightHand = at
+	local block: TownLayout.Box = { centre = rightHand + Vector3.new(0, 0, 2), size = Vector3.new(6, 10, 6), yaw = 0, use = "semis" }
+	local other = EstateDresser.nameWallSpot(stone, facing, { street }, { block })
+	assert(other and (other - rightHand).Magnitude > 20, "moves to the other side of the stone")
+end
+
 return T
