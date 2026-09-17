@@ -1,0 +1,101 @@
+# Backlog — Rivermere shared town
+
+> Built 2026-09-17 by the overnight lead agent from CLAUDE.md s27, `docs/WORLD_ROADMAP.md` (A–J),
+> `docs/SLICE_PLAN.md`, `docs/SLICE_REVIEW.md` and the reference images in `assets/references/`.
+> Tags: `[studio]` needs Studio to build or verify, `[disk]` code/data/docs/research only.
+> Size: S < 30 min, M < 2 h, L = split it. `dep:` lists what must land first.
+> Tick with `[x]`. Add new items at the end of the right phase; never delete, strike through instead.
+
+## TEMP world frame (so every item agrees)
+
+- Town centre (market square) at world **(0, 0, 0)**; +X east, +Z south; 2.75 studs per metre.
+- Town extent TEMP: x −2400..2400, z −1700..1700. `Workspace.VerticalSlice` stays where it is
+  (3000, 0, 2000), outside the town, as the style reference.
+- 4 club plots on the town edge (layout data in `src/shared/TownLayout.luau`), each a TEMP
+  **760 × 760** square in its own local frame: pitch centre at the plot origin, +X local = away from
+  the main road. Plot 1 SE, Plot 2 NE, Plot 3 E, Plot 4 NW (numbering follows the concept map).
+
+## Phase 0 — Setup
+- [x] 0.1 Branch `overnight/2026-09-17`, Studio connected, baseline tests (76 pass) `[studio]` S
+- [x] 0.2 Write this backlog `[disk]` S
+
+## Phase A — Look & time
+- [ ] A1.1 Lighting moves to a client controller (`src/client/Sky.client.luau` + pure `src/shared/DayCycle.luau` presets); server `Scenery` no longer sets Lighting/ClockTime; hero afternoon look; floodlight on/off stays server (visible to all) `[studio]` M dep: DayCycle
+- [ ] A1.2 `DayCycle` pure module: named presets (hero afternoon, evening match, dusk, night, dawn, overcast), `lerp(a,b,t)`, `fastForward(kind)` keyframe track (short ~4 s, season ~10 s), with tests `[disk]` S
+- [ ] A1.3 Evening fixtures: TEMP 1 in 4 league matches is an evening kick-off (seeded by fixture index), match-start event carries `evening=true`; client tweens to the evening preset, floodlights on `[studio]` S dep: A1.1
+- [ ] A2.1 Post-match fast-forward: after the summary closes, client plays the ~4 s sweep (sun → sunset → lights → night → morning → hero afternoon); tap/click or key to skip `[studio]` S dep: A1.1
+- [ ] A2.2 Season-end long fast-forward (~10 s) hooked to the season rollover `[studio]` S dep: A2.1
+- [ ] A3.1 DepthOfField hooks: on for club panel / lineup board / intro, off otherwise `[studio]` S dep: A1.1
+- [ ] A1.4 Before/after screenshots of the hero look saved in `assets/screenshots/overnight/` `[studio]` S
+
+## Phase B — Clubs become plots
+- [ ] B1.1 `PlotRegistry` pure module: 4 plots, `claim(userId, plot)`, `release(userId)`, `freePlots()`, `plotOf(userId)`, picker cycling `next/prev` over free plots, with tests `[disk]` S
+- [ ] B1.2 Plot-relative club: `WorldBuilder` builds the club into `workspace.Plots.PlotN.Club` then pivots it to the plot CFrame; everything that used world coordinates (presenter, crowd, cameras, spawn, scoreboard) goes through the plot CFrame; test at an offset **and** rotated plot; loop still works `[studio]` L → split:
+  - [ ] B1.2a Server builds the club at plot 1's CFrame (offset, no rotation); spawn, prompts, crowd OK `[studio]` M
+  - [ ] B1.2b Client presenter/camera/footballers read the plot CFrame attribute and transform Pitch coords `[studio]` M
+  - [ ] B1.2c Rotated plot (90°) passes a full match visually `[studio]` S
+- [ ] B2.1 Per-club services: each owner gets their own ClubState folder (`ReplicatedStorage.Clubs.<userId>`), match, upgrades, season, history, save; server remotes route by player; clients read `player:GetAttribute("ClubFolder")` `[studio]` L → split:
+  - [ ] B2.1a Design note `docs/PLOTS.md`: how services become per-club (module instancing vs context tables), remotes routing, what stays global `[disk]` S
+  - [ ] B2.1b Server: per-club service instances, save per player, loop works for one player `[studio]` M
+  - [ ] B2.1c Clients bind to their own club folder; visitors see other clubs read-only `[studio]` M
+  - [ ] B2.1d Two-client Studio test (Players = 2): both play a match at the same time `[studio]` M
+- [ ] B2.2 Plot picker on load: camera flies between free plots (for-sale lots), Prev / Next / Choose buttons; choosing claims the plot, builds the club, spawns the player in their office `[studio]` M dep: B1.1, B2.1b
+- [ ] B2.3 Despawn on leave: flush save, destroy the club model, release the plot, rebuild the for-sale lot `[studio]` S dep: B2.1b
+- [ ] B3.1 Save lock: session lock record (`lockedBy jobId`, `lockedAt`), new server waits (bounded, TEMP 30 s) then steals a stale lock; old server closes on a newer lock; pure lock logic tested against the memory backend `[disk]` M
+- [ ] B3.2 Wire the lock into load/flush/leave; Studio memory-backend test `[studio]` S dep: B3.1, B2.1b
+- [ ] B4.1 For-sale lot: grass pad, "FOR SALE — Rivermere Borough Council" sign, a few trees and rocks, low fence posts; built from code per free plot `[studio]` S
+- [ ] B4.2 "Go to my club" HUD button: teleports the character to their office spawn (cooldown TEMP 5 s, blocked mid-match? no — allowed) `[studio]` S dep: B2.1c
+
+## Phase C — Town greybox
+- [ ] C1.1 `docs/TOWN_PLAN.md`: master plan from `RivermereAImap.png` scaled down (TEMP numbers): ring road + roundabouts, River Lune W→E with 3 road bridges, railway NW with station + viaduct over the river, town centre market square, Northfields (N), Westdale (SW), Riverside + Riverside Park (E), industrial estate (W), community sports centre (S), 4 plot sites, walking times `[disk]` M
+- [ ] C1.2 `src/shared/TownLayout.luau` layout data (roads as polylines with widths, river polyline, bridges, rail line, district blocks, plot CFrames, bus stops, landmarks) + `TownLayoutTest` (plots don't overlap roads/river/each other, every plot touches the ring road, bridges cross the river) `[disk]` M dep: C1.1
+- [ ] C2.1 `src/server/TownBuilder.luau` greybox: terrain ground, river carved with water, roads (asphalt parts per segment), pavements, bridges, rail line + embankment, district building volumes (grey blocks), plot pads `[studio]` M dep: C1.2
+- [ ] C2.2 Walk test: spawn → centre → each plot, timings logged; sightlines to spire/viaduct screenshot `[studio]` S dep: C2.1
+- [ ] C3.1 StreamingEnabled on (place setting via code check + note), models grouped per district with `ModelStreamingMode`, part/triangle counts per district logged `[studio]` S dep: C2.1
+- [ ] C3.2 Quality setting (Low/High) client toggle: hides decorative props and far detail on Low `[studio]` M dep: C3.1
+
+## Phase D — Kit
+- [ ] D1.1 Free-model hunt (Creator Store via lead, CC0 via subagent): terraced houses, shopfronts, lamp posts, bus shelter, benches, bins, planters, railings, trees, cars, station and industrial pieces; shortlist with ids/links/licence in `docs/FREE_ASSETS.md` `[disk]` M
+- [ ] D1.2 Insert + strip + log keepers into `ServerStorage.Kit` and `assets/kit/MANIFEST.md` `[studio]` M dep: D1.1
+- [ ] D4.1 `src/server/KitPlacer.luau`: place a kit model by name at a CFrame with ground snap, random yaw/colour variant within rules, primitive fallback when the kit model is missing (fresh clone of repo still builds) `[disk]` S
+
+## Phase E — Districts (terraced streets first, per Q4)
+- [ ] E3.1 Terraced street 1 beside the town centre: 12 houses (MEH kit), front walls, pavements, lamp posts, bins, parked cars; layout data + builder; reference `RiveremereWestdale.png`/`RivermereNorthfields.png` `[studio]` M dep: C2.1, D4.1
+- [ ] E3.2 Terraced street 2 + back alley with wheelie bins and garden walls `[studio]` M dep: E3.1
+- [ ] E1.1 Market square: round paved square, market stall ring, monument/clock, benches, planters, bunting; reference `RivermereCenter.png` `[studio]` M dep: C2.1
+- [ ] E2.1 High street frontage: red-brick shops with ground-floor shopfronts (bakery, grocer, café, pub, barbers), flats above, A-boards, club banners on lamp posts; reference `RivermereCenter.png` `[studio]` L
+- [ ] E6.1 River Lune banks, stone road bridge (multi-arch), riverside path with railings and benches; reference `RivermereRiverside.png` `[studio]` M dep: C2.1
+- [ ] E7.1 Station: platform, canopy, station building, footbridge, car park; railway viaduct over the river; reference `RivermereStation.png` `[studio]` M dep: C2.1
+- [ ] E7.2 Bus stops: shelter + flag at centre, station, each plot, park; bus-stop fast-travel UI (pick a destination → fade → teleport) `[studio]` M dep: C2.1
+- [ ] E9.1 Church with spire (landmark) near the centre, visible from every plot `[studio]` S dep: C2.1
+- [ ] E5.1 Industrial estate greybox → sheds, yards, fences, loading bays; reference `rivermer.industrialestate.png` `[studio]` M
+- [ ] E8.1 Plot surroundings: approach road, car park, club shop box, two training pitches per plot; reference `RivermereTurnstileEntrance.png` `[studio]` M dep: B1.2a, C2.1
+- [ ] E6.2 Riverside Park: paths, pond, playground, trees, bandstand `[studio]` M
+- [ ] E4.1 Northfields semis and small flats `[studio]` M
+- [ ] E9.2 Backdrop: hills, wind turbines, distant floodlights, low detail `[studio]` S
+- [ ] E10.1 Imperfection pass: patches, faded markings, weeds, posters, clutter `[studio]` M
+
+## Phase F — Life & sound
+- [ ] F1.1 Ambient audio zones (town, river, station, park) from the Roblox library `[studio]` M
+- [ ] F2.1 Client-side traffic on road polylines, distance-budgeted `[studio]` M
+- [ ] F3.1 Client-side pedestrians on pavements, distance-budgeted `[studio]` M
+- [ ] F4.1 Small motion: flags, bunting sway, chimney smoke `[studio]` S
+
+## Phase G/H — Matchday town & influence
+- [ ] G1.1 Matchday around a plot (all players): fans walking to the ground, stewards, barriers; fades after `[studio]` M dep: B2.1c
+- [ ] G2.1 Matchday town for the playing player only: banners on lamp posts, busy pub `[studio]` M
+- [ ] H1.1 Club identity banners in town (client-side, player's own club colours/name) `[studio]` S
+- [ ] H2.1 Club shop building on the plot (visual) `[studio]` S dep: E8.1
+- [ ] H3.1 Training pitches on the plot (visual) `[studio]` S dep: E8.1
+
+## Phase I — Social (after B2)
+- [ ] I1.1 Visit a club: walk into another plot's office, read-only squad board + club card `[studio]` M
+- [ ] I2.1 Watch another club's match from their stands `[studio]` M
+- [ ] I3.1 Local friendly: challenge/accept, no injuries, small home payout, no league effect `[studio]` L
+- [ ] I4.1 Same-server player trades (cash only as part of a deal) `[studio]` L
+
+## Phase J — Online
+- Blocked until the J0 design talk (Q35). Nothing to do overnight.
+
+## Bugs / follow-ups found while working
+(append here)
