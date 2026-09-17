@@ -121,4 +121,16 @@ function T.vergeRoadsAreRealResidentialRoads()
 	assert(TownBuilder.VERGE_WIDTH > 0 and TownBuilder.VERGE_WIDTH < TownLayout.PAVEMENT_WIDTH / 2 - 1, "verge leaves the pavement centre clear")
 end
 
+-- X149: one timetable line per route number on the stop's flag
+function T.timetableHasALinePerRoute()
+	for _, name in { "Market Square", "Station", "Weir Road", "Northfields Estate" } do
+		local lines = TownBuilder.timetableLines(name)
+		assert(#lines == 2, name .. " has " .. #lines .. " lines")
+		for _, line in lines do
+			assert(line:find("%d+ min$") or line:find("nights$"), "line reads as a timetable: " .. line)
+			assert(#line <= 28, "short enough to read: " .. line)
+		end
+	end
+end
+
 return T

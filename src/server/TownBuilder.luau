@@ -925,6 +925,22 @@ local ADVERTS = {
 -- Route numbers on the bus stop flags (X58), TEMP and decorative only.
 local BUS_ROUTES = { "21  23", "7  24", "12  N3", "21  7" }
 
+-- X149: the timetable case's lines for a stop (TEMP times, no real service
+-- behind them): one short "route  destination · N min" line per route number.
+local TIMETABLE_PLACES = { "Town Centre", "Station", "Northfields", "Westdale", "Riverside Park", "Ind. Estate" }
+function TownBuilder.timetableLines(stopName: string): { string }
+	local routes = BUS_ROUTES[(#stopName % #BUS_ROUTES) + 1]
+	local out = {}
+	local i = 0
+	for route in routes:gmatch("%S+") do
+		i += 1
+		local place = TIMETABLE_PLACES[((#stopName + i * 3) % #TIMETABLE_PLACES) + 1]
+		local every = if route:sub(1, 1) == "N" then "nights" else ((10 + (#stopName + i) % 3 * 5) .. " min")
+		table.insert(out, route .. "  " .. place .. " · " .. every)
+	end
+	return out
+end
+
 local function buildBusStop(parent: Instance, stop: TownLayout.BusStop)
 	local m = model(stop.name, parent)
 	m:SetAttribute("BusStop", stop.name)
@@ -1021,6 +1037,46 @@ local function buildBusStop(parent: Instance, stop: TownLayout.BusStop)
 		numbers.Text = routes
 		numbers.Parent = gui
 	end
+	-- X149: a timetable case on the inside of the back panel, left of centre
+	-- (the advert stands across the right-hand end). Its back face touches the
+	-- glass's inner face at z 1.6 without overlapping it.
+	local case = part({
+		Name = "Timetable",
+		Size = Vector3.new(3.4, 2.4, 0.1),
+		CFrame = base * CFrame.new(-1.9, 5.4, 1.55),
+		Color = Color3.fromRGB(245, 245, 240),
+		Parent = m,
+	})
+	local tGui = Instance.new("SurfaceGui")
+	tGui.Face = Enum.NormalId.Front -- local -Z, into the shelter
+	tGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	tGui.PixelsPerStud = 60
+	tGui.MaxDistance = 60
+	tGui.Parent = case
+	local head = Instance.new("TextLabel")
+	head.Size = UDim2.fromScale(1, 0.24)
+	head.BackgroundColor3 = COLOURS.sign
+	head.BorderSizePixel = 0
+	head.TextScaled = true
+	head.TextColor3 = Color3.new(1, 1, 1)
+	head.Font = Enum.Font.GothamBold
+	head.Text = "TIMES FROM " .. string.upper(stop.name)
+	head.Parent = tGui
+	for i, line in TownBuilder.timetableLines(stop.name) do
+		-- one label per route at a fixed size (TextScaled wraps "min" onto a
+		-- second line); 28 characters fit the 3.4-wide case at 60 px/stud
+		local row = Instance.new("TextLabel")
+		row.Size = UDim2.fromScale(0.9, 0.26)
+		row.Position = UDim2.fromScale(0.05, 0.3 + (i - 1) * 0.34)
+		row.BackgroundTransparency = 1
+		row.TextSize = 13
+		row.TextXAlignment = Enum.TextXAlignment.Left
+		row.TextColor3 = Color3.fromRGB(20, 20, 24)
+		row.Font = Enum.Font.GothamMedium
+		row.Text = line
+		row.Parent = tGui
+	end
+
 	-- a litter bin beside the pole, clear of the shelter's open side
 	part({
 		Name = "Bin",
