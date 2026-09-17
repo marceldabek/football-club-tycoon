@@ -24,9 +24,21 @@ local GLOW = Color3.fromRGB(240, 150, 70) -- Neon lifts it to a warm amber
 local rows: { [Model]: boolean } = {}
 local lit: { [Model]: { BasePart } } = {}
 
+-- X159: shopfronts glow onto the pavement after dark (RivermereCenter.png's
+-- lit pub and café fronts): a warm SurfaceLight on the street face of the
+-- nearest "Shopfront*" parts. No parts; lights come and go with the camera.
+local MAX_SHOPS = 12 -- TEMP
+local MAX_SHOPS_LOW = 4 -- TEMP, Quality "Low"
+local SHOP_RADIUS = 300
+local SHOP_GLOW = Color3.fromRGB(255, 208, 150)
+local shopfronts: { [BasePart]: boolean } = {}
+local shopLights: { [BasePart]: SurfaceLight } = {}
+
 local function consider(inst: Instance)
 	if inst:IsA("Model") and inst.Name == "TerraceRow" then
 		rows[inst] = true
+	elseif inst:IsA("BasePart") and string.sub(inst.Name, 1, 9) == "Shopfront" then
+		shopfronts[inst] = true
 	end
 end
 for _, d in town:GetDescendants() do
@@ -108,6 +120,49 @@ local function refresh()
 	for row, body in want do
 		if not lit[row] then
 			lit[row] = light(row, body)
+		end
+	end
+
+	local wantShops: { [BasePart]: boolean } = {}
+	if skyIsDark() and camera then
+		local cam = camera.CFrame.Position
+		local ranked = {}
+		for front in shopfronts do
+			if not front.Parent then
+				shopfronts[front] = nil
+			else
+				local d = Vector3.new(front.Position.X - cam.X, 0, front.Position.Z - cam.Z).Magnitude
+				if d <= SHOP_RADIUS then
+					table.insert(ranked, { front = front, d = d })
+				end
+			end
+		end
+		table.sort(ranked, function(a, b)
+			return a.d < b.d
+		end)
+		local max = if player:GetAttribute("Quality") == "Low" then MAX_SHOPS_LOW else MAX_SHOPS
+		for i = 1, math.min(max, #ranked) do
+			wantShops[ranked[i].front] = true
+		end
+	end
+	for front, l in shopLights do
+		if not wantShops[front] then
+			l:Destroy()
+			shopLights[front] = nil
+		end
+	end
+	for front in wantShops do
+		if not shopLights[front] then
+			local l = Instance.new("SurfaceLight")
+			l.Name = "ShopGlow"
+			l.Face = Enum.NormalId.Left -- ShopBuilder's shopfronts face the street on local -X
+			l.Color = SHOP_GLOW
+			l.Brightness = 1.4
+			l.Range = 14
+			l.Angle = 100
+			l.Shadows = false
+			l.Parent = front
+			shopLights[front] = l
 		end
 	end
 end
