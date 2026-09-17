@@ -133,8 +133,18 @@ function SeasonService.renameClub(name: string)
 	publish()
 end
 
+-- X262: this season's wins minus losses, so a run shows up at the gate
+local function formNet(): number
+	for _, row in League.standings(season) do
+		if row.index == season.playerIndex then
+			return row.won - row.lost
+		end
+	end
+	return 0
+end
+
 function SeasonService.demand(): number
-	return Economy.demand(tier, popularity, (ClubState.get("AmenityLevel") :: number?) or 0)
+	return Economy.demand(tier, popularity, (ClubState.get("AmenityLevel") :: number?) or 0, formNet())
 end
 
 -- The player's next match. nil only if the season is somehow complete.
@@ -219,6 +229,8 @@ function SeasonService.endSeason(): SeasonSummary
 	elseif outcome == "Champions" then
 		popularity = Economy.popularityAfter(popularity, "Champions")
 	end
+	-- X262: drift toward the new division's baseline before the next season
+	popularity = Economy.popularityAtSeasonEnd(popularity, tier)
 	seasonNumber += 1
 	ClubService.newSeason()
 	startSeason()

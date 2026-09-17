@@ -19,6 +19,15 @@ Config.LossBonus = 0
 -- Attendance (Milestone 4). demand = demandBase * (0.75 + popularity/60) * (1 + amenity bonus)
 Config.StartingPopularity = 20
 Config.PopularityDelta = { Win = 3, Draw = 1, Loss = -2, Promoted = 10, Relegated = -10, Champions = 15 }
+-- X262 (TEMP): popularity used to reach 100 by about season 3 and stay there,
+-- so wins stopped mattering and demand became a fixed number per division. At
+-- each season end it drifts a quarter of the way toward a baseline for the
+-- division it is now in, so a club has to keep winning to stay full.
+Config.PopularityBaseline = { 24, 36, 48, 58, 66 }
+Config.PopularitySeasonDrift = 0.25
+-- How far this season's form can move demand, at ±1 per point of (wins - losses)
+Config.FormDemandPerNet = 0.015
+Config.FormDemandCap = 0.18
 
 -- The fictional pyramid, bottom to top. TEMP names and numbers (CLAUDE.md §25).
 -- baseStrength is what the squad's average overall has to keep up with.

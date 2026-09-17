@@ -36,11 +36,23 @@ export type Inputs = {
 -- when it carried a 0.5..1.5 range a mid-table club's demand sat below its own
 -- capacity, so expanding the ground earned nothing and a losing run cut the
 -- club off from the money it needed to stop losing.
-function Economy.demand(tier: number, popularity: number, amenityLevel: number): number
+-- `formNet` (X262) is this season's wins minus losses. Popularity is a slow
+-- lifetime measure, so on its own it stopped saying anything once it capped;
+-- the form term is what makes a run of results show up at the gate.
+function Economy.demand(tier: number, popularity: number, amenityLevel: number, formNet: number?): number
 	local division = Config.Divisions[tier] or Config.Divisions[1]
 	local amenity = Config.AmenityLevels[amenityLevel + 1] or Config.AmenityLevels[1]
 	local pop = math.clamp(popularity, 0, 100)
-	return math.floor(division.demandBase * (0.75 + pop / 60) * (1 + amenity.demandBonus) + 0.5)
+	local form = math.clamp((formNet or 0) * Config.FormDemandPerNet, -Config.FormDemandCap, Config.FormDemandCap)
+	return math.floor(division.demandBase * (0.75 + pop / 60) * (1 + amenity.demandBonus) * (1 + form) + 0.5)
+end
+
+-- X262: at a season end popularity drifts toward the baseline for the division
+-- the club is in now, so it can neither sit at 100 for ever nor collapse.
+function Economy.popularityAtSeasonEnd(popularity: number, tier: number): number
+	local baseline = Config.PopularityBaseline[tier] or Config.PopularityBaseline[#Config.PopularityBaseline]
+	local drifted = popularity + (baseline - popularity) * Config.PopularitySeasonDrift
+	return math.clamp(math.floor(drifted + 0.5), 0, 100)
 end
 
 -- Popularity after a result or season event. Clamped to 0..100.

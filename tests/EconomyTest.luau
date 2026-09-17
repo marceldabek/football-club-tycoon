@@ -59,4 +59,22 @@ function T.settleIncludesConcessions()
 	assert(s.total == 1400 and s.outcome == "Win", "total / outcome wrong")
 end
 
+
+function T.formMovesDemandAndPopularityDrifts()
+	-- X262: the same club with a good and a bad run should not draw the same gate
+	local flat = Economy.demand(2, 100, 0, 0)
+	local hot = Economy.demand(2, 100, 0, 6)
+	local cold = Economy.demand(2, 100, 0, -6)
+	assert(hot > flat and flat > cold, ("form should move demand: %d / %d / %d"):format(cold, flat, hot))
+	-- and the cap holds, so a long run can't run away with it
+	assert(Economy.demand(2, 100, 0, 40) == Economy.demand(2, 100, 0, 12), "form past the cap should stop moving demand")
+	-- a maxed-out club drifts back toward its division's baseline at a season end
+	local dropped = Economy.popularityAtSeasonEnd(100, 2)
+	assert(dropped < 100 and dropped > Config.PopularityBaseline[2], ("100 should drift toward the baseline, got %d"):format(dropped))
+	-- and a club below the baseline drifts up, not down
+	assert(Economy.popularityAtSeasonEnd(10, 2) > 10, "below the baseline should drift up")
+	-- the top flight keeps a higher floor than the bottom
+	assert(Config.PopularityBaseline[5] > Config.PopularityBaseline[1], "baselines should rise with the division")
+end
+
 return T
