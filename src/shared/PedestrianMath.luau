@@ -293,4 +293,15 @@ function PedestrianMath.blockedByRiver(p: Vector3, river: TownLayout.River, brid
 	return PedestrianMath.inRiver(p, river, 0) and PedestrianMath.roadBridgeAt(p, bridges, bridgeSlack) == nil
 end
 
+-- X80: true if `p` is on a roundabout's carriageway disc (TownBuilder lays no
+-- pavement there), so a walker turns round at its edge like at the river.
+function PedestrianMath.onRoundabout(p: Vector3, roundabouts: { TownLayout.Roundabout }): boolean
+	for _, r in roundabouts do
+		if Vector3.new(p.X - r.centre.X, 0, p.Z - r.centre.Z).Magnitude < r.radius then
+			return true
+		end
+	end
+	return false
+end
+
 return PedestrianMath

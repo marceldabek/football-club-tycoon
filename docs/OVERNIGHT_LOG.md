@@ -640,3 +640,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Client check:** over 25 s at the Sports Centre, Northfields and Foundry Way roundabouts, 734 vehicle-part samples were inside a roundabout and none were over an island (closest 14.4 from a centre, island 14).
 - **Screenshot** RoundaboutTraffic_1. It also shows pedestrians walking across the roundabout carriageway, logged as X80.
 - RunAll 365/365.
+
+### 2026-09-17 06:58 — Walkers keep off roundabouts (X80)
+- New pure `PedestrianMath.onRoundabout` (1 test). The Pedestrians client's `blocked` check now includes it, so a walker whose next step would land on a roundabout's carriageway disc turns round, the same rule as the river. Spawns on a disc are refused the same way.
+- **Client check:** 2,241 walker samples over 20 s near the Sports Centre Roundabout, none on the disc and 55 within 20 of its edge. **Screenshot** RoundaboutWalkers_1.
+- Known limit: walkers don't cross to the far pavement round the roundabout; they turn back. Fine for ambient life.
+- RunAll 366/366.

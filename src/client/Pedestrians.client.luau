@@ -171,6 +171,7 @@ end
 
 local function blocked(p: Vector3): boolean
 	return PedestrianMath.blockedByRiver(p, TownLayout.RIVER, TownLayout.BRIDGES, RIVER_BRIDGE_SLACK)
+		or PedestrianMath.onRoundabout(p, TownLayout.ROUNDABOUTS)
 end
 
 local function part(name: string, size: Vector3, color: Color3, castShadow: boolean, parent: Instance): BasePart

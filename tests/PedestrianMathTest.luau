@@ -240,4 +240,12 @@ function T.realBridgeFootwaysAreNotRiver()
 	end
 end
 
+function T.onRoundaboutIsTheDiscOnly()
+	local rbs = { { name = "Test", centre = Vector3.new(0, 0, 0), radius = 40 } }
+	assert(PedestrianMath.onRoundabout(Vector3.new(10, 0, 10), rbs), "inside the disc")
+	assert(PedestrianMath.onRoundabout(Vector3.new(39, 5, 0), rbs), "height ignored")
+	assert(not PedestrianMath.onRoundabout(Vector3.new(41, 0, 0), rbs), "on the pavement outside")
+	assert(not PedestrianMath.onRoundabout(Vector3.new(0, 0, 0), {}), "no roundabouts")
+end
+
 return T
