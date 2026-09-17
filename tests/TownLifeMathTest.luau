@@ -296,4 +296,15 @@ function T.scarvesGrowWithMatchesAndSitInTheUpstairsWindow()
 	assert(math.abs(z2 - z - 32) < 1e-6, "two houses along")
 end
 
+function T.deliveryVanParksHalfOnTheShopKerbFacingWithTraffic()
+	local roads = { { name = "High", kind = "main", width = 26, points = { Vector3.new(-200, 0, 0), Vector3.new(200, 0, 0) } } }
+	local cf = TownLifeMath.kerbsideSpot(Vector3.new(10, 0, 20), roads)
+	assert(cf, "found a spot")
+	assert(math.abs(cf.Position.Z - (13 - TownLifeMath.DELIVERY_KERB_IN)) < 1e-3 and math.abs(cf.Position.X - 10) < 1e-3, "shop side kerb, in line with the shop")
+	-- UK: on the +Z side (left of travel) traffic goes -X; a van's nose is its LookVector
+	local left = Vector3.new(-cf.LookVector.Z, 0, cf.LookVector.X) * -1
+	assert(left:Dot(Vector3.new(0, 0, 1)) > 0.99, "the kerb is on the van's left")
+	assert(TownLifeMath.kerbsideSpot(Vector3.new(10, 0, 500), roads) == nil, "too far from any road")
+end
+
 return T

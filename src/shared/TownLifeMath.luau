@@ -274,6 +274,50 @@ function TownLifeMath.muralCount(matchesPlayed: number, tier: number): number
 	return if tier >= 2 then 2 else 1
 end
 
+-- X89: where a delivery van parks outside a shop whose A-board stands at
+-- `shopFront`: on the nearest non-lane road, half on the kerb on the shop's
+-- side (centre DELIVERY_KERB_IN in from the carriageway edge), facing along the
+-- road the way UK traffic drives on that side. nil when no road is near.
+TownLifeMath.DELIVERY_KERB_IN = 1.5
+TownLifeMath.DELIVERY_REACH = 40
+function TownLifeMath.kerbsideSpot(shopFront: Vector3, roads: { any }): CFrame?
+	local best, bestRoad, bestQ, bestDir = math.huge, nil, nil, nil
+	for _, road in roads do
+		if road.kind == "lane" then
+			continue
+		end
+		local pts = road.points
+		for i = 1, #pts - 1 do
+			local a, b = pts[i], pts[i + 1]
+			local ab = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+			local len = ab.Magnitude
+			if len > 1e-6 then
+				local t = math.clamp(Vector3.new(shopFront.X - a.X, 0, shopFront.Z - a.Z):Dot(ab) / (len * len), 0, 1)
+				local q = Vector3.new(a.X, 0, a.Z) + ab * t
+				local d = Vector3.new(shopFront.X - q.X, 0, shopFront.Z - q.Z).Magnitude
+				if d < best then
+					best, bestRoad, bestQ, bestDir = d, road, q, ab / len
+				end
+			end
+		end
+	end
+	if not bestRoad or not bestQ or not bestDir or best > TownLifeMath.DELIVERY_REACH then
+		return nil
+	end
+	local toShop = Vector3.new(shopFront.X - bestQ.X, 0, shopFront.Z - bestQ.Z)
+	if toShop.Magnitude < 1e-3 then
+		return nil
+	end
+	local side = toShop.Unit
+	local pos = bestQ + side * (bestRoad.width / 2 - TownLifeMath.DELIVERY_KERB_IN)
+	-- UK: traffic keeps left, so on this side it travels with the shop on its left
+	local forward = Vector3.new(-side.Z, 0, side.X) -- right = look x up = (-look.Z, 0, look.X), so the kerb (side) is on the left
+	if forward:Dot(bestDir) == 0 then
+		forward = bestDir
+	end
+	return CFrame.lookAt(pos, pos + forward)
+end
+
 -- X90: club scarves hung in the upstairs windows of terraces near the club's
 -- ground. One scarf per SCARF_MATCHES matches played, up to SCARF_MAX (TEMP).
 TownLifeMath.SCARF_MATCHES = 2
