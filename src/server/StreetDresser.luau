@@ -53,7 +53,8 @@ local ROW_LENGTH = 128 -- kit row length along its local Z
 local LAMP_KIT = "LampVictorian"
 local BIN_KIT = "UKSP__LitterBin__LitterBin"
 -- HatchbackWhite is 153 parts, so the one-mesh hatchback is weighted in
-local CAR_KITS = { "HatchbackOrange", "HatchbackOrange", "VanWhite" }
+-- X45: three generated hatchbacks (generate_mesh, one MeshPart each) join the kit car; vans stay 1 in 3
+local CAR_KITS = { "HatchbackOrange", "HatchbackNavy", "HatchbackRed", "HatchbackSilver", "VanWhite", "VanWhite" }
 
 local PAVEMENT_TOP = 0.45 -- TownBuilder.Y.PAVEMENT
 local LAMP_SPACING = 50 -- staggered: each side gets every other one (the kit lamp is 36 parts)

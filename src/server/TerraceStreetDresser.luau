@@ -62,7 +62,7 @@ local PAVEMENT_WIDTH = TownLayout.PAVEMENT_WIDTH
 local PAVEMENT_TOP = 0.45
 -- VanWhite is 71 parts against the one-mesh hatchback's 1, and six vans were 426 of the
 -- showpiece's 1,013 parts (X35): vans are 1 in 6 here, not StreetDresser's 1 in 3
-local CAR_KITS = { "HatchbackOrange", "HatchbackOrange", "HatchbackOrange", "HatchbackOrange", "HatchbackOrange", "VanWhite" }
+local CAR_KITS = { "HatchbackOrange", "HatchbackNavy", "HatchbackRed", "HatchbackSilver", "HatchbackOrange", "VanWhite" } -- X45: generated hatchbacks for colour
 local CAR_KERB_OFFSET = 4.2 -- StreetDresser's
 local CAR_HALF = 6.5
 local WALL_SETBACK = 0.15

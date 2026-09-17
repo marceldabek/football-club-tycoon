@@ -675,10 +675,9 @@ function StationDresser.build(): string
 					end
 					if rng:NextNumber() < 0.55 then
 						-- nose in: the kit car's long axis runs along its Z, facing away from the aisle.
-						-- X45 (TEMP, question 10): every other car repainted a dark colour
-						local tints = { Color3.fromRGB(34, 52, 96), Color3.fromRGB(118, 30, 34), Color3.fromRGB(64, 68, 74) }
-						local tint = if rng:NextNumber() < 0.5 then tints[rng:NextInteger(1, #tints)] else nil
-						KitPlacer.place("HatchbackOrange", bay * CFrame.new(0, 0.32, 0) * CFrame.Angles(0, math.pi, 0), m, { fallbackSize = Vector3.new(6, 4, 12), fallbackColor = Color3.fromRGB(150, 152, 156), tint = tint })
+						-- X45: a mix of the kit hatchback and the generated ones
+						local kits = { "HatchbackOrange", "HatchbackNavy", "HatchbackRed", "HatchbackSilver" }
+						KitPlacer.place(kits[rng:NextInteger(1, #kits)], bay * CFrame.new(0, 0.32, 0) * CFrame.Angles(0, math.pi, 0), m, { fallbackSize = Vector3.new(6, 4, 12), fallbackColor = Color3.fromRGB(150, 152, 156) })
 					end
 				end
 				local signAt = Vector3.new(block.centre.X + block.size.X / 2 - 4, 0, block.centre.Z - block.size.Z / 2 - 3)

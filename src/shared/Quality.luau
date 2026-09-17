@@ -84,6 +84,9 @@ Quality.DECOR_KITS = {
 	UKSP__ParkBenches__ParkBench01 = true,
 	HatchbackOrange = true,
 	HatchbackWhite = true,
+	HatchbackNavy = true, -- X45 generated
+	HatchbackRed = true,
+	HatchbackSilver = true,
 	VanWhite = true,
 } :: { [string]: boolean }
 

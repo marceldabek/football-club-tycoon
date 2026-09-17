@@ -54,12 +54,12 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 
 9. Westdale street dressing (X59), TEMP: `TerraceStreetDresser` dresses the town's terrace streets nearest the square first, within 1,240 parts, so Westdale got nothing. Weir Road is now in `PRIORITY_STREETS` and dressed last from its own 260-part reserve (it uses 216), without changing any other street's dressing. The town grows by about 216 parts. *Rec: keep it until the phone measurement (X28/X61). If phones struggle, drop the reserve before cutting the Mill Street showpiece.*
 
-10. Car colours (X45), TEMP: every parked car is the same orange kit hatchback, and its texture overrides Color. The new `KitPlacer` `tint` option clears the texture and paints the mesh a flat colour. That gives variety (navy, dark red, charcoal), but the tinted cars have no window or light detail (CarTint_1). It's only used in the station car park so far. *Rec: use tint for about 1 in 3 street cars town-wide now; replace it when a recoloured texture or a second free car kit is uploaded (needs your upload key).*
+10. Car colours (X45): **resolved at 07:41 without the tint.** Three generated hatchbacks (navy, red, silver, `generate_mesh`, one textured MeshPart each) now mix with the orange kit car in every car list (streets, terrace streets, station and sports car parks). The flat `tint` option stays in KitPlacer but is unused. *Rec: keep them; if you dislike the AI look, the next step is a bought car pack (see buy list).*
 
 **Buy list for Marcel**
 - Nothing new yet. Free store terraces are a flat-fronted Victorian row. If you want bay windows like `RiveremereWestdale.png`, "UK Housing – Terraced Set 1" (Macwelshman, Fab, $39.99) is the best paid match (see docs/ASSET_KIT.md).
 
-**Studio state:** Save the place (Ctrl+S / File → Save to Roblox) before trusting anything that only exists in Studio — in particular `ServerStorage.Kit.Town` (3 new store models) only exists in the place file.
+**Studio state:** Save the place (Ctrl+S / File → Save to Roblox) before trusting anything that only exists in Studio — in particular `ServerStorage.Kit.Town` (3 new store models) and `ServerStorage.Kit.Vehicles.HatchbackNavy/Red/Silver` (generated at 07:41) only exist in the place file.
 
 ---
 
@@ -729,3 +729,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 
 ### 2026-09-17 07:35 — Health check
 - Play session: claimed Plot 1, then toured the Sports Centre roundabout, the station, the promenade, Northfields and the market square for 4 s each so the client scripts ran near their content (traffic, train, pedestrians, café sitters, murals). The server console shows only the `[FCT]` build summaries (sports centre now 175 parts) and the known Assistant plugin warning. Client LogService history has **0 errors or warnings** apart from the Assistant ones.
+
+### 2026-09-17 07:41 — Generated hatchbacks replace the tint (X45)
+- A Creator Store search for free hatchbacks found only drivable rigs with scripts and real brand names. Instead I used `generate_mesh` (allowed for props, Q27) for generic unbranded five-door hatchbacks. A first blue one had a rear spoiler and was discarded; navy, dark red and silver came out clean, and white failed on a rate limit. Each is one textured MeshPart, scaled ×1.4 to street size (about 9.4–9.8 × 15.5–18). They're stored in `ServerStorage.Kit.Vehicles` with the same pivot convention as HatchbackOrange (front = -LookVector, checked with a view from the LookVector end, GenCarFront / OrangeProbe). The ids are in `assets/kit/MANIFEST.md`.
+- The car lists now mix them in: StreetDresser `{ Orange, Navy, Red, Silver, Van, Van }` (vans stay 1 in 3), TerraceStreetDresser `{ Orange, Navy, Red, Silver, Orange, Van }`, and the station and sports car parks pick from the four hatchbacks instead of tinting. `Quality.DECOR_KITS` hides them on Low. Town total: 22 orange, 15 silver, 13 red, 10 navy, 6 vans. Street dressing part count is unchanged (8,371), since every car is one part.
+- **Screenshot** MillStreetCars_1. Question 10 is updated.
+- RunAll 371/371.
