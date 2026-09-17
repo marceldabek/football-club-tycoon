@@ -107,6 +107,7 @@ TownBuilder.build()
 require(script.Parent.Backdrop).build()
 print("[FCT] " .. require(script.Parent.StreetDresser).build())
 print("[FCT] " .. require(script.Parent.SquareDresser).build())
+print("[FCT] " .. require(script.Parent.ShopDresser).build())
 PlotService.start()
 require(script.Parent.BusService).start()
 
