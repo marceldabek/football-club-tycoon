@@ -451,4 +451,51 @@ function T.nobodyRetiresBeforeTheWindow()
 	assert(#players == 16, "squad changed")
 end
 
+function T.manOfTheMatchGoesToTheScorer()
+	local players = Squad.generate(31, 45)
+	local lineup = Squad.autoLineup(players)
+	local scorer = lineup.xi[6]
+	local award = Squad.manOfTheMatch(players, lineup.xi, { scorer, scorer }, 2)
+	assert(award and award.id == scorer, "the two-goal scorer should take it")
+	assert(award.reason == "2 goals", "the reason should count the goals")
+end
+
+function T.manOfTheMatchGoesToTheKeeperInAGoallessDraw()
+	local players = Squad.generate(32, 45)
+	local lineup = Squad.autoLineup(players)
+	local award = Squad.manOfTheMatch(players, lineup.xi, {}, 0)
+	assert(award, "somebody should get it")
+	assert(Squad.byId(players)[award.id].role == "GK", "a clean sheet with no goals is the keeper's")
+	assert(award.reason == "a clean sheet", "say why")
+end
+
+function T.manOfTheMatchFallsBackToTheBestPlayer()
+	local players = Squad.generate(33, 45)
+	local lineup = Squad.autoLineup(players)
+	local award = Squad.manOfTheMatch(players, lineup.xi, {}, 3)
+	assert(award, "somebody should get it even in a 0-3")
+	local best = 0
+	for _, id in lineup.xi do
+		best = math.max(best, Squad.byId(players)[id].overall)
+	end
+	assert(Squad.byId(players)[award.id].overall == best, "the best player on the pitch")
+end
+
+function T.milestonesAreAnnouncedOnTheMatchTheyFall()
+	local players = Squad.generate(34, 45)
+	local lineup = Squad.autoLineup(players)
+	local byId = Squad.byId(players)
+	local hero = byId[lineup.xi[9]]
+	hero.apps = 49
+	hero.goals = 9
+	local news = Squad.afterMatch(players, lineup.xi, { hero.id, hero.id, hero.id }, 0, Random.new(35))
+	local joined = table.concat(news, " | ")
+	assert(string.find(joined, "makes their 50th appearance", 1, true), "the 50th appearance should be news: " .. joined)
+	assert(string.find(joined, "reaches 10 goals", 1, true), "the 10th goal should be news: " .. joined)
+	assert(string.find(joined, "hat-trick", 1, true), "three in a match is a hat-trick: " .. joined)
+	-- and not again next week
+	local quiet = table.concat(Squad.afterMatch(players, lineup.xi, {}, 0, Random.new(36)), " | ")
+	assert(not string.find(quiet, "appearance", 1, true), "a milestone should only be announced once")
+end
+
 return T

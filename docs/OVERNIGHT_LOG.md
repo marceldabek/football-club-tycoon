@@ -1609,3 +1609,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Verified in play: after match 6 the published round read `Fenmoor Athletic 2-0 Sunday Legends` and `Millpond Town 4-1 Oakhollow United`, the summary card showed exactly those two lines (screenshot), and the league tab listed them under the table with the scores centred between the club names.
 - RunAll 451 passed (one new League test: every fixture in a played round comes back with a score, exactly one of them is the player's, and an unplayed round returns nothing).
 
+### 2026-09-17 17:30 — Somebody to talk about after a match (X302)
+- The summary listed scorers and rating moves and nothing else, so a teenager's 50th appearance, a first hat-trick and a goalkeeper's clean sheet all went by unmarked - which is precisely what Milestone 3's success test asks for ("the player can identify at least one footballer they care about").
+- **Man of the match** on the card, in club gold: whoever scored the most (ties going to the better player), else the keeper if he kept a clean sheet, else the best player on the pitch - so there is always someone, even in a 0-0. Picked before `afterMatch` moves ratings and hands out injuries, so it describes the match that was just played.
+- **Career milestones** in the news lines: a 50th, 100th or 200th appearance, a 10th, 25th or 50th goal, and a hat-trick. TEMP numbers, chosen for a grassroots career rather than a professional one.
+- Verified in play: a 4-2 win gave "MAN OF THE MATCH   Theo Zelinski  ·  2 goals" above the ELSEWHERE THIS WEEK block (screenshot). Both Rafa Kettering and Theo Zelinski scored twice, so the tie went to the higher-rated of the two, as the rule says.
+- RunAll 455 passed, 0 failed (four new Squad tests: the scorer takes it, a goalless clean sheet is the keeper's, a 0-3 still names the best player, and a milestone is announced on the match it falls and not again the week after).
+

@@ -46,6 +46,10 @@ export type RatingChange = { id: number, name: string, number: number, look: num
 
 export type ScoredEvent = { minute: number, team: string, type: string, scorer: number? }
 
+-- X302: nobody was ever singled out after a match. `Award` is the man of the
+-- match; the milestones go into the summary's news lines.
+export type Award = { id: number, name: string, number: number, look: number, reason: string }
+
 -- Starting squad shape: 16 players. TEMP.
 local GENERATE_ROLES: { Pitch.Role } = {
 	"GK", "GK",
@@ -59,6 +63,10 @@ local ROLE_WEIGHT_FOR_GOAL: { [string]: number } = { GK = 0, DEF = 1, MID = 3, F
 Squad.MIN_OVERALL = 30
 Squad.MAX_OVERALL = 99
 Squad.OUT_OF_ROLE_PENALTY = 6
+
+-- TEMP milestones: the numbers a grassroots career would actually mark.
+local APP_MILESTONES: { [number]: boolean } = { [50] = true, [100] = true, [200] = true }
+local GOAL_MILESTONES: { [number]: boolean } = { [10] = true, [25] = true, [50] = true }
 
 local function clampOverall(n: number): number
 	return math.clamp(math.floor(n + 0.5), Squad.MIN_OVERALL, Squad.MAX_OVERALL)
@@ -360,10 +368,21 @@ function Squad.afterMatch(players: { Player }, xi: { number }, scorerIds: { numb
 		played[id] = true
 	end
 	local map = byId(players)
+	-- X302: goals in this match, for a hat-trick line and the award
+	local thisMatch: { [number]: number } = {}
 	for _, id in scorerIds do
 		local p = map[id]
 		if p then
 			p.goals += 1
+			thisMatch[id] = (thisMatch[id] or 0) + 1
+			if GOAL_MILESTONES[p.goals] then
+				table.insert(news, ("%s reaches %d goals for the club"):format(p.name, p.goals))
+			end
+		end
+	end
+	for id, scored in thisMatch do
+		if scored >= 3 and map[id] then
+			table.insert(news, ("%s scores a hat-trick!"):format(map[id].name))
 		end
 	end
 	local coach = Config.CoachLevels[coachLevel + 1]
@@ -372,6 +391,9 @@ function Squad.afterMatch(players: { Player }, xi: { number }, scorerIds: { numb
 	for _, p in players do
 		if played[p.id] then
 			p.apps += 1
+			if APP_MILESTONES[p.apps] then
+				table.insert(news, ("%s makes their %dth appearance"):format(p.name, p.apps))
+			end
 			if rng:NextNumber() < Config.InjuryChance then
 				p.injured = rng:NextInteger(1, 3)
 				table.insert(news, ("%s injured (out %d match%s)"):format(p.name, p.injured, if p.injured == 1 then "" else "es"))
@@ -400,6 +422,49 @@ function Squad.afterMatch(players: { Player }, xi: { number }, scorerIds: { numb
 		end
 	end
 	return news, changes
+end
+
+-- X302: one player to talk about after a match. TEMP rule: whoever scored the
+-- most, then the keeper if he kept a clean sheet, then the best player on the
+-- pitch — so there is always someone, even in a 0-0.
+function Squad.manOfTheMatch(players: { Player }, xi: { number }, scorerIds: { number }, conceded: number): Award?
+	local map = byId(players)
+	local function award(p: Player, reason: string): Award
+		return { id = p.id, name = p.name, number = p.number, look = p.look, reason = reason }
+	end
+
+	local goals: { [number]: number } = {}
+	for _, id in scorerIds do
+		goals[id] = (goals[id] or 0) + 1
+	end
+	local bestId, bestGoals = nil, 0
+	for id, scored in goals do
+		local p = map[id]
+		if p and (scored > bestGoals or (scored == bestGoals and bestId and p.overall > map[bestId :: number].overall)) then
+			bestId, bestGoals = id, scored
+		end
+	end
+	if bestId then
+		local p = map[bestId :: number]
+		return award(p, if bestGoals > 1 then ("%d goals"):format(bestGoals) else "the goal")
+	end
+
+	local keeper, best = nil, nil
+	for _, id in xi do
+		local p = map[id]
+		if p then
+			if p.role == "GK" then
+				keeper = p
+			end
+			if not best or p.overall > (best :: Player).overall then
+				best = p
+			end
+		end
+	end
+	if conceded == 0 and keeper then
+		return award(keeper :: Player, "a clean sheet")
+	end
+	return if best then award(best :: Player, "the best display on the pitch") else nil
 end
 
 -- New season: everyone a year older. Returns nothing notable.

@@ -270,7 +270,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		lossBonus = Config.LossBonus,
 	})
 
-	local news, development = ClubService.finishMatch(played.scorerSlots, homeSquad, subsMade)
+	local news, development, award = ClubService.finishMatch(played.scorerSlots, homeSquad, subsMade, result.awayGoals)
 	local scorers = scorerLines(result)
 	-- league bookkeeping after the squad: at season end this ages the squad and rolls the division
 	local roundResult = SeasonService.recordPlayerResult(result.homeGoals, result.awayGoals, settlement.outcome)
@@ -318,6 +318,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		rounds = roundResult.rounds,
 		season = roundResult.summary,
 		elsewhere = roundResult.elsewhere, -- X294
+		award = award, -- X302
 	})
 	return true
 end

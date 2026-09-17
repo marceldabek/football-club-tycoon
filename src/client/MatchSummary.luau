@@ -442,6 +442,18 @@ function MatchSummary.new(gui: ScreenGui): Summary
 	})
 
 	-- --------------------------------------------------------- balance
+	-- ------------------------------------------ man of the match (X302)
+	local award = Theme.text(body, "", "body", {
+		Name = "Award",
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		TextSize = 15,
+		TextColor3 = C.accent,
+		RichText = true,
+		LayoutOrder = 5,
+		Visible = false,
+	})
+
 	local balance = Instance.new("Frame")
 	balance.Name = "Balance"
 	balance.BackgroundTransparency = 1
@@ -656,6 +668,13 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		news.Text = table.concat(lines, "\n")
 
 		-- X294: the rest of the division's results, home side first
+		-- X302: one player to talk about
+		local a = data.award
+		award.Visible = type(a) == "table"
+		award.Text = if type(a) == "table"
+			then ("<b>MAN OF THE MATCH</b>   %s  ·  %s"):format(tostring(a.name), tostring(a.reason))
+			else ""
+
 		local others = {}
 		for _, r in data.elsewhere or {} do
 			table.insert(others, ("%s  %d - %d  %s"):format(r.home, r.hg, r.ag, r.away))

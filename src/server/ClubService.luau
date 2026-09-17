@@ -490,7 +490,7 @@ function ClubService.prepareMatch(): Prepared
 end
 
 -- Called after the final whistle. `scorerSlots` index into the matchSquad.
-function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.MatchPlayer }, subs: { Squad.Sub }?): ({ string }, { Squad.RatingChange })
+function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.MatchPlayer }, subs: { Squad.Sub }?, conceded: number?): ({ string }, { Squad.RatingChange }, Squad.Award?)
 	local scorerIds: { number } = {}
 	for _, slot in scorerSlots do
 		local p = matchSquad[slot]
@@ -505,11 +505,14 @@ function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.Ma
 			table.insert(subIds, p.id)
 		end
 	end
+	-- X302: the award is picked before afterMatch's injuries and ratings move,
+	-- so it is about the match that was just played
+	local award = Squad.manOfTheMatch(players, lineup.xi, scorerIds, conceded or 0)
 	local news, changes = Squad.afterMatch(players, lineup.xi, scorerIds, coachLevel, rng, subIds)
 	ageShortlist()
 	recomputeLineup()
 	publish()
-	return news, changes
+	return news, changes, award
 end
 
 -- New season housekeeping (Milestone 4 calls this).
