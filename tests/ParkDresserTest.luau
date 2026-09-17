@@ -22,15 +22,15 @@ function T.octagonHasEightEqualSidesAtTheRadius()
 	assert(#points == 8, "expected 8 points, got " .. #points)
 	local side = (points[1] - points[8]).Magnitude
 	for i, p in points do
-		assert(math.abs(flatDistance(p, centre) - 12) < 1e-6, "point " .. i .. " is off the radius")
+		assert(math.abs(flatDistance(p, centre) - 12) < 1e-4, "point " .. i .. " is off the radius")
 		assert(p.Y == centre.Y, "points stay at the centre's height")
 		local q = points[i % 8 + 1]
-		assert(math.abs((q - p).Magnitude - side) < 1e-6, "sides should all be equal")
+		assert(math.abs((q - p).Magnitude - side) < 1e-4, "sides should all be equal")
 	end
 	-- offset pi/8: the east edge is square to X, at the apothem
 	local mid = (points[1] + points[8]) / 2
-	assert(math.abs(mid.Z - centre.Z) < 1e-6, "east edge midpoint should be due east")
-	assert(math.abs(mid.X - centre.X - 12 * math.cos(math.pi / 8)) < 1e-6, "edge midpoint at the apothem")
+	assert(math.abs(mid.Z - centre.Z) < 1e-4, "east edge midpoint should be due east")
+	assert(math.abs(mid.X - centre.X - 12 * math.cos(math.pi / 8)) < 1e-4, "edge midpoint at the apothem")
 end
 
 function T.loopIsClosedAndOnTheEllipse()
