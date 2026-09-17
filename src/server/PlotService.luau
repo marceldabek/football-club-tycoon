@@ -1,14 +1,15 @@
 --!strict
 -- The four club plots on this server (CLAUDE.md s27, docs/PLOTS.md).
---   join   -> the player picks a free plot (TEMP: auto-assigned until the
---             picker lands) -> the club services are cloned for that plot ->
---             their club loads and builds -> they are sent to their office
+--   join   -> the client's PlotPicker shows the free plots -> ClaimPlot ->
+--             the club services are cloned for that plot -> their club loads
+--             and builds -> they are sent to their office
 --   leave  -> save, despawn the club, the plot goes back to a for-sale lot
 -- Global: never cloned per plot.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local HttpService = game:GetService("HttpService")
 
 local PlotRegistry = require(ReplicatedStorage.Shared.PlotRegistry)
 local RemoteRouter = require(script.Parent.RemoteRouter)
@@ -17,6 +18,7 @@ local PlotService = {}
 
 local PLOT_COUNT = 4
 local PLOT_SIZE = 760 -- TEMP, matches docs/BACKLOG.md world frame
+local GO_HOME_COOLDOWN = 5 -- TEMP seconds (backlog B4.2)
 
 -- Everything a club needs its own copy of. Order does not matter.
 local PER_CLUB = {
@@ -53,6 +55,34 @@ type Runtime = {
 local registry = PlotRegistry.new(PLOT_COUNT)
 local runtimes: { [number]: Runtime } = {}
 local runtimeRoot: Folder
+-- Guards a double ClaimPlot fire (double-click, laggy client) while a claim
+-- for that player is still in flight (session.start yields on the save load).
+local claiming: { [number]: boolean } = {}
+local lastGoHome: { [number]: number } = {}
+
+local function findOrCreate(parent: Instance, name: string, className: string): Instance
+	local existing = parent:FindFirstChild(name)
+	if existing then
+		return existing
+	end
+	local inst = Instance.new(className)
+	inst.Name = name
+	inst.Parent = parent
+	return inst
+end
+
+local function remote(name: string): RemoteEvent
+	local remotes = findOrCreate(ReplicatedStorage, "Remotes", "Folder")
+	return findOrCreate(remotes, name, "RemoteEvent") :: RemoteEvent
+end
+
+local function toast(player: Player, message: string, ok: boolean?)
+	remote("Toast"):FireClient(player, message, ok)
+end
+
+local function plotsFolder(): Folder
+	return findOrCreate(ReplicatedStorage, "Plots", "Folder") :: Folder
+end
 
 function PlotService.plotCFrame(plot: number): CFrame
 	local shared = ReplicatedStorage:FindFirstChild("Shared")
@@ -64,6 +94,31 @@ function PlotService.plotCFrame(plot: number): CFrame
 		end
 	end
 	return FALLBACK_SITES[plot]
+end
+
+-- Where the picker's camera looks at this plot from: high, from the entrance
+-- side (pitch-local -X), looking down at the ground.
+function PlotService.viewpoint(plot: number): CFrame
+	return PlotService.plotCFrame(plot) * CFrame.lookAt(Vector3.new(-520, 260, 0), Vector3.new(0, 0, 0))
+end
+
+-- Tells every client which plots are free/taken, and mirrors it as attributes
+-- on ReplicatedStorage.Plots so a late joiner can read it before any event
+-- has fired.
+local function broadcastPlots()
+	local free = registry:freePlots()
+	local owners: { [string]: string } = {}
+	for plot = 1, PLOT_COUNT do
+		local userId = registry:ownerOf(plot)
+		local ownerPlayer = userId and Players:GetPlayerByUserId(userId)
+		if ownerPlayer then
+			owners[tostring(plot)] = ownerPlayer.DisplayName
+		end
+	end
+	remote("PlotsChanged"):FireAllClients({ free = free, owners = owners })
+	local folder = plotsFolder()
+	folder:SetAttribute("Free", HttpService:JSONEncode(free))
+	folder:SetAttribute("Owners", HttpService:JSONEncode(owners))
 end
 
 local function plotModel(plot: number): Model
@@ -242,6 +297,8 @@ function PlotService.release(player: Player)
 	local runtime = runtimes[plot]
 	runtimes[plot] = nil
 	RemoteRouter.unbindPlot(plot)
+	claiming[player.UserId] = nil
+	lastGoHome[player.UserId] = nil
 	if runtime then
 		runtime.session.stop()
 	end
@@ -259,6 +316,7 @@ function PlotService.release(player: Player)
 		end
 		registry:release(player.UserId)
 		buildLot(plot)
+		broadcastPlots()
 	end)
 end
 
@@ -307,6 +365,45 @@ local function townSpawn()
 	spawn.Parent = workspace
 end
 
+-- ClaimPlot (client -> server, arg: plot number). The client's PlotPicker
+-- calls this once the player has chosen a free ground.
+local function onClaimPlot(player: Player, rawPlot: unknown)
+	if registry:plotOf(player.UserId) then
+		return -- already owns a plot: ignore (idempotent-ish, no toast needed)
+	end
+	if claiming[player.UserId] then
+		return -- a claim for this player is already in flight
+	end
+	local plot = tonumber(rawPlot)
+	if not plot then
+		return
+	end
+	plot = math.floor(plot)
+	claiming[player.UserId] = true
+	local ok, why = PlotService.claim(player, plot)
+	claiming[player.UserId] = nil
+	if not ok then
+		toast(player, why or "Could not claim that ground")
+	end
+	broadcastPlots()
+end
+
+-- GoHome (client -> server, no args): "Go to my club" HUD button (B4.2).
+local function onGoHome(player: Player)
+	local plot = registry:plotOf(player.UserId)
+	if not plot then
+		return -- visitor: nothing to go home to
+	end
+	local now = os.clock()
+	local last = lastGoHome[player.UserId]
+	if last and now - last < GO_HOME_COOLDOWN then
+		toast(player, "Wait a moment")
+		return
+	end
+	lastGoHome[player.UserId] = now
+	PlotService.sendHome(player)
+end
+
 function PlotService.start()
 	runtimeRoot = Instance.new("Folder")
 	runtimeRoot.Name = "ClubRuntime"
@@ -316,20 +413,21 @@ function PlotService.start()
 		buildLot(plot)
 	end
 
+	local folder = plotsFolder()
+	for plot = 1, PLOT_COUNT do
+		folder:SetAttribute("View" .. plot, PlotService.viewpoint(plot))
+	end
+	broadcastPlots()
+
+	remote("ClaimPlot").OnServerEvent:Connect(onClaimPlot)
+	remote("GoHome").OnServerEvent:Connect(onGoHome)
+
 	local function onJoin(player: Player)
-		-- owners respawn in their office
+		-- owners respawn in their office; everyone else spawns at TownSpawn
+		-- and picks a ground through the client's PlotPicker (backlog B2.2)
 		player.CharacterAdded:Connect(function()
 			task.defer(PlotService.sendHome, player)
 		end)
-		-- TEMP until the plot picker (backlog B2.2): first free plot
-		local plot = registry:firstFree()
-		if not plot then
-			return -- server full of clubs: a visitor
-		end
-		local ok, why = PlotService.claim(player, plot)
-		if not ok then
-			warn(("[FCT] could not claim plot %d for %s: %s"):format(plot, player.Name, tostring(why)))
-		end
 	end
 	Players.PlayerAdded:Connect(onJoin)
 	for _, player in Players:GetPlayers() do
