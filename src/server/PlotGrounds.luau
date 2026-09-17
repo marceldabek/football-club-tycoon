@@ -336,6 +336,22 @@ local function buildShop(parent: Instance)
 		Color3.fromRGB(170, 200, 215), Enum.Material.Glass, shop)
 	glass.Transparency = 0.45
 	extents("WindowHeader", fx0, fx1, winTop, frontTop, winZ0, winZ1, BRICK, brick, shop)
+	-- X60: home shirts on show behind the glass (RivermereTurnstileEntrance.png's
+	-- club shop window): a rail with three shirts, each a body and a sleeve bar,
+	-- and a warm light so they read through the tinted glass
+	local rx0, rx1 = fx0 - 1.6, fx0 - 1.4
+	extents("DisplayRail", rx0, rx1, winTop - 1, winTop - 0.8, winZ0 + 1, winZ1 - 1, IRON, Enum.Material.Metal, shop)
+	for k = 1, 3 do
+		local zc = winZ0 + k * (winZ1 - winZ0) / 4
+		extents("Shirt", rx0 - 0.1, rx1 + 0.1, sillTop + 1.2, winTop - 1.4, zc - 1.1, zc + 1.1, Config.HomeKit, Enum.Material.Fabric, shop)
+		-- sleeves sit inside the body's depth and top (no shared planes) and stop short of the next shirt
+		extents("ShirtSleeves", rx0 - 0.05, rx1 + 0.05, winTop - 2.6, winTop - 1.45, zc - 1.6, zc + 1.6, Config.HomeKit, Enum.Material.Fabric, shop)
+	end
+	local lamp = Instance.new("PointLight")
+	lamp.Color = Color3.fromRGB(255, 230, 190)
+	lamp.Brightness = 1.2
+	lamp.Range = 10
+	lamp.Parent = glass
 	extents("WallFront", fx0, fx1, GROUND_Y, frontTop, winZ1, doorZ0, BRICK, brick, shop)
 	extents("DoorHeader", fx0, fx1, doorTop, frontTop, doorZ0, doorZ1, BRICK, brick, shop)
 	extents("WallFront", fx0, fx1, GROUND_Y, frontTop, doorZ1, z1, BRICK, brick, shop)

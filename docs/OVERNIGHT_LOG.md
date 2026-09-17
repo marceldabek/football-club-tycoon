@@ -406,3 +406,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshot** School_1: the Westdale school with pedestrians on the pavement and a lamp with a hanging basket.
 - The real leftover in X59 is dressing the Westdale side streets (trees, lamps, parked cars), which needs part budget.
 - RunAll 335/335.
+
+### 2026-09-17 04:55 — Shirts in the club shop window (X60)
+- **Compared with `RivermereTurnstileEntrance.png`:** that club shop window is full of shirts. Ours was a dark empty box.
+- **Change:** PlotGrounds adds a black display rail inside the window with three home-kit shirts (body plus sleeve bar in `Config.HomeKit`, sleeves inset so no planes are shared) and a warm PointLight behind the glass. 7 parts per plot.
+- **Screenshot** ClubShop_shirts_1.
+- RunAll 335/335.
