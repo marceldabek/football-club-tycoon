@@ -105,5 +105,6 @@ end
 Scenery.setupTown()
 TownBuilder.build()
 PlotService.start()
+require(script.Parent.BusService).start()
 
 print("[FCT] town ready")
