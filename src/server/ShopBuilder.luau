@@ -14,11 +14,12 @@
 --
 -- Heights: the ground floor is 12 studs; the rest of the layout block's height
 -- is upper storeys of ~10 (see ShopBuilder.storeys). One upper storey = a
--- two-storey block with a shallow slate wedge roof; two or more = flat roof
+-- two-storey block with a shallow slate wedge roof; two or more = a stone
+-- cornice with a slate roof above it (X106); a single storey stays flat
 -- behind a stone coping.
 --
 -- Part budget per shop row: body 1 + upper facade 1 + one 0.2-thick facade
--- part per bay + roof (coping 1, or 2 wedges) + 1 chimney stack = bays + 4..5.
+-- part per bay + roof (coping 1 and/or 2 wedges) + 1 chimney stack = bays + 4..6.
 -- flats = 3 parts, civic = 6 parts.
 --
 -- Textures come from tools/kit/make_shopfronts.py (upload list
@@ -121,6 +122,16 @@ function ShopBuilder.storeys(height: number): (number, number, number)
 		return floors, wallH, math.max(3, height - wallH)
 	end
 	return floors, math.max(g, height), 0
+end
+
+-- X106: two or more upper storeys used to end in a flat roof behind the
+-- coping; RivermereCenter.png's town-centre blocks all carry slate roofs and
+-- chimneys, so the coping now reads as a cornice with a pitched roof on top.
+-- Pure: extra roof height above the cornice (0 = no roof there). TEMP.
+ShopBuilder.CORNICE_TOP = 1.2 -- the coping's top above the wall top
+ShopBuilder.TALL_ROOF_H = 6
+function ShopBuilder.roofAboveCornice(floors: number): number
+	return if floors >= 2 then ShopBuilder.TALL_ROOF_H else 0
 end
 
 -- Pure: ground-floor bays along local Z (centre offsets from the middle of the
@@ -317,7 +328,12 @@ function ShopBuilder.shopRow(cframe: CFrame, length: number, depth: number, heig
 		stack(cframe, 0, wallH + roofH - 2.5, 5.5, stackZ, stackColor, model)
 	else
 		coping(cframe, depth, wallH, length, COPING, model)
-		if floors >= 1 then
+		local above = ShopBuilder.roofAboveCornice(floors)
+		if above > 0 then
+			local base = wallH + ShopBuilder.CORNICE_TOP
+			pitchedRoof(cframe, depth, base, above, length, model)
+			stack(cframe, 0, base + above - 2.5, 5.5, stackZ, stackColor, model)
+		elseif floors >= 1 then
 			stack(cframe, depth / 4, wallH + 1, 4.5, stackZ, stackColor, model)
 		end
 	end

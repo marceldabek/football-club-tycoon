@@ -113,4 +113,21 @@ function T.dresserHandlesOnlyShopFlatsAndCivicUses()
 	end
 end
 
+-- X106: rows with two or more upper storeys get a slate roof above the cornice;
+-- lower rows keep the roof they had (a wedge roof, or flat for a single storey).
+function T.tallRowsGetARoofAboveTheCornice()
+	assert(ShopBuilder.roofAboveCornice(0) == 0 and ShopBuilder.roofAboveCornice(1) == 0, "low rows unchanged")
+	assert(ShopBuilder.roofAboveCornice(2) > 0 and ShopBuilder.roofAboveCornice(3) > 0, "tall rows get a roof")
+	local holder = Instance.new("Folder")
+	local row = ShopBuilder.shopRow(CFrame.new(), 60, 24, 36, holder, Random.new(3), "shops with flats")
+	local front, back, coping = row:FindFirstChild("RoofFront") :: BasePart?, row:FindFirstChild("RoofBack") :: BasePart?, row:FindFirstChild("Coping") :: BasePart?
+	assert(front and back and coping, "roof wedges and cornice")
+	local copingTop = coping.Position.Y + coping.Size.Y / 2
+	local wedgeBottom = front.Position.Y - front.Size.Y / 2
+	assert(math.abs(wedgeBottom - copingTop) < 1e-3, ("roof sits on the cornice: %.3f vs %.3f"):format(wedgeBottom, copingTop))
+	local stack = row:FindFirstChild("Stack") :: BasePart?
+	assert(stack and stack.Position.Y + stack.Size.Y / 2 > front.Position.Y + front.Size.Y / 2, "chimney rises through the ridge")
+	holder:Destroy()
+end
+
 return T
