@@ -1576,6 +1576,51 @@ function WorldBuilder.setClubName(name: string)
 	end
 end
 
+-- The team coach, parked on the forecourt beside the office (decorative).
+-- Primitive on purpose: the store coach was 587 parts per club, this is 11.
+-- Nose points +X; built from extents so nothing shares a face.
+local function buildTeamBus(parent: Instance, centre: Vector3)
+	local bus = Instance.new("Model")
+	bus.Name = "TeamBus"
+	bus.Parent = parent
+	local L, W = 34, 8.5
+	local function piece(name: string, x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, colour: Color3, material: Enum.Material?): Part
+		return part({
+			Name = name,
+			Size = Vector3.new(x1 - x0, y1 - y0, z1 - z0),
+			CFrame = CFrame.new(centre + Vector3.new((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2)),
+			Color = colour,
+			Material = material or Enum.Material.SmoothPlastic,
+			Parent = bus,
+		})
+	end
+	local white = Color3.fromRGB(235, 235, 238)
+	local glass = Color3.fromRGB(40, 55, 70)
+	-- lower body in club colours, white upper body, a glazed band between
+	piece("Skirt", -L / 2, L / 2, 1.2, 4.5, -W / 2, W / 2, Config.HomeKit)
+	piece("Band", -L / 2, L / 2, 4.5, 8.5, -W / 2 + 0.15, W / 2 - 0.15, glass, Enum.Material.Glass)
+	piece("Upper", -L / 2, L / 2, 8.5, 10.8, -W / 2, W / 2, white)
+	piece("Roof", -L / 2 + 1, L / 2 - 1, 10.8, 11.2, -W / 2 + 0.5, W / 2 - 0.5, white)
+	-- windscreen and destination board at the nose, proud of the body
+	piece("Windscreen", L / 2, L / 2 + 0.2, 4.5, 9.5, -W / 2 + 0.6, W / 2 - 0.6, glass, Enum.Material.Glass)
+	local board = piece("Destination", L / 2, L / 2 + 0.2, 9.5, 10.6, -W / 2 + 1, W / 2 - 1, Color3.fromRGB(20, 20, 20))
+	addSign(board, "TEAM COACH", { Enum.NormalId.Right })
+	-- wheels: cylinders run along X, roll them to face sideways
+	for _, wx in { -L / 2 + 6, L / 2 - 7 } do
+		for _, wz in { -W / 2 + 0.5, W / 2 - 0.5 } do -- 0.1 proud of the body sides
+			local wheel = part({
+				Name = "Wheel",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(1.2, 3.2, 3.2),
+				CFrame = CFrame.new(centre + Vector3.new(wx, 1.6, wz)) * CFrame.Angles(0, math.pi / 2, 0),
+				Color = Color3.fromRGB(25, 25, 25),
+				Parent = bus,
+			})
+			wheel.CastShadow = false
+		end
+	end
+end
+
 function WorldBuilder.build(standLevels: { [string]: number }, amenityLevel: number?): World
 	local existing = PlotContext.clubModel()
 	if existing then
@@ -1602,11 +1647,7 @@ function WorldBuilder.build(standLevels: { [string]: number }, amenityLevel: num
 	buildForecourt(club)
 	buildOffice(club)
 	-- the team coach, parked on the forecourt beside the office (decorative)
-	Assets.place("Bus", Vector3.new(FORECOURT_CX + 18, DECK_Y, FORECOURT_CZ - 22), club, {
-		lookAt = Vector3.new(FORECOURT_CX + 80, DECK_Y, FORECOURT_CZ - 22),
-		flip = true, -- windscreen is on the model's far side
-		name = "TeamBus",
-	})
+	buildTeamBus(club, Vector3.new(FORECOURT_CX + 18, DECK_Y, FORECOURT_CZ - 22))
 
 	local stands = Instance.new("Folder")
 	stands.Name = "Stands"
