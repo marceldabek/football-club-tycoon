@@ -529,8 +529,45 @@ function EstateBuilder.shed(cframe: CFrame, size: Vector3, parent: Instance, rng
 		panel.CastShadow = false
 	end
 
+	-- X55: warehouses wide enough get an articulated lorry parked along the
+	-- yard (RIVERSIDE LOGISTICS, like the reference); other yards keep pallets
+	if kind == "warehouse" and width >= 40 then
+		local lx = -depth / 2 - YARD_DEPTH / 2 - 0.5
+		local trailerL, cabL = 24, 7
+		local startZ = -(trailerL + cabL + 1) / 2
+		local trailer = block("Part", "Trailer", Vector3.new(7.4, 8, trailerL), cframe * CFrame.new(lx, 1.8 + 4, startZ + trailerL / 2), Color3.fromRGB(236, 238, 242), Enum.Material.SmoothPlastic, model, true)
+		for _, face in { Enum.NormalId.Left, Enum.NormalId.Right } do
+			local gui = Instance.new("SurfaceGui")
+			gui.Face = face
+			gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+			gui.PixelsPerStud = 20
+			gui.Parent = trailer
+			local label = Instance.new("TextLabel")
+			label.BackgroundColor3 = UNIT_NAVY
+			label.BorderSizePixel = 0
+			label.Size = UDim2.fromScale(0.9, 0.5)
+			label.Position = UDim2.fromScale(0.05, 0.25)
+			label.Font = Enum.Font.GothamBlack
+			label.TextScaled = true
+			label.TextColor3 = Color3.new(1, 1, 1)
+			label.Text = "RIVERSIDE LOGISTICS"
+			label.Parent = gui
+		end
+		local cabZ = startZ + trailerL + 1 + cabL / 2
+		block("Part", "Cab", Vector3.new(7.4, 7, cabL), cframe * CFrame.new(lx, 1.8 + 3.5, cabZ), UNIT_NAVY, Enum.Material.SmoothPlastic, model, true)
+		local glass = block("Part", "Windscreen", Vector3.new(6.6, 2.6, 0.2), cframe * CFrame.new(lx, 1.8 + 5.2, cabZ + cabL / 2 + 0.05), Color3.fromRGB(40, 50, 60), Enum.Material.Glass, model, false)
+		glass.CastShadow = false
+		-- chassis under both, sunk into the yard slab
+		block("Part", "Chassis", Vector3.new(5, 1, trailerL + cabL + 1), cframe * CFrame.new(lx, 1.3, startZ + (trailerL + cabL + 1) / 2), Color3.fromRGB(34, 34, 36), Enum.Material.Metal, model, false)
+		for _, wz in { startZ + 4, startZ + trailerL - 4, cabZ } do
+			-- a cylinder's axis is its local X, which already runs across the lorry
+			local axle = block("Part", "Wheels", Vector3.new(7.8, 1.8, 1.8), cframe * CFrame.new(lx, 0.95, wz), Color3.fromRGB(22, 22, 24), Enum.Material.SmoothPlastic, model, false)
+			axle.Shape = Enum.PartType.Cylinder
+		end
+	end
+
 	-- a couple of pallets tucked against the yard fence
-	for i = 1, r:NextInteger(2, 3) do
+	for i = 1, if kind == "warehouse" and width >= 40 then 0 else r:NextInteger(2, 3) do
 		local px = -depth / 2 - 3 - i * 3.4
 		local pz = -hw + 3 + i * (width - 6) / 4
 		block("Part", "Pallet" .. i, Vector3.new(3.5, 1.2, 3.5), cframe * CFrame.new(px, 0.7, pz), PALLET_COLOUR, Enum.Material.WoodPlanks, model, true)

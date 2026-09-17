@@ -369,3 +369,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Each estate shed gets a brick plinth course (up to 3 studs, 0.15 proud) round its sides and back; the front keeps its full-height roller doors. Sheds 26+ studs wide also get a navy unit-number plate at the far end of the front from the business sign. The numbers run 1..43 in build order. That's about 4 parts per shed, 43 sheds.
 - **Screenshot** Shed_units_1: "MILL LANE MOTORS" unit 9 with 10 and 11 beyond, brick plinth along the side wall. It's now much closer to the reference's numbered units.
 - RunAll 334/334.
+
+### 2026-09-17 04:39 — Lorries in the warehouse yards (X55, part)
+- Warehouses at least 40 studs wide (4 of them) get an articulated lorry parked along the front yard: a white trailer with a navy "RIVERSIDE LOGISTICS" panel on both sides, a navy cab with windscreen, and a chassis with three wheel axles. It's about 9 parts, replacing those yards' pallets, and is modelled on the reference's Riverside Logistics lorry.
+- **Screenshot** Lorry_1 (the camera sat under a neighbouring roof edge, so it's dim): the lorry in front of Rivermere Plant Hire.
+- RunAll 334/334.
