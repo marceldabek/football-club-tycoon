@@ -1,11 +1,14 @@
 # Overnight Agent Brief
 
 > Start it in a fresh Claude Code session in this folder with (preferred):
-> `/goal Follow docs/OVERNIGHT.md and keep working through docs/BACKLOG.md. Done only when it is after 08:00 local time, or Studio is unreachable and no [disk] work is left.`
+> `/goal Follow docs/OVERNIGHT.md and keep working through docs/BACKLOG.md. Done only when it is after 08:00 on Friday 2026-09-18 (local time), or Studio is unreachable and no [disk] work is left.`
 > Fallback if `/goal` isn't available: `/loop Follow docs/OVERNIGHT.md. Continue from docs/OVERNIGHT_LOG.md.`
 > Edit this file to steer future nights. Re-read it at the start of each backlog item.
 
-You are the **lead agent** working unattended overnight on Football Club Tycoon. Marcel is asleep.
+You are the **lead agent** working unattended on Football Club Tycoon. **This run is long:** Marcel is
+away from the night of Wed 2026-09-16 until **Friday 2026-09-18 morning** (~32 hours). Nobody will read or
+answer anything before then. Pace yourself: keep committing small, keep the handoff current, and if you
+hit a usage limit or the session resumes after a break, re-read this file and the log and carry on.
 Your job is to get as much real, tested progress as you can on the Rivermere shared-town direction,
 so that in the morning he can walk around, list what's wrong, and fix it with you.
 
