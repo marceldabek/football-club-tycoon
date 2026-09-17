@@ -836,8 +836,15 @@ local function buildTurnstiles(parent: Instance)
 		signText.Text = if i == 2 then "TICKETS" else "HOME FANS"
 		signText.Parent = signGui
 		for _, side in { -1, 1 } do
-			local leaf = box("GateLeaf", Vector3.new(0.2, 6.5, 2.2), Vector3.new(x - 4.65, DECK_Y + 3.35, z + side * (laneW / 2 + pierW / 2)), iron, Enum.Material.Metal, gate)
-			leaf.CanCollide = false
+			-- X153: a barred leaf (top and bottom rails, four uprights) rather than a
+			-- solid panel, which read as a dark doorway on each pier
+			local lz = z + side * (laneW / 2 + pierW / 2)
+			for _, ry in { 0.4, 6.5 } do
+				box("GateRail", Vector3.new(0.2, 0.2, 2.2), Vector3.new(x - 4.65, DECK_Y + ry, lz), iron, Enum.Material.Metal, gate).CanCollide = false
+			end
+			for _, bz in { -0.95, -0.32, 0.32, 0.95 } do
+				box("GateBar", Vector3.new(0.12, 5.9, 0.15), Vector3.new(x - 4.65, DECK_Y + 0.5 + 2.95, lz + bz), iron, Enum.Material.Metal, gate).CanCollide = false
+			end
 		end
 	end
 	for i = 1, lanes do
