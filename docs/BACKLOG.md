@@ -205,4 +205,5 @@
 - [x] X90 (07:52 client ClubScarves: TEMP one scarf per 2 matches played, max 16, in every other house of the terrace rows nearest the club's ground, in the wide upstairs sash) Club scarves in town windows (roadmap H1): as the player's club grows, scarves in its colours appear in terrace windows near the ground, client-side like the murals `[studio]` S
 - [x] X91 (08:01 12 crowd-control barrier sections, 4 parts each, either side of the last walk to the turnstiles while a match crowd is up; pure MatchdayRoutes.barrierSections) Matchday queues and barriers at the turnstiles (roadmap G1) `[studio]` S
 - [x] X92 (08:03 Traffic pool +8, Low +3, TEMP, while a ground within 900 of the camera is in PreMatch or Match; 24 -> 32 cars measured) Extra matchday traffic near a live ground (roadmap G1) `[studio]` S
+- [x] X93 (08:05 outside-broadcast van with dish and mast on the forecourt on matchday, TEMP from tier 2 or attendance 400; 7 parts) Media presence at the ground (roadmap H1) `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

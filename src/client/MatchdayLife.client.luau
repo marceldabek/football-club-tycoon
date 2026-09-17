@@ -237,6 +237,29 @@ local function buildBarriers(crowd: PlotCrowd)
 	end
 end
 
+-- X93: an outside-broadcast van with a dish and a mast once the club draws a
+-- crowd (MatchdayRoutes.hasMedia). 7 parts, torn down with the stewards.
+local function buildMediaVan(crowd: PlotCrowd)
+	if not MatchdayRoutes.hasMedia(numberAttribute(crowd.folder, "Tier"), numberAttribute(crowd.folder, "Attendance")) then
+		return
+	end
+	local model = Instance.new("Model")
+	model.Name = "MediaVan"
+	local base = crowd.plotCFrame * MatchdayRoutes.MEDIA_VAN * CFrame.new(0, 0.3, 0) -- forecourt paving; nose to local -Z
+	local white = Color3.fromRGB(232, 234, 238)
+	part("Body", Vector3.new(6.4, 6.8, 11), white, model).CFrame = base * CFrame.new(0, 4.4, 1.5)
+	part("Cab", Vector3.new(6.4, 4.6, 3.6), white, model).CFrame = base * CFrame.new(0, 3.3, -5.8)
+	part("Windscreen", Vector3.new(5.8, 2, 0.2), Color3.fromRGB(40, 52, 64), model).CFrame = base * CFrame.new(0, 4.4, -7.65)
+	part("Livery", Vector3.new(6.5, 1.2, 10.6), Color3.fromRGB(180, 30, 40), model).CFrame = base * CFrame.new(0, 2.6, 1.5)
+	part("Mast", Vector3.new(0.4, 7, 0.4), Color3.fromRGB(150, 152, 156), model).CFrame = base * CFrame.new(1.8, 11.3, 4)
+	local dish = part("Dish", Vector3.new(0.3, 4.2, 4.2), Color3.fromRGB(245, 245, 245), model)
+	dish.Shape = Enum.PartType.Cylinder
+	dish.CFrame = base * CFrame.new(-1.2, 9.4, -1) * CFrame.Angles(0, 0, math.rad(55))
+	part("Wheels", Vector3.new(6.8, 2.2, 9), Color3.fromRGB(24, 24, 26), model).CFrame = base * CFrame.new(0, 1.1, 0)
+	model.Parent = crowd.model
+	table.insert(crowd.stewards, model)
+end
+
 -- ------------------------------------------------------------------ parked cars
 
 -- G1.2: the club car park fills with supporters' cars on matchday. Bays come
@@ -299,6 +322,7 @@ local function spawnCrowd(crowd: PlotCrowd)
 	crowd.plotCFrame = plotCFrameOf(crowd.folder)
 	buildStewards(crowd)
 	buildBarriers(crowd)
+	buildMediaVan(crowd)
 	buildCars(crowd)
 	adjustFanCount(crowd)
 end

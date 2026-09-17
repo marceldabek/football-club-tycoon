@@ -92,6 +92,17 @@ function MatchdayRoutes.barrierSections(): { CFrame }
 	return out
 end
 
+-- X93 (roadmap H1 "media presence"): an outside-broadcast van on the forecourt
+-- on matchday once the club draws a crowd. Pitch-local ground CFrame, long axis
+-- along local X, clear of the team coach (x -160..-126, z -221..-213) and the
+-- barriered walk to the turnstiles. TEMP thresholds.
+MatchdayRoutes.MEDIA_VAN = CFrame.new(-176, 0, -209) * CFrame.Angles(0, math.pi / 2, 0)
+MatchdayRoutes.MEDIA_TIER = 2
+MatchdayRoutes.MEDIA_ATTENDANCE = 400
+function MatchdayRoutes.hasMedia(tier: number, attendance: number): boolean
+	return tier >= MatchdayRoutes.MEDIA_TIER or attendance >= MatchdayRoutes.MEDIA_ATTENDANCE
+end
+
 -- Total length of a route's polyline.
 function MatchdayRoutes.length(route: Route): number
 	local total = 0

@@ -118,4 +118,15 @@ function T.barriersLineTheTurnstileApproachWithoutBlockingIt()
 	end
 end
 
+function T.mediaVanComesWithACrowdAndStaysOffTheWalk()
+	assert(not MatchdayRoutes.hasMedia(1, 150), "a small Sunday league crowd gets no TV")
+	assert(MatchdayRoutes.hasMedia(1, 400), "a big crowd does")
+	assert(MatchdayRoutes.hasMedia(2, 0), "so does a higher division")
+	local p = MatchdayRoutes.MEDIA_VAN.Position
+	for _, cf in MatchdayRoutes.barrierSections() do
+		assert((cf.Position - p).Magnitude > 12, "clear of the barriers")
+	end
+	assert(p.X + 7 < -160 or p.Z - 3 > -213, "clear of the team coach")
+end
+
 return T
