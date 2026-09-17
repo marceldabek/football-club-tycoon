@@ -990,3 +990,6 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 ### 2026-09-17 10:39 — Faces on matchday figures (X136 done)
 - MatchdayLife's part helper adds the Roblox face decal to every part named Head, so walking fans, stewards, turnstile and kiosk queues and bar drinkers all have faces, with no extra parts. In a Studio match there were 37 faces in MatchdayLife during the walkout. The screenshot came out as the scripted walkout camera, so the count is the check. RunAll 416 passed.
 - Note: the Studio store club's stands are still showing the X134 `preview|4,3,2,4` rebuild for this session only; preview doesn't save.
+
+### 2026-09-17 10:41 — Faces on café sitters and pub drinkers (X136)
+- CafeSitters.client.luau and TownLife's matchday pub drinkers get the same face decal. A close screenshot at a café table on the square shows the sitters facing each other with faces the right way round. No extra parts.

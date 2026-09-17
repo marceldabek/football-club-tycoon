@@ -103,6 +103,12 @@ local function seatSitters(set: Model): Model?
 			local p = newPart(names[i], sizes[i], cf, colours[i], m)
 			if names[i] == "Head" then
 				(p :: any).Shape = Enum.PartType.Ball
+				-- X136: a face, like the other town figures
+				local face = Instance.new("Decal")
+				face.Name = "Face"
+				face.Face = Enum.NormalId.Front
+				face.Texture = "rbxasset://textures/face.png"
+				face.Parent = p
 			end
 		end
 		placed += 1

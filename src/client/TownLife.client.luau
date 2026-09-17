@@ -721,6 +721,12 @@ local function buildDrinkers(parent: Instance, pub: PubFront, count: number, kit
 		newPart("Torso", F.torso, cfs[1], kit, model).CastShadow = true
 		local head = newPart("Head", Vector3.one * F.head, cfs[2], skin, model);
 		(head :: any).Shape = Enum.PartType.Ball
+		-- X136: a face, like the other town figures
+		local face = Instance.new("Decal")
+		face.Name = "Face"
+		face.Face = Enum.NormalId.Front
+		face.Texture = "rbxasset://textures/face.png"
+		face.Parent = head
 		newPart("LegL", F.leg, cfs[3], trousers, model)
 		newPart("LegR", F.leg, cfs[4], trousers, model)
 		newPart("ArmL", F.arm, cfs[5], sleeves, model)
