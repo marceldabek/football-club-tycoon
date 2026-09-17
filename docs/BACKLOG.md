@@ -348,5 +348,5 @@
 - [x] X232 (13:48 done) Hire/Sign buttons look ready when the club can't afford them: dim them and show "Need £X more", 0 parts `[disk]` S
 - [x] X233 (13:47 done) History's "Highest level" lags a season behind after promotion (only finished seasons count): include the current tier, 0 parts `[disk]` S
 - [ ] X234 (13:47 blocked on question 19) The ground caps at 8,000 seats while demand reaches ~20k in the top divisions (WORLD_ROADMAP Q14 wants ~30k): more stand levels need Marcel's numbers (question 19), 0 parts now `[disk]` M
-- [ ] X235 No corner arcs on the pitch (pitch-board.png has them): four quarter arcs at the flags, ~12 parts per club `[studio]` S
-- [ ] X236 The turnstile fascia is a plain name strip; the reference has crest badges at each end: add two shield badges in the same SurfaceGui, 0 parts `[studio]` S
+- [x] X235 (13:53 done) No corner arcs on the pitch (pitch-board.png has them): four quarter arcs at the flags, ~12 parts per club `[studio]` S
+- [x] X236 (13:53 done) The turnstile fascia is a plain name strip; the reference has crest badges at each end: add two shield badges in the same SurfaceGui, 0 parts `[studio]` S

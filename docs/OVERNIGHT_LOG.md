@@ -1334,3 +1334,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Tested in play: the club's Cash attribute was set to £120 for the check (scouting screenshot checked, coach text read back), then set back to £443,934 with no match or save in between. RunAll 436 passed.
 - Noticed: this play session took about 20 s to load the club after Build (normally under 9 s), with no save-lock warning. It was the first start right after a stop that followed a save, so it is most likely DataStore latency in Studio. Watch for it.
 
+### 2026-09-17 13:53 — Corner arcs and crest badges on the turnstile fascia (X235, X236 done)
+- X235 `WorldBuilder.buildPitch`: a quarter-circle corner arc (radius 3 studs, about 1 m) at each corner flag, as on `pitch-board.png`. Each is centred where the touchline meets the goal line and lifted 0.01 above the lines so the overlapping ends don't z-fight. The first try used 3 segments per corner, which read as a bracket with a gap in the screenshot; it now uses 5 overlapping segments. That's **20 parts per club** (the backlog estimate was 12).
+- X236 `buildTurnstiles`: the fascia's club name is inset 75 px each side, and the ends now carry two crest badges like `RivermereTurnstileEntrance.png`: a dark club-colour shield with a white outline, a battlemented wall and two river waves. They are GUI frames on the existing SurfaceGui, so **0 parts**. The first version used three plain bars and looked like a list icon, so it was redrawn.
+- Reference differences left: the reference fascia reads "RIVERDALE FOOTBALL CLUB" (our label uses the club's own name), and its crest is a detailed bridge drawing, which isn't practical in GUI frames at this size.
+- Screenshots checked (corner at (1194, 1, 1156), fascia from (1208, 11, 1112)). RunAll 436 passed.
+

@@ -223,6 +223,31 @@ local function buildPitch(parent: Instance)
 	arc("ArcNorth", 0, -(PITCH_L / 2 - 30), 25, math.pi / 2 - half, math.pi / 2 + half, 10)
 	arc("ArcSouth", 0, PITCH_L / 2 - 30, 25, -math.pi / 2 - half, -math.pi / 2 + half, 10)
 
+	-- X235: corner arcs (1m -> ~3 studs) round each flag, from pitch-board.png.
+	-- Centred where the touchline and goal line cross; 5 overlapping segments a
+	-- quarter (3 read as a bracket with a gap at this small radius).
+	-- Lifted a hair above the lines so the overlapping ends don't z-fight.
+	for _, zSign in { -1, 1 } do
+		for _, xSign in { -1, 1 } do
+			local cx, cz = xSign * (PITCH_W / 2 - lineW / 2), zSign * (PITCH_L / 2 - lineW / 2)
+			local towardCentre = math.atan2(-zSign, -xSign)
+			local radius = 3
+			for i = 1, 5 do
+				local a0 = towardCentre - math.pi / 4 + (math.pi / 2) * (i - 1) / 5
+				local a1 = towardCentre - math.pi / 4 + (math.pi / 2) * i / 5
+				local mid = (a0 + a1) / 2
+				part({
+					Name = "CornerArc",
+					Size = Vector3.new(radius * (a1 - a0) + 0.6, 0.1, lineW),
+					CFrame = CFrame.new(cx + math.cos(mid) * radius, lineY + 0.01, cz + math.sin(mid) * radius) * CFrame.Angles(0, -mid - math.pi / 2, 0),
+					Color = white,
+					Material = Enum.Material.SmoothPlastic,
+					Parent = pitch,
+				})
+			end
+		end
+	end
+
 	-- corner flags
 	for _, zSign in { -1, 1 } do
 		for _, xSign in { -1, 1 } do
@@ -869,7 +894,9 @@ local function buildTurnstiles(parent: Instance)
 	gui.Parent = fascia
 	local label = Instance.new("TextLabel")
 	label.Name = "ClubName"
-	label.Size = UDim2.fromScale(1, 1)
+	-- X236: room for a crest badge at each end, as on RivermereTurnstileEntrance.png
+	label.Size = UDim2.new(1, -150, 1, 0)
+	label.Position = UDim2.fromOffset(75, 0)
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.GothamBlack
 	label.TextScaled = true
@@ -880,6 +907,53 @@ local function buildTurnstiles(parent: Instance)
 	pad.PaddingTop = UDim.new(0.18, 0)
 	pad.PaddingBottom = UDim.new(0.18, 0)
 	pad.Parent = label
+	-- the badges are GUI frames on the same SurfaceGui: no extra parts
+	for _, anchorX in { 0, 1 } do
+		local badge = Instance.new("Frame")
+		badge.Name = "CrestBadge"
+		badge.AnchorPoint = Vector2.new(anchorX, 0.5)
+		badge.Position = UDim2.new(anchorX, if anchorX == 0 then 18 else -18, 0.5, 0)
+		badge.Size = UDim2.fromOffset(42, 52)
+		badge.BackgroundColor3 = SIGN_DARK
+		badge.BorderSizePixel = 0
+		badge.Parent = gui
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 8)
+		corner.Parent = badge
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.new(1, 1, 1)
+		stroke.Thickness = 2
+		stroke.Parent = badge
+		-- a battlemented wall over river waves, the Rivermere crest shorthand
+		local wall = Instance.new("Frame")
+		wall.Name = "Wall"
+		wall.AnchorPoint = Vector2.new(0.5, 0)
+		wall.Position = UDim2.new(0.5, 0, 0, 14)
+		wall.Size = UDim2.fromOffset(24, 8)
+		wall.BackgroundColor3 = Color3.new(1, 1, 1)
+		wall.BorderSizePixel = 0
+		wall.Parent = badge
+		for m = -1, 1 do
+			local merlon = Instance.new("Frame")
+			merlon.Name = "Merlon"
+			merlon.AnchorPoint = Vector2.new(0.5, 0)
+			merlon.Position = UDim2.new(0.5, m * 9, 0, 9)
+			merlon.Size = UDim2.fromOffset(6, 6)
+			merlon.BackgroundColor3 = Color3.new(1, 1, 1)
+			merlon.BorderSizePixel = 0
+			merlon.Parent = badge
+		end
+		for wv = 1, 2 do
+			local wave = Instance.new("Frame")
+			wave.Name = "Wave"
+			wave.AnchorPoint = Vector2.new(0.5, 0)
+			wave.Position = UDim2.new(0.5, 0, 0, 28 + (wv - 1) * 7)
+			wave.Size = UDim2.fromOffset(24, 2)
+			wave.BackgroundColor3 = Color3.new(1, 1, 1)
+			wave.BorderSizePixel = 0
+			wave.Parent = badge
+		end
+	end
 
 	-- X84: navy slogan plaques on the outer side faces of the end piers (the
 	-- walk-up faces carry the open gate leaves) and a shrub planter beside the
