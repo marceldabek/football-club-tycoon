@@ -364,3 +364,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshot** Estate_totem_4.
 - **Still missing from the reference (new X55):** unit numbers and brick plinths on the sheds, palisade yard fences and gates, lorries, pallets and forklifts, and a planted mini roundabout at the estate entrance.
 - RunAll 334/334.
+
+### 2026-09-17 04:37 — Shed unit numbers and brick plinths (X55, part)
+- Each estate shed gets a brick plinth course (up to 3 studs, 0.15 proud) round its sides and back; the front keeps its full-height roller doors. Sheds 26+ studs wide also get a navy unit-number plate at the far end of the front from the business sign. The numbers run 1..43 in build order. That's about 4 parts per shed, 43 sheds.
+- **Screenshot** Shed_units_1: "MILL LANE MOTORS" unit 9 with 10 and 11 beyond, brick plinth along the side wall. It's now much closer to the reference's numbered units.
+- RunAll 334/334.

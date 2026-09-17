@@ -439,7 +439,10 @@ end
 -- slab with a low mesh fence, a couple of pallets and (builders yard only) a
 -- sand heap. `size` is (frontage along local Z, height, front-to-back depth
 -- along local X), matching EstateDresser's placement.
-function EstateBuilder.shed(cframe: CFrame, size: Vector3, parent: Instance, rng: Random?, kind: string?): Model
+local PLINTH_BRICK = Color3.fromRGB(146, 82, 60)
+local UNIT_NAVY = Color3.fromRGB(28, 42, 74)
+
+function EstateBuilder.shed(cframe: CFrame, size: Vector3, parent: Instance, rng: Random?, kind: string?, unit: number?): Model
 	local r = rng or Random.new()
 	local width, height, depth = size.X, size.Y, size.Z
 
@@ -470,6 +473,37 @@ function EstateBuilder.shed(cframe: CFrame, size: Vector3, parent: Instance, rng
 	local sign = block("Part", "Sign", Vector3.new(0.3, signWidth * 0.25, signWidth), cframe * CFrame.new(-depth / 2 - 0.2, height * 0.8, 0), Color3.fromRGB(240, 240, 240), Enum.Material.SmoothPlastic, model, false)
 	sign.CastShadow = false
 	texture(sign, Enum.NormalId.Left, signName, signWidth, signWidth * 0.25)
+
+	-- X55: a brick plinth course round the sides and back (the front keeps its
+	-- full-height roller doors), 0.15 proud of the cladding, as in
+	-- rivermer.industrialestate.png
+	local plinthH = math.min(3, height * 0.3)
+	for _, spec in {
+		{ size = Vector3.new(depth + 0.3, plinthH, 0.15), offset = Vector3.new(0.15, 0, -width / 2 - 0.075) },
+		{ size = Vector3.new(depth + 0.3, plinthH, 0.15), offset = Vector3.new(0.15, 0, width / 2 + 0.075) },
+		{ size = Vector3.new(0.15, plinthH, width), offset = Vector3.new(depth / 2 + 0.075, 0, 0) },
+	} do
+		block("Part", "Plinth", spec.size, cframe * CFrame.new(spec.offset.X, plinthH / 2 - 0.05, spec.offset.Z), PLINTH_BRICK, Enum.Material.Brick, model, false)
+	end
+	-- unit number plate on the front, at the far end from the sign
+	if unit and width >= 26 then
+		local plate = block("Part", "UnitNumber", Vector3.new(0.3, 4, 4), cframe * CFrame.new(-depth / 2 - 0.2, height * 0.8, width / 2 - 3), UNIT_NAVY, Enum.Material.SmoothPlastic, model, false)
+		plate.CastShadow = false
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = Enum.NormalId.Left
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 30
+		gui.Parent = plate
+		local label = Instance.new("TextLabel")
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(0.8, 0.8)
+		label.Position = UDim2.fromScale(0.1, 0.1)
+		label.Font = Enum.Font.GothamBlack
+		label.TextScaled = true
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.Text = tostring(unit)
+		label.Parent = gui
+	end
 
 	-- yard slab out to YARD_DEPTH studs in front, with a low mesh fence
 	block("Part", "Yard", Vector3.new(YARD_DEPTH, 0.2, width), cframe * CFrame.new(-depth / 2 - YARD_DEPTH / 2, 0.1, 0), YARD_COLOUR, Enum.Material.Concrete, model, false)

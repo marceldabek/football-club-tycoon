@@ -309,8 +309,8 @@ function EstateDresser.build(): string
 					driveCount += 1
 				end
 			else
-				EstateBuilder.shed(cf, Vector3.new(width, block.size.Y, depth), m, rng, block.use)
 				shedCount += 1
+				EstateBuilder.shed(cf, Vector3.new(width, block.size.Y, depth), m, rng, block.use, shedCount)
 			end
 		end
 	end
