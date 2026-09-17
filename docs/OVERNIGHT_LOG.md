@@ -624,3 +624,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - The same Python escaping mistake as at 06:45 happened again (a real line break inside the Lua string). I caught it before committing, fixed it with the Edit tool, and the string scan is clean. From now on, Lua strings with a newline escape go through the Edit tool, not Python.
 - **Screenshot** PromenadeBanner_1.
 - RunAll 364/364.
+
+### 2026-09-17 06:51 — Part count after the dressing batch (X61)
+- The town is now 18,073 BaseParts, up 926 since the X61 measurement. Most of that is estates (street trees, beds, forklifts), the sports centre (154), the promenade (bins, banners) and Weir Road (216). The server workspace holds 20,802 before any club is built. A Studio client sitting at the plot picker near plot 1 streams 13,955 parts at about 57 fps on this PC.
+- These are Studio desktop numbers only. X61 and X28 still need a mid-range phone, and question 9's Weir Road reserve is the first thing to drop if phones struggle.
