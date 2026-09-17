@@ -3,6 +3,8 @@
 -- Pure: takes the club folder's attributes (already replicated to every
 -- client) and the decoded Club JSON, returns what to show.
 
+local Config = require(script.Parent.Config)
+
 local ClubCard = {}
 
 export type PlayerRow = { name: string, role: string, overall: number, goals: number, apps: number }
@@ -73,8 +75,9 @@ function ClubCard.summary(attrs: { [string]: any }, club: any): Summary
 	local round, rounds = num(attrs.Round, 0), num(attrs.Rounds, 10)
 	local played = num(attrs.MatchesPlayed, 0)
 	local standUps = 0
-	for _, side in { "North", "East", "South", "West" } do
-		standUps += num(attrs["Stand_" .. side], 0)
+	-- X247: levels built past each plot's start (the East Stand starts built)
+	for _, plot in Config.StandPlots do
+		standUps += math.max(num(attrs["Stand_" .. plot.key], plot.start) - plot.start, 0)
 	end
 	return {
 		clubName = str(attrs.ClubName, "A Rivermere club"),

@@ -1730,6 +1730,10 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 	local spacing = FAN_SPACING
 	local base = math.min(fill, MAX_FANS / math.max(totalSlots, 1))
 
+	-- X239: the front-to-back swing, shrunk when the crowd is dense enough that
+	-- the front rows would pass 100%; capping them there used to lose ~13% of fans
+	local swing = if base > 0 then math.min(0.5, (1 - base) / base) else 0.5
+
 	local placed, slots = 0, 0
 	for _, plot in PLOTS do
 		local stand = stands:FindFirstChild(plot.key)
@@ -1748,8 +1752,8 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 			local x = STAND_X0 + STEP_DEPTH * (row - 1) + STEP_DEPTH / 2 + 0.3
 			-- the good seats near the pitch fill first, the back rows thin out;
 			-- the weights average to 1 so the budget is still what it says
-			local weight = 1 + 0.5 * (1 - 2 * (row - 1) / math.max(geo.rows - 1, 1))
-			local chance = math.min(fill, base * weight)
+			local weight = 1 + swing * (1 - 2 * (row - 1) / math.max(geo.rows - 1, 1))
+			local chance = math.min(1, base * weight)
 			-- offset each row a little so identical seat positions never line
 			-- up into a column of people
 			local nudge = (row * 0.37) % 1 * spacing

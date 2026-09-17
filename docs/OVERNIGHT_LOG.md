@@ -1340,3 +1340,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Reference differences left: the reference fascia reads "RIVERDALE FOOTBALL CLUB" (our label uses the club's own name), and its crest is a detailed bridge drawing, which isn't practical in GUI frames at this size.
 - Screenshots checked (corner at (1194, 1, 1156), fascia from (1208, 11, 1112)). RunAll 436 passed.
 
+### 2026-09-17 13:58 — Fuller crowds, hints for any stand, honest stand-upgrade count (X239, X240, X247 done)
+- X239 `WorldBuilder.buildCrowd`: row weights still fill the front rows first, but each chance is now capped at 1 (not at the fill ratio), and the front-to-back swing shrinks when the crowd is dense enough that the front rows would pass 100%. The drawn crowd now averages the intended density instead of losing about 13%. In play, 6,600 / 8,000 drew 623 fans against the 660 cap, with back rows visibly filled (screenshot checked).
+- X240 HUD onboarding pill: the "expand the East Stand" step is passed once *any* stand is above its starting level. A player who builds the free West or North plot first now reaches the scout and Snack Bar hints.
+- X247 `ClubCard`: "N stand upgrades" counts levels above each plot's start, so a brand-new club reads 0, not 1. `ClubCardTest` was updated (North 2 + East 1 is now 2 upgrades).
+- RunAll 436 passed; a 20 s match ran to Manage with no console errors.
+

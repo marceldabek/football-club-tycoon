@@ -485,10 +485,16 @@ function refreshHintText()
 	-- Onboarding only: the pill teaches the first few upgrades, then goes away.
 	-- Starting a match is the PLAY MATCH button at the top, so it is never hinted here.
 	local played = get("MatchesPlayed") or 0
-	local level = get("StandLevel") or 1
+	-- X240: any stand built past its starting level counts, not only the East Stand
+	local grown = false
+	for _, plot in Config.StandPlots do
+		if (get("Stand_" .. plot.key) or plot.start) > plot.start then
+			grown = true
+		end
+	end
 	if played == 0 then
 		hintLabel.Text = "Welcome to your club. Have a look around, then hit PLAY MATCH at the top."
-	elseif level == 1 then
+	elseif not grown then
 		-- X193: only say fans were turned away when they were
 		hintLabel.Text = if (get("Demand") or 0) > (get("Capacity") or math.huge)
 			then "Fans were turned away. Expand the East Stand (yellow sign in front of it)."

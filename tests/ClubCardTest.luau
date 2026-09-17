@@ -41,7 +41,7 @@ function T.summaryMidSeason()
 	assert(s.league == "County League · Season 3", s.league)
 	assert(s.standing == "2nd after 8 of 10 matches", s.standing)
 	assert(s.record == "27 played · 12 W · 8 D · 7 L", s.record)
-	assert(s.ground == "Capacity 900 · 3 stand upgrades", s.ground)
+	assert(s.ground == "Capacity 900 · 2 stand upgrades", s.ground)
 	assert(#s.stars == 1 and s.stars[1].name == "Kit", "stars")
 end
 
