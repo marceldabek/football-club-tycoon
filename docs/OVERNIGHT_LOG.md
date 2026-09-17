@@ -43,6 +43,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 3. Evening fixtures are every 4th match starting at match 3 (TEMP). *Rec: fine until the fixture list gets real kick-off times.*
 4. Walking from the market square to a club takes about 2–3 minutes (70–100 s sprinting); the buses cover it in seconds. Is that the scale you want? *Rec: keep it for now, because the buses and the "Go to my club" button carry most trips. Shrink the plot ring by ~25% only if playtesters walk rather than bus.*
 5. Friendlies (I3.1), all TEMP in `src/shared/Friendly.luau`: (a) the challenged club is the home side, (b) an invite lasts 45 s, and you can have one outgoing at a time, (c) the home club gets 25% of a full league gate, and the away club gets nothing, (d) no injuries, no player development, and friendlies don't count in W/D/L or matches played. *Rec: keep all four. A friendly is a social extra, so it shouldn't be a better money route than league matches.*
+6. Trades (I4.1), TEMP in `src/shared/Trade.luau`: up to 3 players each way; cash moves one way and only alongside a player; both squads stay within 14–20 and keep a goalkeeper; an offer lasts 60 s; traded players keep their age, ratings, injuries, apps and goals. There are no value checks, so a lopsided trade is allowed (s27: no anti-abuse limits for now). *Rec: keep these. Add a "fair value" warning, not a block, once transfer values are tuned.*
 
 **Buy list for Marcel**
 - Nothing new yet. Free store terraces are a flat-fronted Victorian row. If you want bay windows like `RiveremereWestdale.png`, "UK Housing – Terraced Set 1" (Macwelshman, Fab, $39.99) is the best paid match (see docs/ASSET_KIT.md).
@@ -235,3 +236,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 
 ### 2026-09-17 03:30 — Hint no longer covers Back to Club (X40)
 - HUD hides the bottom hint pill while the match summary or season card is open, and brings it back when either closes. Tested with a 3 s friendly: before the match the hint showed "Matchday! The teams are walking out."; with the summary open it was hidden; after Back to Club it showed "Fans were turned away…" again.
+
+### 2026-09-17 03:32 — Trades part 1: pure rules (I4.1a)
+- I4.1 split into a/b/c/d. New `Trade` module: `validate` (no self-trades; at least one player moves, so no cash gifts; up to 3 each way; whole non-negative cash going one way that the payer can afford; players must belong to the right club, no duplicates; both squads within Config.SquadMin/Max and keeping a goalkeeper), `move` (fresh id and lowest free shirt number at the new club, stats copied), and an offer book (one outgoing offer, 60 s expiry, dropUser). TradeTest has 8 tests. The TEMP rules are question 6.
+- RunAll 322/322.
