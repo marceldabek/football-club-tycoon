@@ -26,6 +26,10 @@ export type PlaceOpts = {
 	yawJitter: number?, -- radians
 	rng: Random?,
 	scale: number?,
+	-- X45: repaint a textured kit (the one-mesh hatchback ignores Color while its
+	-- TextureID is set): clears every MeshPart's texture and sets this colour.
+	-- The window and light detail goes with the texture.
+	tint: Color3?,
 }
 
 local FALLBACK_SIZE = Vector3.new(4, 4, 4)
@@ -223,6 +227,10 @@ function KitPlacer.place(name: string, cframe: CFrame, parent: Instance, opts: P
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then
 			d.Anchored = true
+		end
+		if o.tint and d:IsA("MeshPart") then
+			d.TextureID = ""
+			d.Color = o.tint
 		end
 	end
 

@@ -50,6 +50,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 
 9. Westdale street dressing (X59), TEMP: `TerraceStreetDresser` dresses the town's terrace streets nearest the square first, within 1,240 parts, so Westdale got nothing. Weir Road is now in `PRIORITY_STREETS` and dressed last from its own 260-part reserve (it uses 216), without changing any other street's dressing. The town grows by about 216 parts. *Rec: keep it until the phone measurement (X28/X61). If phones struggle, drop the reserve before cutting the Mill Street showpiece.*
 
+10. Car colours (X45), TEMP: every parked car is the same orange kit hatchback, and its texture overrides Color. The new `KitPlacer` `tint` option clears the texture and paints the mesh a flat colour. That gives variety (navy, dark red, charcoal), but the tinted cars have no window or light detail (CarTint_1). It's only used in the station car park so far. *Rec: use tint for about 1 in 3 street cars town-wide now; replace it when a recoloured texture or a second free car kit is uploaded (needs your upload key).*
+
 **Buy list for Marcel**
 - Nothing new yet. Free store terraces are a flat-fronted Victorian row. If you want bay windows like `RiveremereWestdale.png`, "UK Housing – Terraced Set 1" (Macwelshman, Fab, $39.99) is the best paid match (see docs/ASSET_KIT.md).
 
@@ -663,4 +665,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 ### 2026-09-17 07:07 — Station car park dressed (X83)
 - The station car park, where the extended Station Road now ends, was a plain grey slab. New pure `StationDresser.carParkBays` (1 test: inside the slab, bays look out to the aisle, near row clear of the entrance) lays out 19 bays in two rows 11 × 20, with the near row stopping 30 short of the Station Road end. StationDresser paints 38 bay lines, lifted 0.01 off the slab so no faces share a plane, parks kit hatchbacks nose-in in about half the bays (7 cars), and stands a blue P sign at the corner.
 - **Screenshot** StationCarPark_1. Every car is the orange kit hatchback, the X45 monotone problem again.
+- RunAll 371/371.
+
+### 2026-09-17 07:10 — Car colour variety, TEMP (X45 part)
+- `KitPlacer.place` has a new `tint` option: it clears every MeshPart's TextureID and sets the colour, because the one-mesh hatchback ignores Color while its texture is set. The station car park paints about half its cars navy, dark red or charcoal. The draw order moved, so it now parks 9 cars.
+- **Screenshots** CarTint_try (white read as a ghost, so it was dropped) and CarTint_1. Tinted cars are flat with no windows, so wider use is question 10 rather than done silently.
 - RunAll 371/371.
