@@ -41,6 +41,7 @@ export type SeasonSummary = {
 	prize: number,
 	nextDivision: string,
 	nextTier: number,
+	retirements: { string }, -- X277: who hung up their boots at the end of it
 }
 
 local function publishTable()
@@ -233,7 +234,7 @@ function SeasonService.endSeason(): SeasonSummary
 	-- X262: drift toward the new division's baseline before the next season
 	popularity = Economy.popularityAtSeasonEnd(popularity, tier)
 	seasonNumber += 1
-	ClubService.newSeason()
+	local retirements = ClubService.newSeason()
 	startSeason()
 	publish()
 
@@ -245,6 +246,7 @@ function SeasonService.endSeason(): SeasonSummary
 		prize = prize,
 		nextDivision = League.divisionName(tier),
 		nextTier = tier,
+		retirements = retirements,
 	}
 end
 

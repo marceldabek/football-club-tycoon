@@ -178,6 +178,15 @@ Config.DevelopChance = 0.2 -- per eligible player per match, scaled by coach
 Config.DeclineChance = 0.06 -- per player aged 31+ per match
 
 -- Level 0 = no coach. Index = level + 1.
+-- X277: veterans retire at the end of a season. Nothing used to leave a squad:
+-- ageing only counted up and decline floors at 30 OVR, so after a few seasons
+-- the 20 shirts were full of 36-year-olds the player had to spot and release one
+-- at a time. TEMP window: the first chance comes at RetireAge and nobody plays
+-- on past RetireMaxAge.
+Config.RetireAge = 34
+Config.RetireChancePerYear = 0.3 -- 34 -> 30%, 35 -> 60%, 36 -> 90%
+Config.RetireMaxAge = 37
+
 Config.CoachLevels = {
 	{ name = "No coach", cost = 0, strengthBonus = 0, developMultiplier = 1 },
 	{ name = "Volunteer Coach", cost = 800, strengthBonus = 2, developMultiplier = 1.5 },

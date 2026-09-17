@@ -309,4 +309,85 @@ function T.creditScorersKeepsSameMinuteGoalBeforeSub()
 	assert(slots[2] == 13, "a later goal goes to the substitute")
 end
 
+function T.veteransRetireAndFreeTheirShirt()
+	local players = Squad.generate(11, 45)
+	-- a settled squad: 20 players, most of them past it
+	while #players < Config.SquadMax do
+		local clone = table.clone(players[1])
+		clone.id = #players + 1
+		clone.number = #players + 1
+		clone.role = "MID"
+		table.insert(players, clone)
+	end
+	for i, p in players do
+		p.age = if i <= 6 then 22 else 36
+	end
+	local retired = Squad.retireVeterans(players, Random.new(4))
+	assert(#retired > 0, "nobody retired from a squad of 36-year-olds")
+	local freed = retired[1].number
+	for _, p in retired do
+		assert(p.age >= Config.RetireAge, "retired a player from inside the window")
+		assert(Squad.byId(players)[p.id] == nil, "a retired player is still in the squad")
+	end
+	local used = {}
+	for _, p in players do
+		assert(not used[p.number], "two players share a shirt number")
+		used[p.number] = true
+	end
+	assert(used[freed] == nil, "the retired shirt number is still taken")
+end
+
+function T.retirementKeepsALastKeeper()
+	local players = Squad.generate(12, 45)
+	for _, p in players do
+		p.age = 40 -- everyone is well past Config.RetireMaxAge
+	end
+	local before = #players
+	local retired = Squad.retireVeterans(players, Random.new(5))
+	assert(#retired == before - 1, "everyone but the last keeper should have gone")
+	assert(#players == 1 and players[1].role == "GK", "the last goalkeeper was retired")
+end
+
+-- The squad the above leaves behind is the case that used to freeze: at (or
+-- below) the minimum, nobody could retire and everyone kept ageing.
+function T.academyRefillsTheSquadAfterRetirements()
+	local players = Squad.generate(14, 45)
+	for _, p in players do
+		p.age = 40
+	end
+	Squad.retireVeterans(players, Random.new(7))
+	local graduates = Squad.promoteYouth(players, Random.new(8), 100)
+	assert(#players == Config.SquadMin, "the academy did not refill the squad")
+	assert(#graduates == Config.SquadMin - 1, "wrong number of graduates")
+	local used, names = {}, {}
+	local keepers = 0
+	for _, p in players do
+		assert(not used[p.number], "two players share a shirt number")
+		assert(not names[p.name], "two players share a name")
+		used[p.number], names[p.name] = true, true
+		keepers += if p.role == "GK" then 1 else 0
+	end
+	assert(keepers >= 2, "the academy should have covered the missing goalkeeper")
+	for i, p in graduates do
+		assert(p.age <= 19, "an academy graduate is not young")
+		assert(p.potential > p.overall, "an academy graduate has no headroom")
+		assert(p.id == 99 + i, "graduate ids should follow the club's next id")
+	end
+end
+
+function T.academyDoesNothingForAFullSquad()
+	local players = Squad.generate(15, 45)
+	assert(#Squad.promoteYouth(players, Random.new(9), 100) == 0, "promoted into a full squad")
+	assert(#players == 16, "squad changed")
+end
+
+function T.nobodyRetiresBeforeTheWindow()
+	local players = Squad.generate(13, 45)
+	for _, p in players do
+		p.age = Config.RetireAge - 1
+	end
+	assert(#Squad.retireVeterans(players, Random.new(6)) == 0, "a player retired below the window")
+	assert(#players == 16, "squad changed")
+end
+
 return T

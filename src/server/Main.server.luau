@@ -95,6 +95,11 @@ if game:GetService("RunService"):IsStudio() then
 		elseif command == "cash" then
 			m.ClubState.addCash(a1 or 1000)
 			return true
+		elseif command == "newSeason" then
+			-- X277: rolls the squad on a year so retirements can be checked without
+			-- playing out ten matches
+			local news = m.ClubService.newSeason()
+			return true, if #news > 0 then table.concat(news, "  ") else "nobody retired"
 		elseif command == "tier" then
 			return m.SeasonService.setTier(tonumber(a1) or 1)
 		elseif command == "save" then

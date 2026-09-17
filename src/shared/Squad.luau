@@ -409,6 +409,120 @@ function Squad.ageAll(players: { Player })
 	end
 end
 
+-- X277: the end of a career. Called right after ageAll, so a player who has
+-- just turned RetireAge can go in the same summer. Removes the retirees from
+-- `players` (which frees their shirt number, see smallestFreeNumber) and
+-- returns them, oldest first.
+--
+-- The first version stopped at Config.SquadMin, which looked safe and was
+-- actually worse: a squad already down to 14 veterans froze, everybody kept
+-- ageing and nobody could ever leave. So retirement is unconditional (bar the
+-- last goalkeeper, who gets one more season) and Squad.promoteYouth refills the
+-- squad afterwards.
+function Squad.retireVeterans(players: { Player }, rng: Random): { Player }
+	local veterans: { Player } = {}
+	for _, p in players do
+		if p.age >= Config.RetireAge then
+			table.insert(veterans, p)
+		end
+	end
+	table.sort(veterans, function(a, b)
+		if a.age ~= b.age then
+			return a.age > b.age
+		end
+		return a.id < b.id -- stable: the same squad always retires the same way
+	end)
+
+	local keepers = 0
+	for _, p in players do
+		if p.role == "GK" then
+			keepers += 1
+		end
+	end
+
+	local retired: { Player } = {}
+	for _, p in veterans do
+		if p.role == "GK" and keepers <= 1 then
+			continue
+		end
+		local chance = if p.age >= Config.RetireMaxAge
+			then 1
+			else (p.age - Config.RetireAge + 1) * Config.RetireChancePerYear
+		if rng:NextNumber() < chance then
+			for i, q in players do
+				if q.id == p.id then
+					table.remove(players, i)
+					break
+				end
+			end
+			if p.role == "GK" then
+				keepers -= 1
+			end
+			table.insert(retired, p)
+		end
+	end
+	return retired
+end
+
+local function freeNumber(players: { Player }): number
+	local used: { [number]: boolean } = {}
+	for _, p in players do
+		used[p.number] = true
+	end
+	for n = 1, 99 do
+		if not used[n] then
+			return n
+		end
+	end
+	return 99
+end
+
+-- The shape Squad.generate makes, so the academy fills the gap the squad
+-- actually has rather than handing over another midfielder.
+local SQUAD_SHAPE: { [string]: number } = { GK = 2, DEF = 5, MID = 5, FWD = 4 }
+local SHAPE_ORDER: { Pitch.Role } = { "GK", "DEF", "MID", "FWD" }
+
+local function neediestRole(players: { Player }): Pitch.Role
+	local have: { [string]: number } = { GK = 0, DEF = 0, MID = 0, FWD = 0 }
+	for _, p in players do
+		have[p.role] += 1
+	end
+	local best: Pitch.Role, bestGap = "MID", -math.huge
+	for _, role in SHAPE_ORDER do
+		local gap = SQUAD_SHAPE[role] - have[role]
+		if gap > bestGap then
+			best, bestGap = role, gap
+		end
+	end
+	return best
+end
+
+-- X277: the academy. Retirement is unconditional, so something has to keep the
+-- squad playable: after the veterans go, young players come up until the squad
+-- is back to Config.SquadMin. They are free, a little below the squad's level
+-- and carry real headroom, so a club that never signs anyone still renews
+-- itself instead of silting up. `firstId` is the club's next free id; the
+-- graduates are appended to `players` and returned.
+function Squad.promoteYouth(players: { Player }, rng: Random, firstId: number): { Player }
+	local graduates: { Player } = {}
+	if #players >= Config.SquadMin then
+		return graduates
+	end
+	local taken: { [string]: boolean } = {}
+	for _, p in players do
+		taken[p.name] = true
+	end
+	local avg = Squad.average(players)
+	while #players < Config.SquadMin do
+		local name = TeamGen.generateNames(rng, 1, taken)[1]
+		taken[name] = true
+		local p = makePlayer(rng, firstId + #graduates, name, freeNumber(players), neediestRole(players), avg - 6, 8, 19)
+		table.insert(players, p)
+		table.insert(graduates, p)
+	end
+	return graduates
+end
+
 -- TEMP fee formula: pay for current quality and for headroom, rounded to 50.
 -- Both terms are superlinear. A linear fee made the top of the market cost
 -- almost the same as the middle (a 76 overall went for 3,000 and an 85 for

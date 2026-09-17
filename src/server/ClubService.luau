@@ -522,10 +522,29 @@ function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.Ma
 end
 
 -- New season housekeeping (Milestone 4 calls this).
-function ClubService.newSeason()
+-- Returns the retirement lines for the season card (X277).
+function ClubService.newSeason(): { string }
 	Squad.ageAll(players)
+	local retired = Squad.retireVeterans(players, rng)
+	local news: { string } = {}
+	for _, p in retired do
+		table.insert(news, ("%s retires at %d (%d app%s, %d goal%s)."):format(
+			p.name,
+			p.age,
+			p.apps,
+			if p.apps == 1 then "" else "s",
+			p.goals,
+			if p.goals == 1 then "" else "s"
+		))
+	end
+	local graduates = Squad.promoteYouth(players, rng, nextId)
+	nextId += #graduates
+	for _, p in graduates do
+		table.insert(news, ("%s (%d) comes up from the academy, shirt %d."):format(p.name, p.age, p.number))
+	end
 	recomputeLineup()
 	publish()
+	return news
 end
 
 function ClubService.coachLevel(): number

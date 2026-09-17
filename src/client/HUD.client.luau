@@ -340,13 +340,29 @@ local function showSeason(data)
 	else
 		headline = ("Staying in the %s."):format(data.nextDivision)
 	end
-	seasonCard.body.Text = table.concat({
+	local lines = {
 		("Finished <b>%s</b> in the %s."):format(ordinal(data.position), data.division),
 		headline,
 		"",
 		("Prize money: %s"):format(rich(money(data.prize), C.cash, true)),
 		"Every player is a year older. New fixtures are ready.",
-	}, "\n")
+	}
+	-- X277: a retirement takes a shirt number out of the squad, so say it here
+	-- rather than leaving the player to find the gap in the squad screen.
+	local retiring = if type(data.retirements) == "table" then data.retirements else {}
+	if #retiring > 0 then
+		table.insert(lines, "")
+		for i = 1, math.min(#retiring, 3) do
+			table.insert(lines, rich(retiring[i], C.muted))
+		end
+		if #retiring > 3 then
+			table.insert(lines, rich(("+%d more retired."):format(#retiring - 3), C.muted))
+		end
+		table.insert(lines, rich("Their shirt numbers are free again.", C.muted))
+	end
+	seasonCard.body.Text = table.concat(lines, "\n")
+	-- the card is sized for the five base lines; grow it for the rest
+	seasonCard.frame.Size = UDim2.fromOffset(480, 330 + 22 * math.max(#lines - 5, 0))
 	seasonCard.frame.Visible = true
 end
 summaryContinue.Activated:Connect(function()
