@@ -11,6 +11,7 @@
 -- Heights: pitch slab top 0.30; lines 0.30..0.36; circle chords alternate
 -- 0.37 / 0.39 tall so no two tops share a plane where they cross the halfway line.
 
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local EstateDresser = require(script.Parent.EstateDresser)
@@ -32,6 +33,7 @@ local MAST_GREY = Color3.fromRGB(170, 172, 176)
 local CLAD = Color3.fromRGB(176, 186, 196)
 local ROOF_GREY = Color3.fromRGB(96, 100, 108)
 local NAVY = Color3.fromRGB(24, 38, 72)
+local FLOOD_HEAD_TAG = "FloodHead" -- Scenery.FLOOD_HEAD_TAG (Scenery requires the club world, so not required here)
 
 export type Rect = { x0: number, x1: number, z0: number, z1: number }
 
@@ -143,7 +145,10 @@ local function buildPitch(parent: Instance, block: TownLayout.Box, is3G: boolean
 			for _, sz in { -1, 1 } do
 				local base = f * CFrame.new(sx * (hw + 2), 0, sz * (hl + 2))
 				part(m, "Mast", Vector3.new(0.8, 30, 0.8), base * CFrame.new(0, 15, 0), MAST_GREY, Enum.Material.Metal, true)
-				part(m, "LampHead", Vector3.new(4, 2.2, 1), base * CFrame.new(0, 30.6, 0), MAST_GREY, Enum.Material.Metal, false).CastShadow = false
+				local head = part(m, "LampHead", Vector3.new(4, 2.2, 1), base * CFrame.new(0, 30.6, 0), MAST_GREY, Enum.Material.Metal, false)
+				head.CastShadow = false
+				-- X77: lit with the stadium floodlights on evening looks (client Sky.luau)
+				CollectionService:AddTag(head, FLOOD_HEAD_TAG)
 			end
 		end
 	end

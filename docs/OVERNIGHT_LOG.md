@@ -594,3 +594,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshot** WaterfrontFlats_1.
 - Remaining greybox after X76 and X78: the Riverside Park lawn and the station car park, both flat surfaces that other dressers build on.
 - RunAll 363/363.
+
+### 2026-09-17 06:39 — Sports centre floodlights join evening looks (X77 part)
+- The 8 lamp heads on the two 3G pitches now carry the `FloodHead` tag. The client's Sky script lights every tagged head on an evening look, so these come on with the stadium floodlights. A client check found all 8. I didn't play an evening fixture: **SportsCentreFloods_1** was taken with the heads painted by hand at ClockTime 19.5, using the same neon and colour Sky applies.
+- RunAll 363/363.
