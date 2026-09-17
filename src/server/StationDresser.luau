@@ -17,6 +17,7 @@ local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local KitPlacer = require(script.Parent.KitPlacer)
 local Planting = require(script.Parent.Planting)
 local SquareDresser = require(script.Parent.SquareDresser)
+local EstateDresser = require(script.Parent.EstateDresser)
 
 local StationDresser = {}
 
@@ -60,6 +61,7 @@ end
 
 local WINDOW_GLASS = Color3.fromRGB(58, 74, 90)
 local FORECOURT_MAX = 70 -- no road within this of the front wall: keep the grass (X50)
+local STATION_BANNER_RADIUS = 160 -- X131: street lamps this close to the station front get a banner
 local SASH_WHITE = Color3.fromRGB(236, 234, 226)
 local MARKING_YELLOW = Color3.fromRGB(236, 196, 40)
 
@@ -656,6 +658,23 @@ function StationDresser.build(): string
 	for _, x in { -27, 27 } do
 		slab(m, f, "CanopyPost", x - 0.4, x + 0.4, 0.3, 12, 7, 7.8, IRON, Enum.Material.Metal)
 	end
+
+	-- X131 (RivermereStation.png): a framed TRAVEL LOCAL poster on the wall left
+	-- of the entrance, and RIVERMERE / OUR TOWN OUR HOME banners on the street
+	-- lamps in front of the station
+	slab(m, f, "PosterFrame", -31.2, -24.8, 2.4, 10.2, 0, 0.2, IRON, Enum.Material.Metal)
+	local poster = slab(m, f, "Poster", -30.9, -25.1, 2.7, 9.9, 0.2, 0.3, NAVY, Enum.Material.SmoothPlastic)
+	sign(poster, Enum.NormalId.Back, "TRAVEL\nLOCAL\nEXPLORE\nFURTHER\n\nRIVERMERE", Color3.fromRGB(236, 232, 220))
+	local nearLamps = {}
+	local dressing = town:FindFirstChild("Dressing")
+	if dressing then
+		for _, d in dressing:GetDescendants() do
+			if d:IsA("Model") and d.Name == "TerraceLamp" and (d:GetPivot().Position - f.Position).Magnitude < STATION_BANNER_RADIUS then
+				table.insert(nearLamps, d)
+			end
+		end
+	end
+	EstateDresser.hangLampBanners(nearLamps, m, "RIVERMERE\n\nOUR TOWN\nOUR HOME")
 
 	-- departures board beside the entrance
 	slab(m, f, "BoardPost", 33.6, 34.4, 0.3, 9, 3, 3.8, IRON, Enum.Material.Metal)

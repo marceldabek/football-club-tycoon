@@ -243,4 +243,5 @@
 - [x] X128 (10:16 traffic cars are the town's hatchback meshes (1 part instead of 8); fixed a traffic bug on the way: cars travelling against a road's polyline drove backwards in the same lane) `[studio]` S
 - [x] X129 (10:19 station taxis are the navy hatchback mesh at 0.7 scale with a yellow TAXI roof sign; 2 parts instead of 7) RivermereStation.png's taxi rank `[studio]` S
 - [x] X130 (10:22 new Planting.bloom: a leafy bed with round flower heads on the square, station and promenade planters; about +120 parts) RivermereStation.png: planters are lush mounded flowers; ours at the station and square are flat pink/coloured slabs. A few overlapping flower balls on the planter soil instead `[studio]` S
+- [x] X131 (10:24 a framed navy TRAVEL LOCAL / EXPLORE FURTHER / RIVERMERE poster left of the station entrance; RIVERMERE / OUR TOWN OUR HOME banners on street lamps within 160 of the station front (1 lamp today); banner code shared as EstateDresser.hangLampBanners) RivermereStation.png's poster and lamp banner `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

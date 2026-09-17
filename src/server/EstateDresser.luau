@@ -743,14 +743,10 @@ end
 -- X121 (rivermer.industrialestate.png): navy RIVERMERE / BUSINESS BUILDS
 -- COMMUNITIES banners on the estate's street lamps, on the post's side away
 -- from the lamp arm, facing along the road. 2 parts a lamp.
-local function lampBanners(town: Instance, parent: Instance): number
-	local dressing = town:FindFirstChild("Dressing")
-	local estate = dressing and dressing:FindFirstChild("Industrial Estate")
-	if not estate then
-		return 0
-	end
+-- X131: shared with StationDresser; hangs `text` banners on the given lamps.
+function EstateDresser.hangLampBanners(lamps: { Instance }, parent: Instance, text: string): number
 	local count = 0
-	for _, lamp in estate:GetChildren() do
+	for _, lamp in lamps do
 		local post, arm = lamp:FindFirstChild("Post"), lamp:FindFirstChild("Arm")
 		if not (lamp:IsA("Model") and lamp.Name == "TerraceLamp" and post and arm and post:IsA("BasePart") and arm:IsA("BasePart")) then
 			continue
@@ -797,12 +793,21 @@ local function lampBanners(town: Instance, parent: Instance): number
 			label.TextScaled = true
 			label.TextWrapped = true
 			label.TextColor3 = Color3.fromRGB(236, 232, 220)
-			label.Text = "RIVERMERE\n\nBUSINESS\nBUILDS\nCOMMUNITIES"
+			label.Text = text
 			label.Parent = gui
 		end
 		count += 1
 	end
 	return count
+end
+
+local function lampBanners(town: Instance, parent: Instance): number
+	local dressing = town:FindFirstChild("Dressing")
+	local estate = dressing and dressing:FindFirstChild("Industrial Estate")
+	if not estate then
+		return 0
+	end
+	return EstateDresser.hangLampBanners(estate:GetChildren(), parent, "RIVERMERE\n\nBUSINESS\nBUILDS\nCOMMUNITIES")
 end
 
 function EstateDresser.build(): string
