@@ -400,3 +400,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshot** PostBox_1: a post box outside a corner shop, with a club banner lamp and the terrace behind (the player's own helmet is in the foreground).
 - **Found:** the big white block in Westdale is the "school" greybox, which nothing dresses yet (part of X59).
 - RunAll 335/335.
+
+### 2026-09-17 04:52 — Red-brick schools (X59, part)
+- ShopDresser passes the block use through to `ShopBuilder.civic`. A "school" is now a red-brick body, with the civic facade texture tinted brick, a white stone porch and pediment, and a navy "RIVERMERE PRIMARY SCHOOL" board across the porch. The town hall stays white stone. There are 3 schools, 1 extra part each.
+- **Screenshot** School_1: the Westdale school with pedestrians on the pavement and a lamp with a hanging basket.
+- The real leftover in X59 is dressing the Westdale side streets (trees, lamps, parked cars), which needs part budget.
+- RunAll 335/335.

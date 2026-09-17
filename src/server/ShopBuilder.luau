@@ -348,14 +348,20 @@ end
 
 -- A town hall / school: pale stone, a portico with a pediment and a doorway
 -- on the front. size = (depth, height, length) in local axes. 6 parts.
-function ShopBuilder.civic(cframe: CFrame, size: Vector3, parent: Instance): Model
+local SCHOOL_BRICK = Color3.fromRGB(150, 76, 58)
+local SCHOOL_TINT = Color3.fromRGB(214, 140, 118)
+
+function ShopBuilder.civic(cframe: CFrame, size: Vector3, parent: Instance, kind: string?): Model
 	local depth, wallH, length = size.X, size.Y, size.Z
 	local model = Instance.new("Model")
 	model.Name = "Civic"
-	local b = block("Part", "Body", Vector3.new(depth, wallH, length), cframe * CFrame.new(0, wallH / 2, 0), CIVIC_STONE, Enum.Material.Limestone, model, true)
+	-- X59: a school is a red-brick Victorian board school rather than a white
+	-- stone civic hall; the same facade texture, tinted brick red
+	local isSchool = kind == "school"
+	local b = block("Part", "Body", Vector3.new(depth, wallH, length), cframe * CFrame.new(0, wallH / 2, 0), if isSchool then SCHOOL_BRICK else CIVIC_STONE, if isSchool then Enum.Material.Brick else Enum.Material.Limestone, model, true)
 	model.PrimaryPart = b
 	for _, face in { Enum.NormalId.Left, Enum.NormalId.Right, Enum.NormalId.Front, Enum.NormalId.Back } do
-		texture(b, face, "civic_facade", 16, wallH)
+		texture(b, face, "civic_facade", 16, wallH, if isSchool then SCHOOL_TINT else nil)
 	end
 	coping(cframe, depth, wallH, length, Color3.fromRGB(228, 222, 206), model)
 
@@ -373,6 +379,25 @@ function ShopBuilder.civic(cframe: CFrame, size: Vector3, parent: Instance): Mod
 	end
 	local door = block("Part", "Doorway", Vector3.new(0.2, 10, 7), cframe * CFrame.new(px - porticoD / 2 - 0.1, 5, 0), Color3.fromRGB(46, 36, 30), Enum.Material.Wood, model, false)
 	door.CastShadow = false
+	if isSchool then
+		-- name board across the portico above the door
+		local board = block("Part", "SchoolSign", Vector3.new(0.3, 2.4, math.min(porticoW - 2, 22)), cframe * CFrame.new(px - porticoD / 2 - 0.15, math.min(12, porticoH - 1.5), 0), Color3.fromRGB(28, 42, 74), Enum.Material.SmoothPlastic, model, false)
+		board.CastShadow = false
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = Enum.NormalId.Left
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 30
+		gui.Parent = board
+		local label = Instance.new("TextLabel")
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(0.94, 0.7)
+		label.Position = UDim2.fromScale(0.03, 0.15)
+		label.Font = Enum.Font.GothamBold
+		label.TextScaled = true
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.Text = "RIVERMERE PRIMARY SCHOOL"
+		label.Parent = gui
+	end
 	model.Parent = parent
 	return model
 end

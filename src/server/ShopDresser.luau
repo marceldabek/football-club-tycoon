@@ -138,7 +138,7 @@ function ShopDresser.build(): string
 			if ShopDresser.FLATS_USES[block.use] then
 				ShopBuilder.flats(cf, Vector3.new(depth, block.size.Y, length), parent)
 			elseif ShopDresser.CIVIC_USES[block.use] then
-				ShopBuilder.civic(cf, Vector3.new(depth, block.size.Y, length), parent)
+				ShopBuilder.civic(cf, Vector3.new(depth, block.size.Y, length), parent, block.use)
 			else
 				ShopBuilder.shopRow(cf, length, depth, block.size.Y, parent, rng, block.use, district.name)
 			end
