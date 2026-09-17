@@ -23,7 +23,7 @@
 --         square's round rim (no staircase against the circle)
 --
 -- Part budget (all three items <= 700): paving ~1 per shop row, 1 per semi
--- house, ~50 zone slabs; planters 3 each; baskets 2; A-boards 2; cafe sets 10.
+-- house, ~50 zone slabs; planters 5 each; baskets 2; A-boards 2; cafe sets 10.
 -- Estimated from the layout: 69 forecourts + 58 paths + 51 zone slabs + 24
 -- planter parts + <= 152 basket + <= 80 A-board + <= 160 cafe parts ~= 594.
 -- (Baskets: one per join between shopfronts, about as many as the old one
@@ -552,12 +552,17 @@ local function cafeSet(parent: Instance, base: CFrame)
 	end
 end
 
-local function planterTree(parent: Instance, p: Vector3)
+local function planterTree(parent: Instance, p: Vector3, flowers: Color3)
 	local m = Instance.new("Model")
 	m.Name = "PlanterTree"
 	m.Parent = parent
 	local base = CFrame.new(p.X, 0, p.Z)
 	part(m, "Planter", Vector3.new(5, 2.2, 5), base * CFrame.new(0, 1.1, 0), STONE, Enum.Material.Limestone, true)
+	-- X47: soil sunk into the rim and a cushion of flowers round the trunk,
+	-- like the stone planters in RivermereCenter.png
+	part(m, "Soil", Vector3.new(4.4, 0.3, 4.4), base * CFrame.new(0, 2.1, 0), Color3.fromRGB(80, 58, 40), Enum.Material.Ground, false).CastShadow = false
+	-- a bedding block, not a Ball (a ball's diameter is its smallest axis)
+	part(m, "Flowers", Vector3.new(4.2, 0.9, 4.2), base * CFrame.new(0, 2.6, 0), flowers, Enum.Material.Grass, false).CastShadow = false
 	part(m, "Trunk", Vector3.new(0.9, 9, 0.9), base * CFrame.new(0, 2.2 + 4.5, 0), TRUNK, Enum.Material.Wood, true)
 	local crown = part(m, "Crown", Vector3.new(9, 8, 9), base * CFrame.new(0, 14, 0), LEAVES, Enum.Material.Grass, false);
 	(crown :: any).Shape = Enum.PartType.Ball
@@ -681,7 +686,7 @@ function ForecourtDresser.build(): string
 				end
 			end
 			if spaced and clearOfRoads(p, 4) and not nearBusStop(p) and not hitsBlock(r, blocks, nil) and not hitsAny(r, paved) then
-				planterTree(squareModel, p)
+				planterTree(squareModel, p, FLOWERS[#planters % #FLOWERS + 1])
 				table.insert(planters, p)
 			end
 		end

@@ -302,3 +302,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshot** FingerPost_1: the blades read clearly from the pavement, with the clock tower and spire behind.
 - **Biggest remaining differences from the reference (new X47):** bare concrete tree pits instead of flower planters, few hanging baskets, a bus shelter without an advert panel, and lollipop trees.
 - RunAll 330/330.
+
+### 2026-09-17 04:09 — Flowers in the town-centre planters (X47, part)
+- ForecourtDresser's planter trees round the square zone were bare stone boxes. Each now has soil and a bed of flowers round the trunk, taking the colours in turn (pink, purple, coral, white). That adds 2 parts per planter, 8 planters. The first try used a Ball part, which came out as a tiny sphere because a ball's diameter is its smallest axis, so it's a low bedding block now.
+- **Screenshot** Planter_flowers_3: a pink bed in the stone planter outside the Daily Bean. It's blockier than the reference's overflowing planters but reads the same way.
