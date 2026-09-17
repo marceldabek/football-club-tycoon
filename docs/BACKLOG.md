@@ -67,7 +67,7 @@
 - [ ] E6.1 River Lune banks, stone road bridge (multi-arch), riverside path with railings and benches; reference `RivermereRiverside.png` `[studio]` M dep: C2.1
 - [ ] E7.1 Station: platform, canopy, station building, footbridge, car park; railway viaduct over the river; reference `RivermereStation.png` `[studio]` M dep: C2.1
 - [x] E7.2 Bus stops: shelter + flag at centre, station, each plot, park; bus-stop fast-travel UI (pick a destination → fade → teleport) `[studio]` M dep: C2.1
-- [ ] E9.1 Church with spire (landmark) near the centre, visible from every plot `[studio]` S dep: C2.1
+- [x] E9.1 Church with spire (landmark) near the centre, visible from every plot `[studio]` S dep: C2.1
 - [ ] E5.1 Industrial estate greybox → sheds, yards, fences, loading bays; reference `rivermer.industrialestate.png` `[studio]` M
 - [x] E8.1 Plot surroundings: approach road, car park, club shop box, two training pitches per plot; reference `RivermereTurnstileEntrance.png` `[studio]` M dep: B1.2a, C2.1
 - [ ] E6.2 Riverside Park: paths, pond, playground, trees, bandstand `[studio]` M
