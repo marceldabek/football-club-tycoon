@@ -114,6 +114,7 @@ print("[FCT] " .. require(script.Parent.RiverDresser).build())
 print("[FCT] " .. require(script.Parent.ParkDresser).build())
 print("[FCT] " .. require(script.Parent.StationDresser).build())
 print("[FCT] " .. require(script.Parent.ViaductDresser).build())
+print("[FCT] " .. require(script.Parent.BridgeDresser).build())
 PlotService.start()
 require(script.Parent.BusService).start()
 

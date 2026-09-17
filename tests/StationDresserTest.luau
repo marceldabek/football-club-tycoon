@@ -42,4 +42,32 @@ function T.footbridgeClearsTheTracks()
 	assert(TownLayout.distanceToPolyline(near:Lerp(far, 0.5), TownLayout.RAIL.points) < half, "the span crosses the line")
 end
 
+local function close(a: Vector3, b: Vector3): boolean
+	return (a - b).Magnitude < 1e-3
+end
+
+function T.roofWedgesRiseToTheRidge()
+	for _, eaveZ in { 1.5, -41.5 } do
+		local cf, size = StationDresser.roofWedge(-20, eaveZ, 23, 10.5, 242)
+		assert(math.abs(size.Z - 21.5) < 1e-6 and size.Y == 10.5 and size.X == 242, "size (length, rise, run)")
+		-- WedgePart: bottom edge at local -Z has no height; top edge at (+h/2, +l/2)
+		local h, l = size.Y, size.Z
+		assert(close(cf * Vector3.new(0, -h / 2, -l / 2), Vector3.new(0, 23, eaveZ)), "thin edge on the eave")
+		assert(close(cf * Vector3.new(0, h / 2, l / 2), Vector3.new(0, 33.5, -20)), "full height at the ridge")
+		assert(cf.XVector:Cross(cf.YVector):Dot(cf.ZVector) > 0.99, "right-handed frame")
+	end
+end
+
+function T.gableWedgesMeetAtTheApex()
+	for _, side in { -1, 1 } do
+		local cf, size = StationDresser.gableWedge(side, 22, 9.5, 23.3, 0, 2.5)
+		local h, l = size.Y, size.Z
+		assert(close(cf * Vector3.new(0, -h / 2, l / 2), Vector3.new(0, 23.3, 0)), "right angle under the apex")
+		assert(close(cf * Vector3.new(0, h / 2, l / 2), Vector3.new(0, 32.8, 0)), "apex on the centre line")
+		assert(close(cf * Vector3.new(0, -h / 2, -l / 2), Vector3.new(side * 22, 23.3, 0)), "low corner at the side")
+		assert(close(cf * Vector3.new(size.X / 2, -h / 2, l / 2), Vector3.new(0, 23.3, 1.25 + side * 1.25)), "extruded along z")
+		assert(cf.XVector:Cross(cf.YVector):Dot(cf.ZVector) > 0.99, "right-handed frame")
+	end
+end
+
 return T

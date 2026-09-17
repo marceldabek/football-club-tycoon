@@ -26,14 +26,14 @@ local GLASS = Color3.fromRGB(150, 185, 205)
 local PAVING = Color3.fromRGB(200, 188, 168)
 local TAXI_BLACK = Color3.fromRGB(28, 30, 34)
 
-local function part(props: { [string]: any }): BasePart
-	local p = Instance.new("Part")
+local function part(props: { [string]: any }, className: string?): BasePart
+	local p = (Instance.new :: any)(className or "Part") :: BasePart
 	p.Anchored = true
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	p.Material = Enum.Material.SmoothPlastic
 	if props.Shape then
-		p.Shape = props.Shape
+		(p :: any).Shape = props.Shape
 	end
 	for k, v in props do
 		if k ~= "Parent" and k ~= "Shape" then
@@ -176,6 +176,125 @@ function StationDresser.footbridge(parent: Instance, p: CFrame, top: number, dep
 	slab(parent, p, "BridgeRoof", x - 2.9, x + 2.9, roofY - 0.5, roofY - 0.1, nz1, fz0, NAVY, Enum.Material.Metal)
 end
 
+-- Pure: a roof slope as a WedgePart in the front frame. The wedge is full
+-- height (`rise`) at the ridge line z = ridgeZ and thins to nothing at the
+-- eave line z = eaveZ, sitting on y = eaveY, `length` long along x.
+-- WedgePart: full height at local +Z, slope on the Top face falling towards
+-- local -Z. So local Z points from the eave towards the ridge: Z = (0, 0, k)
+-- with k = sign(ridgeZ - eaveZ); Y = up; X = Y x Z = (0,1,0) x (0,0,k) = (k,0,0).
+function StationDresser.roofWedge(ridgeZ: number, eaveZ: number, eaveY: number, rise: number, length: number): (CFrame, Vector3)
+	local k = if ridgeZ >= eaveZ then 1 else -1
+	local pos = Vector3.new(0, eaveY + rise / 2, (ridgeZ + eaveZ) / 2)
+	local cf = CFrame.fromMatrix(pos, Vector3.new(k, 0, 0), Vector3.new(0, 1, 0), Vector3.new(0, 0, k))
+	return cf, Vector3.new(length, rise, math.abs(ridgeZ - eaveZ))
+end
+
+-- Pure: one half of a front-facing triangle (gable / pediment / cross roof)
+-- in the front frame: apex at (0, baseY + rise), low corner at
+-- (side * halfWidth, baseY), extruded from z0 to z1. `side` is -1 or +1.
+-- Local Z runs from the low corner to the tall edge at x = 0: Z = (-side, 0, 0);
+-- Y = up; X = Y x Z = (0,1,0) x (-side,0,0) = (0, 0, side), the extrusion.
+function StationDresser.gableWedge(side: number, halfWidth: number, rise: number, baseY: number, z0: number, z1: number): (CFrame, Vector3)
+	local pos = Vector3.new(side * halfWidth / 2, baseY + rise / 2, (z0 + z1) / 2)
+	local cf = CFrame.fromMatrix(pos, Vector3.new(0, 0, side), Vector3.new(0, 1, 0), Vector3.new(-side, 0, 0))
+	return cf, Vector3.new(z1 - z0, rise, halfWidth)
+end
+
+local function clockFace(target: BasePart, face: Enum.NormalId)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = face
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 50
+	gui.LightInfluence = 0.6
+	gui.Parent = target
+	for i, numeral in { "XII", "III", "VI", "IX" } do
+		local angle = math.rad((i - 1) * 90)
+		local label = Instance.new("TextLabel")
+		label.AnchorPoint = Vector2.new(0.5, 0.5)
+		label.Position = UDim2.fromScale(0.5 + 0.36 * math.sin(angle), 0.5 - 0.36 * math.cos(angle))
+		label.Size = UDim2.fromScale(0.2, 0.14)
+		label.BackgroundTransparency = 1
+		label.TextColor3 = IRON
+		label.Font = Enum.Font.Garamond
+		label.TextScaled = true
+		label.Text = numeral
+		label.Parent = gui
+	end
+	-- hands: a full-size holder rotates about the dial centre (GuiObject.Rotation
+	-- turns about the object's own centre), the hand runs up from the centre
+	for _, hand in { { rotation = 85, length = 0.22, width = 0.05 }, { rotation = 300, length = 0.33, width = 0.03 } } do
+		local holder = Instance.new("Frame")
+		holder.Size = UDim2.fromScale(1, 1)
+		holder.BackgroundTransparency = 1
+		holder.Rotation = hand.rotation
+		holder.Parent = gui
+		local bar = Instance.new("Frame")
+		bar.AnchorPoint = Vector2.new(0.5, 1)
+		bar.Position = UDim2.fromScale(0.5, 0.5)
+		bar.Size = UDim2.fromScale(hand.width, hand.length)
+		bar.BackgroundColor3 = IRON
+		bar.BorderSizePixel = 0
+		bar.Parent = holder
+	end
+end
+
+-- Pitched slate roof, front gable over the entrance canopy with stone coping
+-- and a clock (X21, 12 parts). Heights come from the greybox: the building box
+-- is 0..size.Y-1 and its flat roof slab (hidden by build) sat on top.
+-- Front frame: building occupies z in [-size.Z, 0]; entrance canopy is y 12..15.5.
+function StationDresser.roof(parent: Instance, f: CFrame, size: Vector3)
+	local eaveY = size.Y - 1
+	local halfLen = size.X / 2
+	local ridgeZ = -size.Z / 2
+	local overhang = 1.5
+	local rise = 10.5
+	for _, eaveZ in { overhang, -size.Z - overhang } do
+		local cf, s = StationDresser.roofWedge(ridgeZ, eaveZ, eaveY, rise, size.X + 2)
+		part({ Name = "RoofSlope", Size = s, CFrame = f * cf, Color = SLATE, Material = Enum.Material.Slate, Parent = parent }, "WedgePart")
+	end
+
+	-- gable: brick wall from the canopy top to just above the eave, a brick
+	-- pediment triangle above, projecting 2.5 from the front wall
+	local GABLE_HALF, GABLE_BASE, GABLE_RISE, GABLE_DEPTH = 22, eaveY + 0.3, 9.5, 2.5
+	slab(parent, f, "GableWall", -GABLE_HALF, GABLE_HALF, 15.5, GABLE_BASE, 0, GABLE_DEPTH, BRICK, Enum.Material.Brick)
+	-- cross roof behind the pediment: same pitch, 1 stud wider each side so its
+	-- slopes sit ~0.48 above the pediment's (no shared planes); base 0.05 higher
+	local crossHalf = GABLE_HALF + 1
+	local crossRise = GABLE_RISE * crossHalf / GABLE_HALF
+	for _, side in { -1, 1 } do
+		local cf, s = StationDresser.gableWedge(side, GABLE_HALF, GABLE_RISE, GABLE_BASE, 0, GABLE_DEPTH)
+		part({ Name = "Pediment", Size = s, CFrame = f * cf, Color = BRICK, Material = Enum.Material.Brick, Parent = parent }, "WedgePart")
+		local ccf, cs = StationDresser.gableWedge(side, crossHalf, crossRise, GABLE_BASE + 0.05, ridgeZ + 0.2, 0.6)
+		part({ Name = "CrossRoof", Size = cs, CFrame = f * ccf, Color = SLATE, Material = Enum.Material.Slate, Parent = parent }, "WedgePart")
+		-- coping along the pediment slope, covering the cross roof's front edge;
+		-- the two copings take slightly different depths so they never share a face
+		local theta = math.atan2(GABLE_RISE, GABLE_HALF)
+		local thick = 0.6
+		local z0 = if side < 0 then 0.6 else 0.65
+		local z1 = if side < 0 then GABLE_DEPTH + 0.3 else GABLE_DEPTH + 0.35
+		local normal = Vector3.new(side * math.sin(theta), math.cos(theta), 0)
+		local mid = Vector3.new(side * GABLE_HALF / 2, GABLE_BASE + GABLE_RISE / 2, (z0 + z1) / 2) + normal * (thick / 2)
+		part({
+			Name = "Coping",
+			Size = Vector3.new(math.sqrt(GABLE_HALF ^ 2 + GABLE_RISE ^ 2) + 0.8, thick, z1 - z0),
+			CFrame = f * CFrame.new(mid) * CFrame.Angles(0, 0, -side * theta),
+			Color = Color3.fromRGB(215, 205, 185),
+			Material = Enum.Material.Limestone,
+			Parent = parent,
+		})
+	end
+	slab(parent, f, "GableBand", -GABLE_HALF - 0.5, GABLE_HALF + 0.5, eaveY, eaveY + 0.6, GABLE_DEPTH, GABLE_DEPTH + 0.4, Color3.fromRGB(215, 205, 185), Enum.Material.Limestone)
+
+	-- clock: stone rim and a white dial. Cylinders run along local X; turning
+	-- +90 degrees about Y sends local +X to -Z (into the wall), so the dial's
+	-- outward face is Left (-X).
+	local clockY = GABLE_BASE + 3.6
+	local turn = CFrame.Angles(0, math.pi / 2, 0)
+	part({ Name = "ClockRim", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 6, 6), CFrame = f * CFrame.new(0, clockY, GABLE_DEPTH + 0.1) * turn, Color = Color3.fromRGB(215, 205, 185), Material = Enum.Material.Limestone, Parent = parent })
+	local dial = part({ Name = "ClockFace", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 5.2, 5.2), CFrame = f * CFrame.new(0, clockY, GABLE_DEPTH + 0.2) * turn, Color = Color3.fromRGB(245, 242, 232), Parent = parent })
+	clockFace(dial, Enum.NormalId.Left)
+end
+
 function StationDresser.build(): string
 	local town = workspace:FindFirstChild("Town")
 	if not town then
@@ -192,8 +311,13 @@ function StationDresser.build(): string
 					d.Color = BRICK
 					d.Material = Enum.Material.Brick
 				elseif d.Name == "Station Building roof" then
+					-- replaced by the pitched roof (X21)
 					d.Color = SLATE
 					d.Material = Enum.Material.Slate
+					d.Transparency = 1
+					d.CanCollide = false
+					d.CanQuery = false
+					d.CastShadow = false
 				elseif d.Name == "Canopy" or d.Name == "Canopy Post" then
 					d.Color = NAVY
 				end
@@ -208,6 +332,11 @@ function StationDresser.build(): string
 	m.Name = "StationFront"
 	local f = StationDresser.frontFrame()
 	local halfLen = station.size.X / 2
+
+	-- pitched roof, front gable and clock over the greybox shell (X21)
+	if greybox then
+		StationDresser.roof(m, f, station.size)
+	end
 
 	-- forecourt paving in front of the building
 	slab(m, f, "Forecourt", -halfLen, halfLen, 0, 0.3, 0, 22, PAVING, Enum.Material.Pavement)
