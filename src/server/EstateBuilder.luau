@@ -689,6 +689,36 @@ function EstateBuilder.shed(cframe: CFrame, size: Vector3, parent: Instance, rng
 	local palisaded = EstateBuilder.palisade(cframe * CFrame.new(yardMidX, 0, -hw), sideLength, model)
 		and EstateBuilder.palisade(cframe * CFrame.new(yardMidX, 0, hw), sideLength, model)
 		and EstateBuilder.palisade(cframe * CFrame.new(-depth / 2 - YARD_DEPTH, 0, 0) * CFrame.Angles(0, math.pi / 2, 0), width - 0.5, model)
+	-- X120 (rivermer.industrialestate.png): a yellow visitor / CCTV notice on
+	-- the front fence of every other unit, facing the road, 0.3 proud of it
+	if (unit or 1) % 2 == 0 then
+		local notice = block("Part", "YardNotice", Vector3.new(0.1, 2.2, 3), cframe * CFrame.new(-depth / 2 - YARD_DEPTH - 0.3, 2.6, -hw / 2), Color3.fromRGB(240, 196, 30), Enum.Material.SmoothPlastic, model, false)
+		notice.CastShadow = false
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = Enum.NormalId.Left -- local -X, toward the road
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.MaxDistance = 120
+		gui.Parent = notice
+		local top = Instance.new("TextLabel")
+		top.BackgroundColor3 = Color3.fromRGB(24, 60, 140)
+		top.BorderSizePixel = 0
+		top.Size = UDim2.fromScale(1, 0.5)
+		top.Font = Enum.Font.GothamBold
+		top.TextScaled = true
+		top.TextColor3 = Color3.new(1, 1, 1)
+		top.Text = "ALL VISITORS REPORT TO RECEPTION"
+		top.Parent = gui
+		local bottom = Instance.new("TextLabel")
+		bottom.BackgroundTransparency = 1
+		bottom.Position = UDim2.fromScale(0, 0.5)
+		bottom.Size = UDim2.fromScale(1, 0.5)
+		bottom.Font = Enum.Font.GothamBlack
+		bottom.TextScaled = true
+		bottom.TextColor3 = Color3.fromRGB(20, 20, 22)
+		bottom.Text = "CCTV IN OPERATION"
+		bottom.Parent = gui
+	end
 	for _, spec in if palisaded then {} else {
 		{ name = "FenceLeft", size = Vector3.new(YARD_DEPTH, fenceY, 0.15), offset = Vector3.new(-depth / 2 - YARD_DEPTH / 2, fenceY / 2, -hw) },
 		{ name = "FenceRight", size = Vector3.new(YARD_DEPTH, fenceY, 0.15), offset = Vector3.new(-depth / 2 - YARD_DEPTH / 2, fenceY / 2, hw) },
