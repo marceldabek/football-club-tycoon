@@ -1004,7 +1004,7 @@ These are intentionally undecided:
 - exact scouting rarity/potential curves
 - cup structure
 - late-game difficulty pressure
-- multiplayer/social stadium visits
+- online 1v1 match controls (needs its own design talk, J0 in docs/WORLD_ROADMAP.md)
 - monetization
 - daily/returning-player systems
 - final stadium customization depth
@@ -1026,3 +1026,65 @@ It is:
 > **“Is playing a match, earning money, and physically improving my tiny club satisfying enough that I want to do it again?”**
 
 Everything else follows from that.
+
+---
+
+# 27. Town & Multiplayer Direction (decided 2026-09-16)
+
+The game is moving from one club per server to a **shared multiplayer town**. Full answers live in `docs/WORLD_ROADMAP.md` section 4 (Q1–Q39, all **DECIDED**). Vision is in `docs/WORLD_VISION.md`. Concept art goes in `assets/references/town/`.
+
+## Town
+
+- The town is **Rivermere** (never "Riverdale", even though one concept map says so). The river is the **River Lune**.
+- Every player club is from Rivermere.
+- The concept map is the target idea, not an exact copy: a river through the middle with bridges, a railway and station, a town centre with a market square, terraced housing estates, an industrial estate, a riverside park, a community sports centre, and **club grounds on the edge of town**.
+- Landmarks: church spire, river bridge, railway viaduct over the river.
+- Scale it down so it can be walked on Roblox.
+- Build districts one at a time. Start with a terraced-housing district next to the town centre.
+
+## Plots & players
+
+- **4 club plots per server.**
+- When loading in, the player switches between the free plots and picks one.
+- A plot holds the stadium, office, car park, club shop and a couple of training pitches. The biggest endgame stadium should look like roughly 30k seats.
+- An empty plot is a lot with a "for sale" sign, trees and some rocks.
+- A player's club despawns when they leave, and the plot goes back to the for-sale lot.
+- Players spawn in their own office.
+- To get around: walk and sprint, a "go to my club" button, and bus stops that fast-travel to other clubs, the town centre and landmarks.
+- Target device: a mid-range phone, with quality settings.
+- Later idea (not scheduled): buy a car and a house to show off wealth.
+
+## Time & lighting
+
+- Time of day is **client-side, per player**.
+- 1 match = 1 week, shown visually only.
+- Normal play stays on one fixed afternoon look.
+- Fast-forward is ~4 s after each match and ~10 s at season end, always skippable.
+- Most matches are in the afternoon, with some evening games under floodlights.
+- Depth of field is only used in menus, close-ups and the intro.
+
+## Matchday & influence
+
+- Fans and stewards around the playing club's ground are visible to everyone. Town-wide banners and busy pubs show only on that player's screen.
+- Each player's screen shows the town in their club's identity. The neighbourhood around each ground changes for everyone as that club grows.
+
+## Assets
+
+- Budget is $500 (see `docs/ASSET_KIT.md`).
+- Creator Store kits are fine with scripts stripped, and Marcel approves the buy list.
+- The asset kit sets the style, and the stadium is restyled to match it.
+- Streets and props are placed by code from layout data. Hand-built showpiece pieces are `.rbxm` files in the repo.
+- AI mesh generation is fine for props. For buildings, prefer bought or downloaded assets.
+- Audio comes from Roblox's licensed library first.
+- Club shop and training ground are visual first, with mechanics in a later gameplay milestone.
+
+## Social & online
+
+- **Friendlies:** no injuries, a small payout to the home club, no effect on the league.
+- No cash gifts; cash only moves as part of a player trade.
+- Trades are same-server only at first, with no anti-abuse limits for now.
+- **Save lock:** a new server waits for the save lock, then loads, and the old session closes.
+- **Online matchmaking:** career squads matched within strength bands. Queue time matters more than region.
+- Online wins pay cash into the career, plus trophies and rating, with no weekly cap for now.
+- Leaderboards: a seasonal rating ladder and a friends board.
+- What each human controls in a 1v1 is still undecided and needs its own design talk before any online work.
