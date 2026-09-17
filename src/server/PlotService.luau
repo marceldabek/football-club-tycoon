@@ -388,7 +388,8 @@ local function townSpawn()
 	local centre = if layout and type(layout.SQUARE) == "table" and typeof(layout.SQUARE.centre) == "Vector3"
 		then layout.SQUARE.centre :: Vector3
 		else Vector3.zero
-	spawn.CFrame = CFrame.new(centre.X, 1, centre.Z)
+	-- between the clock tower planters (r 17) and the market stalls (r 43)
+	spawn.CFrame = CFrame.new(centre.X + 30, 1, centre.Z)
 	spawn.Transparency = 1
 	spawn.CanCollide = false
 	spawn.Neutral = true
