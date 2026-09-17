@@ -115,7 +115,7 @@
 - [x] X7 Picker viewpoint is too high and hazy; lower/closer view onto the FOR SALE board; reduce Atmosphere density for town scale (HeroAfternoon 0.32 hides anything past ~600 studs) `[studio]` S
 - [x] X8 Town edge: terrain stops dead at x ±2800 / z ±2200; needs a backdrop (hills, tree belt) `[studio]` M
 - [x] X9 (halved to 100x150) Car park (100 × 300) dominates the plot entrance; halve it or turn it `[disk]` S
-- [ ] X10 Roads z-fight risk: overlapping tops only 0.004–0.01 apart; check at distance on a mid phone `[studio]` S
+- [ ] X10 (03:57 desktop: no flicker seen over the High Street and Bridge Street from 45 up; still needs a real phone) Roads z-fight risk: overlapping tops only 0.004–0.01 apart; check at distance on a mid phone `[studio]` S
 - [x] X11 (TerraceStreetDresser: trees, walls/railings/hedges, street signs, kerb cars; Mill/Weaver full detail) Mill Street vs `RiveremereWestdale.png`: add street trees, front garden walls/railings + hedges, club banners on lamp posts, street name signs, cars on both kerbs `[studio]` M
 - [x] X12 Low-part terrace row (≤ 25 parts: body, roof wedges, chimney stacks, door/window decals) so every terraced block in town can be dressed within the mobile budget `[disk]` M
 - [x] X13 Kit lamp is 36 parts: build a ≤ 6-part Victorian lamp for town-wide use `[disk]` S
