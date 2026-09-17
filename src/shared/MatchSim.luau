@@ -115,7 +115,9 @@ local function pickMinutes(rng: Random, count: number): { number }
 end
 
 function MatchSim.simulate(params: Params): Result
-	local rng = Random.new(params.seed or os.time())
+	-- X201: unseeded matches get their own random sequence (os.time() gave two
+	-- clubs kicking off in the same second identical games)
+	local rng = if params.seed then Random.new(params.seed) else Random.new()
 	local home = math.max(params.homeStrength + HOME_ADVANTAGE, 1)
 	local away = math.max(params.awayStrength, 1)
 	local edge = (home / away) ^ STRENGTH_EXPONENT

@@ -30,6 +30,9 @@ local Session = {}
 local saver: SaveService.Saver
 local locker: SaveLock.Locker? = nil
 local haveLock = false
+-- X196: another server stole the lock; it may already have saved newer data,
+-- so this server must never write the club again
+local lockStolen = false
 local backendKind = "none"
 local ownerId = 0
 local loaded = false
@@ -176,7 +179,7 @@ end
 
 -- Every save goes through here so the stamps the saver writes stay in step.
 local function flush(force: boolean): boolean
-	if not loaded or stopped then
+	if not loaded or stopped or lockStolen then
 		return false
 	end
 	local ok = saver:flush(ownerId, Session.snapshot, force)
@@ -369,11 +372,19 @@ function Session.start(owner: Player): boolean
 				-- Another server took (or is requesting) this owner's lock:
 				-- decided behaviour is the new server always wins, so this one
 				-- flushes what it has and closes rather than fighting for it.
-				local hbOk, hbHeld = pcall(function()
+				local hbOk, hbHeld, hbStolen = pcall(function()
 					return (locker :: SaveLock.Locker):heartbeat(ownerId)
 				end)
 				if hbOk and not hbHeld then
-					flush(true)
+					if hbStolen then
+						-- X196: the new server already holds the lock (and may have
+						-- saved); flushing now could overwrite newer data
+						lockStolen = true
+						warn("[FCT] save lock was taken by another server; not saving this session again")
+					else
+						-- only requested: the new server waits for this final save
+						flush(true)
+					end
 					local ownerPlayer = Players:GetPlayerByUserId(ownerId)
 					if ownerPlayer then
 						ownerPlayer:Kick("Your club was opened on another server.")
@@ -400,7 +411,7 @@ function Session.stop()
 		return
 	end
 	flush(true)
-	if haveLock then
+	if haveLock and not lockStolen then
 		local ok = pcall(function()
 			(locker :: SaveLock.Locker):release(ownerId)
 		end)

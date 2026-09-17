@@ -51,7 +51,7 @@ export type LockerOptions = {
 
 export type Locker = {
 	acquire: (self: Locker, userId: number) -> (boolean, string),
-	heartbeat: (self: Locker, userId: number) -> boolean,
+	heartbeat: (self: Locker, userId: number) -> (boolean, boolean),
 	release: (self: Locker, userId: number) -> boolean,
 	holds: (self: Locker, userId: number) -> boolean,
 }
@@ -171,16 +171,25 @@ function SaveLock.new(backend: LockBackend, opts: LockerOptions): Locker
 		return true, "stolen-timeout"
 	end
 
-	function self:heartbeat(userId: number): boolean
+	-- Second return (X196): true when another job now holds the lock, i.e. it
+	-- was stolen and this server's data may already be older than the store's;
+	-- false when merely requested (the new server waits for our last flush).
+	function self:heartbeat(userId: number): (boolean, boolean)
 		local key = keyFor(userId)
 		local ok = false
+		local stolen = false
 		backend.update(key, function(old: any?): any?
 			local record = old :: LockRecord?
 			if record == nil then
 				ok = false
 				return nil
 			end
-			if record.jobId ~= jobId or record.requestedBy ~= nil then
+			if record.jobId ~= jobId then
+				ok = false
+				stolen = true
+				return nil
+			end
+			if record.requestedBy ~= nil then
 				ok = false
 				return nil
 			end
@@ -188,7 +197,7 @@ function SaveLock.new(backend: LockBackend, opts: LockerOptions): Locker
 			return { jobId = record.jobId, lockedAt = record.lockedAt, heartbeat = now() }
 		end)
 		held[userId] = ok
-		return ok
+		return ok, stolen
 	end
 
 	function self:release(userId: number): boolean

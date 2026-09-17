@@ -207,7 +207,7 @@ local function finishCore()
 end
 
 -- Overrides exist for tests only.
-function MatchService.playMatch(durationOverride: number?, walkoutOverride: number?): boolean
+local function playMatchInner(durationOverride: number?, walkoutOverride: number?): boolean
 	if running or ClubState.get("Phase") ~= "Manage" then
 		return false
 	end
@@ -294,6 +294,27 @@ function MatchService.playMatch(durationOverride: number?, walkoutOverride: numb
 	return true
 end
 
+-- X200: an error anywhere in a match (walkout, simulation, crowd, settlement,
+-- season bookkeeping) used to leave `running` set and the Phase stuck in
+-- PreMatch/Match, locking every button until the owner rejoined. The wrappers
+-- below put the club back into Manage instead.
+local function recoverFromMatchError(err: any)
+	warn("[FCT] match failed: " .. tostring(err))
+	ClubState.set("Friendly", false)
+	if running or ClubState.get("Phase") ~= "Manage" then
+		finishCore()
+	end
+end
+
+function MatchService.playMatch(durationOverride: number?, walkoutOverride: number?): boolean
+	local ok, started = pcall(playMatchInner, durationOverride, walkoutOverride)
+	if not ok then
+		recoverFromMatchError(started)
+		return false
+	end
+	return started
+end
+
 -- The side this club would send to a friendly away from home. Reads the squad
 -- only; nothing saved changes.
 function MatchService.awayTeam(): Opponent
@@ -311,7 +332,7 @@ end
 -- A friendly at this ground (I3.1). TEMP rules in Friendly: no injuries or
 -- development, no league table, not in W/D/L or MatchesPlayed; the home club
 -- gets a share of the gate. Returns the final score for the away owner.
-function MatchService.playFriendly(opponent: Opponent, durationOverride: number?, walkoutOverride: number?): (boolean, number?, number?)
+local function playFriendlyInner(opponent: Opponent, durationOverride: number?, walkoutOverride: number?): (boolean, number?, number?)
 	if running or ClubState.get("Phase") ~= "Manage" then
 		return false
 	end
@@ -361,6 +382,15 @@ function MatchService.playFriendly(opponent: Opponent, durationOverride: number?
 		})
 	end
 	return true, result.homeGoals, result.awayGoals
+end
+
+function MatchService.playFriendly(opponent: Opponent, durationOverride: number?, walkoutOverride: number?): (boolean, number?, number?)
+	local ok, started, home, away = pcall(playFriendlyInner, opponent, durationOverride, walkoutOverride)
+	if not ok then
+		recoverFromMatchError(started)
+		return false
+	end
+	return started, home, away
 end
 
 return MatchService

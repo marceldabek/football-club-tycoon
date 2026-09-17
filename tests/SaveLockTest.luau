@@ -116,7 +116,9 @@ function T.heartbeatFalseAfterStolen()
 	local ok, reason = lockerB:acquire(6)
 	assert(ok and reason == "stolen-stale", "setup: B should steal the stale lock")
 
-	assert(not lockerA:heartbeat(6), "A's heartbeat should fail once B holds the lock")
+	local held, stolen = lockerA:heartbeat(6)
+	assert(not held, "A's heartbeat should fail once B holds the lock")
+	assert(stolen, "X196: A should learn the lock was stolen, so it stops saving")
 	assert(not lockerA:holds(6), "A should now believe it does not hold the lock")
 end
 
@@ -140,7 +142,9 @@ function T.heartbeatFalseWhenRequested()
 		return old
 	end)
 
-	assert(not lockerA:heartbeat(8), "A's heartbeat should fail once another job requested the lock")
+	local held, stolen = lockerA:heartbeat(8)
+	assert(not held, "A's heartbeat should fail once another job requested the lock")
+	assert(not stolen, "X196: only requested, so A still makes its final save")
 	assert(not lockerA:holds(8), "A should now believe it does not hold the lock")
 end
 
