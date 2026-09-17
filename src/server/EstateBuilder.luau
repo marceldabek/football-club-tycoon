@@ -32,15 +32,15 @@ local EstateBuilder = {}
 -- The lead fills these in after uploading assets/kit/_export/textures/*.png
 -- (ids land in assets/kit/_export/asset_ids_textures.json).
 EstateBuilder.TEXTURES = {
-	semi_front_a = "rbxassetid://0", -- semi_front_a.png cream render, red door, bay window
-	semi_front_b = "rbxassetid://0", -- semi_front_b.png white render, blue door, mirrored layout
-	semi_side = "rbxassetid://0", -- semi_side.png plain seamless brick (gable ends)
-	roof_tiles = "rbxassetid://0", -- roof_tiles.png red-brown clay tiles, seamless
-	shed_cladding = "rbxassetid://0", -- shed_cladding.png grey-blue profiled metal, seamless
-	shed_door = "rbxassetid://0", -- shed_door.png roller shutter + personnel door + blank sign fascia
-	shed_sign_a = "rbxassetid://0", -- shed_sign_a.png "LUNE LOGISTICS"
-	shed_sign_b = "rbxassetid://0", -- shed_sign_b.png "RIVERMERE PLANT HIRE"
-	shed_sign_c = "rbxassetid://0", -- shed_sign_c.png "MILL LANE MOTORS"
+	semi_front_a = "rbxassetid://86227648157444", -- semi_front_a.png cream render, red door, bay window
+	semi_front_b = "rbxassetid://96244530243715", -- semi_front_b.png white render, blue door, mirrored layout
+	semi_side = "rbxassetid://81200911777912", -- semi_side.png plain seamless brick (gable ends)
+	roof_tiles = "rbxassetid://107062786945119", -- roof_tiles.png red-brown clay tiles, seamless
+	shed_cladding = "rbxassetid://91306351376128", -- shed_cladding.png grey-blue profiled metal, seamless
+	shed_door = "rbxassetid://94659629504751", -- shed_door.png roller shutter + personnel door + blank sign fascia
+	shed_sign_a = "rbxassetid://110260477425803", -- shed_sign_a.png "LUNE LOGISTICS"
+	shed_sign_b = "rbxassetid://87492718476432", -- shed_sign_b.png "RIVERMERE PLANT HIRE"
+	shed_sign_c = "rbxassetid://90435262795416", -- shed_sign_c.png "MILL LANE MOTORS"
 } :: { [string]: string }
 
 local FRONT_VARIANTS = { "semi_front_a", "semi_front_b" }
