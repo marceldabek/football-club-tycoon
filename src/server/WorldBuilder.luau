@@ -796,9 +796,23 @@ local function buildTurnstiles(parent: Instance)
 	local lanes, laneW, pierW = 3, 5, 2.4
 	local total = lanes * laneW + (lanes + 1) * pierW
 	local dark = Color3.fromRGB(60, 60, 65)
+	-- X52: brick piers with stone caps and open iron gate leaves folded against
+	-- them, like RivermereTurnstileEntrance.png; the club colour stays on the fascia
+	local brick = Color3.fromRGB(150, 84, 62)
+	local stone = Color3.fromRGB(214, 204, 184)
+	local iron = Color3.fromRGB(28, 34, 48)
 	for i = 0, lanes do
 		local z = TURNSTILE_Z - total / 2 + pierW / 2 + i * (laneW + pierW)
-		box("Pier", Vector3.new(7, h, pierW), Vector3.new(x - 1, DECK_Y + h / 2, z), Config.HomeKit, Enum.Material.SmoothPlastic, gate)
+		box("Pier", Vector3.new(7, h, pierW), Vector3.new(x - 1, DECK_Y + h / 2, z), brick, Enum.Material.Brick, gate)
+		box("PierCap", Vector3.new(7.3, 0.4, pierW + 0.3), Vector3.new(x - 1, DECK_Y + h - 0.15, z), stone, Enum.Material.Limestone, gate)
+	end
+	for i = 1, lanes do
+		local z = TURNSTILE_Z - total / 2 + pierW + laneW / 2 + (i - 1) * (laneW + pierW)
+		-- an open gate leaf folded flat against the outer face of each pier, clear of the lane
+		for _, side in { -1, 1 } do
+			local leaf = box("GateLeaf", Vector3.new(0.2, 6.5, 2.2), Vector3.new(x - 4.65, DECK_Y + 3.35, z + side * (laneW / 2 + pierW / 2)), iron, Enum.Material.Metal, gate)
+			leaf.CanCollide = false
+		end
 	end
 	for i = 1, lanes do
 		local z = TURNSTILE_Z - total / 2 + pierW + laneW / 2 + (i - 1) * (laneW + pierW)

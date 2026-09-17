@@ -345,3 +345,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 
 ### 2026-09-17 04:24 — Taxi lane towards Station Road (X51, part)
 - I extended the drop-off lane 10 studs east, but a grass gap remains between it and Station Road's diagonal end (Station_lane_1). The real fix is a layout change: give Station Road an extra point so it turns along the station forecourt. That touches traffic routes and TownLayoutTest, so it's left on the backlog rather than rushed.
+
+### 2026-09-17 04:27 — Turnstile entrance in brick (X52)
+- **Compared with `RivermereTurnstileEntrance.png`:** that entrance is brick piers, dark iron gates and a club-name fascia. Ours was four club-red boxes.
+- **Change:** WorldBuilder builds the piers in brick with limestone caps, and adds an open iron gate leaf folded flat against each pier's outer face (no collision, clear of the lanes, so walking fans are unaffected). The club-colour fascia with the club name stays. 14 more parts per ground.
+- **Screenshot** Turnstiles_brick_1.
+- **Still missing (new X53):** lane signs ("HOME SUPPORTERS" / "TICKETS"), a brick boundary wall off each side, and a club banner on a lamp outside.
+- RunAll 332/332.

@@ -157,4 +157,6 @@
 - [x] X49 (white mullion + transom on every station window, stone sills on the ground floor) Station windows read as dark blank panels next to RivermereStation.png `[studio]` S
 - [x] X50 (04:21 verge paved in 14 strips; 04:23 yellow rank line + TAXIS marking; the kiosk already existed at the west end) Station frontage vs RivermereStation.png: a grass strip separates Station Road's pavement from the paved forecourt (reference: paved to the kerb), no newsagent kiosk, no taxi-rank / BUS STOP road markings `[studio]` M
 - [ ] X51 (04:24: lane extended 10 studs east; a grass gap to Station Road's diagonal end remains, Station_lane_1. Proper fix: add a TownLayout point so Station Road turns along the forecourt; affects traffic and TownLayoutTest) The station drop-off lane and taxi rank sit in grass with no road link `[disk]` S
+- [x] X52 (brick piers with stone caps, iron gate leaves folded on the piers; club-colour fascia kept) Turnstile block is a plain club-colour box next to RivermereTurnstileEntrance.png `[studio]` S
+- [ ] X53 Turnstile entrance vs RivermereTurnstileEntrance.png: no HOME SUPPORTERS / TICKETS lane signs, no brick boundary wall running off either side, no club banner on a lamp post outside `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
