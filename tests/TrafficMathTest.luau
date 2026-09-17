@@ -217,4 +217,22 @@ function T.passedStopWorksBothWays()
 	assert(TrafficMath.passedStop(170, 30, stops) == 160, "first reached wins going backward")
 end
 
+function T.aroundIslandsPushesCarsOntoARingRoundTheIsland()
+	local rbs = { { centre = Vector3.new(100, 0, 100), radius = 40 } }
+	local ring = 40 * TrafficMath.ISLAND_SHARE + 4
+	-- well outside: untouched
+	local p, d = TrafficMath.aroundIslands(Vector3.new(100, 0, 150), Vector3.new(0, 0, -1), rbs, 4)
+	assert(p == Vector3.new(100, 0, 150) and d == Vector3.new(0, 0, -1), "outside the ring is unchanged")
+	-- inside: on the ring, same side, heading tangent-ish and forward
+	local inside = Vector3.new(95, 2, 100)
+	local q, h = TrafficMath.aroundIslands(inside, Vector3.new(0, 0, -1), rbs, 4)
+	assert(math.abs((Vector3.new(q.X, 0, q.Z) - Vector3.new(100, 0, 100)).Magnitude - ring) < EPS, "pushed onto the ring")
+	assert(q.X < 100, "stays on its own side")
+	assert(math.abs(q.Y - 2) < EPS, "height kept")
+	assert(math.abs(h.Magnitude - 1) < EPS and h:Dot(Vector3.new(0, 0, -1)) > 0, "heading unit and still forward")
+	-- dead centre still ends up on the ring
+	local c = TrafficMath.aroundIslands(Vector3.new(100, 0, 100), Vector3.new(0, 0, -1), rbs, 4)
+	assert(math.abs((c - Vector3.new(100, 0, 100)).Magnitude - ring) < EPS, "centre case on the ring")
+end
+
 return T

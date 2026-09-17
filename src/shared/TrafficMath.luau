@@ -187,6 +187,35 @@ function TrafficMath.connections(roads: { RoadLike }, roadIndex: number, atEnd: 
 	return out
 end
 
+-- X79: roundabout islands. TownBuilder paints each island at ISLAND_SHARE of
+-- the roundabout's radius; a car closer than island + clearance to a centre is
+-- pushed out onto that ring, heading along it (blended with its road heading
+-- by how deep it was), so it drives round the island instead of over it.
+TrafficMath.ISLAND_SHARE = 0.35
+
+export type RoundaboutLike = { centre: Vector3, radius: number }
+
+function TrafficMath.aroundIslands(pos: Vector3, direction: Vector3, roundabouts: { RoundaboutLike }, clearance: number): (Vector3, Vector3)
+	for _, r in roundabouts do
+		local ring = r.radius * TrafficMath.ISLAND_SHARE + clearance
+		local offset = Vector3.new(pos.X - r.centre.X, 0, pos.Z - r.centre.Z)
+		local d = offset.Magnitude
+		if d < ring then
+			-- dead centre: go round on the left, the way the lane offset already points
+			local radial = if d > 1e-3 then offset / d else Vector3.new(direction.Z, 0, -direction.X)
+			local tangent = Vector3.new(-radial.Z, 0, radial.X)
+			if tangent:Dot(direction) < 0 then
+				tangent = -tangent
+			end
+			local depth = 1 - d / ring
+			local blended = direction * (1 - depth) + tangent * depth
+			local heading = if blended.Magnitude > 1e-6 then blended.Unit else tangent
+			return Vector3.new(r.centre.X, pos.Y, r.centre.Z) + radial * ring, heading
+		end
+	end
+	return pos, direction
+end
+
 -- F2.2 bus stops: distances along a road's polyline where a bus should pull
 -- up, for every stop within `maxOffset` studs of the road. Sorted ascending.
 function TrafficMath.stopDistances(points: { Vector3 }, stops: { Vector3 }, maxOffset: number): { number }

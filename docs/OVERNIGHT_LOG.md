@@ -634,3 +634,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - I first held back because client traffic has no roundabout logic. It turns out cars already drive straight over the islands of all nine existing roundabouts, so this one is no worse. That limitation belongs in a traffic follow-up, not in this layout item.
 - **Screenshot** FoundryRoundabout_1.
 - RunAll 364/364.
+
+### 2026-09-17 06:56 — Traffic goes round roundabout islands (X79), walker follow-up (X80)
+- While adding the estate roundabout I found that client traffic simply followed road polylines straight across every roundabout's grass island. New pure `TrafficMath.aroundIslands(pos, direction, roundabouts, clearance)` (1 test) moves a vehicle closer than island + clearance to a centre out onto that ring, keeping its side, and blends its heading towards the ring's tangent by how deep it was. It's a TEMP visual fix: there's no give-way or proper circulation. Traffic applies it after the lane offset, with a clearance of 4.5 (bus 5.5). The island share (0.35) matches TownBuilder.
+- **Client check:** over 25 s at the Sports Centre, Northfields and Foundry Way roundabouts, 734 vehicle-part samples were inside a roundabout and none were over an island (closest 14.4 from a centre, island 14).
+- **Screenshot** RoundaboutTraffic_1. It also shows pedestrians walking across the roundabout carriageway, logged as X80.
+- RunAll 365/365.

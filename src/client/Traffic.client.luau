@@ -40,6 +40,8 @@ local BUS_STOP_REACH = 40 -- a stop this close to the road centreline serves it 
 local BIKE_EVERY = 5 -- TEMP: 1 in 5 spawns on a quiet street is a bike
 local BIKE_SPEED = 11 -- TEMP studs/s
 local BIKE_KERB_INSET = 1.6 -- rider (1.3 wide) clears a car in the lane on a 20-wide residential street
+local ISLAND_CLEAR = 4.5 -- X79: vehicle centre from a roundabout island's edge (cars ~6 wide)
+local ISLAND_CLEAR_BUS = 5.5
 local BIKE_COLOURS = { Color3.fromRGB(40, 90, 170), Color3.fromRGB(190, 40, 40), Color3.fromRGB(30, 30, 34), Color3.fromRGB(220, 200, 60) }
 local SPAWN_MIN_DIST = 150
 local SPAWN_MAX_DIST = 700
@@ -501,6 +503,8 @@ local function moveCar(car: Car, dt: number)
 		+ (if car.isBike
 			then TrafficMath.kerbOffset(direction, currentRoad.width, BIKE_KERB_INSET)
 			else TrafficMath.laneOffset(direction, currentRoad.width, -1))
+	-- X79: round roundabout islands, not over them
+	flatPos, direction = TrafficMath.aroundIslands(flatPos, direction, TownLayout.ROUNDABOUTS, if car.isBus then ISLAND_CLEAR_BUS else ISLAND_CLEAR)
 	car.lastPos = flatPos
 
 	local y = bridgeDeckY(flatPos, car.kind) or roadTopFor(car.kind)
