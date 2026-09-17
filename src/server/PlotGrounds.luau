@@ -931,10 +931,9 @@ local intakeBound = false
 
 local function bindAcademy()
 	local state = PlotContext.stateFolder()
-	if intakeBound or not state then
+	if not state then
 		return
 	end
-	intakeBound = true
 	local function refresh()
 		local raw = state:GetAttribute("Academy")
 		local lines = {}
@@ -952,8 +951,11 @@ local function bindAcademy()
 		end
 		PlotGrounds.setAcademyIntake(lines)
 	end
-	state:GetAttributeChangedSignal("Academy"):Connect(refresh)
-	task.defer(refresh)
+	if not intakeBound then
+		intakeBound = true
+		state:GetAttributeChangedSignal("Academy"):Connect(refresh)
+	end
+	task.defer(refresh) -- review: a rebuilt board starts blank
 end
 
 function PlotGrounds.build(club: Model): Model

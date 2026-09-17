@@ -210,8 +210,24 @@ export type Track = { duration: number, keys: { Keyframe } }
 -- sun sweep -> sunset -> lights on -> night -> morning -> back to the hero
 -- afternoon look play resumes on. `fromEvening` starts the sweep from the
 -- floodlit look instead, for a match that kicked off in the evening.
-function DayCycle.fastForward(kind: "match" | "season", fromEvening: boolean?): Track
+-- X321: WORLD_VISION s3 asks for the occasional overcast or wet week in the
+-- transition, and there is an Overcast look sitting unused, but the sweep only
+-- ever ran sun -> sunset -> night -> dawn -> sun, so nine seasons of weeks
+-- looked identical. Roughly one week in three now comes back grey before it
+-- clears, and it always ends on the hero afternoon a match is played in.
+-- `weekSeed` keeps it deterministic: the same week always looks the same.
+DayCycle.OVERCAST_EVERY = 3
+
+function DayCycle.isOvercastWeek(weekSeed: number?): boolean
+	if weekSeed == nil then
+		return false
+	end
+	return math.floor(math.abs(weekSeed)) % DayCycle.OVERCAST_EVERY == 1
+end
+
+function DayCycle.fastForward(kind: "match" | "season", fromEvening: boolean?, weekSeed: number?): Track
 	local startLook = if fromEvening then "EveningMatch" else "HeroAfternoon"
+	local wet = DayCycle.isOvercastWeek(weekSeed)
 	if kind == "match" then
 		local duration = 4
 		return {
@@ -221,7 +237,7 @@ function DayCycle.fastForward(kind: "match" | "season", fromEvening: boolean?): 
 				{ at = 0.8, look = "Sunset" },
 				{ at = 1.6, look = "EveningMatch" }, -- lights on
 				{ at = 2.4, look = "Night" },
-				{ at = 3.2, look = "Dawn" },
+				{ at = 3.2, look = if wet then "Overcast" else "Dawn" },
 				{ at = duration, look = "HeroAfternoon" },
 			},
 		}
@@ -235,7 +251,8 @@ function DayCycle.fastForward(kind: "match" | "season", fromEvening: boolean?): 
 			{ at = 2, look = "Sunset" },
 			{ at = 4, look = "EveningMatch" }, -- lights on
 			{ at = 6, look = "Night" },
-			{ at = 8, look = "Dawn" },
+			{ at = 8, look = if wet then "Overcast" else "Dawn" },
+			{ at = 9, look = if wet then "Overcast" else "HeroAfternoon" },
 			{ at = duration, look = "HeroAfternoon" },
 		},
 	}

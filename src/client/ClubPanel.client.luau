@@ -812,19 +812,21 @@ local function renderFinance()
 		section(if #matches == 1 then "LAST MATCHDAY" else ("LAST %d MATCHDAYS"):format(#matches))
 		local head = row(false)
 		head.BackgroundColor3 = PANEL_BG
-		cell(head, "Match", 10, 70, { TextColor3 = GREY })
-		cell(head, "Tickets", 85, 90, { TextColor3 = GREY })
-		cell(head, "Concessions", 180, 110, { TextColor3 = GREY })
-		cell(head, "Bonus", 295, 80, { TextColor3 = GREY })
-		cell(head, "Total", 380, 90, { TextColor3 = GREY })
+		cell(head, "Match", 10, 60, { TextColor3 = GREY })
+		cell(head, "Tickets", 75, 85, { TextColor3 = GREY })
+		cell(head, "Concessions", 165, 105, { TextColor3 = GREY })
+		cell(head, "Bonus", 275, 70, { TextColor3 = GREY })
+		cell(head, "Sponsor", 350, 80, { TextColor3 = GREY })
+		cell(head, "Total", 435, 90, { TextColor3 = GREY })
 		for i = #matches, 1, -1 do
 			local m = matches[i]
 			local f = row(i % 2 == 0)
-			cell(f, ("%d"):format(m.round or 0), 10, 70, { TextColor3 = GREY })
-			cell(f, money(m.gate or 0), 85, 90)
-			cell(f, money(m.concessions or 0), 180, 110)
-			cell(f, money(m.bonus or 0), 295, 80)
-			cell(f, money(m.total or 0), 380, 90, { TextColor3 = Theme.colors.cash, Font = Enum.Font.GothamBold })
+			cell(f, ("%d"):format(m.round or 0), 10, 60, { TextColor3 = GREY })
+			cell(f, money(m.gate or 0), 75, 85)
+			cell(f, money(m.concessions or 0), 165, 105)
+			cell(f, money(m.bonus or 0), 275, 70)
+			cell(f, money(m.sponsor or 0), 350, 80)
+			cell(f, money(m.total or 0), 435, 90, { TextColor3 = Theme.colors.cash, Font = Enum.Font.GothamBold })
 		end
 	end
 end

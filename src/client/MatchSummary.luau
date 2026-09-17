@@ -596,22 +596,34 @@ function MatchSummary.new(gui: ScreenGui): Summary
 			elseif away then ("MATCH %d / %d   ·   AWAY AT %s"):format(data.round or 0, data.rounds or 10, string.upper(tostring(data.opponent or "")))
 			else ("MATCH %d / %d"):format(data.round or 0, data.rounds or 10)
 		-- Same colours the crest uses everywhere else, looked up by club name.
-		local homeKit, homeAccent = Config.clubCrest(clubName, true)
-		homeInitials.Text = initials(clubName)
-		homeInitials.TextColor3 = homeAccent
-		homeShield.BackgroundColor3 = homeKit
-		tintStroke(homeShield, homeAccent)
-		homeName.Text = clubName
-		homeSub.Text = scorerText(data.scorers)
+		-- X310 (review): both scoreboards put the hosts on the left for an away
+		-- fixture, so the card has to agree - it was showing the same result the
+		-- other way round seconds later.
 		local opponent = data.opponent or "Away"
-		local awayKit, awayAccent = Config.clubCrest(opponent)
-		awayInitials.Text = initials(opponent)
-		awayInitials.TextColor3 = awayAccent
-		awayShield.BackgroundColor3 = awayKit
-		tintStroke(awayShield, awayAccent)
-		awayName.Text = opponent
-		awaySub.Text = ""
-		score.Text = ("%d - %d"):format(data.homeGoals, data.awayGoals)
+		local leftName, rightName = clubName, opponent
+		local leftIsUs = true
+		local ourGoals, theirGoals = data.homeGoals, data.awayGoals
+		if away then
+			leftName, rightName = opponent, clubName
+			leftIsUs = false
+		end
+		local leftKit, leftAccent = Config.clubCrest(leftName, leftIsUs)
+		homeInitials.Text = initials(leftName)
+		homeInitials.TextColor3 = leftAccent
+		homeShield.BackgroundColor3 = leftKit
+		tintStroke(homeShield, leftAccent)
+		homeName.Text = leftName
+		homeSub.Text = if leftIsUs then scorerText(data.scorers) else ""
+		local rightKit, rightAccent = Config.clubCrest(rightName, not leftIsUs)
+		awayInitials.Text = initials(rightName)
+		awayInitials.TextColor3 = rightAccent
+		awayShield.BackgroundColor3 = rightKit
+		tintStroke(awayShield, rightAccent)
+		awayName.Text = rightName
+		awaySub.Text = if leftIsUs then "" else scorerText(data.scorers)
+		score.Text = if away
+			then ("%d - %d"):format(theirGoals, ourGoals)
+			else ("%d - %d"):format(ourGoals, theirGoals)
 		if data.outcome == "Win" then
 			resultPill.Text = "VICTORY"
 			resultPill.BackgroundColor3 = C.good

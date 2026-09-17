@@ -324,7 +324,7 @@ Focus.watch(summary.frame)
 Focus.watch(seasonCard.frame)
 seasonContinue.Activated:Connect(function()
 	seasonCard.frame.Visible = false
-	Sky.fastForward("season") -- the long night between seasons
+	Sky.fastForward("season", (get("Season") or 1) + (get("MatchesPlayed") or 0)) -- the long night between seasons
 end)
 
 local pendingSeason: any = nil
@@ -404,7 +404,7 @@ summaryContinue.Activated:Connect(function()
 		showSeason(data)
 	elseif not lastWasFriendly then
 		-- X225: friendlies don't move the season on, so no week passes
-		Sky.fastForward("match") -- a week passes
+		Sky.fastForward("match", get("MatchesPlayed") or 0) -- a week passes
 	end
 end)
 

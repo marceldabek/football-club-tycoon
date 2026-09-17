@@ -336,6 +336,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		gate = settlement.ticketRevenue,
 		concessions = settlement.concessionRevenue,
 		bonus = settlement.resultBonus,
+		sponsor = settlement.sponsorFee, -- X309, so the row adds up
 		total = settlement.total,
 	})
 	if settlement.outcome == "Win" then

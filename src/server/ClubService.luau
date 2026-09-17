@@ -23,6 +23,10 @@ local autoSquad = true
 local coachLevel = 0
 local scoutLevel = 0
 local shortlist: { Squad.Prospect } = {}
+-- X289: this season's academy intake, for the board outside the hut. Saved,
+-- because otherwise a rejoin blanked the board and emptied the youth session
+-- until the next rollover (review).
+local academy: { string } = {}
 -- X276: the list used to be re-rolled after every match, so a prospect the
 -- player was saving up for vanished and the fee they were quoted never applied.
 -- It now survives and is only re-scouted every few matches. TEMP number.
@@ -207,6 +211,7 @@ local function generateFresh()
 	coachLevel = 0
 	scoutLevel = 0
 	shortlist = {}
+	academy = {} -- X289: a brand-new club has produced nobody yet
 	lineup = { xi = {}, bench = {} }
 	recomputeLineup()
 end
@@ -253,6 +258,17 @@ function ClubService.restore(data: any?)
 	scoutLevel = math.clamp(if type(data.scoutLevel) == "number" then data.scoutLevel else 0, 0, #Config.ScoutLevels)
 	shortlist = {}
 	shortlistAge = math.max(if type(data.shortlistAge) == "number" then data.shortlistAge else 0, 0)
+	-- X289 (review): the intake board and the youth session read this, so it has
+	-- to come back with the save rather than blanking until the next rollover
+	academy = {}
+	if type(data.academy) == "table" then
+		for _, line in data.academy do
+			if type(line) == "string" then
+				table.insert(academy, line)
+			end
+		end
+	end
+	ClubState.set("Academy", HttpService:JSONEncode(academy))
 	if type(data.shortlist) == "table" then
 		for _, p in data.shortlist do
 			if validPlayer(p) and type(p.fee) == "number" then
@@ -282,6 +298,7 @@ function ClubService.serialize()
 		scoutLevel = scoutLevel,
 		shortlist = shortlist,
 		shortlistAge = shortlistAge,
+		academy = academy,
 		nextId = nextId,
 	}
 end
@@ -551,6 +568,7 @@ function ClubService.newSeason(): ({ string }, { string }, { Squad.Player })
 		-- X289: chalked on the board outside the academy hut
 		table.insert(intake, ("%d  %s  (%d)"):format(p.number, p.name, p.age))
 	end
+	academy = intake
 	ClubState.set("Academy", HttpService:JSONEncode(intake))
 	recomputeLineup()
 	publish()

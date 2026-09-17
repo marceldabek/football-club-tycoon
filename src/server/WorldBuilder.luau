@@ -1276,10 +1276,9 @@ local roomsBound = false
 
 local function bindDressingRooms()
 	local state = PlotContext.stateFolder()
-	if roomsBound or not state then
+	if not state then
 		return
 	end
-	roomsBound = true
 	local function refresh()
 		local xi = {}
 		local raw = state:GetAttribute("Club")
@@ -1308,10 +1307,13 @@ local function bindDressingRooms()
 			else nil
 		WorldBuilder.dressDressingRooms(xi, visitors)
 	end
-	for _, key in { "Club", "Phase", "Opponent" } do
-		state:GetAttributeChangedSignal(key):Connect(refresh)
+	if not roomsBound then
+		roomsBound = true
+		for _, key in { "Club", "Phase", "Opponent" } do
+			state:GetAttributeChangedSignal(key):Connect(refresh)
+		end
 	end
-	task.defer(refresh)
+	task.defer(refresh) -- review: rebuilt rooms need re-hanging
 end
 
 -- X312: a new player spawns at the office desk facing a wall. Nothing in the
@@ -1362,7 +1364,7 @@ end
 -- (X288). TEMP cap of six pennants, which is one per division in the pyramid.
 local PENNANTS_SHOWN = 6
 
-function WorldBuilder.buildHonours(promotions: number, servant: { [string]: any }?)
+function WorldBuilder.buildHonours(promotions: number, servant: any?)
 	local club = PlotContext.clubModel()
 	local office = club and club:FindFirstChild("Office")
 	if not office then
@@ -1420,13 +1422,15 @@ function WorldBuilder.buildHonours(promotions: number, servant: { [string]: any 
 
 	-- the framed shirt: a frame, the shirt itself in the club's colour, and the
 	-- number and name of the man who played more matches than anyone
-	-- on the same wall as the pennants, past the end of the row: the other
-	-- walls are the doorway, the fixtures notice and (at tier 4) the crest
-	local frame = box("ShirtFrame", Vector3.new(6, 8, 0.4), Vector3.new(OFFICE_CX + 10, OFFICE_Y + 8, wallZ),
+	-- Review of X291: "past the end of the pennants" was inside the trophy
+	-- shelf, two of the trophies and the sixth pennant - that wall only has
+	-- 2.5 clear studs. It hangs on the end wall instead, well clear of the
+	-- fixtures notice at the middle of it.
+	local frame = box("ShirtFrame", Vector3.new(0.4, 8, 6), Vector3.new(OFFICE_CX - OFFICE_W / 2 + 0.9, OFFICE_Y + 8, OFFICE_CZ + 9),
 		Color3.fromRGB(70, 50, 32), Enum.Material.Wood, model)
 	local gui = Instance.new("SurfaceGui")
 	gui.Name = "Shirt"
-	gui.Face = Enum.NormalId.Back
+	gui.Face = Enum.NormalId.Right
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = 34
 	gui.LightInfluence = 0.35
@@ -1453,7 +1457,8 @@ function WorldBuilder.buildHonours(promotions: number, servant: { [string]: any 
 	number.Font = Enum.Font.GothamBlack
 	number.TextScaled = true
 	number.TextColor3 = accent
-	number.Text = tostring(servant.number or "")
+	-- a servant recorded before X291 has no shirt number (review)
+	number.Text = if servant.number then tostring(servant.number) else "-"
 	number.Parent = shirt
 	local caption = Instance.new("TextLabel")
 	caption.Name = "Caption"
@@ -1495,13 +1500,18 @@ function WorldBuilder.dressPitch(tier: number)
 	-- can pay somebody to re-mark it every week
 	local lineColour = if worn then Color3.fromRGB(226, 226, 214) else Color3.new(1, 1, 1)
 	for _, p in pitch:GetDescendants() do
-		if p:IsA("BasePart") and (string.find(p.Name, "Line", 1, true) or p.Name == "Halfway" or string.find(p.Name, "Box", 1, true) or string.find(p.Name, "Circle", 1, true) or string.find(p.Name, "Spot", 1, true) or string.find(p.Name, "Arc", 1, true)) then
+		-- "Six" is the goal-area markings (SixFront/SixSide): without it the two
+		-- six-yard boxes stayed brilliant white inside a worn goalmouth
+		if p:IsA("BasePart") and (string.find(p.Name, "Line", 1, true) or p.Name == "Halfway" or string.find(p.Name, "Box", 1, true) or string.find(p.Name, "Six", 1, true) or string.find(p.Name, "Circle", 1, true) or string.find(p.Name, "Spot", 1, true) or string.find(p.Name, "Arc", 1, true)) then
 			p.Color = lineColour
 		end
 	end
-	-- the nets and the frame: greyed at the bottom, white higher up
+	-- the nets and the frame: greyed at the bottom, white higher up. Only inside
+	-- the pitch model: the dugout shelter's corner posts, the big scoreboard's
+	-- legs and the training pitches' crossbars are all named "Post"/"Crossbar"
+	-- too, and the first version painted them white (review of X296).
 	local frame = if worn then Color3.fromRGB(232, 232, 226) else Color3.new(1, 1, 1)
-	for _, goal in (club :: Instance):GetDescendants() do
+	for _, goal in pitch:GetDescendants() do
 		if goal:IsA("BasePart") and (goal.Name == "Crossbar" or goal.Name == "Post" or string.find(goal.Name, "Net", 1, true)) then
 			goal.Color = frame
 		end
@@ -1532,15 +1542,17 @@ local pitchBound = false
 
 local function bindPitch()
 	local state = PlotContext.stateFolder()
-	if pitchBound or not state then
+	if not state then
 		return
 	end
-	pitchBound = true
 	local function refresh()
 		WorldBuilder.dressPitch((state:GetAttribute("Tier") :: number?) or 1)
 	end
-	state:GetAttributeChangedSignal("Tier"):Connect(refresh)
-	task.defer(refresh)
+	if not pitchBound then
+		pitchBound = true
+		state:GetAttributeChangedSignal("Tier"):Connect(refresh)
+	end
+	task.defer(refresh) -- review: a rebuilt pitch needs dressing again
 end
 
 -- X290: the office was the same damp-walled room with the green-screen
@@ -1631,8 +1643,9 @@ function WorldBuilder.dressOffice(tier: number)
 	if level >= OFFICE_TIER_SCREEN then
 		-- a tactics board on the north wall, with a pitch and a 4-4-2 on it
 		-- the far end of the long wall: the wall opposite carries the trophy
-		-- shelf, the promotion pennants and the framed shirt (X291)
-		local board = box("TacticsBoard", Vector3.new(10, 6, 0.3), Vector3.new(cx - 11, OFFICE_Y + h - 5, cz + d / 2 - 0.6),
+		-- shelf and the promotion pennants (X291). At cx - 11 the board ran
+		-- through the end wall and out of the brick outside (review of X290).
+		local board = box("TacticsBoard", Vector3.new(10, 6, 0.3), Vector3.new(cx - 8, OFFICE_Y + h - 5, cz + d / 2 - 0.6),
 			Color3.fromRGB(28, 70, 40), Enum.Material.SmoothPlastic, fittings)
 		local gui = Instance.new("SurfaceGui")
 		gui.Name = "Tactics"
@@ -1690,7 +1703,8 @@ function WorldBuilder.dressOffice(tier: number)
 		local kit = Config.clubCrest(name, true)
 		-- on the long wall, not the one behind the desk: that one carries the
 		-- fixtures notice (X170/X301) and the panel would cover it
-		local panel = box("CrestPanel", Vector3.new(14, 8, 0.3), Vector3.new(cx, OFFICE_Y + h - 6, cz + d / 2 - 0.7),
+		-- off-centre, so it clears the tactics board at the other end (review)
+		local panel = box("CrestPanel", Vector3.new(14, 8, 0.3), Vector3.new(cx + 6, OFFICE_Y + h - 6, cz + d / 2 - 0.7),
 			Color3.fromRGB(26, 30, 38), Enum.Material.SmoothPlastic, fittings)
 		local gui = Instance.new("SurfaceGui")
 		gui.Name = "Brand"
@@ -1733,15 +1747,20 @@ local officeBound = false
 -- with the score.
 local function bindOffice()
 	local state = PlotContext.stateFolder()
-	if officeBound or not state then
+	if not state then
 		return
 	end
-	officeBound = true
 	local function refresh()
 		WorldBuilder.dressOffice((state:GetAttribute("Tier") :: number?) or 1)
 	end
-	state:GetAttributeChangedSignal("Tier"):Connect(refresh)
-	state:GetAttributeChangedSignal("ClubName"):Connect(refresh)
+	-- Review: the guard used to cover the refresh as well, so a reload (which
+	-- rebuilds the club model and its bare office) left the fittings missing
+	-- until the next promotion. Only the connections are guarded now.
+	if not officeBound then
+		officeBound = true
+		state:GetAttributeChangedSignal("Tier"):Connect(refresh)
+		state:GetAttributeChangedSignal("ClubName"):Connect(refresh)
+	end
 	task.defer(refresh)
 end
 

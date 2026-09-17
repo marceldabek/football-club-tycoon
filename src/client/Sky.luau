@@ -177,8 +177,9 @@ function Sky.setMatchday(on: boolean, evening: boolean)
 end
 
 -- "match" ~4 s after the summary, "season" ~10 s after the season card.
-function Sky.fastForward(kind: "match" | "season")
-	local track = DayCycle.fastForward(kind, current.floodlights)
+function Sky.fastForward(kind: "match" | "season", weekSeed: number?)
+	-- X321: the week's own seed, so the same week always sweeps the same way
+	local track = DayCycle.fastForward(kind, current.floodlights, weekSeed)
 	task.spawn(play, track.duration, function(t: number): DayCycle.Look
 		return DayCycle.sample(track, t)
 	end, true)

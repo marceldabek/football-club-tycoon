@@ -156,4 +156,28 @@ function T.isEveningFixtureDeterministicAndRoughlyQuarter()
 	assert(count >= 20 and count <= 30, "expected roughly 25% evening fixtures over 100 matches, got " .. count)
 end
 
+-- X321: WORLD_VISION s3 asks for the occasional grey week in the transition.
+function T.fastForwardHasAnOccasionalOvercastWeek()
+	local wet, dry = 0, 0
+	for week = 1, 30 do
+		local track = DayCycle.fastForward("match", false, week)
+		local grey = false
+		for _, key in track.keys do
+			if key.look == "Overcast" then
+				grey = true
+			end
+		end
+		if grey then wet += 1 else dry += 1 end
+		-- whatever the week, the sweep ends on the look a match is played in
+		assert(track.keys[#track.keys].look == "HeroAfternoon", "the sweep must end on the hero afternoon")
+		assert(track.keys[#track.keys].at == track.duration, "and end at the end")
+	end
+	assert(wet > 0 and dry > wet, ("about a third of weeks should be grey: %d wet, %d dry"):format(wet, dry))
+	-- deterministic, and a season sweep behaves the same way
+	assert(DayCycle.isOvercastWeek(4) == DayCycle.isOvercastWeek(4), "the same week always looks the same")
+	assert(not DayCycle.isOvercastWeek(nil), "no seed means no weather")
+	local season = DayCycle.fastForward("season", false, 1)
+	assert(season.keys[#season.keys].look == "HeroAfternoon", "the season sweep ends on the hero afternoon too")
+end
+
 return T

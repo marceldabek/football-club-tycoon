@@ -18,7 +18,8 @@ local Finance = {}
 Finance.INCOME = { "gate", "concessions", "bonus", "sponsor", "prize", "sales", "friendly", "tradesIn" }
 Finance.SPEND = { "transfers", "stands", "amenities", "staff", "trades" }
 
-export type MatchRow = { round: number, gate: number, concessions: number, bonus: number, total: number }
+-- `sponsor` (X309) is part of `total`, so the row adds up on screen (review)
+export type MatchRow = { round: number, gate: number, concessions: number, bonus: number, sponsor: number, total: number }
 
 export type Ledger = {
 	income: { [string]: number },
@@ -80,6 +81,7 @@ function Finance.recordMatch(ledger: Ledger, row: MatchRow)
 		gate = row.gate,
 		concessions = row.concessions,
 		bonus = row.bonus,
+		sponsor = row.sponsor or 0,
 		total = row.total,
 	})
 	while #ledger.matches > Finance.MATCH_ROWS do
@@ -130,6 +132,7 @@ function Finance.normalize(raw: any): Ledger
 					gate = if type(row.gate) == "number" then math.floor(row.gate) else 0,
 					concessions = if type(row.concessions) == "number" then math.floor(row.concessions) else 0,
 					bonus = if type(row.bonus) == "number" then math.floor(row.bonus) else 0,
+					sponsor = if type(row.sponsor) == "number" then math.floor(row.sponsor) else 0,
 					total = math.floor(row.total),
 				})
 			end

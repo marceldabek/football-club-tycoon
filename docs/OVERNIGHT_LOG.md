@@ -1739,3 +1739,17 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Verified in play: nine home pegs read "5 FAIRBANKS, 11 VOSS, 2 INGS, 10 YARROW, 1 RASHFORD-LEE, 7 ABBOTT, 8 XU, 15 THORNE, 9 YARROW" (nine pegs a room, so the last two of the XI are not hung), and during a match against Marlow Park the away shirts turned their green with "MARLOW PARK FC" on the board. A peg's number and name are visible in the screenshot behind the summary card.
 - RunAll 465 passed.
 
+### 2026-09-17 19:06 — Weather in the transition (X321), and the review of the studio batch (X325)
+- **X321.** `DayCycle` has had an Overcast look sitting unused and WORLD_VISION s3 asks for the odd grey or wet week in the transition, but the sweep only ever ran sun to sunset to night to dawn to sun - so nine seasons of weeks looked identical. Roughly one week in three now comes back overcast before it clears, seeded on the club's match count so the same week always looks the same, and every sweep still ends on the hero afternoon a match is played in. New DayCycle test: about a third of thirty weeks are grey, the last key is always HeroAfternoon at the track's end, and the same seed gives the same answer.
+- **X325, the review of X289-X311.** Eight findings, all fixed:
+  1. **The pitch repaint painted the dugout posts, the big scoreboard's legs and a training-pitch crossbar white** - the scan walked the whole club model and three other parts are named "Post" or "Crossbar". It only walks the pitch now. Checked in play at tier 1: dugout post still dark (0.18), scoreboard leg still grey (0.35).
+  2. **The six-yard boxes were the only markings the repaint missed** (they are named SixFront/SixSide), so they stayed brilliant white inside a worn goalmouth. Both now fade with the rest: 0.886 like the halfway line.
+  3. **The academy intake was published but never saved** - so after any rejoin the board read "nobody yet" and the youth session on pitch 2 did not appear until the next rollover. The list now round-trips with the squad; verified by rolling until an intake appeared ("7 Teddy Kettering (18), 10 Theo Zelinski (18)"), saving, reloading, and reading the board back.
+  4. **The framed shirt was built inside the trophy shelf, two of the trophies and the sixth pennant** - that wall has 2.5 clear studs, not 10. It hangs on the end wall now, nine studs clear of the fixtures notice.
+  5. **The tier-3 tactics board ran through the office end wall and out of the brick outside**, and overlapped the tier-4 crest panel. Both moved: board at z 1008-1018, crest at 1020-1034.
+  6. **The FINANCE matchday rows stopped adding up** the moment the sponsor fee joined the settlement total (tickets + concessions + bonus printed against a bigger total). There is a Sponsor column now.
+  7. **The summary card showed an away result our way round** seconds after both scoreboards had shown it the hosts' way. The card swaps sides too, with the scorers under whichever shield is ours.
+  8. **A world rebuild (reload/wipe) left the office fittings, the pitch wear and the intake board undressed** until the next promotion, because the bind guard covered the refresh as well as the connection. Verified: nine fittings back after a reload.
+- Also from the review: a servant saved before X291 has no shirt number, so the framed shirt shows a dash rather than an empty space, and `buildHonours` takes a looser type.
+- RunAll 466 passed.
+
