@@ -26,7 +26,7 @@ station pitched roof + gable clock (X21), stone road bridges (X19), semis gable 
 (X25–X29), floodlight tag lookup (X2), separate Studio save store (X1, TEMP), season end verified (A2.2),
 marina quay + riverside gardens (X18), hedged backdrop fields (X16), road imperfections (E10.1), semis with driveways
 (X30), square flags + chimney smoke + matchday pub drinkers (F4.1/G2.1), smaller plot car park + bus menu sizing (X9/X15),
-Mill Street front gardens, railings, street trees, signs and parked cars (X11), visitors see other clubs read-only (B2.1c), read-only club card in other clubs' offices (I1.1).
+Mill Street front gardens, railings, street trees, signs and parked cars (X11), visitors see other clubs read-only (B2.1c), read-only club card in other clubs' offices (I1.1), watching other clubs' matches (I2.1).
 **Half-done:** none.
 **Reverted:** none.
 
@@ -201,3 +201,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Test method:** one Studio player; the client sets `ClubPlot` locally to 99 to act as a visitor at Plot1. The real two-player case is still B2.1d. Screenshots ClubVisit_1 and ClubVisit_2 (the second has the owner's own match summary behind it, because the test player is both owner and visitor).
 - The Studio test club was also named through the naming card ("Found the club"), in the Studio store only.
 - RunAll 305/305.
+
+### 2026-09-17 03:16 — Watch another club's match (I2.1)
+- **What:** Match.client now follows a "watched" club folder. It is your own club while your match is in PreMatch/Match. Otherwise it is the nearest other club with a live match whose pitch centre is within TEMP 220 studs of your character; it rechecks every second and whenever your own phase changes. Spectators get the same presenter (players, ball, goal cheers from that club's stands), without iris, walkout camera or sky change. Presentation code now reads `ClubRef.presentFrame()` / `presentModel()`, and HUD and town code keep using your own club. The pure choice is `PlotVisit.spectateTarget`, with tests.
+- **Playtest (solo, faked):** the server cloned the Plot1 club folder to Plot2 with Phase=Match, and the character stood at the Plot2 lot. 31 rigs played there, with the ball near (1868, 3, -1278) (Spectate_3). Walking 600 studs away removed MatchVisuals within 3 s. Going back and pressing your own Play Match switched straight back: the ball was at Plot1 (1050, 1250) during PreMatch. No console errors.
+- **Side effect in the Studio store:** the test club finished season 3 and was relegated (5th in the County League), then started season 4 in the Sunday Parks League.
+- Follow-ups X38 (spectator score pill) and X39 (real two-player check).
+- RunAll 306/306.

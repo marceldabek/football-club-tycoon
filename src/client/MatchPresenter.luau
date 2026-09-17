@@ -123,7 +123,7 @@ local function makeBall(parent: Instance): Part
 	ball.CanQuery = false
 	ball.CanTouch = false
 	ball.CastShadow = true
-	ball.CFrame = ClubRef.frame() * CFrame.new(centre() + Vector3.new(0, BALL_R, 0))
+	ball.CFrame = ClubRef.presentFrame() * CFrame.new(centre() + Vector3.new(0, BALL_R, 0))
 	ball.Parent = parent
 	-- dark patches half-sunk into the surface so the roll is visible; they are
 	-- unanchored and welded, so they follow the anchored ball's CFrame
@@ -278,13 +278,13 @@ function Presenter.moveBall(self: Presenter, pos: Vector3, roll: number)
 		self.ballRot = CFrame.fromAxisAngle(axis, flat.Magnitude / BALL_R * roll) * self.ballRot
 	end
 	self.ballPos = pos
-	self.ball.CFrame = ClubRef.frame() * CFrame.new(pos) * self.ballRot
+	self.ball.CFrame = ClubRef.presentFrame() * CFrame.new(pos) * self.ballRot
 end
 
 function Presenter.placeBall(self: Presenter, pos: Vector3)
 	self.flight = nil
 	self.ballPos = restAt(pos)
-	self.ball.CFrame = ClubRef.frame() * CFrame.new(self.ballPos) * self.ballRot
+	self.ball.CFrame = ClubRef.presentFrame() * CFrame.new(self.ballPos) * self.ballRot
 end
 
 -- Which end a team attacks. In the second half the teams swap, so Home uses
@@ -521,7 +521,7 @@ end
 
 local function crowdReact()
 	MatchAudio.goalCheer()
-	local club = ClubRef.clubModel()
+	local club = ClubRef.presentModel()
 	local stands = club and club:FindFirstChild("Stands")
 	if not stands then
 		return

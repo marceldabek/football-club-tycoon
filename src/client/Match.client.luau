@@ -4,6 +4,8 @@
 --   Match    -> presenter plays the timeline synced to KickoffAt
 --   Manage   -> presenter winds down
 -- Late joiners get a presenter built straight into the current phase.
+-- Spectators (I2.1): near another ground whose match is live, the same
+-- presenter follows that club instead, without iris, camera or sky changes.
 
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,8 +19,15 @@ local Sky = require(script.Parent.Sky)
 local ClubRef = require(script.Parent.ClubRef)
 local Focus = require(script.Parent.Focus)
 
-local state = require(script.Parent.ClubRef).waitState()
+local PlotVisit = require(ReplicatedStorage.Shared.PlotVisit)
+
+local Players = game:GetService("Players")
+
+local own = ClubRef.waitState()
+local state = own -- the club being presented: own, or the one being watched
 local camera = workspace.CurrentCamera
+
+local SPECTATE_RADIUS = 220 -- TEMP: studs from a pitch centre that count as "in its stands"
 
 local presenter: Presenter.Presenter? = nil
 
@@ -105,6 +114,15 @@ end
 
 local function onPhase()
 	local phase = get("Phase")
+	if state ~= own then
+		-- watching someone else: no iris, walkout camera or sky change
+		if phase == "Match" then
+			beginMatch()
+		else
+			endMatch()
+		end
+		return
+	end
 	if phase == "PreMatch" then
 		Sky.setMatchday(true, get("Evening") == true)
 		beginPreMatch()
@@ -115,18 +133,72 @@ local function onPhase()
 	end
 end
 
-state:GetAttributeChangedSignal("Phase"):Connect(onPhase)
-state:GetAttributeChangedSignal("Tactic"):Connect(function()
-	if presenter then
-		presenter:setTactic(get("Tactic") or "Balanced")
+local stateConnections: { RBXScriptConnection } = {}
+
+local function follow(folder: Folder)
+	for _, c in stateConnections do
+		c:Disconnect()
 	end
-end)
-state:GetAttributeChangedSignal("Subs"):Connect(function()
-	if presenter then
-		presenter:applySubs(HttpService:JSONDecode(get("Subs") or "[]"))
+	stateConnections = {}
+	state = folder
+	ClubRef.setPresented(if folder == own then nil else folder)
+	table.insert(stateConnections, folder:GetAttributeChangedSignal("Phase"):Connect(onPhase))
+	table.insert(stateConnections, folder:GetAttributeChangedSignal("Tactic"):Connect(function()
+		if presenter then
+			presenter:setTactic(get("Tactic") or "Balanced")
+		end
+	end))
+	table.insert(stateConnections, folder:GetAttributeChangedSignal("Subs"):Connect(function()
+		if presenter then
+			presenter:applySubs(HttpService:JSONDecode(get("Subs") or "[]"))
+		end
+	end))
+	onPhase()
+end
+
+-- Own matchday always wins; otherwise watch the nearest live match in range.
+local function pickFolder(): Folder
+	local clubs = ReplicatedStorage:FindFirstChild("Clubs")
+	local character = Players.LocalPlayer.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not clubs or not root then
+		return own
 	end
-end)
+	local grounds: { PlotVisit.Ground } = {}
+	local byPlot: { [number]: Folder } = {}
+	for _, folder in clubs:GetChildren() do
+		local plot = folder:GetAttribute("PlotIndex")
+		local cf = folder:GetAttribute("PlotCFrame")
+		if folder ~= own and folder:IsA("Folder") and type(plot) == "number" and typeof(cf) == "CFrame" then
+			byPlot[plot] = folder
+			table.insert(grounds, { plot = plot, phase = folder:GetAttribute("Phase"), position = cf.Position })
+		end
+	end
+	local target = PlotVisit.spectateTarget(own:GetAttribute("Phase"), grounds, root.Position, SPECTATE_RADIUS)
+	return if target then byPlot[target] else own
+end
+
+local function repick()
+	local folder = pickFolder()
+	if folder ~= state then
+		if presenter then
+			presenter:destroy() -- switching grounds: drop the old match without a whistle
+			presenter = nil
+		end
+		MatchAudio.stopCrowd()
+		MatchAudio.duckMusic(false)
+		follow(folder)
+	end
+end
+
+own:GetAttributeChangedSignal("Phase"):Connect(repick)
 
 Sky.start()
 MatchAudio.startMusic()
-onPhase()
+follow(own)
+task.spawn(function()
+	while true do
+		task.wait(1)
+		repick()
+	end
+end)

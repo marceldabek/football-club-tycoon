@@ -251,7 +251,7 @@ function BlockFootballer.update(self: BlockFootballer, dt: number)
 	end
 
 	local torsoCenterY = LEG.Y + TORSO.Y / 2 + bob + lift
-	local root = ClubRef.frame() * CFrame.new(self.position + Vector3.new(0, torsoCenterY, 0))
+	local root = ClubRef.presentFrame() * CFrame.new(self.position + Vector3.new(0, torsoCenterY, 0))
 		* CFrame.Angles(0, self.yaw, 0)
 		* CFrame.Angles(0, 0, tilt)
 

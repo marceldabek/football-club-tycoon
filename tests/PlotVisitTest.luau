@@ -37,4 +37,18 @@ function T.hideOnlyOtherPlots()
 	assert(PlotVisit.hidePrompt(2, nil) == true, "no plot yet: hidden")
 end
 
+function T.spectateNearestLiveMatch()
+	local grounds = {
+		{ plot = 2, phase = "Match", position = Vector3.new(100, 0, 0) },
+		{ plot = 3, phase = "Match", position = Vector3.new(40, 0, 0) },
+		{ plot = 4, phase = "Manage", position = Vector3.new(0, 0, 0) },
+	}
+	assert(PlotVisit.spectateTarget("Manage", grounds, Vector3.zero, 200) == 3, "nearest live")
+	assert(PlotVisit.spectateTarget("Manage", grounds, Vector3.zero, 30) == nil, "out of range")
+	assert(PlotVisit.spectateTarget("Match", grounds, Vector3.zero, 200) == nil, "own match wins")
+	assert(PlotVisit.spectateTarget("PreMatch", grounds, Vector3.zero, 200) == nil, "own prematch wins")
+	assert(PlotVisit.spectateTarget("Manage", grounds, nil, 200) == nil, "no character")
+	assert(PlotVisit.spectateTarget("Manage", {}, Vector3.zero, 200) == nil, "nobody playing")
+end
+
 return T

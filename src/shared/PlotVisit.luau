@@ -29,4 +29,26 @@ function PlotVisit.hidePrompt(promptPlot: number?, ownPlot: unknown): boolean
 	return ownPlot ~= promptPlot
 end
 
+export type Ground = { plot: number, phase: string?, position: Vector3 }
+
+-- Which club's match this client should present (I2.1): the player's own
+-- while it is in PreMatch/Match, otherwise the nearest other ground within
+-- `radius` whose match is live. Returns nil for "own club".
+function PlotVisit.spectateTarget(ownPhase: string?, grounds: { Ground }, from: Vector3?, radius: number): number?
+	if ownPhase == "PreMatch" or ownPhase == "Match" or from == nil then
+		return nil
+	end
+	local best: number? = nil
+	local bestDistance = radius
+	for _, g in grounds do
+		if g.phase == "Match" then
+			local d = (g.position - from).Magnitude
+			if d <= bestDistance then
+				best, bestDistance = g.plot, d
+			end
+		end
+	end
+	return best
+end
+
 return PlotVisit

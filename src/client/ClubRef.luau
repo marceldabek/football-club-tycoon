@@ -60,6 +60,41 @@ function ClubRef.frame(): CFrame
 	return frameCache
 end
 
+-- The club the match presentation follows: the player's own, or another club
+-- whose match they are watching from its stands (I2.1). Presentation code
+-- (presenter, footballers, crowd) reads these; HUD/town code keeps frame().
+local presented: Folder? = nil
+
+function ClubRef.setPresented(folder: Folder?)
+	presented = folder
+end
+
+local presentedFor: Folder? = nil
+local presentedCache = CFrame.identity
+function ClubRef.presentFrame(): CFrame
+	local folder = presented
+	if not folder then
+		return ClubRef.frame()
+	end
+	if folder ~= presentedFor then
+		presentedFor = folder
+		local cf = folder:GetAttribute("PlotCFrame")
+		presentedCache = if typeof(cf) == "CFrame" then cf else CFrame.identity
+	end
+	return presentedCache
+end
+
+function ClubRef.presentModel(): Model?
+	local folder = presented
+	if folder then
+		local plot = folder:GetAttribute("PlotIndex")
+		local plots = workspace:FindFirstChild("Plots")
+		local model = plots and type(plot) == "number" and plots:FindFirstChild("Plot" .. plot)
+		return model and model:FindFirstChild("Club") :: Model?
+	end
+	return ClubRef.clubModel()
+end
+
 -- The player's club model in the workspace, if built.
 function ClubRef.clubModel(): Model?
 	local plot = player:GetAttribute("ClubPlot")
