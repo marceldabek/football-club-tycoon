@@ -335,4 +335,26 @@ function T.swanGlidesRoundItsEllipseOnTheRiver()
 	end
 end
 
+-- X137: lit houses are stable, a fair share, always at least one, and the
+-- window pane fits inside its house bay.
+function T.litWindowsAreStableAndInsideTheirBay()
+	local a = TownLifeMath.litHouses(Vector3.new(120, 0, -240), 8)
+	local b = TownLifeMath.litHouses(Vector3.new(120, 0, -240), 8)
+	assert(#a == #b and #a >= 1, "stable and non-empty")
+	for i, h in a do
+		assert(h == b[i] and h >= 0 and h <= 7, "house index")
+	end
+	local lit, total = 0, 0
+	for k = 1, 200 do
+		total += 6
+		lit += #TownLifeMath.litHouses(Vector3.new(k * 31.7, 0, k * -17.3), 6)
+	end
+	assert(math.abs(lit / total - TownLifeMath.LIT_SHARE) < 0.1, ("share %.2f"):format(lit / total))
+	for _, facade in { "front_a", "front_b", "front_c" } do
+		local z, y, w, h = TownLifeMath.windowPane(facade, 2, 16, 96, 16)
+		assert(z - w / 2 > -48 + 2 * 16 and z + w / 2 < -48 + 3 * 16, facade .. " pane outside its bay")
+		assert(y + h / 2 < 16 / 2 and y - h / 2 > -16 / 2, facade .. " pane outside the wall")
+	end
+end
+
 return T

@@ -423,4 +423,31 @@ function TownLifeMath.swanPose(centre: Vector3, along: Vector3, a: number, b: nu
 	return CFrame.lookAt(pos, pos + dir)
 end
 
+-- X137: which houses in a terrace row have an upstairs light on after dark.
+-- Stable per row (seeded from its position) so the same windows stay lit as
+-- rows stream in and out; about LIT_SHARE of houses, at least one.
+TownLifeMath.LIT_SHARE = 0.45
+function TownLifeMath.litHouses(position: Vector3, houses: number): { number }
+	local rng = Random.new(math.floor(math.abs(position.X) * 5 + math.abs(position.Z) * 11 + 0.5))
+	local out: { number } = {}
+	for house = 0, houses - 1 do
+		if rng:NextNumber() < TownLifeMath.LIT_SHARE then
+			table.insert(out, house)
+		end
+	end
+	if #out == 0 and houses > 0 then
+		table.insert(out, rng:NextInteger(0, houses - 1))
+	end
+	return out
+end
+
+-- X137: the upstairs window pane for a house, in the row Body's local frame:
+-- (z, y, width, height). Same window scarfSpot hangs scarves in.
+function TownLifeMath.windowPane(facade: string?, house: number, houseWidth: number, length: number, wallHeight: number): (number, number, number, number)
+	local z, y = TownLifeMath.scarfSpot(facade, house, houseWidth, length, wallHeight)
+	local width = (362 - 252) / 512 * houseWidth * 0.82
+	local height = (184 - 52) / 512 * wallHeight * 0.82
+	return z, y, width, height
+end
+
 return TownLifeMath
