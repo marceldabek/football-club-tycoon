@@ -100,7 +100,7 @@
 ## Bugs / follow-ups found while working
 (append here)
 - [x] X1 (TEMP Config.Save.studioStoreSuffix, question 1) Test matches in Studio write to Marcel's real DataStore save (place is published): prefer a Studio-only save key prefix (e.g. `studio_u<id>`) so agent playtests never touch the live club `[disk]` S
-- [ ] X2 `Sky.setFloodHeads` scans all of workspace; tag floodlight heads with CollectionService instead once the town is big `[disk]` S
+- [x] X2 (tag FloodHead; 72 heads lit in an evening match) `Sky.setFloodHeads` scans all of workspace; tag floodlight heads with CollectionService instead once the town is big `[disk]` S
 - [ ] X3 A player who leaves mid-match: the old club copy finishes the match loop before the plot frees (up to 180 s); check no errors in that path `[studio]` S
 - [x] X5 Districts are far too sparse next to `RivermereAImap.png`: add many more terraced rows / semis / shops so every block between roads is built up `[disk]` M
 - [x] X6 Plot access lanes in TownLayout end at local z≈0 but the PlotGrounds vehicle gate is at local z 60..100: align the lane end with the gate `[disk]` S
