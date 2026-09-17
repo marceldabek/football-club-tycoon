@@ -108,7 +108,7 @@
 - [x] X8 Town edge: terrain stops dead at x ±2800 / z ±2200; needs a backdrop (hills, tree belt) `[studio]` M
 - [x] X9 (halved to 100x150) Car park (100 × 300) dominates the plot entrance; halve it or turn it `[disk]` S
 - [ ] X10 Roads z-fight risk: overlapping tops only 0.004–0.01 apart; check at distance on a mid phone `[studio]` S
-- [ ] X11 Mill Street vs `RiveremereWestdale.png`: add street trees, front garden walls/railings + hedges, club banners on lamp posts, street name signs, cars on both kerbs `[studio]` M
+- [x] X11 (TerraceStreetDresser: trees, walls/railings/hedges, street signs, kerb cars; Mill/Weaver full detail) Mill Street vs `RiveremereWestdale.png`: add street trees, front garden walls/railings + hedges, club banners on lamp posts, street name signs, cars on both kerbs `[studio]` M
 - [x] X12 Low-part terrace row (≤ 25 parts: body, roof wedges, chimney stacks, door/window decals) so every terraced block in town can be dressed within the mobile budget `[disk]` M
 - [x] X13 Kit lamp is 36 parts: build a ≤ 6-part Victorian lamp for town-wide use `[disk]` S
 - [x] X14 TeamBus (Assets "Bus") is 587 parts per club; swap for a low-part coach or drop it `[studio]` S
@@ -132,4 +132,6 @@
 - [ ] X32 Marina boats: the white bow wedges look detached/rotated at the moorings; check RiverDresser.buildBoat bow orientation `[studio]` S
 - [ ] X33 Semis driveway cars are plain blocks; use the kit hatchback (KitPlacer) with the block as fallback `[studio]` S
 - [ ] X34 Syncing merged branches into Studio by pasting source is the night's bottleneck; get Rojo reconnected (X4) before the next big batch `[studio]` S
+- [ ] X35 TerraceStreetDresser: Mill/Weaver showpiece uses 1,013 of its 1,200 parts, so only 1 light street got dressed (26 skipped); thin the railing bars or raise the budget after a phone perf check `[studio]` S
+- [ ] X36 Traffic drives through kerb-parked cars on streets with cars on both kerbs (single shared lane or skip those streets) `[disk]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

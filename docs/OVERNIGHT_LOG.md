@@ -25,10 +25,9 @@ shop forecourts with A-boards and café tables + paved square (X17/X22/X23), Riv
 station pitched roof + gable clock (X21), stone road bridges (X19), semis gable roofs + gate gaps + basket/chair polish
 (X25–X29), floodlight tag lookup (X2), separate Studio save store (X1, TEMP), season end verified (A2.2),
 marina quay + riverside gardens (X18), hedged backdrop fields (X16), road imperfections (E10.1), semis with driveways
-(X30), square flags + chimney smoke + matchday pub drinkers (F4.1/G2.1), smaller plot car park + bus menu sizing (X9/X15).
-**Half-done:** Mill Street dressing pass (X11: street trees, garden walls/railings, street name signs, cars on both
-kerbs) is written on a worktree branch and being merged/synced. Pub drinkers and the new bus menu sizing are merged but
-not yet seen in a playtest.
+(X30), square flags + chimney smoke + matchday pub drinkers (F4.1/G2.1), smaller plot car park + bus menu sizing (X9/X15),
+Mill Street front gardens, railings, street trees, signs and parked cars (X11).
+**Half-done:** pub drinkers and the new bus menu sizing are merged but not yet seen in a playtest.
 **Reverted:** none.
 
 **Known bugs**
@@ -169,3 +168,8 @@ not yet seen in a playtest.
 - **Car park and bus menu (X9/X15):** plot car park halved to 100x150 and the fan route moved; the bus menu card sizes to the screen and syncs its scroll canvas. The bus menu was not click-tested again.
 - Estates are now 1,632 parts, forecourts 614, imperfections 900, marina 312.
 - RunAll 286/286.
+
+### 2026-09-17 02:58 — Mill Street dressing (X11)
+- Merged `TerraceStreetDresser` (reference `RiveremereWestdale.png`): brick garden walls with stone coping and piers, black railings or hedges with gate gaps, street trees in tree pits (clear of lamps and junction mouths), black-on-white street name signs at junction corners with the area name, and kit cars and vans parked on the empty kerb. Screenshot from (20, 7, -203) looking east: reads like the reference street. `StreetDresser` gained `isKitRow` and `lampPositions`, with no behaviour change.
+- The showpiece takes 1,013 parts, so only 1 light street fitted under the 1,200 budget (X35). Traffic now drives through cars parked on both kerbs (X36).
+- RunAll 297/297.
