@@ -1531,3 +1531,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - X283: the gate pier slogan plaques carry the club crest under the wording, as on `RivermereTurnstileEntrance.png` — 2 per ground, 0 parts. They were the last club sign without one.
 - RunAll 439 passed; the plaque crests and both amenity wordings confirmed in play.
 
+### 2026-09-17 16:17 — The scout shortlist keeps (X276 done)
+- The list was re-rolled after *every* match, so a prospect the player was saving up for vanished and the fee they were quoted never applied. It now survives and is only re-scouted every 4 matches (TEMP) or as soon as it is empty because everyone on it was signed. The count rides along in the save, so it survives a rejoin.
+- The Scouting tab says which it is: "This list keeps for 3 more matches, so you can save up for someone", or "A new list is scouted after your next match".
+- Checked in play: hired a scout (Theo Lomax, Idris Noobington, Vinnie Noobington), played four matches — the same three names through matches 1-3 with the countdown falling 4 → 1, then a fresh three on match 4. Panel footer read back correctly.
+- RunAll 439 passed.
+

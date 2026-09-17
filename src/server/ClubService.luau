@@ -23,6 +23,11 @@ local autoSquad = true
 local coachLevel = 0
 local scoutLevel = 0
 local shortlist: { Squad.Prospect } = {}
+-- X276: the list used to be re-rolled after every match, so a prospect the
+-- player was saving up for vanished and the fee they were quoted never applied.
+-- It now survives and is only re-scouted every few matches. TEMP number.
+local SHORTLIST_MATCHES = 4
+local shortlistAge = 0 -- matches played since it was last scouted
 local nextId = 1
 local rng = Random.new()
 
@@ -41,6 +46,7 @@ local function publish()
 		coachLevel = coachLevel,
 		scoutLevel = scoutLevel,
 		shortlist = shortlist,
+		shortlistMatchesLeft = math.max(SHORTLIST_MATCHES - shortlistAge, 0),
 	}))
 	ClubState.set("CoachLevel", coachLevel)
 	ClubState.set("ScoutLevel", scoutLevel)
@@ -99,6 +105,19 @@ local function refreshShortlist()
 		taken[p.name] = true
 	end
 	shortlist = Squad.prospects(rng:NextInteger(1, 1000000), Squad.average(players), scoutLevel, taken)
+	shortlistAge = 0
+end
+
+-- After a match: keep the list unless it has gone stale or is empty (every
+-- prospect signed), so a player can save for someone they have seen.
+local function ageShortlist()
+	if scoutLevel == 0 then
+		return
+	end
+	shortlistAge += 1
+	if #shortlist == 0 or shortlistAge >= SHORTLIST_MATCHES then
+		refreshShortlist()
+	end
 end
 
 -- Manual lineups can rot (injuries, releases). Fill or repair without
@@ -242,6 +261,7 @@ function ClubService.restore(data: any?)
 	coachLevel = math.clamp(if type(data.coachLevel) == "number" then data.coachLevel else 0, 0, #Config.CoachLevels - 1)
 	scoutLevel = math.clamp(if type(data.scoutLevel) == "number" then data.scoutLevel else 0, 0, #Config.ScoutLevels)
 	shortlist = {}
+	shortlistAge = math.max(if type(data.shortlistAge) == "number" then data.shortlistAge else 0, 0)
 	if type(data.shortlist) == "table" then
 		for _, p in data.shortlist do
 			if validPlayer(p) and type(p.fee) == "number" then
@@ -270,6 +290,7 @@ function ClubService.serialize()
 		coachLevel = coachLevel,
 		scoutLevel = scoutLevel,
 		shortlist = shortlist,
+		shortlistAge = shortlistAge,
 		nextId = nextId,
 	}
 end
@@ -494,7 +515,7 @@ function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.Ma
 		end
 	end
 	local news, changes = Squad.afterMatch(players, lineup.xi, scorerIds, coachLevel, rng, subIds)
-	refreshShortlist()
+	ageShortlist()
 	recomputeLineup()
 	publish()
 	return news, changes

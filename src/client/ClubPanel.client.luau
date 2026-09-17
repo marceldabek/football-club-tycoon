@@ -42,6 +42,7 @@ type Club = {
 	coachLevel: number,
 	scoutLevel: number,
 	shortlist: { Player },
+	shortlistMatchesLeft: number?, -- X276: matches before it is re-scouted
 }
 
 local money = Theme.money
@@ -592,7 +593,12 @@ local function renderScouting(club: Club)
 		end
 	end
 
-	infoFooter("Potential shows how far a player can develop. Young players improve faster with a coach.")
+	-- X276: the list keeps for a few matches now, so say how long it has left
+	local left = club.shortlistMatchesLeft
+	local keeps = if type(left) == "number" and left > 0
+		then ("This list keeps for %d more match%s, so you can save up for someone."):format(left, if left == 1 then "" else "es")
+		else "A new list is scouted after your next match."
+	infoFooter("Potential shows how far a player can develop. Young players improve faster with a coach.  " .. keeps)
 end
 
 -- ----------------------------------------------------------------- League tab
