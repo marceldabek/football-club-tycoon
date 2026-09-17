@@ -226,6 +226,38 @@ function StationDresser.carParkBays(block: TownLayout.Box, entryClear: number): 
 	return out
 end
 
+-- X152: a recycling point (bottle banks) instead of cars in the near row's
+-- westmost bay, as UK station and supermarket car parks have. Pure: its index
+-- in carParkBays' list.
+function StationDresser.recyclingBay(bays: { CFrame }): number?
+	local best: number? = nil
+	for i, bay in bays do
+		if bay.LookVector.Z < 0 and (best == nil or bay.X < bays[best :: number].X) then
+			best = i
+		end
+	end
+	return best
+end
+
+local RECYCLING = {
+	{ colour = Color3.fromRGB(40, 110, 60), label = "GLASS" },
+	{ colour = Color3.fromRGB(40, 80, 150), label = "PAPER" },
+	{ colour = Color3.fromRGB(150, 150, 146), label = "CANS" },
+}
+
+-- three bottle banks side by side across the bay, their fronts toward the aisle
+local function recyclingPoint(parent: Instance, bay: CFrame)
+	local m = Instance.new("Model")
+	m.Name = "RecyclingPoint"
+	m.Parent = parent
+	for i, bank in RECYCLING do
+		local at = bay * CFrame.new((i - 2) * 3.4, 0.3, -4)
+		local body = part({ Name = "BottleBank", Size = Vector3.new(3, 4.2, 3.4), CFrame = at * CFrame.new(0, 2.1, 0), Color = bank.colour, Parent = m })
+		part({ Name = "BottleBankLid", Size = Vector3.new(3.1, 0.5, 3.5), CFrame = at * CFrame.new(0, 4.45, 0), Color = bank.colour:Lerp(Color3.new(0, 0, 0), 0.35), Parent = m })
+		sign(body, Enum.NormalId.Front, bank.label, Color3.new(1, 1, 1), nil, Enum.Font.GothamBlack)
+	end
+end
+
 -- True if a TownBuilder pavement part covers this ground point.
 local function pavementAt(p: Vector3): boolean
 	for _, hit in workspace:GetPartBoundsInBox(CFrame.new(p.X, 0.2, p.Z), Vector3.new(0.5, 0.4, 0.5)) do
@@ -790,7 +822,13 @@ function StationDresser.build(): string
 				carPark = block.centre
 				-- X83: bay lines, some parked cars and a P sign on the greybox slab (top 0.3)
 				local rng = Random.new(707)
-				for _, bay in StationDresser.carParkBays(block, 30) do
+				local bays = StationDresser.carParkBays(block, 30)
+				local recycling = StationDresser.recyclingBay(bays)
+				for i, bay in bays do
+					if i == recycling then
+						recyclingPoint(m, bay)
+						continue
+					end
 					for _, dx in { -BAY_W / 2, BAY_W / 2 } do
 						local line = part({ Name = "BayLine", Size = Vector3.new(0.35, 0.04, BAY_D - 2), CFrame = bay * CFrame.new(dx, 0.33, 0), Color = Color3.fromRGB(235, 235, 230), Parent = m })
 						line.CastShadow = false

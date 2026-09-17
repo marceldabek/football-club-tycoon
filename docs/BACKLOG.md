@@ -264,4 +264,5 @@
 - [x] X149 (11:18 11 shelters, +1 part each, TEMP times) Timetable case in each bus shelter: a 1-part panel with the stop name and TEMP times on the shelter back wall beside the X47 advert (`TownBuilder` buildBusStop). RiveremereWestdale.png `[studio]` S
 - [x] X150 (11:24 Cruiser client, 7 parts, racetrack lap on the reach 320..780) A motor cruiser gliding on the Lune between the marina and the Lune Bridge: a client script like Swans (about 6 parts, within 600 studs, off on Low). RivermereRiverside.png `[studio]` S
 - [x] X151 (11:14 8 crosses, +24 parts, forecourts 831/860) Green pharmacy cross sign sticking out over `shop_front_pharmacy` fronts in `ForecourtDresser` (3 parts each). RivermereCenter.png `[studio]` S
+- [x] X152 (11:38 GLASS/PAPER/CANS bottle banks in the station car park's westmost near-row bay, 6 parts) A recycling point in a town car park: roadmap E7 car parks and E10 clutter; UK car parks have bottle banks `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

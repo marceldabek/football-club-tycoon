@@ -212,4 +212,20 @@ function T.platformTerraceKeepsOffRoadsAndTheRailway()
 	end
 end
 
+-- X152: the recycling point takes the westmost near-row bay (not the entrance end)
+function T.recyclingPointTakesTheWestNearBay()
+	local block = { centre = Vector3.new(-1000, 0.5, -350), size = Vector3.new(120, 1, 60), yaw = 0, use = "station car park" } :: any
+	local bays = StationDresser.carParkBays(block, 30)
+	local i = StationDresser.recyclingBay(bays)
+	assert(i, "a recycling bay")
+	local bay = bays[i :: number]
+	assert(bay.LookVector.Z < 0, "near row")
+	for _, other in bays do
+		if other.LookVector.Z < 0 then
+			assert(other.X >= bay.X, "westmost of the near row")
+		end
+	end
+	assert(bay.X < block.centre.X, "away from the +X entrance")
+end
+
 return T
