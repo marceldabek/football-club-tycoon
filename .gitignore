@@ -13,3 +13,8 @@ Thumbs.db
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Purchased / downloaded asset kit (large binaries, never commit)
+assets/kit/*
+!assets/kit/MANIFEST.md
+!assets/kit/README.md
