@@ -10,7 +10,7 @@ Northfields semis at (215, 10, -420), the industrial estate at (-1490, 16, -170)
 the Riverside Arms forecourt at (-12, 7, -66). Top-right "Quality" button switches Low/High,
 fields/hills/turbines past the edge. Play a match: fans and stewards walk to your turnstiles; every
 4th fixture from match 3 is an evening game under floodlights; "Back to Club" plays the week
-fast-forward. Open CLUB OFFICE for the menu depth of field. New since 03:00: with two players, walk into the other club's office and use "View club" → "Play a friendly"; stand in their ground during their match to watch it.
+fast-forward. Open CLUB OFFICE for the menu depth of field. New since 03:00: with two players, walk into the other club's office and use "View club" → "Play a friendly" or "Trade players"; stand in their ground during their match to watch it.
 
 **Done:** client sky + evening fixtures + fast-forward (A1–A3), clubs as plots with per-plot
 services, picker, go-home, despawn, for-sale lots (B1–B4), save lock (B3), town plan + dense layout
@@ -26,8 +26,8 @@ station pitched roof + gable clock (X21), stone road bridges (X19), semis gable 
 (X25–X29), floodlight tag lookup (X2), separate Studio save store (X1, TEMP), season end verified (A2.2),
 marina quay + riverside gardens (X18), hedged backdrop fields (X16), road imperfections (E10.1), semis with driveways
 (X30), square flags + chimney smoke + matchday pub drinkers (F4.1/G2.1), smaller plot car park + bus menu sizing (X9/X15),
-Mill Street front gardens, railings, street trees, signs and parked cars (X11), visitors see other clubs read-only (B2.1c), read-only club card in other clubs' offices (I1.1), watching other clubs' matches with a score pill (I2.1/X38), friendlies: challenge from a club's office card, invite card, server match with no league/injuries and a TEMP gate share (I3.1a–c), welcome card no longer stacks on the naming card, hint pill no longer covers Back to Club (X40).
-**Half-done:** friendlies (I3.1) and spectating (I2.1) are only tested with one player. The accept path that starts a match between two owners needs Studio's Players = 2 test (I3.1d/X39/B2.1d).
+Mill Street front gardens, railings, street trees, signs and parked cars (X11), visitors see other clubs read-only (B2.1c), read-only club card in other clubs' offices (I1.1), watching other clubs' matches with a score pill (I2.1/X38), friendlies: challenge from a club's office card, invite card, server match with no league/injuries and a TEMP gate share (I3.1a–c), same-server trades: trade screen from a club's office card, offer card, server re-check and save on accept (I4.1a–c), welcome card no longer stacks on the naming card, hint pill no longer covers Back to Club (X40).
+**Half-done:** friendlies (I3.1), trades (I4.1) and spectating (I2.1) are only tested with one player (remotes, cards, refusals, the solo friendly match and a trade-out-and-back round trip). Accepting a friendly or a trade between two real owners needs Studio's Players = 2 test (I3.1d/I4.1d/X39/B2.1d). The MCP can't start that.
 **Reverted:** none.
 
 **Known bugs**
