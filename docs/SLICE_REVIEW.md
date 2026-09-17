@@ -69,8 +69,10 @@ shutter, a club crest sign, a bus, licence-clean cars.
 
 ## Known defects to fix next session
 
-- The rusted chain-link panels needed a second mask upload (polarity was inverted); verify all three
-  styles read as wire, not sheet.
+- Only the galvanised chain-link mask (image 79074325843312) renders; the rusted and medium-rust
+  masks were uploaded four times (Decal type, Image type, re-polarised, re-uploaded with a
+  propagation wait) and still show as solid sheets, so every panel currently uses the galvanised
+  wire. Cause unknown; retry after a Studio restart before spending more time on it.
 - Roller-shutter door mesh is placed but hidden inside the kiosk wall.
 - The concourse bin lid floats slightly; the queue-barrier row is straight rather than a lane.
 - Interior linings meet the window openings with visible seams.
