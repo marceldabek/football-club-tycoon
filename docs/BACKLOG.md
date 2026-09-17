@@ -60,7 +60,7 @@
 - [x] D4.1 `src/server/KitPlacer.luau`: place a kit model by name at a CFrame with ground snap, random yaw/colour variant within rules, primitive fallback when the kit model is missing (fresh clone of repo still builds) `[disk]` S
 
 ## Phase E — Districts (terraced streets first, per Q4)
-- [ ] E3.1 Terraced street 1 beside the town centre: 12 houses (MEH kit), front walls, pavements, lamp posts, bins, parked cars; layout data + builder; reference `RiveremereWestdale.png`/`RivermereNorthfields.png` `[studio]` M dep: C2.1, D4.1
+- [x] E3.1 Terraced street 1 beside the town centre: 12 houses (MEH kit), front walls, pavements, lamp posts, bins, parked cars; layout data + builder; reference `RiveremereWestdale.png`/`RivermereNorthfields.png` `[studio]` M dep: C2.1, D4.1
 - [ ] E3.2 Terraced street 2 + back alley with wheelie bins and garden walls `[studio]` M dep: E3.1
 - [ ] E1.1 Market square: round paved square, market stall ring, monument/clock, benches, planters, bunting; reference `RivermereCenter.png` `[studio]` M dep: C2.1
 - [ ] E2.1 High street frontage: red-brick shops with ground-floor shopfronts (bakery, grocer, café, pub, barbers), flats above, A-boards, club banners on lamp posts; reference `RivermereCenter.png` `[studio]` L
@@ -108,4 +108,7 @@
 - [ ] X8 Town edge: terrain stops dead at x ±2800 / z ±2200; needs a backdrop (hills, tree belt) `[studio]` M
 - [ ] X9 Car park (100 × 300) dominates the plot entrance; halve it or turn it `[disk]` S
 - [ ] X10 Roads z-fight risk: overlapping tops only 0.004–0.01 apart; check at distance on a mid phone `[studio]` S
+- [ ] X11 Mill Street vs `RiveremereWestdale.png`: add street trees, front garden walls/railings + hedges, club banners on lamp posts, street name signs, cars on both kerbs `[studio]` M
+- [ ] X12 Low-part terrace row (≤ 25 parts: body, roof wedges, chimney stacks, door/window decals) so every terraced block in town can be dressed within the mobile budget `[disk]` M
+- [ ] X13 Kit lamp is 36 parts: build a ≤ 6-part Victorian lamp for town-wide use `[disk]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

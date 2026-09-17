@@ -66,3 +66,8 @@ in `ServerStorage.Kit.Town`.
 - `PlotGrounds`: boundary wall with gates, access road, car park with bays/lamps/pay machine/MATCHDAY PARKING sign, brick CLUB SHOP with club fascia, two fenced training pitches, footpath to the turnstiles. 254 parts per plot. Tested on plot 1 (yaw 270): all in place.
 - Note: StreamingEnabled is already on in the place, so the client only has nearby town parts (126/516 at the square). For review shots I temporarily set models Persistent from the server; nothing saved.
 - RunAll 115/115.
+
+### 2026-09-17 ~01:15 — Mill Street dressed (E3.1)
+- `StreetDresser` replaces the Mill Street Terraces greybox with the free Victorian terrace kit row and adds staggered Victorian lamps, bins and parked cars on Mill Street and Weaver Street. Reference `RiveremereWestdale.png`. Street-level screenshot looks like a real Victorian terraced street.
+- Where to stand: (30, 7, -192) looking east along Mill Street.
+- Biggest differences to the reference: no street trees, no bay windows, no front walls/hedges, no banners or street signs, cars only on one kerb (X11). Budget: 2,350 parts for one street; kit lamp 36 parts, kit terraces 166 parts, so X12/X13 (low-part row and lamp) before dressing more streets.
