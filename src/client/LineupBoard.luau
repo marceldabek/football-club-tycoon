@@ -155,6 +155,24 @@ end
 
 -- ------------------------------------------------------------------- widgets
 
+-- X265: the dot says "not available" only by colour, and the number of matches
+-- lived in the detail window. The chip spells both out on the row itself.
+local function injuryChip(parent: Instance, matches: number)
+	local chip = Instance.new("TextLabel")
+	chip.Name = "InjuredChip"
+	chip.Size = UDim2.fromOffset(44, 16)
+	chip.Position = UDim2.new(1, -48, 1, -20)
+	chip.BackgroundColor3 = Theme.colors.bad
+	chip.BorderSizePixel = 0
+	chip.Font = Theme.fonts.bold
+	chip.TextSize = 12
+	chip.TextColor3 = Color3.new(1, 1, 1)
+	chip.Text = ("INJ %d"):format(matches)
+	chip.ZIndex = 3
+	chip.Parent = parent
+	Theme.corner(chip, Theme.chipRadius)
+end
+
 local function injuryDot(parent: Instance)
 	local inj = Instance.new("Frame")
 	inj.Name = "Injured"
@@ -166,6 +184,32 @@ local function injuryDot(parent: Instance)
 	inj.Parent = parent
 	Theme.corner(inj, 6)
 	Theme.stroke(inj)
+end
+
+-- X265: cards and rows are cached per player and only built once, so an injury
+-- picked up later never showed its dot at all. Called on every update.
+local function refreshInjury(frame: Frame, p: Player, dotParent: Instance, withChip: boolean)
+	local dot = dotParent:FindFirstChild("Injured")
+	local chip = frame:FindFirstChild("InjuredChip")
+	if p.injured > 0 then
+		if not dot then
+			injuryDot(dotParent)
+		end
+		if withChip then
+			if chip and chip:IsA("TextLabel") then
+				chip.Text = ("INJ %d"):format(p.injured)
+			else
+				injuryChip(frame, p.injured)
+			end
+		end
+	else
+		if dot then
+			dot:Destroy()
+		end
+		if chip then
+			chip:Destroy()
+		end
+	end
 end
 
 -- Pitch card: shoulder headshot, surname, role bottom-left, OVR bottom-right.
@@ -268,6 +312,7 @@ local function row(parent: Instance, p: Player, kit: Color3): Frame
 	})
 	if p.injured > 0 then
 		injuryDot(face)
+		injuryChip(f, p.injured)
 	end
 	return f
 end
@@ -607,6 +652,7 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 					c = card(pitch, p, opts.kit)
 					cards[p.id] = c
 				end
+				refreshInjury(c, p, c, false)
 				c.Position = slotPosition(slot)
 				if empties[slot] then
 					empties[slot]:Destroy()
@@ -650,6 +696,7 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 				r = row(benchScroll, p, opts.kit)
 				rows[p.id] = r
 			end
+			refreshInjury(r, p, r:FindFirstChild("Face") or r, true)
 			r.LayoutOrder = order
 			wantRow[p.id] = true
 		end
@@ -667,6 +714,18 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 				table.insert(reserves, p)
 			end
 		end
+		-- X265: squad order put the best reserve anywhere in the list once a few
+		-- signings landed. Fit players first, then strongest, then by shirt.
+		table.sort(reserves, function(a, b)
+			local aFit, bFit = a.injured == 0, b.injured == 0
+			if aFit ~= bFit then
+				return aFit
+			end
+			if a.overall ~= b.overall then
+				return a.overall > b.overall
+			end
+			return a.number < b.number
+		end)
 		order += 1
 		sectionHeader("BenchHead", "BENCH", #bench, order)
 		for _, p in bench do

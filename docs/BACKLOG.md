@@ -379,11 +379,13 @@
 - [ ] X262 Popularity pins at 100 from about season 3 and never moves, so demand is a fixed number per tier and the League tab's "wins raise it" stops being true: add an unclamped recent-form term or decay toward a tier baseline between seasons, 0 parts `[disk]` M
 - [x] X263 (15:21 done) A friendly's visiting club is coloured from its name hash with no clash check, so it can field almost the player's own red for 90 s: reject an away shade too close to Config.HomeKit, 0 parts `[disk]` S
 - [x] X264 (15:21 done, celebration not caught on camera) A goal is under-sold: only the scorer celebrates and an away goal is silent (the only goal sound rides on the home crowd cheer): send the nearest teammates to celebrate and add a muted cue for away goals, 0 parts `[disk]` S
-- [ ] X265 The reserves list is in raw squad order and injury is a 12 px dot with no text: sort fit-first then by rating, and add an "INJ 2" chip to the row, 0 parts `[disk]` S
-- [ ] X266 Promotion and relegation places are colour-only in the league table and history: add a chevron or edge bar so the cue isn't colour alone, 0 parts `[disk]` S
+- [x] X265 (15:28 done) The reserves list is in raw squad order and injury is a 12 px dot with no text: sort fit-first then by rating, and add an "INJ 2" chip to the row, 0 parts `[disk]` S
+- [x] X266 (15:28 done) Promotion and relegation places are colour-only in the league table and history: add a chevron or edge bar so the cue isn't colour alone, 0 parts `[disk]` S
 - [ ] X267 The town has one finger post (the market square) and its blades never point at a club ground, though two reference images put one at street level: reuse `fingerPost` at the station, promenade and Westdale approach with ground blades, ~7 parts each `[studio]` S
 - [ ] X268 Only the station lay-by has a painted BUS STOP bay; the 11 fast-travel stops have no road marking: add the same bay slab and legend, 2 parts each `[studio]` S
 - [ ] X269 The bus-stop bin has its LITTER band but no town crest, which every reference bin carries: draw `TownCrest` into that existing SurfaceGui, 0 parts `[studio]` S
 - [ ] X270 The club's own signs (turnstile fascia, lamp banner, stand street sign, roof fascia, plot signs) sit at LightInfluence 0.8–1.0, so they go dark exactly at evening fixtures, while the matchday board already uses 0: drop them to about 0.2, 0 parts `[studio]` S
 - [ ] X271 ATTACK / DEFEND cannot change the result (the match is simulated before kick-off) and nothing says so, so the buttons read as tactics that matter: either make the tactic bias the sim or label them as a view/emphasis control, 0 parts `[disk]` M
 - [ ] X272 Prize money tops out at £48,000 against roughly £1.1M of top-tier gate income, so a title's share of income falls from about a fifth to about 4%: scale prizes with the division (needs Marcel's economy numbers, like questions 18 and 19), 0 parts `[disk]` S
+- [x] X273 (15:28 done, found while testing X265) The lineup board caches a card and a row per player and only builds them once, so an injury picked up after the panel first drew never showed its dot at all: refresh the indicator on every update `[disk]` S
+

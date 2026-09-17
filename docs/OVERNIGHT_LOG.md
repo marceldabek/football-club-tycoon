@@ -1480,3 +1480,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **The celebration itself wasn't caught on camera**: the window is about 2 s and by the time a capture landed the players were back in formation; a cluster measure over all 32 players was inconclusive. The code path is straightforward, and nothing errored across four matches. Worth an eye in the morning.
 - RunAll 438 passed.
 
+### 2026-09-17 15:28 — Reserves order, injury chips, promotion marks, and a stale injury dot (X265, X266, X273 done)
+- X265 `LineupBoard`: reserves are listed fit first, then by rating, then shirt number (squad order used to bury the best reserve after a few signings). An injured bench or reserve row now carries an "INJ n" chip beside the red dot, so the state isn't colour-only and the number of matches doesn't live only in the detail window.
+- **X273, found while testing that:** cards and rows are cached per player and were only built once, so an injury picked up while the panel existed never showed its dot — on the pitch card either. A `refreshInjury` now runs on every update and adds, updates or clears the dot and chip. Checked in play: injuring a bench player and an XI player with the panel open showed "Dunmore INJ 3" on the row and dots on both the row and the pitch card (screenshot).
+- X266 `ClubPanel` League tab: promotion and relegation places carry a small up/down chevron built from two rotated bars (like `MatchSummary`'s, so no font glyph is needed) next to the position number. The first attempt put it under the crest badge, so the crest and name columns moved right by 8 px. Screenshot checked: 1st and 2nd show up marks, 5th and 6th down marks, and the club's own row is unmarked in mid-table.
+- RunAll 438 passed.
+

@@ -634,7 +634,7 @@ local function renderLeague()
 	local head = row(false)
 	head.BackgroundColor3 = PANEL_BG
 	cell(head, "#", 10, 30, { TextColor3 = GREY })
-	cell(head, "Team", 68, 192, { TextColor3 = GREY })
+	cell(head, "Team", 76, 184, { TextColor3 = GREY })
 	cell(head, "P", 270, 30, { TextColor3 = GREY })
 	cell(head, "W", 305, 30, { TextColor3 = GREY })
 	cell(head, "D", 340, 30, { TextColor3 = GREY })
@@ -654,10 +654,32 @@ local function renderLeague()
 		local goesUp = if topFlight then i == 1 else i <= promo
 		local goesDown = tier > 1 and i > #rows - releg
 		local posColor = if goesUp then Color3.fromRGB(120, 230, 120) elseif goesDown then Color3.fromRGB(240, 110, 110) else Color3.new(1, 1, 1)
+		-- X266: promotion and relegation places were signalled by colour only.
+		-- Drawn from rotated bars (like MatchSummary's chevron), so it needs no
+		-- font glyph.
 		cell(f, tostring(r.position), 10, 30, { TextColor3 = posColor, Font = Enum.Font.GothamBold })
-		Crest.draw(f, r.name, 24, { isPlayer = r.isPlayer, position = UDim2.fromOffset(40, 3) })
+		if goesUp or goesDown then
+			local mark = Instance.new("Frame")
+			mark.Name = if goesUp then "UpMark" else "DownMark"
+			mark.BackgroundTransparency = 1
+			mark.Size = UDim2.fromOffset(14, 14)
+			mark.Position = UDim2.fromOffset(30, 8)
+			mark.Parent = f
+			for _, side in { -1, 1 } do
+				local bar = Instance.new("Frame")
+				bar.AnchorPoint = Vector2.new(0.5, 0.5)
+				bar.Size = UDim2.fromOffset(9, 2)
+				bar.BackgroundColor3 = posColor
+				bar.BorderSizePixel = 0
+				bar.Position = UDim2.fromScale(0.5 + side * 0.2, 0.5)
+				bar.Rotation = if goesUp then side * 45 else -side * 45
+				bar.Parent = mark
+			end
+		end
+		-- X266: the promotion/relegation mark sits at x 30-44, so the crest moves right
+		Crest.draw(f, r.name, 24, { isPlayer = r.isPlayer, position = UDim2.fromOffset(48, 3) })
 		-- X258: a long club name used to wrap inside the one-line row
-		cell(f, r.name, 68, 192, {
+		cell(f, r.name, 76, 184, {
 			Font = if r.isPlayer then Enum.Font.GothamBold else Enum.Font.Gotham,
 			TextWrapped = false,
 			TextTruncate = Enum.TextTruncate.AtEnd,
