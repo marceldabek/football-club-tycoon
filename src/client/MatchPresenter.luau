@@ -38,6 +38,10 @@ type Team = {
 }
 
 type Holder = { team: Pitch.Team, idx: number }
+-- X315: the three people on the pitch nobody had built. `half` is the end an
+-- assistant covers (-1 = the Home end), flipped at half-time with the teams.
+type Assistant = { fb: Footballer.Footballer, side: number, half: number }
+type Officials = { ref: Footballer.Footballer, assistants: { Assistant } }
 -- ground: rolls with ease-out at rest height; air: lofted along an arc.
 type Flight = { from: Vector3, to: Vector3, t: number, dur: number, arc: number, kind: "ground" | "air", onArrive: (() -> ())? }
 
@@ -59,6 +63,7 @@ export type Presenter = typeof(setmetatable(
 		ballPos: Vector3, -- pitch-local ball position (the part itself sits in the plot)
 		dribbleT: number, -- time since the carrier last knocked the ball ahead
 		settleUntil: number, -- first touch: the ball sits still until this clock time
+		officials: Officials?, -- X315: referee and two assistants
 	},
 	Presenter
 ))
@@ -78,6 +83,18 @@ local ROLE_SHIFT: { [string]: number } = { DEF = 0.1, MID = 0.18, FWD = 0.24 }
 local MAX_SHIFT = 22
 local DRIBBLE_SPEED = 13 -- the ball carrier keeps moving toward goal
 local LEAD_DISTANCE = 7 -- passes go into space ahead of the receiver
+-- X315: twenty-two footballers, a whistle in Config.Sounds and nobody in
+-- black, so a goal was given by the scoreboard alone. A referee on the usual
+-- corner-to-corner diagonal, keeping the ball between him and the nearer
+-- assistant, and two assistants on opposite touchlines, one to each half.
+-- All TEMP numbers.
+local OFFICIAL_BLACK = Color3.fromRGB(26, 28, 32) -- the referee
+local OFFICIAL_HI = Color3.fromRGB(206, 228, 62) -- the assistants, fluoro
+local REF_SPEED = 19 -- slower than the players, which is the point
+local REF_DIAGONAL = 32 -- how far the diagonal swings either side of centre
+local REF_TRAIL = 9 -- studs behind the ball, so he is never in the way
+local ASSISTANT_SPEED = 17
+local ASSISTANT_X = Pitch.WIDTH / 2 + 3 -- just off the touchline, on the turf
 local DRIFT_MIN, DRIFT_MAX = 1.5, 3.5 -- seconds between a player picking a new spot
 -- Ball (TEMP): a real ball is 0.6 studs at this scale; slightly larger reads better.
 local BALL_R = 0.45
@@ -148,6 +165,14 @@ local function makeBall(parent: Instance): Part
 	return ball
 end
 
+local function clampToPitch(p: Vector3): Vector3
+	return Vector3.new(
+		math.clamp(p.X, -Pitch.WIDTH / 2 + 6, Pitch.WIDTH / 2 - 6),
+		p.Y,
+		math.clamp(p.Z, -Pitch.LENGTH / 2 + 8, Pitch.LENGTH / 2 - 8)
+	)
+end
+
 local function restAt(p: Vector3): Vector3
 	return Vector3.new(p.X, BALL_REST, p.Z)
 end
@@ -208,16 +233,66 @@ function Presenter.new(timeline: Timeline, duration: number): Presenter
 		self.teams[teamName] = team
 	end
 
+	self:buildOfficials()
+
 	self.heartbeat = RunService.Heartbeat:Connect(function(dt)
 		self:step(dt)
 	end)
 	return self
 end
 
+-- X315: the referee at the edge of the centre circle and an assistant at
+-- halfway on each touchline, which is where they stand for the walkout.
+function Presenter.buildOfficials(self: Presenter)
+	local ref = Footballer.new(self.folder, OFFICIAL_BLACK, 0, "Referee", Vector3.new(10, Pitch.SURFACE_Y, 12), 3, false)
+	ref:setTagVisible(false)
+	ref.speed = REF_SPEED
+	local assistants: { Assistant } = {}
+	for i = 1, 2 do
+		local side = if i == 1 then 1 else -1
+		local fb = Footballer.new(self.folder, OFFICIAL_HI, 0, "Assistant", Vector3.new(side * ASSISTANT_X, Pitch.SURFACE_Y, 0), 6 + i, false)
+		fb:setTagVisible(false)
+		fb.speed = ASSISTANT_SPEED
+		fb:face(centre())
+		table.insert(assistants, { fb = fb, side = side, half = if i == 1 then -1 else 1 })
+	end
+	self.officials = { ref = ref, assistants = assistants }
+end
+
+-- Where the referee's diagonal runs at this end of the pitch.
+local function diagonalX(z: number): number
+	return (z / (Pitch.LENGTH / 2)) * REF_DIAGONAL
+end
+
+-- Follows play without joining in: the referee trails the ball along his
+-- diagonal, and each assistant keeps level with the ball inside his own half.
+function Presenter.updateOfficials(self: Presenter)
+	local o = self.officials
+	if not o then
+		return
+	end
+	local ball = self.ballPos
+	-- the trail is toward the half the ball is in, so he is behind play either way
+	local trail = if ball.Z > 0 then REF_TRAIL else -REF_TRAIL
+	o.ref:setTarget(clampToPitch(Vector3.new(
+		diagonalX(ball.Z) * 0.75 + ball.X * 0.2,
+		Pitch.SURFACE_Y,
+		ball.Z - trail
+	)))
+	for _, a in o.assistants do
+		-- halves swap with the teams at half-time
+		local half = if self.swapped then -a.half else a.half
+		local lo = if half < 0 then -Pitch.LENGTH / 2 + 6 else -6
+		local hi = if half < 0 then 6 else Pitch.LENGTH / 2 - 6
+		a.fb:setTarget(Vector3.new(a.side * ASSISTANT_X, Pitch.SURFACE_Y, math.clamp(ball.Z, lo, hi)))
+	end
+end
+
 -- Per-frame: move footballers, fly the ball, keep formation.
 function Presenter.step(self: Presenter, dt: number)
 	if self.mode == "play" then
 		self:updateFormationTargets(dt)
+		self:updateOfficials() -- X315
 	end
 	for _, team in self.teams do
 		for _, fb in team.players do
@@ -225,6 +300,16 @@ function Presenter.step(self: Presenter, dt: number)
 		end
 		for _, fb in team.bench do
 			fb:update(dt)
+		end
+	end
+	-- X315: the officials are not in a team, so they need stepping themselves
+	-- (the first version only set their targets, and all three stood still on
+	-- their kick-off marks for the whole match)
+	local officials = self.officials
+	if officials then
+		officials.ref:update(dt)
+		for _, a in officials.assistants do
+			a.fb:update(dt)
 		end
 	end
 
@@ -296,14 +381,6 @@ end
 function Presenter.refreshSlots(self: Presenter)
 	self.teams.Home.slots = Pitch.formationSlots(self:geom("Home"), self.homeTactic)
 	self.teams.Away.slots = Pitch.formationSlots(self:geom("Away"), "Balanced")
-end
-
-local function clampToPitch(p: Vector3): Vector3
-	return Vector3.new(
-		math.clamp(p.X, -Pitch.WIDTH / 2 + 6, Pitch.WIDTH / 2 - 6),
-		p.Y,
-		math.clamp(p.Z, -Pitch.LENGTH / 2 + 8, Pitch.LENGTH / 2 - 8)
-	)
 end
 
 function Presenter.updateFormationTargets(self: Presenter, dt: number)
@@ -670,6 +747,13 @@ function Presenter.playSequence(self: Presenter, ev: Event, shotAt: number)
 	T.push = 0
 
 	if ev.type == "GOAL" then
+		-- X315: somebody gives the goal. The whistle, then the referee jogs back
+		-- to the centre spot for the restart while the scorer is celebrating.
+		MatchAudio.whistle()
+		local officials = self.officials
+		if officials then
+			officials.ref:setTarget(Vector3.new(6, Pitch.SURFACE_Y, 8))
+		end
 		shooter:celebrate()
 		-- X264: the two nearest teammates run in and celebrate with the scorer,
 		-- so a goal isn't one player waving while ten others jog to their spots
@@ -844,6 +928,16 @@ function Presenter.finish(self: Presenter)
 		fb.speed = WALK_SPEED
 		fb:setTarget(Pitch.TUNNEL)
 	end)
+	-- X315: the officials walk off as well, rather than standing there alone
+	local officials = self.officials
+	if officials then
+		officials.ref.speed = WALK_SPEED
+		officials.ref:setTarget(Pitch.TUNNEL)
+		for _, a in officials.assistants do
+			a.fb.speed = WALK_SPEED
+			a.fb:setTarget(Pitch.TUNNEL)
+		end
+	end
 	-- the bench gets up and goes in too
 	for _, team in self.teams do
 		for _, fb in team.bench do
@@ -863,6 +957,14 @@ function Presenter.destroy(self: Presenter)
 		self.heartbeat = nil
 	end
 	self.mode = "ended"
+	local officials = self.officials
+	if officials then
+		officials.ref:destroy()
+		for _, a in officials.assistants do
+			a.fb:destroy()
+		end
+		self.officials = nil
+	end
 	self.folder:Destroy()
 end
 
