@@ -627,6 +627,14 @@ local function buildDressingRooms(parent: Instance)
 		slab("WallOuter", ROOM_X0 - WALL_T, ROOM_X1 + WALL_T, 0, h, outer, outer + WALL_T, concrete, Enum.Material.Concrete)
 		slab("WallEndFar", ROOM_X0 - WALL_T, ROOM_X0, 0, h, inner, outer, concrete, Enum.Material.Concrete)
 		slab("WallEndNear", ROOM_X1, ROOM_X1 + WALL_T, 0, h, inner, outer, concrete, Enum.Material.Concrete)
+		-- X141: brick skins on the outside faces (the rooms stay concrete inside),
+		-- wrapping the corners and up over the ceiling's edge
+		local skin, top = 0.2, h + 0.6
+		slab("Cladding", ROOM_X0 - WALL_T - skin, ROOM_X1 + WALL_T + skin, -0.2, top, outer + WALL_T, outer + WALL_T + skin, STAND_BRICK, Enum.Material.Brick)
+		slab("Cladding", ROOM_X0 - WALL_T - skin, ROOM_X0 - WALL_T, -0.2, top, inner, outer + WALL_T, STAND_BRICK, Enum.Material.Brick)
+		slab("Cladding", ROOM_X1 + WALL_T, ROOM_X1 + WALL_T + skin, -0.2, top, inner, outer + WALL_T, STAND_BRICK, Enum.Material.Brick)
+		-- and the bit of corridor wall showing between the room and the office
+		slab("Cladding", CORRIDOR_END + 0.5 + skin, ROOM_X0 - WALL_T - skin, -0.2, top, TUNNEL_HALF + WALL_T, TUNNEL_HALF + WALL_T + skin, STAND_BRICK, Enum.Material.Brick)
 
 		-- Benches down both long sides with a peg rail and a hung shirt above
 		-- each place. The inner run is broken either side of the doorway so
@@ -991,6 +999,18 @@ local function buildOffice(parent: Instance)
 	box("WallE1", Vector3.new(1, h, segLen), Vector3.new(cx + w / 2, wy, cz - (doorW / 2 + segLen / 2)), wallColor, wallMat, office)
 	box("WallE2", Vector3.new(1, h, segLen), Vector3.new(cx + w / 2, wy, cz + (doorW / 2 + segLen / 2)), wallColor, wallMat, office)
 	box("DoorHeader", Vector3.new(1, 3, doorW), Vector3.new(cx + w / 2, OFFICE_Y + h - 1.5, cz), wallColor, wallMat, office)
+	-- X141: brick skins outside (the stained beige stays inside), wrapping the
+	-- corners; the east skins stop at the tunnel corridor's walls
+	local skin = 0.2
+	local skinH = h + 1
+	local skinY = OFFICE_Y - 1 + skinH / 2
+	local ow, od = w / 2 + 0.5, d / 2 + 0.5 -- outer faces
+	box("Cladding", Vector3.new(skin, skinH, od * 2), Vector3.new(cx - ow - skin / 2, skinY, cz), STAND_BRICK, Enum.Material.Brick, office)
+	for _, zSign in { -1, 1 } do
+		box("Cladding", Vector3.new(ow * 2 + skin * 2, skinH, skin), Vector3.new(cx, skinY, cz + zSign * (od + skin / 2)), STAND_BRICK, Enum.Material.Brick, office)
+		local z0 = TUNNEL_HALF + WALL_T
+		box("Cladding", Vector3.new(skin, skinH, od - z0), Vector3.new(cx + ow + skin / 2, skinY, cz + zSign * (z0 + od) / 2), STAND_BRICK, Enum.Material.Brick, office)
+	end
 
 	-- furniture
 	local desk = box("Desk", Vector3.new(4, 3, 10), Vector3.new(cx - 8, OFFICE_Y + 1.5, cz),
