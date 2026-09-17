@@ -62,9 +62,9 @@ function T.gableWedgesMeetAtTheApex()
 	for _, side in { -1, 1 } do
 		local cf, size = StationDresser.gableWedge(side, 22, 9.5, 23.3, 0, 2.5)
 		local h, l = size.Y, size.Z
-		assert(close(cf * Vector3.new(0, -h / 2, l / 2), Vector3.new(0, 23.3, 0)), "right angle under the apex")
-		assert(close(cf * Vector3.new(0, h / 2, l / 2), Vector3.new(0, 32.8, 0)), "apex on the centre line")
-		assert(close(cf * Vector3.new(0, -h / 2, -l / 2), Vector3.new(side * 22, 23.3, 0)), "low corner at the side")
+		assert(close(cf * Vector3.new(0, -h / 2, l / 2), Vector3.new(0, 23.3, 1.25)), "right angle under the apex")
+		assert(close(cf * Vector3.new(0, h / 2, l / 2), Vector3.new(0, 32.8, 1.25)), "apex on the centre line")
+		assert(close(cf * Vector3.new(0, -h / 2, -l / 2), Vector3.new(side * 22, 23.3, 1.25)), "low corner at the side")
 		assert(close(cf * Vector3.new(size.X / 2, -h / 2, l / 2), Vector3.new(0, 23.3, 1.25 + side * 1.25)), "extruded along z")
 		assert(cf.XVector:Cross(cf.YVector):Dot(cf.ZVector) > 0.99, "right-handed frame")
 	end
