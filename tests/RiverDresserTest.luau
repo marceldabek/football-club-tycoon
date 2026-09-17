@@ -39,7 +39,8 @@ function T.heritageLampIsLightWithABasketOverThePromenadeSide()
 				lowest = math.min(lowest, d.Position.Y - math.abs(ext.Y))
 			end
 		end
-		assert(parts == (if basket then 9 else 7), ("basket %s: %d parts"):format(tostring(basket), parts))
+		assert(parts == 9, ("basket %s: %d parts (basket or banner)"):format(tostring(basket), parts))
+		assert((lamp:FindFirstChild("Banner") ~= nil) == not basket, "a banner exactly when there is no basket")
 		assert(lowest >= 0.35 - 1e-3, "nothing below the ground it stands on")
 		local b = lamp:FindFirstChild("Basket") :: BasePart?
 		assert((b ~= nil) == basket, "basket only when asked")

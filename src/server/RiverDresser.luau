@@ -216,7 +216,8 @@ end
 -- X66: a black heritage lamp like RivermereRiverside.png: lantern on top of
 -- the post with a cap and finial, and (when `basket`) a hanging flower basket
 -- on a bracket towards local -Z (the promenade). 7 parts, 9 with the basket;
--- the kit LampVictorian is 36. Ground at `cf`.
+-- the kit LampVictorian is 36; without a basket, a navy banner on an arm (+2).
+-- Ground at `cf`.
 local BASKET_FLOWERS = { Color3.fromRGB(214, 80, 130), Color3.fromRGB(150, 110, 190), Color3.fromRGB(230, 120, 70) }
 function RiverDresser.heritageLamp(cf: CFrame, parent: Instance, basket: boolean, rng: Random): Model
 	local m = Instance.new("Model")
@@ -231,6 +232,28 @@ function RiverDresser.heritageLamp(cf: CFrame, parent: Instance, basket: boolean
 	part({ Name = "Glass", Size = Vector3.new(1.38, 1.2, 1.38), CFrame = cf * CFrame.new(0, 13.25, 0), Color = Color3.fromRGB(255, 226, 160), Material = Enum.Material.Neon, CastShadow = false, Parent = m })
 	part({ Name = "Cap", Size = Vector3.new(1.7, 0.3, 1.7), CFrame = cf * CFrame.new(0, 14.25, 0), Color = IRON, CastShadow = false, Parent = m })
 	part({ Name = "Finial", Size = Vector3.new(0.3, 0.6, 0.3), CFrame = cf * CFrame.new(0, 14.65, 0), Color = IRON, CastShadow = false, Parent = m })
+	if not basket then
+		-- X66: a navy town banner on the lamps without a basket, over the river side
+		part({ Name = "BannerArm", Size = Vector3.new(0.25, 0.25, 2.6), CFrame = cf * CFrame.new(0, 11.4, 1.25), Color = IRON, CastShadow = false, Parent = m })
+		local banner = part({ Name = "Banner", Size = Vector3.new(0.12, 4.6, 2.2), CFrame = cf * CFrame.new(0, 11.4 - 0.15 - 2.3, 1.5), Color = Color3.fromRGB(24, 38, 72), Material = Enum.Material.Fabric, CastShadow = false, Parent = m })
+		for _, face in { Enum.NormalId.Left, Enum.NormalId.Right } do
+			local gui = Instance.new("SurfaceGui")
+			gui.Face = face
+			gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+			gui.PixelsPerStud = 50
+			gui.LightInfluence = 0.8
+			gui.Parent = banner
+			local label = Instance.new("TextLabel")
+			label.BackgroundTransparency = 1
+			label.Size = UDim2.fromScale(0.9, 0.9)
+			label.Position = UDim2.fromScale(0.05, 0.05)
+			label.Font = Enum.Font.GothamBold
+			label.TextScaled = true
+			label.TextColor3 = Color3.fromRGB(240, 236, 224)
+			label.Text = "RIVERMERE\n\nRIVER\nPEOPLE\nPLACES\nTOGETHER"
+			label.Parent = gui
+		end
+	end
 	if basket then
 		-- bracket 10.35 .. 10.65 from inside the post out to over the basket
 		part({ Name = "Bracket", Size = Vector3.new(0.25, 0.3, 2.2), CFrame = cf * CFrame.new(0, 10.5, -1.05), Color = IRON, CastShadow = false, Parent = m })
