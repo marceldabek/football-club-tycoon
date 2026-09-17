@@ -34,7 +34,9 @@ function UpgradeService.refreshPrompt()
 		if nextLevel then
 			local seats = Config.plotCapacity(plot, level + 1)
 			local verb = if level == 0 then "Build" else "Expand to"
-			prompt.ActionText = ("%s %s (%d seats) — %s"):format(verb, nextLevel.name, seats, money(nextLevel.cost))
+			-- X228: the first build on an empty plot costs nothing (TEMP, question 18); say so
+			local price = if nextLevel.cost <= 0 then "Free" else money(nextLevel.cost)
+			prompt.ActionText = ("%s %s (%d seats) — %s"):format(verb, nextLevel.name, seats, price)
 			prompt.Enabled = managing
 		else
 			prompt.ActionText = "Fully expanded"

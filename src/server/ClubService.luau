@@ -330,6 +330,10 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 		if (slotA and pb.injured > 0) or (slotB and pa.injured > 0) then
 			return false, "Injured players cannot start"
 		end
+		-- X230: kick-off would silently drop an injured substitute
+		if (benchA and not slotB and not benchB and pb.injured > 0) or (benchB and not slotA and not benchA and pa.injured > 0) then
+			return false, "Injured players can't be on the bench"
+		end
 		if slotA and slotB then
 			lineup.xi[slotA], lineup.xi[slotB] = idB, idA
 		elseif slotA or slotB then
@@ -411,6 +415,7 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 			injured = 0,
 			apps = 0,
 			goals = 0,
+			look = prospect.look, -- X227: keep the face the shortlist showed
 		}
 		nextId += 1
 		table.insert(players, signed)

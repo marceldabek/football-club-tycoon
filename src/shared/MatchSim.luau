@@ -114,6 +114,25 @@ local function pickMinutes(rng: Random, count: number): { number }
 	return minutes
 end
 
+-- The timeline can only space MAX_CHANCES sequences at the minimum gap and
+-- goals are never dropped, so a very high score is trimmed rather than let two
+-- 3D sequences overlap. Rare at these expectancies. X229: goals come off both
+-- sides together so the winner and the margin never change (trimming only the
+-- leading side turned 5-4 into 3-4).
+function MatchSim.trimGoals(homeGoals: number, awayGoals: number): (number, number)
+	while homeGoals + awayGoals > MatchSim.MAX_CHANCES do
+		if homeGoals > 0 and awayGoals > 0 then
+			homeGoals -= 1
+			awayGoals -= 1
+		elseif homeGoals > 0 then
+			homeGoals -= 1
+		else
+			awayGoals -= 1
+		end
+	end
+	return homeGoals, awayGoals
+end
+
 function MatchSim.simulate(params: Params): Result
 	-- X201: unseeded matches get their own random sequence (os.time() gave two
 	-- clubs kicking off in the same second identical games)
@@ -139,16 +158,7 @@ function MatchSim.simulate(params: Params): Result
 		end
 	end
 
-	-- The timeline can only space MAX_CHANCES sequences at the minimum gap and
-	-- goals are never dropped, so trim the winning side rather than let two 3D
-	-- sequences overlap. Rare enough at these expectancies to stay invisible.
-	while homeGoals + awayGoals > MatchSim.MAX_CHANCES do
-		if homeGoals >= awayGoals then
-			homeGoals -= 1
-		else
-			awayGoals -= 1
-		end
-	end
+	homeGoals, awayGoals = MatchSim.trimGoals(homeGoals, awayGoals)
 
 	-- Build the chance list: every goal plus a few misses/saves per team.
 	local chances: { { team: "Home" | "Away", type: EventType } } = {}

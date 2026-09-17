@@ -340,13 +340,13 @@
 - [x] X224 (13:32 done) The music playlist stops for good if a track fails to load (Ended never fires): add a fallback timer to skip on, 0 parts `[disk]` S
 - [x] X225 (13:27 done) The friendly summary shows a full gate × £8 next to a 25% gate share labelled "Tickets", and Back to Club plays the week fast-forward though friendlies don't advance: label it "Gate share" and skip the fast-forward, 0 parts `[disk]` S
 - [x] X226 (13:32 done) The match summary's scorer list under each crest shows only two lines, so a third goal (e.g. 78') is cut off: shrink the text or show "+1 more", 0 parts `[disk]` S
-- [ ] X227 A signed prospect's face changes on signing and again after a rejoin (`look` isn't copied into the signed player): copy `prospect.look`, 0 parts `[disk]` S
-- [ ] X228 Empty stand plots build for £0 ("Build Bleachers (150 seats) — £0") while the post-match-1 hint points at a £1,500 East Stand upgrade: at least say "Free" on the sign; price is question 18, 0 parts `[disk]` S
-- [ ] X229 MatchSim's goal trim can flip a result (5-4 → 4-4 → 3-4) and undo the match-2 bias: trim from the side with more goals, both when level, so winner and margin hold, 0 parts `[disk]` S
-- [ ] X230 An injured reserve can be swapped onto the bench and is silently dropped at kick-off: refuse the swap, 0 parts `[disk]` S
-- [ ] X231 The match summary never shows fans turned away when the ground is full (CLAUDE.md s10's "leaving revenue on the table"): add "N fans turned away (~£X missed)", 0 parts `[disk]` S
+- [x] X227 (13:47 done) A signed prospect's face changes on signing and again after a rejoin (`look` isn't copied into the signed player): copy `prospect.look`, 0 parts `[disk]` S
+- [x] X228 (13:47 sign says "Free"; the price itself is question 18) Empty stand plots build for £0 ("Build Bleachers (150 seats) — £0") while the post-match-1 hint points at a £1,500 East Stand upgrade: at least say "Free" on the sign; price is question 18, 0 parts `[disk]` S
+- [x] X229 (13:47 done) MatchSim's goal trim can flip a result (5-4 → 4-4 → 3-4) and undo the match-2 bias: trim from the side with more goals, both when level, so winner and margin hold, 0 parts `[disk]` S
+- [x] X230 (13:47 done) An injured reserve can be swapped onto the bench and is silently dropped at kick-off: refuse the swap, 0 parts `[disk]` S
+- [x] X231 (13:47 done) The match summary never shows fans turned away when the ground is full (CLAUDE.md s10's "leaving revenue on the table"): add "N fans turned away (~£X missed)", 0 parts `[disk]` S
 - [ ] X232 Hire/Sign buttons look ready when the club can't afford them: dim them and show "Need £X more", 0 parts `[disk]` S
-- [ ] X233 History's "Highest level" lags a season behind after promotion (only finished seasons count): include the current tier, 0 parts `[disk]` S
-- [ ] X234 The ground caps at 8,000 seats while demand reaches ~20k in the top divisions (WORLD_ROADMAP Q14 wants ~30k): more stand levels need Marcel's numbers (question 19), 0 parts now `[disk]` M
+- [x] X233 (13:47 done) History's "Highest level" lags a season behind after promotion (only finished seasons count): include the current tier, 0 parts `[disk]` S
+- [ ] X234 (13:47 blocked on question 19) The ground caps at 8,000 seats while demand reaches ~20k in the top divisions (WORLD_ROADMAP Q14 wants ~30k): more stand levels need Marcel's numbers (question 19), 0 parts now `[disk]` M
 - [ ] X235 No corner arcs on the pitch (pitch-board.png has them): four quarter arcs at the flags, ~12 parts per club `[studio]` S
 - [ ] X236 The turnstile fascia is a plain name strip; the reference has crest badges at each end: add two shield badges in the same SurfaceGui, 0 parts `[studio]` S

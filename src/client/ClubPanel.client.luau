@@ -695,7 +695,7 @@ local function renderHistory()
 	local relegationWord = if honours.relegations == 1 then "relegation" else "relegations"
 	note(("%d league %s  ·  %d %s  ·  %d %s  ·  Highest level: %s"):format(
 		honours.titles, titleWord, honours.promotions, promotionWord, honours.relegations, relegationWord,
-		if honours.bestTier > 0 then Config.Divisions[honours.bestTier].name else "-"))
+		Config.Divisions[math.clamp(math.max(honours.bestTier, get("Tier") or 1), 1, #Config.Divisions)].name))
 	note(("All-time record: %d played, %d won, %d drawn, %d lost."):format(
 		get("MatchesPlayed") or 0, get("Wins") or 0, get("Draws") or 0, get("Losses") or 0), GREY)
 	if honours.titles > 0 then

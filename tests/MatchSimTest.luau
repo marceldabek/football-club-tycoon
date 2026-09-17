@@ -135,4 +135,23 @@ function T.narrowWinBiasStillHolds()
 	end
 end
 
+
+function T.trimGoalsKeepsWinnerAndMargin()
+	local max = MatchSim.MAX_CHANCES
+	for h = 0, 12 do
+		for a = 0, 12 do
+			local th, ta = MatchSim.trimGoals(h, a)
+			assert(th + ta <= max, ("%d-%d still too many"):format(h, a))
+			assert(th >= 0 and ta >= 0, "negative goals")
+			if h + a <= max then
+				assert(th == h and ta == a, "trimmed a score that fit")
+			elseif h > 0 and a > 0 and math.abs(h - a) <= max then
+				assert(th - ta == h - a, ("%d-%d margin changed to %d-%d"):format(h, a, th, ta))
+			end
+			local sign = function(x) return if x > 0 then 1 elseif x < 0 then -1 else 0 end
+			assert(sign(th - ta) == sign(h - a), ("%d-%d winner changed to %d-%d"):format(h, a, th, ta))
+		end
+	end
+end
+
 return T

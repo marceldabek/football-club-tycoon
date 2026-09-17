@@ -356,7 +356,7 @@ function MatchSummary.new(gui: ScreenGui): Summary
 	})
 	local track = Instance.new("Frame")
 	track.Name = "Track"
-	track.Position = UDim2.new(0, 176, 0.5, 0)
+	track.Position = UDim2.new(0, 176, 0, 32)
 	track.AnchorPoint = Vector2.new(0, 0.5)
 	track.Size = UDim2.new(1, -176 - 96, 0, 14)
 	track.BackgroundColor3 = C.bg3
@@ -373,11 +373,21 @@ function MatchSummary.new(gui: ScreenGui): Summary
 	local percent = Theme.text(attendance, "", "body", {
 		Name = "Percent",
 		Size = UDim2.fromOffset(80, 24),
-		Position = UDim2.new(1, -14, 0.5, 0),
+		Position = UDim2.new(1, -14, 0, 32),
 		AnchorPoint = Vector2.new(1, 0.5),
 		Font = Theme.fonts.bold,
 		TextSize = 15,
 		TextXAlignment = Enum.TextXAlignment.Right,
+	})
+
+	-- X231: a full ground shows the fans (and money) it had to turn away
+	local turnedAwayLabel = Theme.text(attendance, "", "muted", {
+		Name = "TurnedAway",
+		Size = UDim2.new(1, -32, 0, 18),
+		Position = UDim2.fromOffset(16, 58),
+		TextSize = 14,
+		RichText = true,
+		Visible = false,
 	})
 
 	-- ------------------------------------------------------- development
@@ -598,6 +608,16 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		local frac = math.clamp(att / capacity, 0, 1)
 		fill.Size = UDim2.fromScale(frac, 1)
 		percent.Text = ("%d%% full"):format(math.floor(frac * 100 + 0.5))
+		local turnedAway = if data.friendly then 0 else (data.turnedAway or 0)
+		turnedAwayLabel.Visible = turnedAway > 0
+		attendance.Size = UDim2.new(1, 0, 0, if turnedAway > 0 then 86 else 64)
+		if turnedAway > 0 then
+			-- what each fan inside paid on average, tickets plus concessions
+			local perFan = ((data.ticketRevenue or 0) + (data.concessionRevenue or 0)) / math.max(att, 1)
+			turnedAwayLabel.Text = ("%s fans turned away  ·  %s"):format(
+				withCommas(turnedAway),
+				Theme.rich(("about %s missed"):format(money(math.floor(turnedAway * perFan))), C.bad, true))
+		end
 
 		for _, child in devCards:GetChildren() do
 			if child:IsA("Frame") then
