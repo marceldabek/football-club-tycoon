@@ -355,7 +355,7 @@
 - [x] X239 (13:58 done) The crowd draws only about 87% of attendance: front-row weights are capped at the fill ratio, so the back rows look thin at a sellout: cap each chance at 1 with weights averaging the fill, 0 parts `[disk]` S
 - [x] X240 (13:58 done) Onboarding hints only look at the East Stand, so a player who builds the free West or North plot first is still told "Expand the East Stand" and never reaches the scout or Snack Bar hints: move on once any stand is above its start level, 0 parts `[disk]` S
 - [ ] X241 Lineup card drag on touch: a second finger moves or drops the card, a bench scroll turns into a drag, and off-screen bench cards can be hit: follow only the starting finger, let a vertical swipe scroll, check clipping, 0 parts `[disk]` S
-- [ ] X242 The outside of the stand back walls has no club name or slogan (the reference paints both facing the street): SurfaceGui ClubName plus a TEMP motto on the BackWall runs from level 2, 0 parts `[studio]` S
+- [x] X242 (14:07 done) The outside of the stand back walls has no club name or slogan (the reference paints both facing the street): SurfaceGui ClubName plus a TEMP motto on the BackWall runs from level 2, 0 parts `[studio]` S
 - [x] X243 (14:04 done) The lamp-post banner has no crest between the name and "OUR TOWN OUR GAME": add the X236 shield in GUI frames, 0 parts `[studio]` S
 - [x] X244 (14:04 done) The club shop fascia has no crest after "CLUB SHOP": add one badge at the right end, 0 parts `[studio]` S
 - [ ] X245 Industrial estate sheds all use random sign textures; the reference shows PINNACLE BUILDING SUPPLIES and DALETEK ENGINEERING: SurfaceGui signs by shed kind, 0 parts `[studio]` S

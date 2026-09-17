@@ -1530,8 +1530,66 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 				Vector3.new(backX, (geo.crossY + DECK_Y + wallH) / 2, 0), brick, Enum.Material.Brick)
 		end
 		for _, run in wallRuns do
-			lbox("BackWall", Vector3.new(1, wallH, run[2] - run[1]), Vector3.new(backX, DECK_Y + wallH / 2, (run[1] + run[2]) / 2),
+			local backWall = lbox("BackWall", Vector3.new(1, wallH, run[2] - run[1]), Vector3.new(backX, DECK_Y + wallH / 2, (run[1] + run[2]) / 2),
 				brick, Enum.Material.Brick)
+			-- X242: the club's name and a TEMP slogan painted on a board on the
+			-- street side, under the colour band (RivermereTurnstileEntrance.png).
+			-- GUI only, no parts; skipped on runs too short or low to read.
+			local runLength = run[2] - run[1]
+			local nameH = math.clamp((wallH - 4) * 0.45, 1.5, 5)
+			local mottoH = nameH * 0.55
+			if runLength >= 20 and 3.2 + nameH + 0.3 + mottoH <= wallH - 0.6 then
+				local wallGui = Instance.new("SurfaceGui")
+				wallGui.Name = "StreetSign"
+				wallGui.Face = Enum.NormalId.Right -- +X local, away from the pitch
+				wallGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+				wallGui.PixelsPerStud = 20
+				wallGui.LightInfluence = 0.9
+				wallGui.MaxDistance = 300
+				wallGui.Parent = backWall
+				-- between two roof pillars (every length/6 along the wall, see the
+				-- roof below): the gap nearest the middle of this run. Looking at
+				-- the Right face from outside, the GUI's +x runs along local -Z.
+				local runMid = (run[1] + run[2]) / 2
+				local gapMid = runMid
+				local bestGap = math.huge
+				for k = 0, 5 do
+					local mid = -length / 2 + (length / 6) * (k + 0.5)
+					if mid > run[1] + 2 and mid < run[2] - 2 and math.abs(mid - runMid) < bestGap then
+						bestGap = math.abs(mid - runMid)
+						gapMid = mid
+					end
+				end
+				local boardW = math.min(length / 6 - 3, runLength - 4, 60)
+				local board = Instance.new("Frame")
+				board.Name = "Board"
+				board.AnchorPoint = Vector2.new(0.5, 0)
+				board.Position = UDim2.new(0.5, -(gapMid - runMid) * 20, 0, 3.0 * 20)
+				board.Size = UDim2.fromOffset(boardW * 20, (nameH + 0.3 + mottoH + 0.4) * 20)
+				board.BackgroundColor3 = Config.HomeKit:Lerp(Color3.new(0, 0, 0), 0.45)
+				board.BorderSizePixel = 0
+				board.Parent = wallGui
+				local name = Instance.new("TextLabel")
+				name.Name = "ClubName" -- WorldBuilder.setClubName repaints it
+				name.Position = UDim2.fromOffset(0, 0.2 * 20)
+				name.Size = UDim2.new(1, 0, 0, nameH * 20)
+				name.BackgroundTransparency = 1
+				name.Font = Enum.Font.GothamBlack
+				name.TextScaled = true
+				name.TextColor3 = Color3.new(1, 1, 1)
+				name.Text = "CLUB"
+				name.Parent = board
+				local motto = Instance.new("TextLabel")
+				motto.Name = "Motto"
+				motto.Position = UDim2.fromOffset(0, (0.2 + nameH + 0.3) * 20)
+				motto.Size = UDim2.new(1, 0, 0, mottoH * 20)
+				motto.BackgroundTransparency = 1
+				motto.Font = Enum.Font.GothamBold
+				motto.TextScaled = true
+				motto.TextColor3 = Color3.new(1, 1, 1)
+				motto.Text = "TOGETHER FURTHER" -- TEMP slogan, from the reference's stand sign
+				motto.Parent = board
+			end
 			lbox("BackBand", Vector3.new(0.1, 1, run[2] - run[1] - 0.2), Vector3.new(backX + 0.55, DECK_Y + wallH - 2, (run[1] + run[2]) / 2),
 				Config.HomeKit, Enum.Material.SmoothPlastic)
 		end
