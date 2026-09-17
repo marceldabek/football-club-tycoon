@@ -138,6 +138,7 @@ function StationDresser.dressPlatform(parent: Instance, front: CFrame, stationSi
 		sign(board, Enum.NormalId.Back, "RIVERMERE", Color3.new(1, 1, 1))
 		sign(board, Enum.NormalId.Front, "RIVERMERE", Color3.new(1, 1, 1))
 	end
+	StationDresser.footbridge(parent, p, top, depth)
 	for _, x in { -halfLen + 0.3, halfLen - 0.3 } do
 		slab(parent, p, "EndRail", x - 0.15, x + 0.15, top + 3.3, top + 3.6, 0.3, depth - 0.3, IRON, Enum.Material.Metal)
 		slab(parent, p, "EndRailMid", x - 0.1, x + 0.1, top + 1.6, top + 1.8, 0.3, depth - 0.3, IRON, Enum.Material.Metal)
@@ -145,6 +146,34 @@ function StationDresser.dressPlatform(parent: Instance, front: CFrame, stationSi
 			slab(parent, p, "EndRailPost", x - 0.15, x + 0.15, top, top + 3.3, z - 0.15, z + 0.15, IRON, Enum.Material.Metal)
 		end
 	end
+end
+
+-- Pure: the footbridge's local x and z extents in the platform frame: a stair
+-- tower on the platform, a covered span over the tracks and a tower beyond them.
+function StationDresser.footbridgeExtents(depth: number, railWidth: number): (number, number, number, number, number)
+	local x = 72 -- between the canopy posts and clear of the benches
+	local nearZ0, nearZ1 = 1, 8
+	local farZ0 = depth + railWidth + 6
+	return x, nearZ0, nearZ1, farZ0, farZ0 + 7
+end
+
+-- Brick stair towers and a navy covered span over the line (~9 parts).
+function StationDresser.footbridge(parent: Instance, p: CFrame, top: number, depth: number)
+	local x, nz0, nz1, fz0, fz1 = StationDresser.footbridgeExtents(depth, TownLayout.RAIL.width)
+	local deckY = 16
+	local roofY = 22
+	slab(parent, p, "StairTower", x - 3.5, x + 3.5, top, roofY, nz0, nz1, BRICK, Enum.Material.Brick)
+	slab(parent, p, "StairTower", x - 3.5, x + 3.5, 0, roofY, fz0, fz1, BRICK, Enum.Material.Brick)
+	slab(parent, p, "TowerRoof", x - 4, x + 4, roofY, roofY + 0.6, nz0 - 0.5, nz1 + 0.5, SLATE, Enum.Material.Slate)
+	slab(parent, p, "TowerRoof", x - 4, x + 4, roofY, roofY + 0.6, fz0 - 0.5, fz1 + 0.5, SLATE, Enum.Material.Slate)
+	slab(parent, p, "BridgeDeck", x - 2.5, x + 2.5, deckY, deckY + 1, nz1, fz0, NAVY, Enum.Material.Metal)
+	for _, side in { -1, 1 } do
+		slab(parent, p, "BridgeSide", x + side * 2.5 - 0.15, x + side * 2.5 + 0.15, deckY + 1, deckY + 2.2, nz1, fz0, NAVY, Enum.Material.Metal)
+		local glass = slab(parent, p, "BridgeGlass", x + side * 2.5 - 0.1, x + side * 2.5 + 0.1, deckY + 2.2, roofY - 0.5, nz1, fz0, GLASS, Enum.Material.Glass)
+		glass.Transparency = 0.5
+		glass.CastShadow = false
+	end
+	slab(parent, p, "BridgeRoof", x - 2.9, x + 2.9, roofY - 0.5, roofY - 0.1, nz1, fz0, NAVY, Enum.Material.Metal)
 end
 
 function StationDresser.build(): string

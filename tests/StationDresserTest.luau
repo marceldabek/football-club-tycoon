@@ -29,4 +29,17 @@ function T.platformFrameSitsOnTheRearWall()
 	assert(near < far, "platform +Z should point at the rails")
 end
 
+function T.footbridgeClearsTheTracks()
+	local f = StationDresser.frontFrame()
+	local size = TownLayout.RAIL.station.size
+	local p = StationDresser.platformFrame(f, size)
+	local x, _, nearZ1, farZ0 = StationDresser.footbridgeExtents(11.5, TownLayout.RAIL.width)
+	local near = p * Vector3.new(x, 0, nearZ1)
+	local far = p * Vector3.new(x, 0, farZ0)
+	local half = TownLayout.RAIL.width / 2
+	assert(TownLayout.distanceToPolyline(near, TownLayout.RAIL.points) > half, "near tower sits off the track")
+	assert(TownLayout.distanceToPolyline(far, TownLayout.RAIL.points) > half, "far tower sits off the track")
+	assert(TownLayout.distanceToPolyline(near:Lerp(far, 0.5), TownLayout.RAIL.points) < half, "the span crosses the line")
+end
+
 return T
