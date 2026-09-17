@@ -685,7 +685,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - After tuning, the patches are darker and the brambles 9–16 across so they read from the picker height. **Screenshots** PickerView_1 (before) and PickerView_3.
 - RunAll 371/371.
 
-### 2026-09-17 07:19 — Lot grass patches made irregular (X86 part)
+### 2026-09-17 07:17 — Lot grass patches made irregular (X86 part)
 - Each of the 6 rough-grass patches on a for-sale lot is now two overlapping flat discs (the second 0.02 higher) instead of a rectangle. That's 12 parts in place of 6. **Screenshot** PickerView_plot2b.
 - The bare horizon on the plot 2 picker is a streaming effect: the first visit showed hills and the river, the second a flat edge. It's left open on X86, with the options noted.
 - RunAll 371/371.
