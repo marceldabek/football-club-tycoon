@@ -1,9 +1,10 @@
 --!strict
--- Entry point: the shared town scenery, then the four club plots.
+-- Entry point: the shared town scenery and Rivermere greybox, then the four club plots.
 -- Each claimed plot runs its own copy of the club services (docs/PLOTS.md).
 
 local PlotService = require(script.Parent.PlotService)
 local Scenery = require(script.Parent.Scenery)
+local TownBuilder = require(script.Parent.TownBuilder)
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 
 -- Studio-only debug hook so agent/manual playtests can drive the real services
@@ -102,6 +103,7 @@ if game:GetService("RunService"):IsStudio() then
 end
 
 Scenery.setupTown()
+TownBuilder.build()
 PlotService.start()
 
 print("[FCT] town ready")

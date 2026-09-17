@@ -54,14 +54,23 @@ local registry = PlotRegistry.new(PLOT_COUNT)
 local runtimes: { [number]: Runtime } = {}
 local runtimeRoot: Folder
 
-function PlotService.plotCFrame(plot: number): CFrame
+-- Shared.TownLayout if it is present and loads, else nil.
+local function townLayout(): any
 	local shared = ReplicatedStorage:FindFirstChild("Shared")
 	local layoutModule = shared and shared:FindFirstChild("TownLayout")
 	if layoutModule and layoutModule:IsA("ModuleScript") then
 		local ok, layout = pcall(require, layoutModule)
-		if ok and type(layout) == "table" and type((layout :: any).plotCFrame) == "function" then
-			return (layout :: any).plotCFrame(plot)
+		if ok and type(layout) == "table" then
+			return layout
 		end
+	end
+	return nil
+end
+
+function PlotService.plotCFrame(plot: number): CFrame
+	local layout = townLayout()
+	if layout and type(layout.plotCFrame) == "function" then
+		return layout.plotCFrame(plot)
 	end
 	return FALLBACK_SITES[plot]
 end
@@ -299,7 +308,12 @@ local function townSpawn()
 	spawn.Name = "TownSpawn"
 	spawn.Anchored = true
 	spawn.Size = Vector3.new(8, 1, 8)
-	spawn.CFrame = CFrame.new(0, 0.5, 0) -- TEMP: market square, until the picker owns the camera
+	-- TEMP: market square, until the picker owns the camera
+	local layout = townLayout()
+	local centre = if layout and type(layout.SQUARE) == "table" and typeof(layout.SQUARE.centre) == "Vector3"
+		then layout.SQUARE.centre :: Vector3
+		else Vector3.zero
+	spawn.CFrame = CFrame.new(centre.X, 1, centre.Z)
 	spawn.Transparency = 1
 	spawn.CanCollide = false
 	spawn.Neutral = true
