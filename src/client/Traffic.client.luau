@@ -150,7 +150,11 @@ local BUS_OFFSETS: { Vector3 } = {
 	Vector3.new(BUS_TRACK_X, BUS_WHEEL_Y, -BUS_AXLE_Z),
 	Vector3.new(-BUS_TRACK_X, BUS_WHEEL_Y, BUS_AXLE_Z),
 	Vector3.new(BUS_TRACK_X, BUS_WHEEL_Y, BUS_AXLE_Z),
+	-- X118: destination board on the front, above the windscreen
+	Vector3.new(0, BUS_BODY_Y + BUS_BODY_SIZE.Y / 2 - 0.35, -BUS_BODY_SIZE.Z / 2 - 0.06),
 }
+-- X118 (RivermereCenter.png's "2 Town Centre" bus): TEMP route boards
+local BUS_DESTINATIONS = { "21  TOWN CENTRE", "7  STATION", "12  RIVERSIDE", "23  NORTHFIELDS", "24  WESTDALE" }
 
 -- ------------------------------------------------------------------ types
 
@@ -272,7 +276,24 @@ local function buildBus(parent: Instance, color: Color3): { BasePart }
 	local wheelF2 = wheel("WheelF2", BUS_WHEEL_RADIUS, BUS_WHEEL_WIDTH, parent)
 	local wheelR1 = wheel("WheelR1", BUS_WHEEL_RADIUS, BUS_WHEEL_WIDTH, parent)
 	local wheelR2 = wheel("WheelR2", BUS_WHEEL_RADIUS, BUS_WHEEL_WIDTH, parent)
-	return { body, windows, wheelF1, wheelF2, wheelR1, wheelR2 }
+	local board = part("Destination", Vector3.new(3.4, 0.55, 0.12), Color3.fromRGB(12, 12, 14), false, parent)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 50
+	gui.LightInfluence = 0
+	gui.MaxDistance = 120
+	gui.Parent = board
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(0.94, 0.9)
+	label.Position = UDim2.fromScale(0.03, 0.05)
+	label.Font = Enum.Font.Code
+	label.TextScaled = true
+	label.TextColor3 = Color3.fromRGB(255, 170, 30)
+	label.Text = BUS_DESTINATIONS[math.random(1, #BUS_DESTINATIONS)]
+	label.Parent = gui
+	return { body, windows, wheelF1, wheelF2, wheelR1, wheelR2, board }
 end
 
 -- Bike rig: 2 wheels, frame, rider torso, head, 2 legs = 7 parts.

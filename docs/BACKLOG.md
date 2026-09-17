@@ -230,4 +230,5 @@
 - [x] X115 (09:33 hanging club-colour sign on an iron bracket, two door planters with shrubs, a "Good Food Great Company All Welcome" chalkboard; +8 parts per club) RivermereTurnstileEntrance.png's pub vs the X97 supporters' bar `[studio]` S
 - [x] X116 (09:39 GreeneryDresser: 316 trees and shrub clumps on open grass in Mill Street Terraces, Northfields and Westdale, up to 120 per district thinned evenly; about 750 parts, all Decor) RivermereNorthfields.png / RiveremereWestdale.png are leafy; our housing districts had wide bare lawns between rows `[studio]` M
 - [ ] X117 X116 follow-up: greenery is still sparse on some big lawns (e.g. east of North Road at z -500..-550) because of the per-district cap. If the phone test allows, raise GreeneryDresser.MAX_PER_DISTRICT or plant small clusters `[studio]` S
+- [x] X118 (09:43 amber route board on every traffic bus front, e.g. "12  RIVERSIDE"; +1 part per bus) RivermereCenter.png's bus shows its destination ("2 Town Centre"); ours were blank boxes `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
