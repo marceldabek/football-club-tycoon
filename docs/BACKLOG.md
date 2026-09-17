@@ -79,11 +79,11 @@
 - [x] F1.1 Ambient audio zones (town, river, station, park) from the Roblox library `[studio]` M
 - [x] F2.1 Client-side traffic on road polylines, distance-budgeted `[studio]` M
 - [ ] F3.1 Client-side pedestrians on pavements, distance-budgeted `[studio]` M
-- [~] F4.1 (turbines spin, wired not eyeballed; flags/smoke not done) Small motion: flags, bunting sway, chimney smoke `[studio]` S
+- [~] F4.1 (turbines spin, verified; flags/smoke not done) Small motion: flags, bunting sway, chimney smoke `[studio]` S
 
 ## Phase G/H — Matchday town & influence
 - [x] G1.1 Matchday around a plot (all players): fans walking to the ground, stewards, barriers; fades after `[studio]` M dep: B2.1c
-- [~] G2.1 (bunting near the plot during PreMatch/Match, not yet seen in a match; busy pub not done) Matchday town for the playing player only: banners on lamp posts, busy pub `[studio]` M
+- [~] G2.1 (bunting near the plot during PreMatch/Match, verified in a match; busy pub not done) Matchday town for the playing player only: banners on lamp posts, busy pub `[studio]` M
 - [x] H1.1 Club identity banners in town (client-side, player's own club colours/name) `[studio]` S
 - [x] H2.1 Club shop building on the plot (visual) `[studio]` S dep: E8.1
 - [x] H3.1 Training pitches on the plot (visual) `[studio]` S dep: E8.1
@@ -121,6 +121,6 @@
 - [ ] X21 Station roofline is a flat box; the reference has a pitched slate roof with a gable/clock over the entrance `[studio]` S
 - [ ] X22 Grass strip between the pavement and shop/semi fronts; pave the forecourt up to the building line `[studio]` S
 - [ ] X23 High street A-boards and hanging baskets in front of ShopBuilder rows (RivermereCenter.png) `[studio]` S
-- [ ] X24 Watch bunting during a real match and turbines spinning; TownLife is only verified for banners so far `[studio]` S
+- [x] X24 (bunting seen in a match 01:58, turbines spin after streaming fix) Watch bunting during a real match and turbines spinning; TownLife is only verified for banners so far `[studio]` S
 - [ ] X25 Semis hip-end roof wedges look tall from some angles; check against RivermereNorthfields.png and consider a plain gable `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

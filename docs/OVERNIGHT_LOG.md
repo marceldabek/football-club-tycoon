@@ -19,8 +19,9 @@ kit street (E3.1), textured low-part terraces town-wide (X12/X13), market square
 ambient audio (F1.1), matchday fans (G1.1), 10-part team coach (X14), church (E9.1), riverside
 promenade (E6.1), station frontage and platform (E7.1 part), textured shops/flats/civic buildings (E2.1),
 Northfields semis and industrial sheds (E4.1/E5.1), client traffic (F2.1), club banners on lamp posts (H1.1).
-**Half-done:** E7.1 station (no footbridge/viaduct yet, X20). F4.1/G2.1 town life: turbines and matchday bunting are
-wired but not seen in a match yet (X24).
+**Half-done:** E7.1 station (no footbridge/viaduct yet, X20). F4.1 has spinning turbines but no flags/smoke;
+G2.1 has matchday bunting but no busy pub. Background agents are writing pedestrians (F3.1), Riverside Park (E6.2),
+a Low/High quality toggle (C3.2) and shop forecourts/A-boards/square paving (X17/X22/X23); not merged yet.
 **Reverted:** none.
 
 **Known bugs**
@@ -116,3 +117,8 @@ wired but not seen in a match yet (X24).
   - Town life (H1.1 + wired F4.1/G2.1): banners were missing under StreamingEnabled because lamp models arrive before their parts; fixed, now 38 "Dino FC" banners on Cherry Close. Bunting and turbines not yet eyeballed (X24).
 - Town part totals now: streets 8,371, shops 695, estates 1,284, riverside 813, square+church 499, station 101.
 - RunAll 170/170.
+
+### 2026-09-17 01:59 — Bunting and turbines verified (X24)
+- Played a match (DebugRun) on Plot 1: 40 red/white bunting strings across the three terraced streets nearest the ground during the match. Reference `RiveremereWestdale.png` (banners/bunting on terraced streets).
+- Turbines were not spinning: they are 3.4–4.1k studs out, so the models streamed without parts and TownLife never retried. Backdrop turbines are now Persistent (5 models, few parts) and TownLife retries when blades stream in; blades move ~24 studs/s at the tip.
+- Started four background agents in worktrees (disk only): pedestrians, Riverside Park, quality toggle, forecourts/A-boards/square paving.
