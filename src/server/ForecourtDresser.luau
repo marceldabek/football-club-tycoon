@@ -45,7 +45,7 @@ ForecourtDresser.MAX_GAP = 40
 ForecourtDresser.TUCK = 1 -- the slab runs this far under the pavement
 ForecourtDresser.PAVE_TOP = 0.40
 ForecourtDresser.ZONE_TOP = 0.14
-ForecourtDresser.PART_BUDGET = 700
+ForecourtDresser.PART_BUDGET = 780 -- TEMP; +80 for the X103 post office signs, X108 parasols and X109 awnings
 
 local CARRIAGEWAY_MARGIN = 0.5
 local RAY_STEP = 0.25

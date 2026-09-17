@@ -222,4 +222,5 @@
 - [x] X107 (09:07 both gable faces of every shop roof wedge wear the row's side brick) X106 follow-up: the gable triangles of shop roofs are slate-coloured (TerraceBuilder textures its gables with brick; ShopBuilder.pitchedRoof only textures the slope) `[studio]` S
 - [x] X108 (09:09 cream parasols over the 3 pub-front table sets, 3 parts each) RivermereCenter.png: parasols over the tables outside the Riverside Arms; ours had bare tables `[studio]` S
 - [x] X109 (09:13 27 canvas awnings with valances over café, deli, bakery and butcher fronts, 2 parts each) RivermereCenter.png / RivermereRiverside.png: canvas awnings over shopfronts; ours had none `[studio]` S
+- [x] X110 (09:16 CentreTreeDresser: 43 light trees on High Street, Riverside Road, North Road and Bridge Street within 420 of the square, 4 spots skipped as occupied; 129 parts) RivermereCenter.png: street trees along the high street pavements; the main roads through the centre had none `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
