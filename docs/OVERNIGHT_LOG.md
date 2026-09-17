@@ -712,3 +712,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 ### 2026-09-17 07:27 — Loop check, upgrade half
 - The 06:27 check covered play and earn; this covers upgrade. On Plot 1 (Studio save store) DebugRun `expandStand|West` returned "West Stand: Bleachers built, 300 seats". The West stand went from 0 to 26 parts, and its sign's prompt moved from "Build Bleachers (150 seats) — £0" to "Expand to Main Stand (400 seats) — £1,500". **Screenshot** WestBleachers_1 shows the benches behind the tunnel.
 - Server boot summary now: riverside 893 parts, station 284, sports centre 165, shops 701 (128 blocks, including the waterfront flats).
+
+### 2026-09-17 07:30 — Spectator benches at the sports centre (X77)
+- Each grass pitch at the Community Sports Centre gets two kit park benches just off one touchline, facing the pitch: 6 benches, one mesh each. An overlap check found nothing else in their bounding boxes.
+- I briefly thought the kit bench faced its back vector and flipped it. A side-on profile screenshot (BenchProfile_1) showed the flip had them facing away, so I reverted; BenchProfile_2 has them facing the pitch. The river benches use the same, correct convention.
+- RunAll 371/371.

@@ -15,6 +15,7 @@ local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local EstateDresser = require(script.Parent.EstateDresser)
+local KitPlacer = require(script.Parent.KitPlacer)
 
 local SportsCentreDresser = {}
 
@@ -126,6 +127,17 @@ local function buildPitch(parent: Instance, block: TownLayout.Box, is3G: boolean
 			part(m, "GoalPost", Vector3.new(0.5, GOAL_H, 0.5), f * CFrame.new(sx * (goalHalf + 0.25), SLAB_TOP + GOAL_H / 2, z), WHITE, Enum.Material.SmoothPlastic, true)
 		end
 		part(m, "Crossbar", Vector3.new(goalHalf * 2, 0.5, 0.5), f * CFrame.new(0, SLAB_TOP + GOAL_H - 0.25, z), WHITE, Enum.Material.SmoothPlastic, true)
+	end
+	if not is3G then
+		-- two spectator benches on one touchline, just off the slab, facing the pitch
+		for _, zf in { -1 / 6, 1 / 6 } do
+			local at = (f * CFrame.new(width / 2 + 3, 0, length * zf)).Position
+			local facing = f:VectorToWorldSpace(Vector3.new(-1, 0, 0))
+			KitPlacer.place("UKSP__ParkBenches__ParkBench01", CFrame.lookAt(at, at + facing), m, {
+				fallbackSize = Vector3.new(6, 3, 2),
+				fallbackColor = Color3.fromRGB(120, 80, 50),
+			})
+		end
 	end
 	if is3G then
 		-- ball-stop fence just outside the slab, and a floodlight mast at each corner
