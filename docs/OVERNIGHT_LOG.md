@@ -725,3 +725,6 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 ### 2026-09-17 07:34 — Parked cars at the sports centre (X77)
 - The sports centre car park parks kit hatchbacks nose-in in every other bay (80% chance each), half of them tinted (question 10). The first try used any bay at 45% and put two cars side by side slightly overlapping, because the bays are 9 wide and the car is 9.8 (SportsCarPark_cars). Every other bay spaces them out, with no car overlaps on a check. That's 2 cars with this seed. **Screenshot** SportsCarPark_cars2.
 - RunAll 371/371.
+
+### 2026-09-17 07:35 — Health check
+- Play session: claimed Plot 1, then toured the Sports Centre roundabout, the station, the promenade, Northfields and the market square for 4 s each so the client scripts ran near their content (traffic, train, pedestrians, café sitters, murals). The server console shows only the `[FCT]` build summaries (sports centre now 175 parts) and the known Assistant plugin warning. Client LogService history has **0 errors or warnings** apart from the Assistant ones.
