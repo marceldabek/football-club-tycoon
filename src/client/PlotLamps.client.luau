@@ -7,7 +7,6 @@
 -- lamps get a PointLight and glow (Neon, local only); both go when it's day.
 
 local Players = game:GetService("Players")
-local Lighting = game:GetService("Lighting")
 
 local player = Players.LocalPlayer
 local plots = workspace:WaitForChild("Plots", math.huge)
@@ -32,10 +31,10 @@ for _, d in plots:GetDescendants() do
 end
 plots.DescendantAdded:Connect(consider)
 
--- same test as TownLife's lamp lights
+-- X248: Sky publishes this for the player's own look, so a fast-forward can't
+-- sweep past the night between polls
 local function skyIsDark(): boolean
-	local t = Lighting.ClockTime
-	return t >= 17.8 or t <= 6.2
+	return player:GetAttribute("SkyDark") == true
 end
 
 local function turnOff(part: BasePart)
@@ -92,6 +91,8 @@ local function refresh()
 		end
 	end
 end
+
+player:GetAttributeChangedSignal("SkyDark"):Connect(refresh)
 
 while true do
 	refresh()

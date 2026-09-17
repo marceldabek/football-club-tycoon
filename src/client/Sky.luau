@@ -81,8 +81,19 @@ CollectionService:GetInstanceAddedSignal(FLOOD_HEAD_TAG):Connect(function(d: Ins
 		paintHead(d, true)
 	end
 end)
+-- X248: the one source of "is it dark for this player". Five scripts used to
+-- each re-test Lighting.ClockTime on their own 1-2 s poll, but a fast-forward
+-- sweeps the clock through the night in about 2.5 s, so lamps, lit windows,
+-- headlights and train windows switched late or missed the night entirely.
+local DARK_ATTRIBUTE = "SkyDark"
+Sky.DARK_ATTRIBUTE = DARK_ATTRIBUTE
+
 local function apply(look: DayCycle.Look)
 	current = look
+	local me = game:GetService("Players").LocalPlayer
+	if me:GetAttribute(DARK_ATTRIBUTE) ~= look.streetLights then
+		me:SetAttribute(DARK_ATTRIBUTE, look.streetLights)
+	end
 	Lighting.ClockTime = look.clock
 	Lighting.Brightness = look.brightness
 	Lighting.ExposureCompensation = look.exposure

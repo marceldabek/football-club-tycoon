@@ -7,7 +7,6 @@
 -- TownLifeMath.windowPane. Nothing is built in daylight.
 
 local Players = game:GetService("Players")
-local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local TownLifeMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TownLifeMath"))
@@ -46,10 +45,9 @@ for _, d in town:GetDescendants() do
 end
 town.DescendantAdded:Connect(consider)
 
--- same test as TownLife's lamp lights
+-- X248: Sky publishes this for the player's own look
 local function skyIsDark(): boolean
-	local t = Lighting.ClockTime
-	return t >= 17.8 or t <= 6.2
+	return player:GetAttribute("SkyDark") == true
 end
 
 local function light(row: Model, body: BasePart): { BasePart }
@@ -166,6 +164,8 @@ local function refresh()
 		end
 	end
 end
+
+player:GetAttributeChangedSignal("SkyDark"):Connect(refresh)
 
 while true do
 	refresh()

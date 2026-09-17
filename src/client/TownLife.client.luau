@@ -838,10 +838,11 @@ local LAMP_LIGHT_RADIUS = 260
 local LAMP_LIGHT_RESCAN_SECONDS = 2
 local lampLights: { [Model]: Attachment } = {}
 
+-- X248: Sky publishes this for the player's own look
 local function skyIsDark(): boolean
-	local t = game:GetService("Lighting").ClockTime
-	return t >= 17.8 or t <= 6.2
+	return game:GetService("Players").LocalPlayer:GetAttribute("SkyDark") == true
 end
+
 
 local function newLampLight(lamp: LampEntry): Attachment
 	local a = Instance.new("Attachment")
@@ -885,6 +886,8 @@ local function rescanLampLights()
 		end
 	end
 end
+
+game:GetService("Players").LocalPlayer:GetAttributeChangedSignal("SkyDark"):Connect(rescanLampLights)
 
 task.spawn(function()
 	while true do

@@ -1417,3 +1417,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - X259 `Iris`: each transition takes a token, and `close`/`open` return false when a newer transition took the frame over. `BusMenu` and `PlotPicker` only open the iris back up when they still own it, so a bus trip or a picker close that overlaps the matchday walkout can't leave the screen black or fight the other tween. Checked in play: after claiming a ground the hole is fully open (2.6).
 - RunAll 437 passed.
 
+### 2026-09-17 14:41 — One source of "is it dark" (X248 done)
+- `Sky.apply` publishes the current look's `streetLights` as the LocalPlayer attribute `SkyDark` (`Sky.DARK_ATTRIBUTE`). Nothing read `Look.streetLights` before.
+- `PlotLamps`, `LitWindows`, `TownLife` (lamp lights), `Traffic` (headlights and bus windows) and `Train` (carriage windows) now read that attribute instead of each re-testing `Lighting.ClockTime >= 17.8 or <= 6.2` on a 1–2 s poll, and each refreshes on the attribute's changed signal. A fast-forward sweeps the clock through the night in about 2.5 s, so before this they could switch up to 2 s late, miss the night altogether, or stay lit after the afternoon was back. The two now-unused `Lighting` locals were removed.
+- Tested in play: two matches; sampling the attribute at 20 Hz through the post-match fast-forward showed it true at the night part and back to false 1.1 s later, with the clock settling at 15.0. No console errors; the town dressed as usual. RunAll 437 passed.
+- The `Train` windows keep their own last-state check, so an unchanged flag is still a no-op.
+

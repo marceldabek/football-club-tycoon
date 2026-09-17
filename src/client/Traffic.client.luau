@@ -639,9 +639,9 @@ local HEADLIGHT_MAX = 8 -- TEMP
 local HEADLIGHT_RADIUS = 200
 local headlights: { [Model]: Attachment } = {}
 
+-- X248: Sky publishes this for the player's own look
 local function skyIsDark(): boolean
-	local t = game:GetService("Lighting").ClockTime
-	return t >= 17.8 or t <= 6.2
+	return game:GetService("Players").LocalPlayer:GetAttribute("SkyDark") == true
 end
 
 -- X165: bus windows glow warm after dark, like the train's
