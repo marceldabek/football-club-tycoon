@@ -78,6 +78,10 @@ local LAMP_SPOTS = { { -319, 110 }, { -319, 165 }, { -261, 110 }, { -261, 165 } 
 
 -- club shop
 local SHOP_CX, SHOP_CZ = -300, -150
+-- X95: a matchday snack kiosk just inside the pedestrian gate, south of the
+-- footpath, hatch facing the path (-Z). TEMP.
+local KIOSK_CX, KIOSK_CZ = -314, 8 -- between the south-side trees at x -326 and -302
+local KIOSK_W, KIOSK_H, KIOSK_D = 12, 9, 8 -- along X, height, along Z
 local SHOP_W, SHOP_H, SHOP_D = 26, 14, 30 -- along X, height, along Z
 local SHOP_WALL_T = 1
 local FASCIA_H, FASCIA_PROUD = 3, 0.5
@@ -182,6 +186,7 @@ export type Footprint = { name: string, min: Vector2, max: Vector2 }
 function PlotGrounds.footprints(): { Footprint }
 	local out: { Footprint } = {
 		{ name = "CarPark", min = Vector2.new(PARK_X0, PARK_Z0), max = Vector2.new(PARK_X1, PARK_Z1) },
+		{ name = "Kiosk", min = Vector2.new(KIOSK_CX - KIOSK_W / 2 - 0.5, KIOSK_CZ - KIOSK_D / 2 - 1.5), max = Vector2.new(KIOSK_CX + KIOSK_W / 2 + 0.5, KIOSK_CZ + KIOSK_D / 2 + 0.5) },
 		{
 			name = "ClubShop",
 			-- the fascia stands proud of the front wall and the roof cap overhangs 0.5
@@ -241,6 +246,32 @@ local function buildPathside(parent: Instance)
 end
 
 -- -------------------------------------------------------------- boundary wall
+
+local function buildKiosk(parent: Instance)
+	local m = model("Kiosk", parent)
+	local x0, x1 = KIOSK_CX - KIOSK_W / 2, KIOSK_CX + KIOSK_W / 2
+	local z0, z1 = KIOSK_CZ - KIOSK_D / 2, KIOSK_CZ + KIOSK_D / 2
+	extents("Body", x0, x1, GROUND_Y, GROUND_Y + KIOSK_H, z0, z1, Color3.fromRGB(40, 90, 60), Enum.Material.WoodPlanks, m)
+	extents("Roof", x0 - 0.5, x1 + 0.5, GROUND_Y + KIOSK_H, GROUND_Y + KIOSK_H + 0.6, z0 - 1.5, z1 + 0.5, Color3.fromRGB(60, 62, 66), Enum.Material.Metal, m)
+	-- serving hatch and counter on the path side, and a sign board over it
+	extents("Hatch", x0 + 2, x1 - 2, GROUND_Y + 3.4, GROUND_Y + 6.4, z0 - 0.1, z0, Color3.fromRGB(240, 232, 210), Enum.Material.SmoothPlastic, m)
+	extents("Counter", x0 + 1.5, x1 - 1.5, GROUND_Y + 3.2, GROUND_Y + 3.5, z0 - 1.2, z0, Color3.fromRGB(150, 110, 70), Enum.Material.Wood, m)
+	local board = extents("SignBoard", x0 + 0.5, x1 - 0.5, GROUND_Y + 6.9, GROUND_Y + 8.6, z0 - 0.2, z0, Color3.fromRGB(245, 245, 240), Enum.Material.SmoothPlastic, m)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 30
+	gui.Parent = board
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(0.94, 0.8)
+	label.Position = UDim2.fromScale(0.03, 0.1)
+	label.Font = Enum.Font.GothamBlack
+	label.TextScaled = true
+	label.TextColor3 = Color3.fromRGB(40, 90, 60)
+	label.Text = "PIES · TEAS · CHIPS"
+	label.Parent = gui
+end
 
 local function buildBoundary(parent: Instance)
 	local wall = model("BoundaryWall", parent)
@@ -549,6 +580,7 @@ function PlotGrounds.build(club: Model): Model
 	buildTrainingFence(grounds)
 	buildFootpath(grounds)
 	buildPathside(grounds)
+	buildKiosk(grounds)
 
 	PlotContext.place(grounds)
 	return grounds

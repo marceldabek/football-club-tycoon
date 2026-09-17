@@ -780,3 +780,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - From above (PlotApproach_2), the walk from a plot's pedestrian gate crossed bare lawn. `PlotGrounds` adds 6 trees (trunk and crown) either side of the footpath's first leg and 2 black lamp posts beside it: 18 parts per club. Pure `pathsideSpots` has 1 test (off the path, inside the wall, clear of the shop, car park and training pitches). **Screenshot** Pathside_1.
 - Logged X95: the plot interior is still sparse compared with the reference's pub-by-the-gate street scene.
 - RunAll 378/378.
+
+### 2026-09-17 08:11 — Snack kiosk by the gate footpath (X95 part)
+- `PlotGrounds` adds a green timber snack kiosk just inside each plot's pedestrian gate, between the south-side path trees, with its hatch, counter and "PIES · TEAS · CHIPS" board facing the footpath. It's 6 parts per club and has a `Kiosk` footprint, so the existing plot tests check it against the plot square, the other footprints and the stadium keep-out. A new test checks it's close to the path and clear of the path trees and lamps. A server overlap check found nothing touching it.
+- **Screenshot** GateKiosk_1.
+- RunAll 379/379.

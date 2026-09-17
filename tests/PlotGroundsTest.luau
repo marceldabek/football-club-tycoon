@@ -43,7 +43,7 @@ function T.footprintsHaveTheExpectedPieces()
 		names[r.name] = true
 		assert(r.min.X < r.max.X and r.min.Y < r.max.Y, "degenerate " .. describe(r))
 	end
-	for _, want in { "CarPark", "ClubShop", "TrainingPitch1", "TrainingPitch2" } do
+	for _, want in { "CarPark", "Kiosk", "ClubShop", "TrainingPitch1", "TrainingPitch2" } do
 		assert(names[want], "missing footprint " .. want)
 	end
 end
@@ -111,9 +111,31 @@ function T.pathsideTreesAndLampsKeepOffThePathAndBuildings()
 			assert(math.abs(p.Z - -12) >= 5, "clear of the 8-wide footpath at z " .. p.Z)
 			assert(p.X > -370 and p.X < -265, "along the gate leg, inside the wall")
 			for _, fp in footprints do
+				if fp.name == "Kiosk" then
+					continue -- checked separately below: trees may stand beside it
+				end
 				local inside = p.X >= fp.min.X - 4 and p.X <= fp.max.X + 4 and p.Z >= fp.min.Y - 4 and p.Z <= fp.max.Y + 4
 				assert(not inside, "clear of " .. fp.name)
 			end
+		end
+	end
+end
+
+function T.kioskStandsBesideTheFootpathClearOfTrees()
+	local kiosk
+	for _, fp in PlotGrounds.footprints() do
+		if fp.name == "Kiosk" then
+			kiosk = fp
+		end
+	end
+	assert(kiosk, "kiosk footprint")
+	assert(kiosk.min.Y > -12 + 4, "south of the 8-wide footpath at z -12")
+	assert(kiosk.min.Y < -12 + 16, "close enough to serve from the path (the south trees stand between)")
+	local trees, lamps = PlotGrounds.pathsideSpots()
+	for _, list in { trees, lamps } do
+		for _, p in list do
+			local inside = p.X >= kiosk.min.X - 4 and p.X <= kiosk.max.X + 4 and p.Z >= kiosk.min.Y - 4 and p.Z <= kiosk.max.Y + 4
+			assert(not inside, ("a tree or lamp at (%g, %g) stands in the kiosk"):format(p.X, p.Z))
 		end
 	end
 end
