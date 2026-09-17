@@ -3,14 +3,14 @@
 -- dressing (backlog E4.1 / E5.1). A pair is one brick-and-render body wearing
 -- two facade Textures (one image tiled twice: EstateDresser.build() and
 -- StreetDresser use the same "kit is a placeholder until uploaded" pattern as
--- TerraceBuilder), a hipped WedgePart roof, a party-wall chimney and a low
--- front garden wall + hedge. A shed is a metal-clad box with a roller-shutter
+-- TerraceBuilder), a gable roof with brick gable ends, a party-wall chimney
+-- and a low front garden wall + hedge with a gate gap at each door. A shed is a metal-clad box with a roller-shutter
 -- front, a shallow pitched roof, a unit sign, a yard slab, a mesh fence and a
 -- couple of pallets (a sand heap too, for "builders yard").
 --
 -- Reference: assets/references/RivermereNorthfields.png (1930s semis,
--- pebble-dash render over brick, hipped clay-tile roofs, low front garden
--- walls and hedges) and assets/references/rivermer.industrialestate.png
+-- pebble-dash render over brick, gabled clay-tile roofs with brick gable
+-- ends, low front garden walls and hedges) and assets/references/rivermer.industrialestate.png
 -- (grey/blue profiled-metal sheds, roller shutters, yards, pallets, unit
 -- signage).
 --
@@ -23,8 +23,9 @@
 -- uploaded with tools/upload_kit.py --images). While an id is still
 -- rbxassetid://0 that Texture is simply skipped and the plain material shows.
 --
--- Part budget: semiPair ~10 (body 1, roof 5, chimney 2, garden wall 1, hedge
--- 1) against a target of <= 14. shed ~15-16 (body 1, roof 2, sign 1, yard 1,
+-- Part budget: semiPair <= 14 (body 1, attic wedges 2, roof slabs 2, ridge 1,
+-- chimney 2, garden wall <= 3 segments, hedge <= 3 segments) against a
+-- target of <= 16. shed ~15-16 (body 1, roof 2, sign 1, yard 1,
 -- fence 7, pallets 2-3, +1 sand heap for "builders yard") against <= 25.
 
 local EstateBuilder = {}
@@ -69,12 +70,66 @@ local EAVE = 0.6 -- roof overhang past the front and back walls
 local CLAD_TILE = 8 -- shed_cladding.png tile size in studs
 local SHED_DOOR_TILE = 30 -- one shed_door.png image per this many studs of frontage
 local YARD_DEPTH = 20
+local MIN_SEGMENT = 1 -- garden wall / hedge stubs shorter than this are left out
+local HEDGE_GAP_EXTRA = 0.4
 
 -- Pure: pairs of semis a block of this length should hold. A block 40-50
 -- long is one pair; a longer block gets floor(length / 48) pairs (matches a
 -- ~24-stud house bay either side of a shared party wall).
 function EstateBuilder.pairCount(length: number): number
 	return math.max(1, math.floor(length / 48))
+end
+
+-- Front doors (shared with ForecourtDresser's front paths). semi_front_a has
+-- its door at 40..126 px of 512 from the image's left edge; semi_front_b is
+-- mirrored (tools/kit/make_buildings.py). On the body's Left (-X) face the
+-- image's left edge is the -Z end of each tile. Fraction across one house.
+EstateBuilder.DOOR_U = { semi_front_a = 83 / 512, semi_front_b = 1 - 83 / 512 } :: { [string]: number }
+EstateBuilder.GATE_WIDTH = 4 -- gap in the garden wall per door (front paths are 3 wide)
+EstateBuilder.GARDEN_OUT = 6 -- garden wall distance out from the front wall
+
+export type Segment = { z0: number, z1: number }
+
+-- Pure: local Z of house `house` (0 = the -Z house, 1 = the +Z house) front
+-- door, for a pair `width` wide centred on Z = 0 wearing front `frontName`.
+-- An unknown front puts the door mid-house.
+function EstateBuilder.doorZ(width: number, frontName: string?, house: number): number
+	local u = 0.5
+	if frontName then
+		u = EstateBuilder.DOOR_U[frontName] or 0.5
+	end
+	return -width / 2 + (house + u) * width / 2
+end
+
+-- Pure: the parts of [z0, z1] left after cutting a gap `gapWidth` wide
+-- centred on each of `centres` (gaps may overlap or run off either end).
+-- Pieces shorter than `minLength` are dropped. Sorted by z0.
+function EstateBuilder.splitAroundGaps(z0: number, z1: number, centres: { number }, gapWidth: number, minLength: number): { Segment }
+	local gaps: { Segment } = {}
+	for _, c in centres do
+		table.insert(gaps, { z0 = c - gapWidth / 2, z1 = c + gapWidth / 2 })
+	end
+	table.sort(gaps, function(a: Segment, b: Segment): boolean
+		return a.z0 < b.z0
+	end)
+	local out: { Segment } = {}
+	local cursor = z0
+	for _, g in gaps do
+		if g.z0 > cursor then
+			local e = math.min(g.z0, z1)
+			if e - cursor >= minLength then
+				table.insert(out, { z0 = cursor, z1 = e })
+			end
+		end
+		cursor = math.max(cursor, g.z1)
+		if cursor >= z1 then
+			break
+		end
+	end
+	if z1 - cursor >= minLength then
+		table.insert(out, { z0 = cursor, z1 = z1 })
+	end
+	return out
 end
 
 local function hasTexture(name: string): boolean
@@ -125,8 +180,9 @@ local function block(
 end
 
 -- A pair of semis sharing a party wall: one body wearing the chosen front
--- Texture tiled twice (StudsPerTileU = width / 2), a hipped roof, a chimney
--- on the party wall, and a low front garden wall + hedge 6 studs out.
+-- Texture tiled twice (StudsPerTileU = width / 2), a gable roof, a chimney
+-- on the party wall, and a low front garden wall + hedge GARDEN_OUT studs
+-- out, split round a gate gap at each front door.
 function EstateBuilder.semiPair(cframe: CFrame, width: number, depth: number, height: number, parent: Instance, rng: Random?): Model
 	local r = rng or Random.new()
 	local frontName = FRONT_VARIANTS[r:NextInteger(1, #FRONT_VARIANTS)]
@@ -146,41 +202,108 @@ function EstateBuilder.semiPair(cframe: CFrame, width: number, depth: number, he
 	texture(body, Enum.NormalId.Back, "semi_side", depth, wallH)
 	model.PrimaryPart = body
 
-	-- hipped roof: two long pitches over the front/back walls, two short
-	-- pitches hipping the gable ends, and a short ridge between them
-	local half = depth / 2 + EAVE
+	-- Gable roof (backlog X25). The old hipped roof put two end WedgeParts of
+	-- size (depth, roofH, endInset) at each end. A WedgePart is a prism: its
+	-- slope (Top face) rises along local Z only, and its cross-section is the
+	-- same at every local X. So an end wedge spanning the full depth is full
+	-- height (roofH) along its whole inner edge, while the long pitches beside
+	-- it drop from roofH at the ridge to 0 at the eaves. The part of that
+	-- inner rectangle above the long pitches' slopes stood proud as two tall
+	-- triangles either side of the ridge. A true hip needs CornerWedgeParts
+	-- (the slope must fall along X and Z at once), and the reference
+	-- (RivermereNorthfields.png) shows gable roofs with brick gable ends, so
+	-- the pair now gets a plain gable roof instead:
+	--
+	--   attic   two brick WedgeParts (width, roofH, depth / 2), yawed so local
+	--           +Z (the full-height Back face) points at the ridge line x = 0.
+	--           Together they are the triangular prism under the roof; their
+	--           Left/Right faces (local X = the building's Z) are the brick
+	--           gable triangles, flush with the body's end walls.
+	--   pitches two thin tiled slabs lying on the attic slopes. With run
+	--           a = depth / 2 and rise roofH, the pitch angle is
+	--           theta = atan(roofH / a) and the slope length L = sqrt(a^2 + roofH^2).
+	--           For side s (-1 front, +1 back) the down-slope direction in
+	--           the (x, y) plane is d = (s cos theta, -sin theta) and the
+	--           outward normal is n = (s sin theta, cos theta). A box rotated
+	--           about Z by phi = -s * theta has its local X along +-d and its
+	--           local Y along n (check: s = +1, phi = -theta gives
+	--           X = (cos theta, -sin theta) = d, Y = (sin theta, cos theta) = n;
+	--           s = -1, phi = theta gives X = -d, Y = n). The slab runs from
+	--           the ridge (t = 0) down past the wall by EAVE horizontally,
+	--           i.e. to t = L + EAVE / cos theta, so its centre is
+	--           ridge + d * (span / 2) + n * (GAP + T / 2): lifted GAP off the
+	--           attic slope so the two surfaces are never coplanar.
+	--   ridge   a capping strip over the small notch where the slabs meet.
 	local ridgeY = wallH + roofH
-	local endInset = math.min(width * 0.28, depth + EAVE)
-	local ridgeLength = math.max(1, width - endInset * 2)
+	local run = depth / 2
+	local theta = math.atan2(roofH, run)
+	local slopeLength = math.sqrt(run * run + roofH * roofH)
+	local slabT = 0.4
+	local slabGap = 0.05
+	local verge = 0.6 -- roof overhang past each gable end
+	local span = slopeLength + EAVE / math.cos(theta)
 	for _, side in { -1, 1 } do
 		local yaw = if side < 0 then math.pi / 2 else -math.pi / 2
-		local cf = cframe * CFrame.new(side * half / 2, wallH + roofH / 2, 0) * CFrame.Angles(0, yaw, 0)
-		local wedge = block("WedgePart", if side < 0 then "RoofFront" else "RoofBack", Vector3.new(ridgeLength, roofH, half), cf, ROOF_RED, Enum.Material.Slate, model, true)
-		texture(wedge, Enum.NormalId.Top, "roof_tiles", 8, 8)
+		local attic = block(
+			"WedgePart",
+			if side < 0 then "AtticFront" else "AtticBack",
+			Vector3.new(width, roofH, run),
+			cframe * CFrame.new(side * run / 2, wallH + roofH / 2, 0) * CFrame.Angles(0, yaw, 0),
+			BRICK,
+			Enum.Material.Brick,
+			model,
+			true
+		)
+		texture(attic, Enum.NormalId.Left, "semi_side", depth, wallH)
+		texture(attic, Enum.NormalId.Right, "semi_side", depth, wallH)
+
+		local dx, dy = side * math.cos(theta), -math.sin(theta)
+		local nx, ny = side * math.sin(theta), math.cos(theta)
+		local lift = slabGap + slabT / 2
+		local cx = dx * span / 2 + nx * lift
+		local cy = ridgeY + dy * span / 2 + ny * lift
+		local slab = block(
+			"Part",
+			if side < 0 then "RoofFront" else "RoofBack",
+			Vector3.new(span, slabT, width + verge * 2),
+			cframe * CFrame.new(cx, cy, 0) * CFrame.Angles(0, 0, -side * theta),
+			ROOF_RED,
+			Enum.Material.Slate,
+			model,
+			true
+		)
+		texture(slab, Enum.NormalId.Top, "roof_tiles", 8, 8)
 	end
-	-- the hip-end wedges' slope runs along their local Z (low at the outer
-	-- gable edge, high toward the ridge), so the flat dimension perpendicular
-	-- to that (the wedge's local X) must be the building's depth, not the
-	-- short endInset run -- the opposite axis order from the long pitches above
-	for _, side in { -1, 1 } do
-		local yaw = if side < 0 then 0 else math.pi
-		local cf = cframe * CFrame.new(0, wallH + roofH / 2, side * (width / 2 - endInset / 2)) * CFrame.Angles(0, yaw, 0)
-		local wedge = block("WedgePart", if side < 0 then "RoofLeftEnd" else "RoofRightEnd", Vector3.new(depth + EAVE * 2, roofH, endInset), cf, ROOF_RED, Enum.Material.Slate, model, true)
-		texture(wedge, Enum.NormalId.Top, "roof_tiles", 8, 8)
-	end
-	local ridge = block("Part", "Ridge", Vector3.new(0.8, 0.5, ridgeLength), cframe * CFrame.new(0, ridgeY, 0), ROOF_RED:Lerp(Color3.new(0, 0, 0), 0.2), Enum.Material.Slate, model, false)
+	-- the slabs' outer surfaces, extended, meet (GAP + T) / cos theta above
+	-- ridgeY at x = 0 and drop tan theta per stud either side. A strip w wide
+	-- centred there must be >= w * tan theta tall so its bottom corners sink
+	-- into both slabs (no sliver of sky under it). It runs 0.1 past the slab
+	-- ends so no end plane is shared.
+	local ridgeTop = ridgeY + (slabGap + slabT) / math.cos(theta)
+	local ridgeW = 0.9
+	local ridgeH = 0.3 + ridgeW * math.tan(theta)
+	local ridge = block("Part", "Ridge", Vector3.new(ridgeW, ridgeH, width + verge * 2 + 0.2), cframe * CFrame.new(0, ridgeTop, 0), ROOF_RED:Lerp(Color3.new(0, 0, 0), 0.2), Enum.Material.Slate, model, false)
 	ridge.CastShadow = false
 
-	-- chimney straddles the ridge on the shared party wall (pair centre)
-	block("Part", "Stack", Vector3.new(2, 3.5, 1.6), cframe * CFrame.new(0, ridgeY + 1.5, 0), STACK_COLOUR, Enum.Material.Brick, model, true)
+	-- chimney straddles the ridge on the shared party wall (pair centre); its
+	-- foot sinks into the attic so no gap shows under it on either slope
+	block("Part", "Stack", Vector3.new(2, 4.5, 1.6), cframe * CFrame.new(0, ridgeY + 1, 0), STACK_COLOUR, Enum.Material.Brick, model, true)
 	local pots = block("Part", "Pots", Vector3.new(1, 0.8, 1.2), cframe * CFrame.new(0, ridgeY + 3.4, 0), STACK_COLOUR:Lerp(Color3.new(0, 0, 0), 0.15), Enum.Material.SmoothPlastic, model, false)
 	pots.CastShadow = false
 
-	-- low front garden wall + hedge, 6 studs out from the front (-X)
-	local wallX = -(depth / 2 + 6)
-	block("Part", "GardenWall", Vector3.new(1, 1.2, width), cframe * CFrame.new(wallX, 0.6, 0), WALL_STONE, Enum.Material.Concrete, model, true)
-	local hedge = block("Part", "Hedge", Vector3.new(1.4, 1.8, math.max(1, width - 2)), cframe * CFrame.new(wallX - 1, 0.9, 0), HEDGE_GREEN, Enum.Material.Grass, model, false)
-	hedge.CastShadow = false
+	-- low front garden wall + hedge, GARDEN_OUT studs out from the front (-X),
+	-- with a gate gap in each where a house's front path comes through (X29)
+	local wallX = -(depth / 2 + EstateBuilder.GARDEN_OUT)
+	local doors = { EstateBuilder.doorZ(width, frontName, 0), EstateBuilder.doorZ(width, frontName, 1) }
+	for _, seg in EstateBuilder.splitAroundGaps(-width / 2, width / 2, doors, EstateBuilder.GATE_WIDTH, MIN_SEGMENT) do
+		block("Part", "GardenWall", Vector3.new(1, 1.2, seg.z1 - seg.z0), cframe * CFrame.new(wallX, 0.6, (seg.z0 + seg.z1) / 2), WALL_STONE, Enum.Material.Concrete, model, true)
+	end
+	-- the hedge overlaps the wall's front 0.2 studs, so its gaps are HEDGE_GAP_EXTRA
+	-- wider: the segment end faces never share a plane with the wall's
+	for _, seg in EstateBuilder.splitAroundGaps(-width / 2 + 1, width / 2 - 1, doors, EstateBuilder.GATE_WIDTH + HEDGE_GAP_EXTRA, MIN_SEGMENT) do
+		local hedge = block("Part", "Hedge", Vector3.new(1.4, 1.8, seg.z1 - seg.z0), cframe * CFrame.new(wallX - 1, 0.9, (seg.z0 + seg.z1) / 2), HEDGE_GREEN, Enum.Material.Grass, model, false)
+		hedge.CastShadow = false
+	end
 
 	model.Parent = parent
 	return model

@@ -3,7 +3,7 @@
 -- the high street (backlog X22 + X23 + X17). Runs after ShopDresser and
 -- EstateDresser; output goes to workspace.Town.Forecourts:
 --   Shops    one paving slab per shop row forecourt (front of the building out
---            to the pavement), hanging flower baskets on the shopfronts,
+--            to the pavement), bracket flower baskets between the shopfronts,
 --            chalk A-boards, and a table + two chairs outside cafes and pubs
 --   Semis    a short front path per house, pavement -> front door
 --   Square   the pedestrian zone between the market square circle and the
@@ -23,9 +23,11 @@
 --         square's round rim (no staircase against the circle)
 --
 -- Part budget (all three items <= 700): paving ~1 per shop row, 1 per semi
--- house, ~50 zone slabs; planters 3 each; baskets 2; A-boards 2; cafe sets 6.
+-- house, ~50 zone slabs; planters 3 each; baskets 2; A-boards 2; cafe sets 10.
 -- Estimated from the layout: 69 forecourts + 58 paths + 51 zone slabs + 24
--- planter parts + <= 152 basket + <= 80 A-board + <= 96 cafe parts ~= 530.
+-- planter parts + <= 152 basket + <= 80 A-board + <= 160 cafe parts ~= 594.
+-- (Baskets: one per join between shopfronts, about as many as the old one
+-- per other bay on the 2-4 bay rows; the budget check still caps them.)
 -- Props stop being placed once PART_BUDGET is reached.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -97,10 +99,9 @@ local BOARD_CHANCE = 0.35
 local SET_MAX = 16 -- "the occasional" table: at most one per row, this many in town
 local BOARD_MAX = 40
 
--- semi_front_a has its door at 40..126 px of 512 from the image's left edge;
--- semi_front_b is mirrored (tools/kit/make_buildings.py). On the body's Left
--- (-X) face the image's left edge is the -Z end of each tile.
-local DOOR_U: { [string]: number } = { semi_front_a = 83 / 512, semi_front_b = 1 - 83 / 512 }
+-- hanging baskets (X26): bracket just under the fascia top, never this close to a row end
+local BASKET_END_CLEAR = 2
+local BASKET_BRACKET_Y = ShopBuilder.GROUND_FLOOR - 0.6
 
 export type Forecourt = {
 	cframe: CFrame, -- centre of the rectangle at the frame's Y, same rotation as the building frame
@@ -313,6 +314,27 @@ function ForecourtDresser.zoneSpans(centre: Vector3, radius: number, half: numbe
 	return out
 end
 
+-- Pure: local Z of each hanging basket on a shop row's front: one centred on
+-- each join between neighbouring shopfronts (between their fascia signs),
+-- none within BASKET_END_CLEAR of either end of a row `length` long. `bays`
+-- are the row's shopfronts in any order (centre z, width along local Z).
+function ForecourtDresser.basketZs(bays: { Bay }, length: number): { number }
+	local sorted = table.clone(bays)
+	table.sort(sorted, function(a: Bay, b: Bay): boolean
+		return a.z < b.z
+	end)
+	local out: { number } = {}
+	local limit = length / 2 - BASKET_END_CLEAR
+	for i = 1, #sorted - 1 do
+		local a, b = sorted[i], sorted[i + 1]
+		local z = ((a.z + a.width / 2) + (b.z - b.width / 2)) / 2
+		if math.abs(z) <= limit then
+			table.insert(out, z)
+		end
+	end
+	return out
+end
+
 -- ---------------------------------------------------------------- instances
 
 local partCount = 0
@@ -435,7 +457,7 @@ local function modelAt(models: { Model }, p: Vector3): Model?
 	return nil
 end
 
-type Bay = { z: number, width: number, key: string? }
+export type Bay = { z: number, width: number, key: string? }
 
 -- Shopfront bays of a row, in the placement frame. Read from the built
 -- ShopRow when there is one (its Shopfront parts carry the Front key), else
@@ -466,10 +488,13 @@ local function baysFor(row: Model?, frame: CFrame, length: number, use: string):
 	return out
 end
 
+-- A short iron bracket out of the facade with a small flower ball hanging
+-- under its tip. The bracket's back end sinks 0.05 into the facade part.
 local function basket(parent: Instance, frame: CFrame, frontX: number, z: number, rng: Random)
-	local x = frontX - FACADE_T
-	part(parent, "BasketBracket", Vector3.new(1.8, 0.2, 0.2), frame * CFrame.new(x - 0.9, 14.2, z), IRON, Enum.Material.Metal, false).CastShadow = false
-	local flowers = part(parent, "HangingBasket", Vector3.new(2.4, 2, 2.4), frame * CFrame.new(x - 1.5, 13, z), FLOWERS[rng:NextInteger(1, #FLOWERS)], Enum.Material.Grass, false);
+	local x = frontX - FACADE_T -- the facade parts' outer face
+	local reach = 1.2
+	part(parent, "BasketBracket", Vector3.new(reach + 0.05, 0.2, 0.2), frame * CFrame.new(x - reach / 2 + 0.025, BASKET_BRACKET_Y, z), IRON, Enum.Material.Metal, false).CastShadow = false
+	local flowers = part(parent, "HangingBasket", Vector3.new(1.4, 1.4, 1.4), frame * CFrame.new(x - 0.95, BASKET_BRACKET_Y - 0.75, z), FLOWERS[rng:NextInteger(1, #FLOWERS)], Enum.Material.Grass, false);
 	(flowers :: any).Shape = Enum.PartType.Ball
 	flowers.CastShadow = false
 end
@@ -504,7 +529,12 @@ local function aBoard(parent: Instance, base: CFrame, text: string)
 	end
 end
 
--- A round table between two chairs along local Z; chair backs face outward.
+-- A round table between two chairs along local Z. Each chair (4 parts): a
+-- thin seat, a back on the side away from the table (so it faces the table)
+-- and two slim side leg frames. Sizes keep every face off its neighbours'
+-- planes: legs sit inside the seat outline and sink 0.05 into it and the
+-- ground, the back is narrower than the seat and pokes 0.03 past its edge.
+local CAFE_SET_PARTS = 10
 local function cafeSet(parent: Instance, base: CFrame)
 	local m = Instance.new("Model")
 	m.Name = "CafeSet"
@@ -513,9 +543,12 @@ local function cafeSet(parent: Instance, base: CFrame)
 	(top :: any).Shape = Enum.PartType.Cylinder
 	part(m, "TableLeg", Vector3.new(0.3, 2.4, 0.3), base * CFrame.new(0, 1.2, 0), IRON, Enum.Material.Metal, true)
 	for _, side in { -1, 1 } do
-		local z = side * 2.4
-		part(m, "Seat", Vector3.new(1.6, 1.6, 1.6), base * CFrame.new(0, 0.8, z), WOOD, Enum.Material.WoodPlanks, true)
-		part(m, "ChairBack", Vector3.new(1.6, 1.8, 0.25), base * CFrame.new(0, 2.5, z + side * 0.7), WOOD, Enum.Material.WoodPlanks, true)
+		local z = side * 2.2
+		part(m, "Seat", Vector3.new(1.5, 0.2, 1.5), base * CFrame.new(0, 1.5, z), WOOD, Enum.Material.WoodPlanks, true) -- y 1.4..1.6
+		part(m, "ChairBack", Vector3.new(1.4, 1.7, 0.2), base * CFrame.new(0, 2.3, z + side * 0.68), WOOD, Enum.Material.WoodPlanks, false) -- y 1.45..3.15
+		for _, lx in { -0.6, 0.6 } do
+			part(m, "ChairLeg", Vector3.new(0.15, 1.5, 1.3), base * CFrame.new(lx, 0.7, z), IRON, Enum.Material.Metal, false) -- y -0.05..1.45
+		end
 	end
 end
 
@@ -598,12 +631,10 @@ function ForecourtDresser.build(): string
 				local pairFrame = cf * CFrame.new(0, 0, -width / 2 + (i - 0.5) * step)
 				local pairModel = modelAt(semiModels, pairFrame.Position)
 				local front = if pairModel then pairModel:GetAttribute("Front") else nil
-				local u = 0.5
-				if type(front) == "string" then
-					u = DOOR_U[front] or 0.5
-				end
+				local frontName: string? = if type(front) == "string" then front else nil
 				for house = 0, 1 do
-					local doorZ = -step / 2 + (house + u) * step / 2
+					-- same door positions as the gate gaps EstateBuilder cuts in the garden wall
+					local doorZ = EstateBuilder.doorZ(step, frontName, house)
 					local fc = ForecourtDresser.forecourt(pairFrame * CFrame.new(0, 0, doorZ), PATH_WIDTH, depth, roads)
 					if not fc then
 						continue
@@ -663,9 +694,9 @@ function ForecourtDresser.build(): string
 		local frontX = -rec.depth / 2
 		local g = rec.fc.gap
 		local rowHasSet = false
-		for bi, bay in bays do
+		for _, bay in bays do
 			local key = bay.key or (if rec.block.use == "pub" or rec.block.use == "pub and cafes" then "shop_front_pub" else nil)
-			if key and SEATING[key] and not rowHasSet and sets < SET_MAX and g >= 5 and room(6) then
+			if key and SEATING[key] and not rowHasSet and sets < SET_MAX and g >= 5 and room(CAFE_SET_PARTS) then
 				local x = frontX - math.min(g / 2, 3.5)
 				local z = bay.z + bay.width * 0.18
 				local p = rec.frame * Vector3.new(x, 0, z)
@@ -685,8 +716,13 @@ function ForecourtDresser.build(): string
 					boards += 1
 				end
 			end
-			if bi % 2 == 1 and g >= 2 and room(2) then
-				basket(shopsModel, rec.frame, frontX, bay.z - bay.width / 2 + 1.6, rng)
+		end
+		if g >= 2 then
+			for _, z in ForecourtDresser.basketZs(bays, rec.length) do
+				if not room(2) then
+					break
+				end
+				basket(shopsModel, rec.frame, frontX, z, rng)
 				baskets += 1
 			end
 		end
