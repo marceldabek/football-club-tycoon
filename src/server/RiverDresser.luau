@@ -1,0 +1,267 @@
+--!strict
+-- The River Lune waterfront (backlog E6.1). Reference:
+-- assets/references/RivermereRiverside.png — a paved promenade on a stone quay
+-- along the north bank, black railings at the water's edge, bollards, planters
+-- of flowers, benches and lamps, and small boats moored at pontoons.
+--
+-- TownBuilder carves the river into terrain: water width 90 (surface renders
+-- at about y -2), 12-stud mud banks each side. This module walks the north
+-- bank from PROMENADE_X0 to PROMENADE_X1, skipping road bridge ends, and
+-- builds under workspace.Town.Riverside:
+--   Quay        stone kerb/wall pieces on the water's edge, top at y 0.6
+--   Promenade   paving strips behind the quay, top at y 0.35
+--   Railings    black top rail + posts along the quay
+--   Furniture   benches, planters, lamps every FURNITURE_SPACING
+--   Moorings    wooden pontoons out on the water + simple boats (the marina reach)
+-- Budget: roughly 6 parts per 10 studs of promenade + 8 parts a boat.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
+local KitPlacer = require(script.Parent.KitPlacer)
+local TerraceBuilder = require(script.Parent.TerraceBuilder)
+
+local RiverDresser = {}
+
+local PROMENADE_X0, PROMENADE_X1 = -220, 1200
+local EDGE = TownLayout.RIVER.width / 2 -- water's edge from the centreline
+local QUAY_W = 2.5
+local PROM_W = 12
+local QUAY_TOP = 0.6
+local PROM_TOP = 0.35
+local RAIL_H = 3.4
+local POST_STEP = 8
+local FURNITURE_SPACING = 64
+local BRIDGE_CLEAR = 30 -- no promenade this close to a bridge centreline (the deck lands there)
+local BLOCK_CLEAR = 3 -- promenade stops short of buildings and roads
+
+local STONE = Color3.fromRGB(196, 184, 160)
+local PAVING = Color3.fromRGB(206, 192, 170)
+local IRON = Color3.fromRGB(22, 22, 24)
+local TIMBER = Color3.fromRGB(120, 92, 64)
+local BOAT_HULLS = { Color3.fromRGB(245, 245, 245), Color3.fromRGB(30, 50, 100), Color3.fromRGB(180, 40, 40) }
+
+local MARINA_X0, MARINA_X1 = 780, 1120 -- moorings along this reach of the north bank
+
+local function part(props: { [string]: any }, className: string?): BasePart
+	local p = (Instance.new :: any)(className or "Part") :: BasePart
+	p.Anchored = true
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.Material = Enum.Material.SmoothPlastic
+	for k, v in props do
+		if k ~= "Parent" then
+			(p :: any)[k] = v
+		end
+	end
+	p.Parent = props.Parent
+	return p
+end
+
+-- Pure: the north-bank edge as a list of short straight runs
+-- { a, b, normal } where normal points from the water towards the land.
+-- North is -Z; the river runs west to east, so the land normal is the
+-- segment's left-hand perpendicular (-dz, dx) flipped to point to -Z.
+export type Run = { a: Vector3, b: Vector3, normal: Vector3 }
+
+function RiverDresser.bankRuns(x0: number, x1: number, step: number): { Run }
+	local points = TownLayout.RIVER.points
+	local out: { Run } = {}
+	for i = 1, #points - 1 do
+		local p, q = points[i], points[i + 1]
+		local flat = Vector3.new(q.X - p.X, 0, q.Z - p.Z)
+		local length = flat.Magnitude
+		if length < 1e-6 then
+			continue
+		end
+		local dir = flat / length
+		local normal = Vector3.new(dir.Z, 0, -dir.X) -- left of downstream
+		if normal.Z > 0 then
+			normal = -normal
+		end
+		local n = math.max(1, math.ceil(length / step))
+		for k = 0, n - 1 do
+			local a = p:Lerp(q, k / n) + normal * EDGE
+			local b = p:Lerp(q, (k + 1) / n) + normal * EDGE
+			local midX = (a.X + b.X) / 2
+			if midX >= x0 and midX <= x1 then
+				table.insert(out, { a = Vector3.new(a.X, 0, a.Z), b = Vector3.new(b.X, 0, b.Z), normal = normal })
+			end
+		end
+	end
+	return out
+end
+
+-- Pure: is a point on the promenade clear of bridges, roads and buildings?
+function RiverDresser.isClear(p: Vector3): boolean
+	for _, bridge in TownLayout.BRIDGES do
+		if TownLayout.segmentDistance(p, bridge.from, bridge.to) < bridge.width / 2 + BRIDGE_CLEAR then
+			return false
+		end
+	end
+	for _, road in TownLayout.ROADS do
+		if TownLayout.distanceToPolyline(p, road.points) < road.width / 2 + TownLayout.PAVEMENT_WIDTH + BLOCK_CLEAR then
+			return false
+		end
+	end
+	for _, district in TownLayout.DISTRICTS do
+		for _, block in district.blocks do
+			local c, s = block.centre, block.size
+			if math.abs(p.X - c.X) < s.X / 2 + BLOCK_CLEAR and math.abs(p.Z - c.Z) < s.Z / 2 + BLOCK_CLEAR then
+				return false
+			end
+		end
+	end
+	return true
+end
+
+-- A straight piece of `width` x `height` running a -> b, offset `lateral`
+-- towards the land, with its top at `top`.
+local function strip(parent: Instance, name: string, run: Run, lateral: number, width: number, bottom: number, top: number, colour: Color3, material: Enum.Material)
+	local a = run.a + run.normal * lateral
+	local b = run.b + run.normal * lateral
+	local mid = (a + b) / 2
+	local length = (b - a).Magnitude
+	part({
+		Name = name,
+		Size = Vector3.new(width, top - bottom, length + 0.05),
+		CFrame = CFrame.lookAt(Vector3.new(mid.X, (top + bottom) / 2, mid.Z), Vector3.new(b.X, (top + bottom) / 2, b.Z)),
+		Color = colour,
+		Material = material,
+		CastShadow = false,
+		Parent = parent,
+	})
+end
+
+local function buildBoat(parent: Instance, cf: CFrame, rng: Random)
+	local m = Instance.new("Model")
+	m.Name = "Boat"
+	m.Parent = parent
+	local hull = BOAT_HULLS[rng:NextInteger(1, #BOAT_HULLS)]
+	local length = rng:NextNumber(16, 24)
+	-- hull body + a wedge bow, cabin, windscreen, cover
+	part({ Name = "Hull", Size = Vector3.new(6, 2.4, length), CFrame = cf * CFrame.new(0, 0.2, 0), Color = hull, Parent = m })
+	part({
+		Name = "Bow",
+		Size = Vector3.new(6, 2.4, 5),
+		CFrame = cf * CFrame.new(0, 0.2, -length / 2 - 2.5) * CFrame.Angles(0, math.pi, 0),
+		Color = hull,
+		Parent = m,
+	}, "WedgePart")
+	part({ Name = "Cabin", Size = Vector3.new(4.6, 2.2, length * 0.35), CFrame = cf * CFrame.new(0, 2.5, -length * 0.1), Color = Color3.fromRGB(240, 240, 235), Parent = m })
+	part({ Name = "Glass", Size = Vector3.new(4.2, 1.2, 0.2), CFrame = cf * CFrame.new(0, 2.9, -length * 0.1 - length * 0.175 - 0.1), Color = Color3.fromRGB(40, 60, 80), Material = Enum.Material.Glass, Parent = m })
+	part({ Name = "Cover", Size = Vector3.new(5.4, 0.4, length * 0.3), CFrame = cf * CFrame.new(0, 1.6, length * 0.3), Color = Color3.fromRGB(30, 40, 60), Material = Enum.Material.Fabric, Parent = m })
+end
+
+function RiverDresser.build(): string
+	local town = workspace:FindFirstChild("Town")
+	if not town then
+		return "riverside: no town"
+	end
+	local old = town:FindFirstChild("Riverside")
+	if old then
+		old:Destroy()
+	end
+	local root = Instance.new("Model")
+	root.Name = "Riverside"
+	local quay = Instance.new("Model")
+	quay.Name = "Quay"
+	quay.Parent = root
+	local furniture = Instance.new("Model")
+	furniture.Name = "Furniture"
+	furniture.Parent = root
+	local moorings = Instance.new("Model")
+	moorings.Name = "Moorings"
+	moorings.Parent = root
+	local rng = Random.new(1884)
+
+	local travelled = 0
+	local nextPost = 0
+	local nextFurniture = FURNITURE_SPACING / 2
+	local runs = RiverDresser.bankRuns(PROMENADE_X0, PROMENADE_X1, 10)
+	for _, run in runs do
+		local mid = (run.a + run.b) / 2
+		local length = (run.b - run.a).Magnitude
+		if not RiverDresser.isClear(mid + run.normal * (QUAY_W + PROM_W / 2)) then
+			travelled += length
+			nextPost = travelled
+			continue
+		end
+		-- quay wall face down into the water, stone kerb on top, paving behind
+		strip(quay, "QuayWall", run, QUAY_W / 2, QUAY_W, -4, QUAY_TOP, STONE, Enum.Material.Cobblestone)
+		strip(quay, "Promenade", run, QUAY_W + PROM_W / 2, PROM_W, -0.5, PROM_TOP, PAVING, Enum.Material.Pavement)
+		strip(quay, "Rail", run, 0.9, 0.25, QUAY_TOP + RAIL_H - 0.25, QUAY_TOP + RAIL_H, IRON, Enum.Material.Metal)
+		travelled += length
+		while nextPost <= travelled do
+			local t = 1 - (travelled - nextPost) / length
+			local p = run.a:Lerp(run.b, math.clamp(t, 0, 1)) + run.normal * 0.9
+			part({
+				Name = "Post",
+				Size = Vector3.new(0.35, RAIL_H, 0.35),
+				CFrame = CFrame.new(p.X, QUAY_TOP + RAIL_H / 2, p.Z),
+				Color = IRON,
+				Material = Enum.Material.Metal,
+				CastShadow = false,
+				Parent = quay,
+			})
+			nextPost += POST_STEP
+		end
+		while nextFurniture <= travelled do
+			local t = 1 - (travelled - nextFurniture) / length
+			local along = run.a:Lerp(run.b, math.clamp(t, 0, 1))
+			local dir = (run.b - run.a).Unit
+			local seat = along + run.normal * (QUAY_W + 2.2)
+			-- bench facing the water, a planter and a lamp either side
+			KitPlacer.place("UKSP__ParkBenches__ParkBench01", CFrame.lookAt(Vector3.new(seat.X, PROM_TOP, seat.Z), Vector3.new(seat.X, PROM_TOP, seat.Z) - run.normal), furniture, {
+				fallbackSize = Vector3.new(6, 3, 2),
+				fallbackColor = TIMBER,
+				fallbackMaterial = Enum.Material.Wood,
+			})
+			local planter = along + run.normal * (QUAY_W + 2.5) + dir * 7
+			part({ Name = "Planter", Size = Vector3.new(4, 2.4, 4), CFrame = CFrame.new(planter.X, PROM_TOP + 1.2, planter.Z), Color = STONE, Material = Enum.Material.Limestone, Parent = furniture })
+			part({
+				Name = "Flowers",
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.new(4.4, 2.4, 4.4),
+				CFrame = CFrame.new(planter.X, PROM_TOP + 3, planter.Z),
+				Color = Color3.fromRGB(214, 70, 110):Lerp(Color3.fromRGB(240, 190, 60), rng:NextNumber()),
+				Material = Enum.Material.Grass,
+				CastShadow = false,
+				Parent = furniture,
+			})
+			local lamp = along + run.normal * (QUAY_W + 1.2) - dir * 8
+			TerraceBuilder.lamp(CFrame.lookAt(Vector3.new(lamp.X, PROM_TOP, lamp.Z), Vector3.new(lamp.X, PROM_TOP, lamp.Z) - run.normal), furniture)
+			nextFurniture += FURNITURE_SPACING
+		end
+	end
+
+	-- moorings: pontoons parallel to the bank a little way out, boats alongside
+	for _, run in RiverDresser.bankRuns(MARINA_X0, MARINA_X1, 30) do
+		local mid = (run.a + run.b) / 2
+		if rng:NextNumber() < 0.25 then
+			continue
+		end
+		local dir = (run.b - run.a).Unit
+		local deck = mid - run.normal * 7
+		part({
+			Name = "Pontoon",
+			Size = Vector3.new(5, 0.8, 26),
+			CFrame = CFrame.lookAt(Vector3.new(deck.X, -1.6, deck.Z), Vector3.new(deck.X, -1.6, deck.Z) + dir),
+			Color = TIMBER,
+			Material = Enum.Material.WoodPlanks,
+			Parent = moorings,
+		})
+		local boat = mid - run.normal * 14
+		buildBoat(moorings, CFrame.lookAt(Vector3.new(boat.X, -2.2, boat.Z), Vector3.new(boat.X, -2.2, boat.Z) + dir * (if rng:NextNumber() < 0.5 then 1 else -1)), rng)
+	end
+
+	root.Parent = town
+	local parts = 0
+	for _, d in root:GetDescendants() do
+		if d:IsA("BasePart") then
+			parts += 1
+		end
+	end
+	return ("riverside: %d parts"):format(parts)
+end
+
+return RiverDresser
