@@ -99,6 +99,14 @@ local function part(name: string, size: Vector3, color: Color3, parent: Instance
 	p.CastShadow = false
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
+	if name == "Head" then
+		-- X136: every matchday figure gets a face (front = the way it faces)
+		local face = Instance.new("Decal")
+		face.Name = "Face"
+		face.Face = Enum.NormalId.Front
+		face.Texture = "rbxasset://textures/face.png"
+		face.Parent = p
+	end
 	p.Parent = parent
 	return p
 end

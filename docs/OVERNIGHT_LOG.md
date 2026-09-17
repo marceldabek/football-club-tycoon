@@ -986,3 +986,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 
 ### 2026-09-17 10:38 — Faces and hair on town pedestrians (X135 done)
 - Pedestrians.client.luau's walkers had a plain ball head. They now get the standard Roblox face decal (it faces the way they walk) and a hair cap in one of five colours, moved with the head, like WorldBuilder's stadium fans. +1 part each (30 × 7 = 210 at most on High). Checked by following a walker across the square with the camera. RunAll 416 passed (client script, no unit test).
+
+### 2026-09-17 10:39 — Faces on matchday figures (X136 done)
+- MatchdayLife's part helper adds the Roblox face decal to every part named Head, so walking fans, stewards, turnstile and kiosk queues and bar drinkers all have faces, with no extra parts. In a Studio match there were 37 faces in MatchdayLife during the walkout. The screenshot came out as the scripted walkout camera, so the count is the check. RunAll 416 passed.
+- Note: the Studio store club's stands are still showing the X134 `preview|4,3,2,4` rebuild for this session only; preview doesn't save.
