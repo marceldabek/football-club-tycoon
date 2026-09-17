@@ -920,6 +920,87 @@ local function model(name: string, parent: Instance): Model
 	return m
 end
 
+-- X140: picnics on the open lawn (a blanket, two people sitting facing each
+-- other, a basket), clear of paths, trees, the pond, the playground, the
+-- bandstand plaza and each other. Pure; seeded by the caller's rng.
+ParkDresser.PICNICS = 6
+local PICNIC_TRIES = 200
+local PICNIC_GAP = 6
+function ParkDresser.picnicSpots(plan: Plan, trees: { Vector3 }, rng: Random): { CFrame }
+	local out: { CFrame } = {}
+	local c = plan.centre
+	for _ = 1, PICNIC_TRIES do
+		if #out >= ParkDresser.PICNICS then
+			break
+		end
+		local p = c + Vector3.new(rng:NextNumber(-plan.half.X, plan.half.X), 0, rng:NextNumber(-plan.half.Z, plan.half.Z))
+		local ok = ParkDresser.inPark(plan, p, 20) and ParkDresser.clearOfPaths(plan, p, PICNIC_GAP) and ParkDresser.isClear(p, PICNIC_GAP)
+		ok = ok and (flat(p) - flat(plan.pond.centre)).Magnitude > plan.pond.radius + RIM_W + PICNIC_GAP
+		ok = ok and (flat(p) - flat(plan.plaza.centre)).Magnitude > plan.plaza.radius + PICNIC_GAP
+		local pg = plan.playground
+		ok = ok and (math.abs(p.X - pg.centre.X) > pg.size.X / 2 + PICNIC_GAP or math.abs(p.Z - pg.centre.Z) > pg.size.Z / 2 + PICNIC_GAP)
+		for _, t in trees do
+			if not ok then
+				break
+			end
+			ok = (flat(p) - flat(t)).Magnitude > PICNIC_GAP + 2
+		end
+		for _, q in out do
+			if not ok then
+				break
+			end
+			ok = (flat(p) - q.Position).Magnitude > 24
+		end
+		if ok then
+			table.insert(out, CFrame.new(flat(p)) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0))
+		end
+	end
+	return out
+end
+
+local PICNIC_TOPS = { Color3.fromRGB(200, 60, 60), Color3.fromRGB(60, 110, 190), Color3.fromRGB(240, 200, 70), Color3.fromRGB(80, 150, 90), Color3.fromRGB(240, 240, 235) }
+local PICNIC_SKIN = { Color3.fromRGB(232, 190, 150), Color3.fromRGB(180, 130, 95), Color3.fromRGB(110, 78, 55) }
+local BLANKETS = { Color3.fromRGB(170, 40, 50), Color3.fromRGB(40, 90, 150), Color3.fromRGB(60, 120, 70) }
+
+local function buildPicnic(parent: Instance, cf: CFrame, rng: Random)
+	local m = model("Picnic", parent)
+	m:SetAttribute("Decor", true)
+	local function piece(name: string, size: Vector3, at: CFrame, colour: Color3, material: Enum.Material?, ball: boolean?): BasePart
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.CastShadow = false
+		p.Size = size
+		p.CFrame = at
+		p.Color = colour
+		p.Material = material or Enum.Material.SmoothPlastic
+		if ball then
+			p.Shape = Enum.PartType.Ball
+		end
+		p.Parent = m
+		return p
+	end
+	-- lawn top is Y.LAWN (the grass slab); the blanket sits 0.05 into it
+	local base = cf * CFrame.new(0, Y.LAWN, 0)
+	piece("Blanket", Vector3.new(6, 0.12, 4.5), base * CFrame.new(0, 0.01, 0), BLANKETS[rng:NextInteger(1, #BLANKETS)], Enum.Material.Fabric)
+	piece("Basket", Vector3.new(1.4, 1, 1), base * CFrame.new(0, 0.55, 0), Color3.fromRGB(170, 130, 80), Enum.Material.WoodPlanks)
+	for _, side in { -1, 1 } do
+		-- sitting, legs toward the basket, facing each other along local X
+		local seat = base * CFrame.new(side * 2.1, 0.07, 0) * CFrame.Angles(0, side * math.pi / 2, 0)
+		piece("Legs", Vector3.new(1.2, 0.5, 1.4), seat * CFrame.new(0, 0.25, -0.55), Color3.fromRGB(40, 44, 60))
+		piece("Torso", Vector3.new(1.6, 1.8, 0.8), seat * CFrame.new(0, 1.4, 0.2), PICNIC_TOPS[rng:NextInteger(1, #PICNIC_TOPS)])
+		local head = piece("Head", Vector3.one, seat * CFrame.new(0, 2.8, 0.2), PICNIC_SKIN[rng:NextInteger(1, #PICNIC_SKIN)], nil, true)
+		local face = Instance.new("Decal")
+		face.Name = "Face"
+		face.Face = Enum.NormalId.Front
+		face.Texture = "rbxasset://textures/face.png"
+		face.Parent = head
+	end
+end
+
 function ParkDresser.build(): string
 	local town = workspace:FindFirstChild("Town")
 	if not town then
@@ -948,6 +1029,11 @@ function ParkDresser.build(): string
 	local treeSpots = ParkDresser.treePositions(plan, rng)
 	for _, p in treeSpots do
 		buildTree(trees, p, rng)
+	end
+	-- X140: picnics on the open lawn
+	local picnics = model("Picnics", root)
+	for _, cf in ParkDresser.picnicSpots(plan, treeSpots, Random.new(1940)) do
+		buildPicnic(picnics, cf, rng)
 	end
 
 	local furniture = model("Furniture", root)

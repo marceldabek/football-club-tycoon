@@ -142,7 +142,7 @@ local BUS_WINDOW_Y = BUS_BODY_Y + BUS_BODY_SIZE.Y * 0.15
 local BUS_TRACK_X = BUS_BODY_SIZE.X / 2 + BUS_WHEEL_WIDTH * 0.2
 local BUS_AXLE_Z = BUS_BODY_SIZE.Z / 2 - BUS_WHEEL_RADIUS - 1.2
 
--- Order matches buildBus's part list: Body, Windows, WheelF1, WheelF2, WheelR1, WheelR2.
+-- Order matches buildBus's part list: Body, Windows, WheelF1, WheelF2, WheelR1, WheelR2, Destination, Windscreen.
 local BUS_OFFSETS: { Vector3 } = {
 	Vector3.new(0, BUS_BODY_Y, 0),
 	Vector3.new(0, BUS_WINDOW_Y, 0),

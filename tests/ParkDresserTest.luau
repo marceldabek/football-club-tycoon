@@ -150,4 +150,23 @@ function T.furnitureIsClearOfPathsAndBuildings()
 	end
 end
 
+-- X140: picnics land on open lawn, clear of paths, the pond and each other.
+function T.picnicsLandOnOpenLawn()
+	local plan = ParkDresser.plan()
+	assert(plan, "plan")
+	local trees = ParkDresser.treePositions(plan, Random.new(1884))
+	local spots = ParkDresser.picnicSpots(plan, trees, Random.new(1940))
+	assert(#spots >= 3, "only " .. #spots .. " picnics")
+	for i, cf in spots do
+		local p = cf.Position
+		assert(ParkDresser.inPark(plan, p, 10), "picnic " .. i .. " off the lawn")
+		assert(ParkDresser.clearOfPaths(plan, p, 5), "picnic " .. i .. " on a path")
+		local pond = Vector3.new(plan.pond.centre.X, 0, plan.pond.centre.Z)
+		assert((Vector3.new(p.X, 0, p.Z) - pond).Magnitude > plan.pond.radius + 5, "picnic " .. i .. " in the pond")
+		for j = i + 1, #spots do
+			assert((spots[j].Position - p).Magnitude > 20, "picnics " .. i .. " and " .. j .. " too close")
+		end
+	end
+end
+
 return T
