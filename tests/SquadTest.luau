@@ -375,6 +375,23 @@ function T.academyRefillsTheSquadAfterRetirements()
 	end
 end
 
+-- X286: the academy used to be measured against the squad it was joining, so
+-- an old club that lived off its academy walked down to the 30 OVR floor.
+function T.academyDoesNotSpiralDownwards()
+	local players = Squad.generate(21, 45)
+	local rng = Random.new(22)
+	for generation = 1, 20 do
+		for _, p in players do
+			p.age = 40
+		end
+		Squad.retireVeterans(players, rng)
+		Squad.promoteYouth(players, rng, generation * 100)
+		assert(#players == Config.SquadMin, "the squad did not refill in generation " .. generation)
+	end
+	local avg = Squad.average(players)
+	assert(avg > Squad.MIN_OVERALL + 5, ("twenty academy generations decayed the squad to %d OVR"):format(avg))
+end
+
 function T.academyDoesNothingForAFullSquad()
 	local players = Squad.generate(15, 45)
 	assert(#Squad.promoteYouth(players, Random.new(9), 100) == 0, "promoted into a full squad")

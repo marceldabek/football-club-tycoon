@@ -512,11 +512,16 @@ function Squad.promoteYouth(players: { Player }, rng: Random, firstId: number): 
 	for _, p in players do
 		taken[p.name] = true
 	end
-	local avg = Squad.average(players)
+	-- X286: "a bit below the squad" alone spirals. Each intake is measured
+	-- against a squad that is itself mostly academy, so the average walks down
+	-- every generation: a save rolled on 15 seasons came out at 30 OVR, the
+	-- floor, with the club unable to win anything. The academy is a grassroots
+	-- club's own level, so it never drops below where a new club starts.
+	local avg = math.max(Squad.average(players) - 6, Config.StartingSquadOverall - 5)
 	while #players < Config.SquadMin do
 		local name = TeamGen.generateNames(rng, 1, taken)[1]
 		taken[name] = true
-		local p = makePlayer(rng, firstId + #graduates, name, freeNumber(players), neediestRole(players), avg - 6, 8, 19)
+		local p = makePlayer(rng, firstId + #graduates, name, freeNumber(players), neediestRole(players), avg, 8, 19)
 		table.insert(players, p)
 		table.insert(graduates, p)
 	end

@@ -19,6 +19,7 @@ local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local Theme = require(script.Parent.Theme)
 local Headshot = require(script.Parent.Headshot)
 local Squad = require(ReplicatedStorage.Shared.Squad)
+local Config = require(ReplicatedStorage.Shared.Config)
 
 local LineupBoard = {}
 
@@ -565,10 +566,31 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 		grid.Parent = detailInner
 		stat(grid, 1, "OVERALL", tostring(p.overall), Theme.colors.accent)
 		stat(grid, 2, "POTENTIAL", tostring(p.potential or p.overall), Theme.colors.info)
-		stat(grid, 3, "AGE", tostring(p.age))
+		-- X285: now that veterans retire (X277), the age a player is at is a
+		-- decision, not a statistic: sell them while they still fetch a fee, or
+		-- keep them and take the free academy replacement. So the number is
+		-- coloured once they are in the window and the window is spelled out.
+		local ageColor = if p.age >= Config.RetireMaxAge
+			then Theme.colors.bad
+			elseif p.age >= Config.RetireAge then Theme.colors.accent
+			else nil
+		stat(grid, 3, "AGE", tostring(p.age), ageColor)
 		stat(grid, 4, "APPS", tostring(p.apps or 0))
 		stat(grid, 5, "GOALS", tostring(p.goals or 0))
 		stat(grid, 6, "SHIRT", ("#%d"):format(p.number))
+
+		if p.age >= Config.RetireAge then
+			Theme.text(detailInner, if p.age >= Config.RetireMaxAge
+				then "Retires at the end of this season."
+				else "Near the end — may retire at the end of a season.", "muted", {
+				Name = "Retirement",
+				Size = UDim2.new(1, 0, 0, 20),
+				Position = UDim2.fromOffset(0, 182),
+				TextSize = 12,
+				TextColor3 = ageColor or Theme.colors.muted,
+				TextTruncate = Enum.TextTruncate.AtEnd,
+			})
+		end
 
 		-- Sell sits in the window, always on screen. Two taps: arm, then confirm.
 		local inXi = cards[p.id] ~= nil
