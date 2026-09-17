@@ -862,6 +862,42 @@ local function buildTurnstiles(parent: Instance)
 	pad.PaddingBottom = UDim.new(0.18, 0)
 	pad.Parent = label
 
+	-- X84: navy slogan plaques on the outer side faces of the end piers (the
+	-- walk-up faces carry the open gate leaves) and a shrub planter beside the
+	-- gates (RivermereTurnstileEntrance.png)
+	for i, slogan in { "PRIDE\nPEOPLE\nRIVERMERE", "MATCH DAYS\nBRING PEOPLE\nTOGETHER" } do
+		local side = if i == 1 then -1 else 1
+		local plaque = box("Plaque", Vector3.new(4.4, 3.4, 0.15), Vector3.new(x - 1.5, DECK_Y + 4.6, TURNSTILE_Z + side * (total / 2 + 0.075)), Color3.fromRGB(24, 36, 72), Enum.Material.SmoothPlastic, gate)
+		plaque.CanCollide = false
+		local plaqueGui = Instance.new("SurfaceGui")
+		plaqueGui.Face = if side < 0 then Enum.NormalId.Front else Enum.NormalId.Back
+		plaqueGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		plaqueGui.PixelsPerStud = 50
+		plaqueGui.Parent = plaque
+		local plaqueText = Instance.new("TextLabel")
+		plaqueText.Size = UDim2.fromScale(0.86, 0.8)
+		plaqueText.Position = UDim2.fromScale(0.07, 0.1)
+		plaqueText.BackgroundTransparency = 1
+		plaqueText.Font = Enum.Font.GothamBold
+		plaqueText.TextScaled = true
+		plaqueText.TextColor3 = Color3.fromRGB(240, 240, 240)
+		plaqueText.Text = slogan
+		plaqueText.Parent = plaqueGui
+	end
+	local planterZ = TURNSTILE_Z + total / 2 + 3
+	box("Planter", Vector3.new(3, 2.2, 3), Vector3.new(x - 5, DECK_Y + 1.1, planterZ), Color3.fromRGB(58, 60, 64), Enum.Material.Concrete, gate)
+	local shrub = part({
+		Name = "Shrub",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.new(3.4, 3.4, 3.4),
+		CFrame = CFrame.new(x - 5, DECK_Y + 2.2 + 1.2, planterZ),
+		Color = Color3.fromRGB(62, 104, 50),
+		Material = Enum.Material.LeafyGrass,
+		Parent = gate,
+	})
+	shrub.CanCollide = false
+	shrub.CastShadow = false
+
 	-- X53: a black lamp post outside, beside the entrance, flying a club banner
 	-- (RivermereTurnstileEntrance.png: "OUR TOWN / OUR GAME")
 	local lx, lz = x - 7, TURNSTILE_Z - total / 2 - 4

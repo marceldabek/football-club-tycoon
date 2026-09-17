@@ -674,3 +674,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 
 ### 2026-09-17 07:11 — Train hides on Quality Low (X82)
 - On Quality Low the train folder leaves the workspace, and parts stop moving while hidden. The timetable keeps running, so on High it comes back where it would be. **Client check:** present at start, gone on Low, back on High and moving 45.7 studs a second.
+
+### 2026-09-17 07:13 — Slogan plaques and a planter at the turnstiles (X84)
+- `WorldBuilder.buildTurnstiles` adds two navy plaques, PRIDE / PEOPLE / RIVERMERE and MATCH DAYS / BRING PEOPLE / TOGETHER, on the outer side faces of the two end piers, and a concrete planter with a shrub beside the gates, as in RivermereTurnstileEntrance.png. The walk-up faces of the piers carry the open gate leaves, so the plaques go on the side faces. That's 4 parts per club, and the plaques don't collide.
+- **Screenshot** TurnstilePlaques_2.
+- RunAll 371/371.
