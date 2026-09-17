@@ -607,6 +607,21 @@ local function pubSign(parent: Instance, frame: CFrame, frontX: number, z: numbe
 	end
 end
 
+-- X151: a green pharmacy cross sticking out over each pharmacy front
+-- (RivermereCenter.png), placed like the pub sign. Neon, so it glows a little.
+local PHARMACY_GREEN = Color3.fromRGB(40, 190, 90)
+local CROSS_PARTS = 3
+
+local function pharmacyCross(parent: Instance, frame: CFrame, frontX: number, z: number)
+	local x = frontX - FACADE_T
+	local reach, arm, t = 0.5, 2.2, 0.7
+	local y = POST_SIGN_Y + 0.6
+	local cx = x - reach - arm / 2
+	part(parent, "CrossBracket", Vector3.new(reach + 0.05, 0.18, 0.18), frame * CFrame.new(x - reach / 2 + 0.025, y, z), IRON, Enum.Material.Metal, false).CastShadow = false
+	part(parent, "PharmacyCross", Vector3.new(t, arm, 0.2), frame * CFrame.new(cx, y, z), PHARMACY_GREEN, Enum.Material.Neon, false).CastShadow = false
+	part(parent, "PharmacyCross", Vector3.new(arm, t, 0.18), frame * CFrame.new(cx, y, z), PHARMACY_GREEN, Enum.Material.Neon, false).CastShadow = false
+end
+
 local function postOfficeSign(parent: Instance, frame: CFrame, frontX: number, z: number)
 	local x = frontX - FACADE_T
 	local reach, w, h = 0.6, 2.6, 1.8
@@ -913,6 +928,9 @@ function ForecourtDresser.build(): string
 			if bay.key == "shop_front_pub" and bay.width >= 8 and room(PUB_SIGN_PARTS) then
 				pubSign(shopsModel, rec.frame, frontX, ForecourtDresser.pubSignZ(bay))
 				pubSigns += 1
+			elseif bay.key == "shop_front_pharmacy" and bay.width >= 8 and room(CROSS_PARTS) then
+				pharmacyCross(shopsModel, rec.frame, frontX, ForecourtDresser.pubSignZ(bay)) -- same spot as a pub sign
+				pubSigns += 1
 			end
 		end
 		if g >= ForecourtDresser.AWNING_OUT then
@@ -936,7 +954,7 @@ function ForecourtDresser.build(): string
 	end
 
 	folder.Parent = town
-	return ("forecourts: %d shop forecourts, %d semi paths, %d zone slabs, %d planters, %d cafe sets, %d A-boards, %d baskets, %d awnings, %d pub signs, %d parts"):format(
+	return ("forecourts: %d shop forecourts, %d semi paths, %d zone slabs, %d planters, %d cafe sets, %d A-boards, %d baskets, %d awnings, %d pub/pharmacy signs, %d parts"):format(
 		#shops,
 		paths,
 		#spans,

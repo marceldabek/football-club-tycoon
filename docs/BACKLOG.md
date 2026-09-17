@@ -263,5 +263,5 @@
 - [ ] X148 "GOODS IN" boards and yellow-and-black bollards at shed yard entrances in `EstateBuilder` shed, every other yard (about 66 parts, Decor). rivermer.industrialestate.png `[studio]` S
 - [ ] X149 Timetable case in each bus shelter: a 1-part panel with the stop name and TEMP times on the shelter back wall beside the X47 advert (`TownBuilder` buildBusStop). RiveremereWestdale.png `[studio]` S
 - [ ] X150 A motor cruiser gliding on the Lune between the marina and the Lune Bridge: a client script like Swans (about 6 parts, within 600 studs, off on Low). RivermereRiverside.png `[studio]` S
-- [ ] X151 Green pharmacy cross sign sticking out over `shop_front_pharmacy` fronts in `ForecourtDresser` (3 parts each). RivermereCenter.png `[studio]` S
+- [x] X151 (11:14 8 crosses, +24 parts, forecourts 831/860) Green pharmacy cross sign sticking out over `shop_front_pharmacy` fronts in `ForecourtDresser` (3 parts each). RivermereCenter.png `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
