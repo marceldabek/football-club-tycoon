@@ -274,3 +274,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 ### 2026-09-17 03:53 — Bridge stone colour (X43), nothing stranded on the decks (X42)
 - **X43:** the bridge stone went from grey-beige to warm honey sandstone (stone 210,184,140; piers and cutwaters 184,158,118; coping 226,208,172), closer to `RivermereRiverside.png` (LuneBridge_colour_1).
 - **X42:** an overlap query over every Deck and DeckRamp found only the road and pavement ends that already ran under the bridge ends. There are no lamps, banners or props on the old flat deck height.
+
+### 2026-09-17 03:54 — A1.4 screenshots to disk: blocked
+- The Studio MCP `screen_capture` only returns the image to the agent. `store_image` reads files but can't write them. A System.Drawing desktop grab (no external tools) works, but the Studio viewport in it is a stale, stretched frame rather than the live game view while Studio isn't the focused window. A blank "RobloxStudio" popup also sits over the viewport, and I left it alone. The "before" hero look no longer exists either. The probe images were deleted.
+- **Seen in passing:** the Rojo 7.4.4 panel in Studio shows "Unknown HTTP error: HttpError: NetFail". That fits X4/X34: the plugin can't reach `rojo serve`, so start `rojo serve` and reconnect in the morning.
+- **Suggestion:** take the A1.4 shots by hand (F12 in Studio, or the Screenshot button) at the places listed at the top of the handoff.

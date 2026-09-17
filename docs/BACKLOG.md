@@ -26,7 +26,7 @@
 - [x] A2.1 Post-match fast-forward: after the summary closes, client plays the ~4 s sweep (sun → sunset → lights → night → morning → hero afternoon); tap/click or key to skip `[studio]` S dep: A1.1
 - [x] A2.2 (server season rollover verified 02:23 on the Studio store: two seasons, stayed then promoted; the client 10 s sweep itself not watched) Season-end long fast-forward (~10 s) hooked to the season rollover `[studio]` S dep: A2.1
 - [x] A3.1 DepthOfField hooks: on for club panel / lineup board / intro, off otherwise `[studio]` S dep: A1.1
-- [ ] A1.4 Before/after screenshots of the hero look saved in `assets/screenshots/overnight/` `[studio]` S
+- [ ] A1.4 (blocked: the MCP screen_capture returns images to the agent only, and a desktop grab of the Studio window shows a stale, stretched viewport while it is not focused; the "before" look is also gone) Before/after screenshots of the hero look saved in `assets/screenshots/overnight/` `[studio]` S
 
 ## Phase B — Clubs become plots
 - [x] B1.1 `PlotRegistry` pure module: 4 plots, `claim(userId, plot)`, `release(userId)`, `freePlots()`, `plotOf(userId)`, picker cycling `next/prev` over free plots, with tests `[disk]` S
