@@ -97,6 +97,14 @@ local wait = DWELL
 local moveParts: { BasePart } = {}
 local moveCFrames: { CFrame } = {}
 
+-- Quality "Low": the train keeps its timetable but leaves the workspace
+local player = game:GetService("Players").LocalPlayer
+local function applyQuality()
+	folder.Parent = if player:GetAttribute("Quality") == "Low" then nil else workspace
+end
+player:GetAttributeChangedSignal("Quality"):Connect(applyQuality)
+applyQuality()
+
 RunService.Heartbeat:Connect(function(dt: number)
 	if wait > 0 then
 		wait -= dt
@@ -115,6 +123,9 @@ RunService.Heartbeat:Connect(function(dt: number)
 		end
 	end
 
+	if folder.Parent == nil then
+		return
+	end
 	table.clear(moveParts)
 	table.clear(moveCFrames)
 	local frames = TrainMath.carriageFrames(points, bridges, head, direction, CARRIAGES, LENGTH, GAP, LATERAL)

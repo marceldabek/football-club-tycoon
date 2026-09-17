@@ -671,3 +671,6 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - `KitPlacer.place` has a new `tint` option: it clears every MeshPart's TextureID and sets the colour, because the one-mesh hatchback ignores Color while its texture is set. The station car park paints about half its cars navy, dark red or charcoal. The draw order moved, so it now parks 9 cars.
 - **Screenshots** CarTint_try (white read as a ghost, so it was dropped) and CarTint_1. Tinted cars are flat with no windows, so wider use is question 10 rather than done silently.
 - RunAll 371/371.
+
+### 2026-09-17 07:11 — Train hides on Quality Low (X82)
+- On Quality Low the train folder leaves the workspace, and parts stop moving while hidden. The timetable keeps running, so on High it comes back where it would be. **Client check:** present at start, gone on Low, back on High and moving 45.7 studs a second.
