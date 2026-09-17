@@ -45,4 +45,37 @@ function T.acceptsOpenFieldPoint()
 	assert(Backdrop.isClear(Vector3.new(0, 0, 1900), 0), "open field point should be clear")
 end
 
+function T.hedgesRingAllFourSidesWithoutFlushEnds()
+	local cx, cz, sx, sz, th, overlap = 100, -40, 260, 180, 4, 0.1
+	local hedges = Backdrop.hedgeBoxes(cx, cz, sx, sz, th, overlap)
+	assert(#hedges == 4, "expected four hedges, got " .. #hedges)
+	local sides: { [string]: Backdrop.HedgeBox } = {}
+	for _, h in hedges do
+		assert(sides[h.side] == nil, "duplicate side " .. h.side)
+		sides[h.side] = h
+	end
+	local n, s, e, w = sides["+Z"], sides["-Z"], sides["+X"], sides["-X"]
+	assert(n and s and e and w, "one hedge per side")
+	-- each hedge straddles its field edge
+	assert(math.abs(n.centre.Z - (cz + sz / 2)) < 1e-4 and math.abs(s.centre.Z - (cz - sz / 2)) < 1e-4, "north/south on the edges")
+	assert(math.abs(e.centre.X - (cx + sx / 2)) < 1e-4 and math.abs(w.centre.X - (cx - sx / 2)) < 1e-4, "east/west on the edges")
+	-- north/south cover the corners
+	assert(math.abs(n.size.X - (sx + th)) < 1e-4 and math.abs(n.size.Z - th) < 1e-4, "north hedge spans the width plus corners")
+	-- east/west reach into the north/south hedges by exactly `overlap` (no flush end faces)
+	local eMaxZ = e.centre.Z + e.size.Z / 2
+	local nMinZ = n.centre.Z - n.size.Z / 2
+	assert(math.abs((eMaxZ - nMinZ) - overlap) < 1e-3, ("east hedge overlaps north by %.3f"):format(eMaxZ - nMinZ))
+	local eMinZ = e.centre.Z - e.size.Z / 2
+	local sMaxZ = s.centre.Z + s.size.Z / 2
+	assert(math.abs((sMaxZ - eMinZ) - overlap) < 1e-3, "east hedge overlaps south by the overlap")
+end
+
+function T.fieldStylesAreTextureFreeNaturalMaterials()
+	local allowed = { [Enum.Material.Grass] = true, [Enum.Material.LeafyGrass] = true, [Enum.Material.Ground] = true }
+	assert(#Backdrop.FIELD_STYLES >= 4, "a varied palette")
+	for _, style in Backdrop.FIELD_STYLES do
+		assert(allowed[style.material], "field material should be Grass, LeafyGrass or Ground")
+	end
+end
+
 return T
