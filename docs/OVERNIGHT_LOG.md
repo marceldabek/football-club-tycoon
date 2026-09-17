@@ -27,7 +27,7 @@ station pitched roof + gable clock (X21), stone road bridges (X19), semis gable 
 marina quay + riverside gardens (X18), hedged backdrop fields (X16), road imperfections (E10.1), semis with driveways
 (X30), square flags + chimney smoke + matchday pub drinkers (F4.1/G2.1), smaller plot car park + bus menu sizing (X9/X15),
 Mill Street front gardens, railings, street trees, signs and parked cars (X11).
-**Half-done:** pub drinkers and the new bus menu sizing are merged but not yet seen in a playtest.
+**Half-done:** the new bus menu sizing is merged but not click-tested.
 **Reverted:** none.
 
 **Known bugs**

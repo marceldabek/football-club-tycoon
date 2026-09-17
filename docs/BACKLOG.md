@@ -83,7 +83,7 @@
 
 ## Phase G/H — Matchday town & influence
 - [x] G1.1 Matchday around a plot (all players): fans walking to the ground, stewards, barriers; fades after `[studio]` M dep: B2.1c
-- [x] G2.1 (bunting verified; pub drinkers merged, not yet seen in a match) Matchday town for the playing player only: banners on lamp posts, busy pub `[studio]` M
+- [x] G2.1 (bunting and 10 pub drinkers verified in a match) Matchday town for the playing player only: banners on lamp posts, busy pub `[studio]` M
 - [x] H1.1 Club identity banners in town (client-side, player's own club colours/name) `[studio]` S
 - [x] H2.1 Club shop building on the plot (visual) `[studio]` S dep: E8.1
 - [x] H3.1 Training pitches on the plot (visual) `[studio]` S dep: E8.1
@@ -134,4 +134,5 @@
 - [ ] X34 Syncing merged branches into Studio by pasting source is the night's bottleneck; get Rojo reconnected (X4) before the next big batch `[studio]` S
 - [ ] X35 TerraceStreetDresser: Mill/Weaver showpiece uses 1,013 of its 1,200 parts, so only 1 light street got dressed (26 skipped); thin the railing bars or raise the budget after a phone perf check `[studio]` S
 - [x] X36 (TerraceStreets ParkedStreets attribute; Mill Street, Weaver Street, Church Lane) Traffic drives through kerb-parked cars on streets with cars on both kerbs (single shared lane or skip those streets) `[disk]` S
+- [ ] X37 Evening fixtures: town streets away from the ground are nearly black during an evening match (street lamps don't light); either brighten the evening look's ambient or make lamp heads Neon/PointLight in the evening for the local player `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
