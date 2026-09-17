@@ -173,4 +173,14 @@ function T.awningsClearHeadsBasketsAndPubParasols()
 	assert(n >= 3, "a few shop kinds get awnings")
 end
 
+-- X144: the pub sign hangs inside its bay, clear of the party-wall baskets
+function T.pubSignStaysInsideItsBay()
+	for _, width in { 8, 10, 14, 20 } do
+		local bay = { z = 5, width = width } :: any
+		local z = ForecourtDresser.pubSignZ(bay)
+		assert(z > bay.z - width / 2 + 2.4 and z < bay.z + width / 2 - 2.4, "sign clear of the bay ends at width " .. width)
+	end
+	assert(#ForecourtDresser.PUB_NAME > 0, "pub name")
+end
+
 return T

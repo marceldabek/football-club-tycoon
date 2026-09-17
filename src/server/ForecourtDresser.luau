@@ -558,6 +558,55 @@ local function awning(parent: Instance, frame: CFrame, frontX: number, bay: Bay,
 	part(parent, "AwningValance", Vector3.new(0.1, 0.5, w), frame * CFrame.new(x - out - 0.05, ForecourtDresser.AWNING_TOP - drop - 0.2, bay.z), colours[2], Enum.Material.Fabric, false).CastShadow = false
 end
 
+-- X144: a hanging pub sign on an iron bracket over each pub front
+-- (RivermereRiverside.png): a navy board across the street direction with the
+-- pub's name in gold on both faces, 3 studs in from the bay's centre so it
+-- stays clear of the party-wall baskets.
+ForecourtDresser.PUB_NAME = "THE RIVERSIDE ARMS" -- matches the shop_front_pub texture
+local PUB_NAVY = Color3.fromRGB(22, 36, 62)
+local PUB_SIGN_PARTS = 2
+
+function ForecourtDresser.pubSignZ(bay: Bay): number
+	return bay.z + math.min(3, bay.width / 2 - 2.5)
+end
+
+local function pubSign(parent: Instance, frame: CFrame, frontX: number, z: number)
+	local x = frontX - FACADE_T
+	local reach, w, h = 0.5, 2.4, 3.2
+	local y = POST_SIGN_Y + 0.6
+	part(parent, "PubSignBracket", Vector3.new(reach + w + 0.05, 0.18, 0.18), frame * CFrame.new(x - (reach + w) / 2 + 0.025, y + h / 2 + 0.12, z), IRON, Enum.Material.Metal, false).CastShadow = false
+	local board = part(parent, "PubSign", Vector3.new(w, h, 0.16), frame * CFrame.new(x - reach - w / 2, y, z), PUB_NAVY, Enum.Material.SmoothPlastic, false)
+	board.CastShadow = false
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.LightInfluence = 0.9
+		gui.MaxDistance = 200
+		gui.Parent = board
+		local stroke = Instance.new("Frame")
+		stroke.BackgroundTransparency = 1
+		stroke.Size = UDim2.new(1, -12, 1, -12)
+		stroke.Position = UDim2.fromOffset(6, 6)
+		stroke.Parent = gui
+		local line = Instance.new("UIStroke")
+		line.Color = Color3.fromRGB(214, 180, 96)
+		line.Thickness = 3
+		line.Parent = stroke
+		local label = Instance.new("TextLabel")
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(0.8, 0.8)
+		label.Position = UDim2.fromScale(0.1, 0.1)
+		label.Font = Enum.Font.Garamond
+		label.TextScaled = true
+		label.TextWrapped = true
+		label.TextColor3 = Color3.fromRGB(236, 206, 124)
+		label.Text = ForecourtDresser.PUB_NAME
+		label.Parent = gui
+	end
+end
+
 local function postOfficeSign(parent: Instance, frame: CFrame, frontX: number, z: number)
 	local x = frontX - FACADE_T
 	local reach, w, h = 0.6, 2.6, 1.8
@@ -817,7 +866,7 @@ function ForecourtDresser.build(): string
 
 	-- X23: cafe seating, A-boards, hanging baskets
 	local rows = modelsByName(town:FindFirstChild("Shops"), "ShopRow")
-	local sets, boards, baskets, postBoxes, awnings = 0, 0, 0, 0, 0
+	local sets, boards, baskets, postBoxes, awnings, pubSigns = 0, 0, 0, 0, 0, 0
 	for _, rec in shops do
 		local row = modelAt(rows, rec.frame.Position)
 		local bays = baysFor(row, rec.frame, rec.length, rec.block.use)
@@ -860,6 +909,12 @@ function ForecourtDresser.build(): string
 				end
 			end
 		end
+		for _, bay in bays do
+			if bay.key == "shop_front_pub" and bay.width >= 8 and room(PUB_SIGN_PARTS) then
+				pubSign(shopsModel, rec.frame, frontX, ForecourtDresser.pubSignZ(bay))
+				pubSigns += 1
+			end
+		end
 		if g >= ForecourtDresser.AWNING_OUT then
 			for _, bay in bays do
 				local colours = bay.key and ForecourtDresser.AWNINGS[bay.key]
@@ -881,7 +936,7 @@ function ForecourtDresser.build(): string
 	end
 
 	folder.Parent = town
-	return ("forecourts: %d shop forecourts, %d semi paths, %d zone slabs, %d planters, %d cafe sets, %d A-boards, %d baskets, %d awnings, %d parts"):format(
+	return ("forecourts: %d shop forecourts, %d semi paths, %d zone slabs, %d planters, %d cafe sets, %d A-boards, %d baskets, %d awnings, %d pub signs, %d parts"):format(
 		#shops,
 		paths,
 		#spans,
@@ -890,6 +945,7 @@ function ForecourtDresser.build(): string
 		boards,
 		baskets,
 		awnings,
+		pubSigns,
 		partCount
 	)
 end
