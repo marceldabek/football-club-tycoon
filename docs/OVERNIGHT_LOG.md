@@ -689,3 +689,6 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Each of the 6 rough-grass patches on a for-sale lot is now two overlapping flat discs (the second 0.02 higher) instead of a rectangle. That's 12 parts in place of 6. **Screenshot** PickerView_plot2b.
 - The bare horizon on the plot 2 picker is a streaming effect: the first visit showed hills and the river, the second a flat edge. It's left open on X86, with the options noted.
 - RunAll 371/371.
+
+### 2026-09-17 07:19 — X86 streaming attempt reverted
+- I tried `Player:RequestStreamAroundAsync` 400 studs ahead of each picker viewpoint to fill in the bare horizon. **PickerView_plot2c** showed no difference, so I reverted it on disk and in Studio. The client holds only 25 Backdrop parts (the turbines), and the edge is terrain beyond the streaming radius about 2,000 studs out. Fixing it means raising the streaming radius (a phone cost) or adding a cheap Persistent low-detail horizon ring. It's noted on X86 as a decision, not done.
