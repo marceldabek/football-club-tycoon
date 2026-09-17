@@ -357,6 +357,7 @@ end
 local DUGOUT_Z = Pitch.DUGOUT_Z
 local DUGOUT_FRONT = -Pitch.DUGOUT_FRONT -- distance from the centre line, positive
 local TECHNICAL_Z = { DUGOUT_Z[1] - 3, DUGOUT_Z[2] + 3 }
+local STAND_BRICK = Color3.fromRGB(150, 84, 62) -- X134: the turnstiles' brick, on the stands, dugouts and tunnel
 
 -- Pitch-side advertising boards with fictional sponsors, standing on the front
 -- edge of the paving. The gaps are the tunnel mouth and the two dugouts.
@@ -481,8 +482,8 @@ local function buildDugouts(parent: Instance)
 		slab("Seat", front + 2.6, front + 4.6, cushion - 0.5, cushion, z0 + 1, z1 - 1, Config.SeatColor, Enum.Material.Fabric)
 		-- a low back: any taller and it hides a seated substitute's head
 		slab("SeatBack", front + 4.6, front + 5.2, cushion, cushion + 1.2, z0 + 1, z1 - 1, Config.SeatColor, Enum.Material.Fabric)
-		-- rear wall sits behind the plinth, not through it
-		slab("RearWall", plinthBack, plinthBack + 0.8, 0, shelterH, z0, z1, dark, Enum.Material.Metal)
+		-- rear wall sits behind the plinth, not through it; brick like the stands (X134)
+		slab("RearWall", plinthBack, plinthBack + 0.8, 0, shelterH, z0, z1, STAND_BRICK, Enum.Material.Brick)
 		for _, zEnd in { z0, z1 } do
 			local near = if zEnd == z0 then zEnd else zEnd - 0.6
 			-- corner post at the open front, glass panel behind it: side by side
@@ -492,7 +493,7 @@ local function buildDugouts(parent: Instance)
 		end
 		local roof = slab("Shelter", front - 1.2, plinthBack + 0.8, shelterH, shelterH + 0.35, z0 - 0.3, z1 + 0.3, frame, Enum.Material.Glass)
 		roof.Transparency = 0.3
-		slab("RoofEdge", front - 1.2, front - 0.6, shelterH - 0.5, shelterH, z0 - 0.3, z1 + 0.3, dark, Enum.Material.Metal)
+		slab("RoofEdge", front - 1.2, front - 0.6, shelterH - 0.5, shelterH, z0 - 0.3, z1 + 0.3, Config.HomeKit, Enum.Material.SmoothPlastic)
 
 		-- Technical area: the box the coaching staff have to stay inside. Runs
 		-- from a metre off the touchline back to the front of the bench, and a
@@ -535,7 +536,7 @@ local function buildTunnel(parent: Instance)
 	box("Ceiling", Vector3.new(x1 - x0 - PORTAL_D, 0.6, w + WALL_T * 2), Vector3.new((x0 + x1 - PORTAL_D) / 2, DECK_Y + h + 0.3, 0),
 		dark, Enum.Material.Concrete, tunnel)
 	-- side walls, broken by a doorway into each dressing room. The front few
-	-- studs are in club colours: that is the surround the player sees.
+	-- studs are brick piers (X134), under the club-colour header.
 	for _, zSign in { -1, 1 } do
 		local zc = zSign * (TUNNEL_HALF + WALL_T / 2)
 		local runs = { { x0, ROOM_DOOR[1] }, { ROOM_DOOR[2], x1 - PORTAL_D } }
@@ -544,7 +545,7 @@ local function buildTunnel(parent: Instance)
 				concrete, Enum.Material.Concrete, tunnel)
 		end
 		box("Surround", Vector3.new(PORTAL_D, h, WALL_T), Vector3.new(x1 - PORTAL_D / 2, DECK_Y + h / 2, zc),
-			colour, Enum.Material.SmoothPlastic, tunnel)
+			STAND_BRICK, Enum.Material.Brick, tunnel)
 		-- header over the doorway
 		box("DoorHeader", Vector3.new(ROOM_DOOR[2] - ROOM_DOOR[1], 3, WALL_T), Vector3.new((ROOM_DOOR[1] + ROOM_DOOR[2]) / 2, DECK_Y + h - 1.5, zc),
 			concrete, Enum.Material.Concrete, tunnel)
@@ -553,7 +554,7 @@ local function buildTunnel(parent: Instance)
 	local header = box("Header", Vector3.new(PORTAL_D, 3, w + WALL_T * 2), Vector3.new(x1 - PORTAL_D / 2, DECK_Y + h + 1.5, 0),
 		colour, Enum.Material.SmoothPlastic, tunnel)
 	box("HeaderTrim", Vector3.new(PORTAL_D + 0.3, 0.4, w + WALL_T * 2 + 0.3), Vector3.new(x1 - PORTAL_D / 2, DECK_Y + h + 3.2, 0),
-		Color3.fromRGB(240, 240, 240), Enum.Material.SmoothPlastic, tunnel)
+		Color3.fromRGB(206, 196, 176), Enum.Material.Concrete, tunnel)
 	-- strip lights down the middle
 	for i = 0, 5 do
 		local lx = x1 - 10 - i * ((x1 - x0) - 14) / 5
@@ -1124,7 +1125,6 @@ end
 
 local STEP_DEPTH = 3 -- one row of seats, ~1.1 m at 2.75 studs/m
 local STAND_X0 = 0.6 -- stands start just behind the perimeter wall, which is their front
-local STAND_BRICK = Color3.fromRGB(150, 84, 62) -- X134: the turnstiles' brick
 
 -- One entry per Config.StandLevels level. `lengthFrac` is of the plot's max.
 local STAND_SPECS = {
