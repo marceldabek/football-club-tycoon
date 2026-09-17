@@ -1449,3 +1449,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - `Onboarding`: the naming card re-centres in the height left above the on-screen keyboard (`OnScreenKeyboardVisible` / `OnScreenKeyboardSize`), so "Found the club" stays reachable. Before, only the return key could submit.
 - Studio has no on-screen keyboard, so that part is code-checked only and is on the phone pass in Start here. RunAll 437 passed; the HUD, panel and cards all rendered at scale 1 on the desktop viewport with no console errors.
 
+### 2026-09-17 14:56 — Health check after the X248–X259 batch (no code changes)
+- Claim → match → save → rejoin, twice, with the town dressing as usual and no console errors:
+  - Match paid +£22,776 (826,050 → 848,826), MatchesPlayed 61 → 62, back to Manage, saved (#432).
+  - After a stop/start the club reloaded with cash 848,826, 62 matches, season 7 County League, and the saved settings (music on, quality High).
+- Load time after Build varied a lot again: 24 s on the first join, 1 s on the rejoin. No save-lock warning either time, so it looks like DataStore latency in Studio rather than the lock. Worth a glance if it shows up in a real server.
+- Buying an upgrade could not be exercised from here: stand and concourse purchases only happen through world ProximityPrompts, which the MCP input tools can't trigger (same limit as the bus stop). The prompts' enabled/locked state was checked directly in the X249 work.
+
