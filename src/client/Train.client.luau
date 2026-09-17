@@ -105,6 +105,29 @@ end
 player:GetAttributeChangedSignal("Quality"):Connect(applyQuality)
 applyQuality()
 
+-- X158: after dark (this player's sky, same test as TownLife's lamps) the
+-- carriage windows glow warm, like a lit train crossing the viaduct
+local LIT_WINDOWS = Color3.fromRGB(255, 214, 150)
+task.spawn(function()
+	local lit = false
+	while true do
+		local t = game:GetService("Lighting").ClockTime
+		local dark = t >= 17.8 or t <= 6.2
+		if dark ~= lit then
+			lit = dark
+			for _, pieces in carriages do
+				for _, piece in pieces do
+					if piece.part.Name == "Windows" then
+						piece.part.Color = if dark then LIT_WINDOWS else WINDOWS
+						piece.part.Material = if dark then Enum.Material.Neon else Enum.Material.Glass
+					end
+				end
+			end
+		end
+		task.wait(2)
+	end
+end)
+
 RunService.Heartbeat:Connect(function(dt: number)
 	if wait > 0 then
 		wait -= dt
