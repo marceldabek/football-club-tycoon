@@ -27,4 +27,29 @@ function T.bridgesAndBuildingsAreNotClear()
 	assert(not RiverDresser.isClear(block.centre), "a building should block the promenade")
 end
 
+function T.heritageLampIsLightWithABasketOverThePromenadeSide()
+	for _, basket in { false, true } do
+		local holder = Instance.new("Folder")
+		local lamp = RiverDresser.heritageLamp(CFrame.new(10, 0.35, 20), holder, basket, Random.new(3))
+		local parts, lowest = 0, math.huge
+		for _, d in lamp:GetDescendants() do
+			if d:IsA("BasePart") then
+				parts += 1
+				local ext = d.CFrame:VectorToWorldSpace(d.Size / 2)
+				lowest = math.min(lowest, d.Position.Y - math.abs(ext.Y))
+			end
+		end
+		assert(parts == (if basket then 9 else 7), ("basket %s: %d parts"):format(tostring(basket), parts))
+		assert(lowest >= 0.35 - 1e-3, "nothing below the ground it stands on")
+		local b = lamp:FindFirstChild("Basket") :: BasePart?
+		assert((b ~= nil) == basket, "basket only when asked")
+		if b then
+			assert(b.Position.Z < 20 - 1.5, "hangs clear of the post towards local -Z")
+			local glass = lamp:FindFirstChild("Glass") :: BasePart
+			assert(b.Position.Y + b.Size.Y / 2 < glass.Position.Y - glass.Size.Y / 2, "below the lantern")
+		end
+		holder:Destroy()
+	end
+end
+
 return T

@@ -522,3 +522,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshots** Riverside_compare_1 (before) and Riverside_fixed_1 (paved to the railings, planted planter).
 - Logged from the same comparison: X66 heritage lamps and baskets on the promenade, and X67 river-facing shopfronts (the promenade's west end passes blank brick sides).
 - RunAll 354/354.
+
+### 2026-09-17 06:05 — Heritage lamps with hanging baskets on the promenade (X66)
+- New `RiverDresser.heritageLamp` for RivermereRiverside.png: a black post with the lantern on top (collar, glass, cap, finial) instead of the TerraceLamp's arm lantern. Every other lamp also gets a bracket and a hanging flower basket over the promenade side. That's 7 or 9 parts, against 36 for the LampVictorian kit, so the 23 promenade lamps add 47 parts. The baskets use their own random stream so the moored boats keep their looks. 1 new test covers the part counts, nothing below ground, and the basket placement (off the post, below the lantern).
+- **Screenshot** HeritageLamps_1.
+- Not done: the navy banner on the lamps. TownLife's client banners only look at `Town.Dressing` lamps.
+- RunAll 355/355.

@@ -22,7 +22,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local KitPlacer = require(script.Parent.KitPlacer)
-local TerraceBuilder = require(script.Parent.TerraceBuilder)
 
 local RiverDresser = {}
 
@@ -214,6 +213,42 @@ local function clearBank(run: Run)
 	workspace.Terrain:FillBlock(cf, Vector3.new(QUAY_W + PROM_W + 3, 1.8, length + 0.5), Enum.Material.Air)
 end
 
+-- X66: a black heritage lamp like RivermereRiverside.png: lantern on top of
+-- the post with a cap and finial, and (when `basket`) a hanging flower basket
+-- on a bracket towards local -Z (the promenade). 7 parts, 9 with the basket;
+-- the kit LampVictorian is 36. Ground at `cf`.
+local BASKET_FLOWERS = { Color3.fromRGB(214, 80, 130), Color3.fromRGB(150, 110, 190), Color3.fromRGB(230, 120, 70) }
+function RiverDresser.heritageLamp(cf: CFrame, parent: Instance, basket: boolean, rng: Random): Model
+	local m = Instance.new("Model")
+	m.Name = "HeritageLamp"
+	local upright = CFrame.Angles(0, 0, math.pi / 2) -- cylinder axis X -> Y
+	part({ Name = "Base", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.6, 1.3, 1.3), CFrame = cf * CFrame.new(0, 0.8, 0) * upright, Color = IRON, Parent = m })
+	local post = part({ Name = "Post", Shape = Enum.PartType.Cylinder, Size = Vector3.new(11, 0.45, 0.45), CFrame = cf * CFrame.new(0, 6.7, 0) * upright, Color = IRON, Parent = m })
+	m.PrimaryPart = post
+	-- collar 12.0 .. 12.4 over the post top (12.2); lantern 12.35 .. 14.15 sits 0.05 into it
+	part({ Name = "Collar", Size = Vector3.new(0.8, 0.4, 0.8), CFrame = cf * CFrame.new(0, 12.2, 0), Color = IRON, CastShadow = false, Parent = m })
+	part({ Name = "Lantern", Size = Vector3.new(1.3, 1.8, 1.3), CFrame = cf * CFrame.new(0, 13.25, 0), Color = IRON, CastShadow = false, Parent = m })
+	part({ Name = "Glass", Size = Vector3.new(1.38, 1.2, 1.38), CFrame = cf * CFrame.new(0, 13.25, 0), Color = Color3.fromRGB(255, 226, 160), Material = Enum.Material.Neon, CastShadow = false, Parent = m })
+	part({ Name = "Cap", Size = Vector3.new(1.7, 0.3, 1.7), CFrame = cf * CFrame.new(0, 14.25, 0), Color = IRON, CastShadow = false, Parent = m })
+	part({ Name = "Finial", Size = Vector3.new(0.3, 0.6, 0.3), CFrame = cf * CFrame.new(0, 14.65, 0), Color = IRON, CastShadow = false, Parent = m })
+	if basket then
+		-- bracket 10.35 .. 10.65 from inside the post out to over the basket
+		part({ Name = "Bracket", Size = Vector3.new(0.25, 0.3, 2.2), CFrame = cf * CFrame.new(0, 10.5, -1.05), Color = IRON, CastShadow = false, Parent = m })
+		part({
+			Name = "Basket",
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.new(1.9, 1.9, 1.9),
+			CFrame = cf * CFrame.new(0, 9.5, -2),
+			Color = BASKET_FLOWERS[rng:NextInteger(1, #BASKET_FLOWERS)],
+			Material = Enum.Material.LeafyGrass,
+			CastShadow = false,
+			Parent = m,
+		})
+	end
+	m.Parent = parent
+	return m
+end
+
 -- A simple moored boat, 5 parts, centred on `cf` with the bow towards its -Z
 -- (LookVector). Hull length 16..24 plus a 5-stud bow; width 6.
 function RiverDresser.buildBoat(parent: Instance, cf: CFrame, rng: Random)
@@ -259,6 +294,8 @@ function RiverDresser.build(): string
 	local rng = Random.new(1884)
 
 	local travelled = 0
+	local lampCount = 0
+	local lampRng = Random.new(1885) -- own stream so the boats keep their looks
 	local nextPost = 0
 	local nextFurniture = FURNITURE_SPACING / 2
 	local runs = RiverDresser.bankRuns(PROMENADE_X0, PROMENADE_X1, RUN_STEP)
@@ -313,7 +350,8 @@ function RiverDresser.build(): string
 				Parent = furniture,
 			})
 			local lamp = along + run.normal * (QUAY_W + 1.2) - dir * 8
-			TerraceBuilder.lamp(CFrame.lookAt(Vector3.new(lamp.X, PROM_TOP, lamp.Z), Vector3.new(lamp.X, PROM_TOP, lamp.Z) - run.normal), furniture)
+			lampCount += 1
+			RiverDresser.heritageLamp(CFrame.lookAt(Vector3.new(lamp.X, PROM_TOP, lamp.Z), Vector3.new(lamp.X, PROM_TOP, lamp.Z) + run.normal), furniture, lampCount % 2 == 1, lampRng)
 			nextFurniture += FURNITURE_SPACING
 		end
 	end
