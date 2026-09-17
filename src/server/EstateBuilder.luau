@@ -399,6 +399,50 @@ function EstateBuilder.semiPair(cframe: CFrame, width: number, depth: number, he
 	return model
 end
 
+-- X57: a flower border under each house's front window (RivermereNorthfields.png
+-- shows planted fronts, not bare lawn). One part per house, on the longer side
+-- of its door path, standing just off the front wall of a semiPair built with
+-- the same cframe / width / depth / front. Tagged Decor so Quality "Low" hides
+-- them; kept out of semiPair's 16-part budget.
+EstateBuilder.BED_DEPTH = 1.4
+local BED_HEIGHT = 1.1 -- shows over the 1.8 hedge from the pavement; 0.6 hid behind it
+local BED_WALL_GAP = 0.05
+local BED_END_INSET = 0.6
+local BED_COLOURS = {
+	Color3.fromRGB(206, 96, 140), -- pink
+	Color3.fromRGB(140, 110, 186), -- lavender
+	Color3.fromRGB(236, 170, 190), -- pale pink (white read as gravel)
+	Color3.fromRGB(222, 176, 60), -- yellow
+	Color3.fromRGB(190, 56, 60), -- red
+}
+
+function EstateBuilder.flowerBeds(cframe: CFrame, width: number, depth: number, frontName: string?, parent: Instance, rng: Random): { BasePart }
+	local beds = {}
+	for house = 0, 1 do
+		local z0, z1 = -width / 2 + house * width / 2 + BED_END_INSET, house * width / 2 - BED_END_INSET
+		local door = EstateBuilder.doorZ(width, frontName, house)
+		local before = { z0 = z0, z1 = door - EstateBuilder.GATE_WIDTH / 2 }
+		local after = { z0 = door + EstateBuilder.GATE_WIDTH / 2, z1 = z1 }
+		local seg = if before.z1 - before.z0 >= after.z1 - after.z0 then before else after
+		if seg.z1 - seg.z0 >= MIN_SEGMENT then
+			local bed = block(
+				"Part",
+				"FlowerBed",
+				Vector3.new(EstateBuilder.BED_DEPTH, BED_HEIGHT, seg.z1 - seg.z0),
+				cframe * CFrame.new(-depth / 2 - BED_WALL_GAP - EstateBuilder.BED_DEPTH / 2, BED_HEIGHT / 2, (seg.z0 + seg.z1) / 2),
+				BED_COLOURS[rng:NextInteger(1, #BED_COLOURS)],
+				Enum.Material.LeafyGrass,
+				parent,
+				false
+			)
+			bed.CastShadow = false
+			bed:SetAttribute("Decor", true)
+			table.insert(beds, bed)
+		end
+	end
+	return beds
+end
+
 -- A driveway strip beside a semi pair (X30): one tarmac or gravel slab
 -- `width` wide (local Z) and `length` long (local X), top at DRIVE_TOP, with
 -- an optional parked car block (body + cabin) near the road end when the

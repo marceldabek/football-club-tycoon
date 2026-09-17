@@ -382,4 +382,29 @@ function T.northfieldsHasRoomForAPlayArea()
 	assert(EstateDresser.playAreaSpot(gateway.centre, TownLayout.ROADS, blocks, 28, 200) ~= nil, "a play area fits near the Northfields gateway")
 end
 
+function T.flowerBedsSitOffTheFrontWallInsideTheGardenClearOfDoorPaths()
+	for seed = 1, 6 do
+		local holder = Instance.new("Folder")
+		local width, depth = 48 + seed * 3, 22
+		local pair = EstateBuilder.semiPair(CFrame.new(), width, depth, 20, holder, Random.new(seed))
+		local front = pair:GetAttribute("Front") :: string
+		local beds = EstateBuilder.flowerBeds(CFrame.new(), width, depth, front, pair, Random.new(seed))
+		assert(#beds == 2, ("seed %d: %d beds"):format(seed, #beds))
+		local hedgeBack = -(depth / 2 + EstateBuilder.GARDEN_OUT) + 1 + 0.7
+		for house, bed in beds do
+			assert(bed:GetAttribute("Decor") == true, "tagged Decor for Quality Low")
+			local xMax, xMin = bed.Position.X + bed.Size.X / 2, bed.Position.X - bed.Size.X / 2
+			assert(xMax < -depth / 2 - 1e-3, "off the front wall, got " .. xMax)
+			assert(xMin > hedgeBack, "in front of the hedge")
+			local zMin, zMax = bed.Position.Z - bed.Size.Z / 2, bed.Position.Z + bed.Size.Z / 2
+			local lo, hi = -width / 2 + (house - 1) * width / 2, (house - 1) * width / 2
+			assert(zMin >= lo - 1e-3 and zMax <= hi + 1e-3, "inside its own house front")
+			local door = EstateBuilder.doorZ(width, front, house - 1)
+			assert(zMax <= door - EstateBuilder.GATE_WIDTH / 2 + 1e-3 or zMin >= door + EstateBuilder.GATE_WIDTH / 2 - 1e-3, "clear of the door path")
+			assert(bed.Position.Y - bed.Size.Y / 2 >= -1e-3, "sits on the ground")
+		end
+		holder:Destroy()
+	end
+end
+
 return T

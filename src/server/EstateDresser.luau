@@ -516,6 +516,7 @@ function EstateDresser.build(): string
 	local districts = town:FindFirstChild("Districts")
 	local rng = Random.new(2026)
 	local driveRng = Random.new(3030) -- separate stream so the pairs' front picks are unchanged
+	local bedRng = Random.new(4040) -- X57 flower beds, likewise
 	local pairCount, shedCount, driveCount, kitCars = 0, 0, 0, 0
 
 	for _, district in TownLayout.DISTRICTS do
@@ -548,7 +549,9 @@ function EstateDresser.build(): string
 				local slots, drives = EstateBuilder.rowLayout(width, EstateBuilder.SIDE_GAP)
 				local houseDepth, houseX = EstateDresser.pairFit(depth)
 				for _, slot in slots do
-					EstateBuilder.semiPair(cf * CFrame.new(houseX, 0, slot.z), slot.width, houseDepth, block.size.Y, m, rng)
+					local pair = EstateBuilder.semiPair(cf * CFrame.new(houseX, 0, slot.z), slot.width, houseDepth, block.size.Y, m, rng)
+					local front = pair:GetAttribute("Front")
+					EstateBuilder.flowerBeds(cf * CFrame.new(houseX, 0, slot.z), slot.width, houseDepth, if type(front) == "string" then front else nil, pair, bedRng)
 					pairCount += 1
 				end
 				-- driveways run from the road edge back to the house backs (the block's

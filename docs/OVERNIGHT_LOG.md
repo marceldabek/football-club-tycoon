@@ -469,3 +469,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshots** PlayArea_1 and PlayArea_2.
 - Still open on X57: flower borders in the front gardens.
 - RunAll 349/349.
+
+### 2026-09-17 05:38 — Flower borders in the semis front gardens (X57 done)
+- New `EstateBuilder.flowerBeds`: one planted border per house under the front window, on the longer side of the door path, 0.05 off the front wall. It is 1.4 deep and 1.1 tall, so it shows over the 1.8 hedge from the pavement; a 0.6 bed hid behind it. The border uses LeafyGrass in pink, lavender, pale pink, yellow or red (white read as gravel), with its own Random stream so the pairs' fronts don't reshuffle.
+- The beds are tagged `Decor`, so Quality Low hides them. They sit outside semiPair's 16-part budget: 132 beds in town, about +132 parts (X61 still wants a phone measurement).
+- 1 new test covers wall gap, hedge, own house front, door path and Decor tag across 6 seeds.
+- **Screenshots** FlowerBeds_1 (0.6 tall, hidden) and FlowerBeds_3 (final: lavender and pink borders over the hedges).
+- RunAll 350/350.
