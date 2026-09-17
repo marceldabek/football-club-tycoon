@@ -644,10 +644,21 @@ local function skyIsDark(): boolean
 	return t >= 17.8 or t <= 6.2
 end
 
+-- X165: bus windows glow warm after dark, like the train's
+local BUS_WINDOWS_LIT = Color3.fromRGB(255, 222, 160)
+
 local function refreshHeadlights()
 	local want: { [Model]: Car } = {}
 	local player = game:GetService("Players").LocalPlayer
-	if skyIsDark() and not (player and player:GetAttribute("Quality") == "Low") then
+	local dark = skyIsDark()
+	for _, car in cars do
+		local windows = car.parts[2]
+		if car.isBus and windows and windows.Name == "Windows" then
+			windows.Color = if dark then BUS_WINDOWS_LIT else BUS_WINDOW_COLOR
+			windows.Material = if dark then Enum.Material.Neon else Enum.Material.SmoothPlastic
+		end
+	end
+	if dark and not (player and player:GetAttribute("Quality") == "Low") then
 		local camPos = currentCameraPosition()
 		local ranked = {}
 		for _, car in cars do

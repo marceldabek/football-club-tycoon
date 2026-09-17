@@ -277,4 +277,5 @@
 - [x] X162 (12:00 1 in 3 new walkers in the home kit colour while a ground within 900 is in PreMatch/Match; the radius went from 600 to 900 because the nearest pavement to a plot centre is ~490 away) Town walkers don't know it's matchday: while a ground within 600 is in PreMatch or Match, 1 in 3 walkers' tops are in the home kit colour (Pedestrians client), 0 parts `[studio]` S
 - [x] X163 (11:57 done, 0 parts) The bus-stop litter bins are plain black boxes: a gold "LITTER" band via SurfaceGui on each bus stop "Bin" (`TownBuilder` buildBusStop), 0 parts. RiveremereWestdale.png `[studio]` S
 - [x] X164 (11:57 PLATFORM 1 / PLATFORM 2 boards on the stair towers, above the canopy) Nothing on the footbridge says which platform is which: two navy "Platform 1 / Platform 2" boards on the footbridge railings (`StationDresser.footbridge`), 2 parts. RivermereStation.png `[studio]` S
+- [x] X165 (12:06 bus window bands turn warm Neon after dark, 0 parts) Buses stayed dark-windowed at evening fixtures while the train (X158) lit up `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
