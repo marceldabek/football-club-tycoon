@@ -122,6 +122,23 @@ function MatchdayRoutes.queueSpots(count: number): { CFrame }
 	return out
 end
 
+-- X125: supporters standing with drinks on the supporters' bar patio
+-- (PlotGrounds X97: patio x -372..-344, z -37.5..-30; picnic benches at x
+-- -367 and -349, each 5 long) while the crowd is out. A huddle between the
+-- benches, each facing its centre. Pitch-local ground CFrames.
+MatchdayRoutes.BAR_HUDDLE = Vector3.new(-358, 0.3, -33.8)
+MatchdayRoutes.BAR_HUDDLE_RADIUS = 1.9
+function MatchdayRoutes.barDrinkerSpots(count: number): { CFrame }
+	local out = {}
+	local c = MatchdayRoutes.BAR_HUDDLE
+	for i = 1, count do
+		local a = (i - 1) / count * math.pi * 2 + 0.4
+		local p = c + Vector3.new(math.cos(a), 0, math.sin(a)) * MatchdayRoutes.BAR_HUDDLE_RADIUS
+		table.insert(out, CFrame.lookAt(p, Vector3.new(c.X, p.Y, c.Z)))
+	end
+	return out
+end
+
 -- X93 (roadmap H1 "media presence"): an outside-broadcast van on the forecourt
 -- on matchday once the club draws a crowd. Pitch-local ground CFrame, long axis
 -- along local X, clear of the team coach (x -160..-126, z -221..-213) and the

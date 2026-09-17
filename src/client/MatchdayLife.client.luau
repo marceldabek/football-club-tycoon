@@ -352,11 +352,35 @@ local function adjustFanCount(crowd: PlotCrowd)
 	end
 end
 
+-- X125: four supporters with pints on the supporters' bar patio, torn down
+-- with the stewards (4-5 parts each).
+local BAR_DRINKERS = 4
+local function buildBarDrinkers(crowd: PlotCrowd)
+	for i, spot in MatchdayRoutes.barDrinkerSpots(BAR_DRINKERS) do
+		local model = Instance.new("Model")
+		model.Name = "BarDrinker" .. i
+		local kit = if i % 2 == 1 then Config.HomeKit else NEUTRAL_KITS[(i % #NEUTRAL_KITS) + 1]
+		local base = crowd.plotCFrame * spot
+		part("Legs", LEG, DARK_TROUSERS, model).CFrame = base * CFrame.new(0, LEG.Y / 2, 0)
+		part("Torso", TORSO, kit, model).CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y / 2, 0)
+		local head = part("Head", Vector3.new(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE), SKIN_TONES[(i % #SKIN_TONES) + 1], model)
+		head.Shape = Enum.PartType.Ball
+		head.CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y + HEAD_SIZE / 2, 0)
+		-- a pint held in front at chest height
+		local pint = part("Pint", Vector3.new(0.35, 0.6, 0.35), Color3.fromRGB(200, 140, 40), model)
+		pint.Transparency = 0.15
+		pint.CFrame = base * CFrame.new(0.7, LEG.Y + TORSO.Y * 0.55, -0.75)
+		model.Parent = crowd.model
+		table.insert(crowd.stewards, model)
+	end
+end
+
 local function spawnCrowd(crowd: PlotCrowd)
 	crowd.plotCFrame = plotCFrameOf(crowd.folder)
 	buildStewards(crowd)
 	buildBarriers(crowd)
 	buildMediaVan(crowd)
+	buildBarDrinkers(crowd)
 	buildCars(crowd)
 	rebuildQueue(crowd)
 	adjustFanCount(crowd)

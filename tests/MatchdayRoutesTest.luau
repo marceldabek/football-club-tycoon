@@ -163,4 +163,24 @@ function T.queueSpotsStandInTheBarrieredLaneFacingTheTurnstiles()
 	end
 end
 
+-- X125: bar drinkers stand on the supporters' bar patio, clear of the picnic
+-- benches and of each other, facing into their huddle.
+function T.barDrinkersStandOnThePatioClearOfBenches()
+	local spots = MatchdayRoutes.barDrinkerSpots(4)
+	assert(#spots == 4, "four drinkers")
+	for i, cf in spots do
+		local p = cf.Position
+		assert(p.X > -372 + 1 and p.X < -344 - 1 and p.Z > -37.5 + 0.5 and p.Z < -30 - 0.5, "drinker " .. i .. " off the patio: " .. tostring(p))
+		for _, bx in { -367, -349 } do
+			-- a bench's end frames reach 2.7 either side of its centre line in z and 2.5 in x
+			assert(math.abs(p.X - bx) > 2.5 + 0.8, "drinker " .. i .. " stands in a bench")
+		end
+		for j = i + 1, #spots do
+			assert((spots[j].Position - p).Magnitude > 1.8, ("drinkers %d and %d overlap"):format(i, j))
+		end
+		local toCentre = (MatchdayRoutes.BAR_HUDDLE - p) * Vector3.new(1, 0, 1)
+		assert(cf.LookVector:Dot(toCentre.Unit) > 0.99, "drinker " .. i .. " faces the huddle")
+	end
+end
+
 return T
