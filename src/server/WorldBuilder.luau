@@ -1669,6 +1669,13 @@ function WorldBuilder.buildStands(levels: { [string]: number })
 	end
 end
 
+-- X297: which end the visiting supporters get, how full it is compared with the
+-- rest of the ground, and how much of the away club's colour they wear. TEMP
+-- numbers: a real away following is a tenth of the gate, but a third-empty
+-- corner reads as nobody came, and the point is that the end is visibly theirs.
+local AWAY_END_KEY = "North"
+local AWAY_END_FILL = 0.55
+
 -- TEMP crowd palette: mostly home colours with some neutrals.
 local CROWD_COLORS = {
 	Config.HomeKit,
@@ -1702,8 +1709,9 @@ local FAN_LEG_ROWS = 3 -- above this the row in front hides the legs anyway
 -- One seated fan, built like a Roblox character rather than a block with a
 -- ball on it: blocky torso, square head with a face, arms down at the sides
 -- and thighs forward over the edge of the step. `seat` faces the pitch.
-local function buildFan(seat: CFrame, rng: Random, parent: Instance, legs: boolean)
-	local shirt = CROWD_COLORS[rng:NextInteger(1, #CROWD_COLORS)]
+local function buildFan(seat: CFrame, rng: Random, parent: Instance, legs: boolean, palette: { Color3 }?)
+	local colours = palette or CROWD_COLORS
+	local shirt = colours[rng:NextInteger(1, #colours)]
 	local skin = SKIN_TONES[rng:NextInteger(1, #SKIN_TONES)]
 	local trousers = Color3.fromRGB(45, 48, 58):Lerp(Color3.new(1, 1, 1), rng:NextNumber() * 0.3)
 	local function limb(name: string, size: Vector3, offset: CFrame, colour: Color3, material: Enum.Material?)
@@ -1741,7 +1749,12 @@ end
 -- Fills every built stand with fans at a density matching attendance. One fan
 -- stands for several real ones, so a full house means every slot filled. The
 -- budget is shared across all four plots.
-function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: number, capacity: number)
+-- `awayKit` (X297) puts the visiting club's colour in one end. Nil for a
+-- preview or between matches: then the whole ground is home support.
+function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: number, capacity: number, awayKit: Color3?)
+	local awayColours = if awayKit
+		then { awayKit, awayKit, Color3.fromRGB(240, 240, 240), Color3.fromRGB(40, 40, 40), Color3.fromRGB(90, 90, 100) }
+		else nil
 	local club = PlotContext.clubModel() :: Model
 	local stands = club:FindFirstChild("Stands") :: Folder
 	local fill = math.clamp(attendance / math.max(capacity, 1), 0, 1)
@@ -1782,6 +1795,9 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 		if not geo then
 			continue
 		end
+		-- X297: the away end, so the client knows whose goal to hop for
+		local awayEnd = awayColours ~= nil and plot.key == AWAY_END_KEY
+		crowd:SetAttribute("AwayEnd", awayEnd)
 		for row = 1, geo.rows do
 			local top = DECK_Y + geo.stepHeight * row
 			-- sit toward the front of the step so knees clear the row in front
@@ -1789,7 +1805,7 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 			-- the good seats near the pitch fill first, the back rows thin out;
 			-- the weights average to 1 so the budget is still what it says
 			local weight = 1 + swing * (1 - 2 * (row - 1) / math.max(geo.rows - 1, 1))
-			local chance = math.min(1, base * weight)
+			local chance = math.min(1, base * weight * (if awayEnd then AWAY_END_FILL else 1))
 			-- offset each row a little so identical seat positions never line
 			-- up into a column of people
 			local nudge = (row * 0.37) % 1 * spacing
@@ -1803,7 +1819,7 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 					end
 					local z = run[1] + 1 + nudge + spacing * (i - 0.5)
 					-- yaw so the fan's front faces the pitch (local -X)
-					buildFan(PlotContext.cframe * geo.frame * CFrame.new(x, top, z) * CFrame.Angles(0, math.pi / 2, 0), rng, crowd, row <= FAN_LEG_ROWS)
+					buildFan(PlotContext.cframe * geo.frame * CFrame.new(x, top, z) * CFrame.Angles(0, math.pi / 2, 0), rng, crowd, row <= FAN_LEG_ROWS, if awayEnd then awayColours else nil)
 					placed += 1
 				end
 			end

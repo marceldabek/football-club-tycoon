@@ -1595,3 +1595,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - The hint also listens to cash, the table and each stand plot now. The per-plot `Stand_East`-style keys were missing from that list even for X240's onboarding hint, so the onboarding pill could sit stale after a stand was built.
 - Verified in play on the debug save, reading the pill off the real GUI: with £2m and no coach it read the Volunteer Coach line; with cash dropped to £100 it read "Play matches and save £700 for a Volunteer Coach."; with round 8 and 2nd place published it read the run-in line. RunAll 450 passed.
 
+### 2026-09-17 17:23 — The visitors bring a following (X297)
+- Every fan in the ground wore the home red whoever was visiting, so a sold-out ground had no away end and an away goal was met by a still, silent stadium (X264 gave it a groan, and that was all).
+- The North Terrace is now the away end: the visiting club's kit colour (through the same `Config.pitchKit` clearance the shirts use, so it never reads as our own red) plus white, black and grey, at a TEMP 55% of the fill the rest of the ground gets - a real away following is a tenth of the gate, but a near-empty corner reads as nobody came, and the point is that the end is visibly theirs. The crowd folder carries an `AwayEnd` attribute so the client knows whose goal each end celebrates.
+- Verified in play, counting shirts and hops off the live model. Away end: 75 fans against the South Terrace's 116 on the same plot share; its shirts were 30 navy (Ashby Wanderers), 14 white, 14 black, 17 grey and **no home red**, while the other three stands were red plus neutrals. On a home goal the three home stands hopped every fan (176/176, 160/160, 122/122) and the away end did not move (0/57). On an away goal the away end hopped every fan (70/70) and the home stands did not move (0/185, 0/171, 0/130). Screenshot taken from inside the away end.
+- I clobbered the debug save's cash to £100 while testing X295's "save up" hint (the hint reads a published attribute and the autosave took it); restored to ~£2m and saved.
+- RunAll 450 passed.
+

@@ -146,7 +146,8 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	local capacity = ClubState.capacity()
 	local demand = SeasonService.demand()
 	local attendance = math.min(capacity, demand)
-	WorldBuilder.buildCrowd(ClubState.plotLevels(), attendance, capacity)
+	-- X297: the visiting club's colours fill one end
+	WorldBuilder.buildCrowd(ClubState.plotLevels(), attendance, capacity, Config.pitchKit(jsonToColor(opponent.kit)))
 
 	ClubState.set("Opponent", opponent.name)
 	ClubState.set("HomeGoals", 0)

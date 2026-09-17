@@ -533,8 +533,15 @@ local FAN_PART_OFFSETS: { [string]: Vector3 } = {
 	Hair = Vector3.new(0, 4.375, 0),
 }
 
-local function crowdReact()
-	MatchAudio.goalCheer()
+-- X297: `away` hops the visiting end instead of the home stands. An away goal
+-- used to be met by a still, silent ground; now the one pocket wearing their
+-- colours goes up while the rest of the ground sits.
+local function crowdReact(away: boolean?)
+	if away then
+		MatchAudio.nearMiss() -- the home groan still carries the moment
+	else
+		MatchAudio.goalCheer()
+	end
 	local club = ClubRef.presentModel()
 	local stands = club and club:FindFirstChild("Stands")
 	if not stands then
@@ -543,7 +550,7 @@ local function crowdReact()
 	local fans = {}
 	for _, stand in stands:GetChildren() do
 		local crowd = stand:FindFirstChild("Crowd")
-		if crowd then
+		if crowd and (crowd:GetAttribute("AwayEnd") == true) == (away == true) then
 			for _, fan in crowd:GetChildren() do
 				table.insert(fans, fan)
 			end
@@ -692,13 +699,9 @@ function Presenter.playSequence(self: Presenter, ev: Event, shotAt: number)
 				end
 			end)
 		end
-		if team == "Home" then
-			crowdReact()
-		else
-			-- X264: an away goal was silent; the only goal sound rode on the home
-			-- cheer. A quiet groan marks it instead.
-			MatchAudio.nearMiss()
-		end
+		-- X264/X297: an away goal was silent and nothing moved; the away end
+		-- celebrates it and the home crowd groans.
+		crowdReact(team ~= "Home")
 		task.wait(CELEBRATE_SECONDS)
 		if self.mode ~= "play" then
 			return -- full time arrived during the celebration; finish() owns them now
