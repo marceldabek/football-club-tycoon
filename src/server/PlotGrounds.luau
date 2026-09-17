@@ -586,6 +586,31 @@ local function buildShop(parent: Instance)
 	local glass = extents("Window", fx0 + 0.2, fx1 - 0.2, sillTop, winTop, winZ0, winZ1,
 		Color3.fromRGB(170, 200, 215), Enum.Material.Glass, shop)
 	glass.Transparency = 0.45
+	-- X256 (part): window vinyl, as the reference shopfronts are lettered. Only
+	-- the club shop gets it: the town's fronts are single textured parts whose
+	-- artwork already carries their own signage, so blind text would land on
+	-- brick or a door. The glass faces the path (+X local, the Right face).
+	local vinyl = Instance.new("SurfaceGui")
+	vinyl.Name = "WindowVinyl"
+	vinyl.Face = Enum.NormalId.Right
+	vinyl.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	vinyl.PixelsPerStud = 24
+	vinyl.LightInfluence = 0.4
+	vinyl.MaxDistance = 200
+	vinyl.Parent = glass
+	for i, line in { "SHIRTS  ·  SCARVES  ·  GIFTS", "OPEN MATCHDAYS FROM 10" } do
+		local text = Instance.new("TextLabel")
+		text.Name = if i == 1 then "VinylTop" else "VinylBottom"
+		text.BackgroundTransparency = 1
+		text.Size = UDim2.fromScale(0.9, if i == 1 then 0.16 else 0.1)
+		text.Position = UDim2.fromScale(0.05, if i == 1 then 0.06 else 0.78)
+		text.Font = if i == 1 then Enum.Font.GothamBlack else Enum.Font.GothamBold
+		text.TextScaled = true
+		text.TextColor3 = Color3.fromRGB(246, 246, 240)
+		text.TextTransparency = 0.12
+		text.Text = line
+		text.Parent = vinyl
+	end
 	extents("WindowHeader", fx0, fx1, winTop, frontTop, winZ0, winZ1, BRICK, brick, shop)
 	-- X60: home shirts on show behind the glass (RivermereTurnstileEntrance.png's
 	-- club shop window): a rail with three shirts, each a body and a sleeve bar,

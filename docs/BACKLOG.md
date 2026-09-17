@@ -369,7 +369,9 @@
 - [x] X253 (14:42 done) The pitch is mown across the pitch; pitch-board.png stripes run goal to goal: swap the stripe axis, 14 parts unchanged `[studio]` S
 - [x] X254 (14:49 done, bins left out) No town crest on the street furniture (lamp banners, estate/station banners, bin bands) though every reference image has one: add a Shared/TownCrest drawing beside CrestBadge, 0 parts `[studio]` S
 - [x] X255 (14:46 done) The plot boundary wall has no coping and the gate piers no caps (the reference has both): a coping strip per run and a cap per pier, ~10 parts `[studio]` S
-- [ ] X256 Shopfront glass has no window vinyl though three reference images letter the windows: a SurfaceGui with two or three lines per front, keyed by front type, 0 parts `[studio]` S
+- [ ] X256 (14:51 club shop window lettered; the town fronts still need it, see below) Shopfront glass has no window vinyl though three reference images letter the windows: a SurfaceGui with two or three lines per front, keyed by front type, 0 parts `[studio]` S
 - [x] X257 (14:46 done) The supporters' bar frontage has bare brick and plain windows while the reference pubs are covered in flowers: two bracket-and-basket pairs and window boxes, ~8 parts `[studio]` S
 - [x] X258 (14:37 done) A long club name wraps inside the League table's one-line row (the Team cell has no TextTruncate, unlike the prospect rows): truncate it, 0 parts `[disk]` S
 - [x] X259 (14:37 done) Iris has one shared frame and no ownership token, so a bus trip or picker close that overlaps the walkout cancels the other's tween and reports success: give each call a token like Sky's transitions, 0 parts `[disk]` S
+- [ ] X260 Town shopfront window vinyl (the X256 remainder): each front is one textured part whose artwork already carries that shop's signage, so text has to be placed per texture to land on glass rather than brick or the door: measure the glass area in each `shop_front_*` image (or ask Marcel for the source art) and drive a per-key vinyl layout, 0 parts `[studio]` M
+

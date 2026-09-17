@@ -1438,3 +1438,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Screenshots checked on both. The bus-stop bin band was left out: at 60 px/stud on a 2-stud bin with `MaxDistance` 80 the crest would be a smudge, and the gold LITTER band already reads.
 - RunAll 437 passed. `TownCrest` was created in Studio with multi_edit (the sandbox can't parent into Shared).
 
+### 2026-09-17 14:51 — Lettering on the club shop window (X256 part done)
+- `PlotGrounds`: the club shop's glass carries vinyl — "SHIRTS · SCARVES · GIFTS" across the top and "OPEN MATCHDAYS FROM 10" along the bottom, slightly transparent white, on the path-facing face. 0 parts. Screenshot checked; the shirts still read behind it.
+- **The town's shopfronts were left alone**, and X256 stays open as X260. Each front is a single part with a `shop_front_*` texture whose artwork already includes that shop's own signage and window layout, so a blind SurfaceGui would letter brick or a door. Doing it properly means measuring the glass area per texture (or getting the source art from Marcel).
+- RunAll 437 passed.
+
