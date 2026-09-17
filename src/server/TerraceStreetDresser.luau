@@ -15,7 +15,8 @@
 --
 -- Order and budget: the Mill Street kit showpiece (StreetDresser.DRESSED,
 -- x 0..400) gets FULL detail first. Then the LIGHT streets that front
--- TerraceBuilder rows, nearest the market square first, each built into its
+-- TerraceBuilder rows, nearest the market square first (PRIORITY_STREETS
+-- last, from their own reserve), each built into its
 -- own model and dropped again if it would push the total past PART_BUDGET.
 --   FULL  tree 5 parts, railing segment ~3 + 1 bar per 2 studs, hedge
 --         segment 3, 2 piers per gate, sign 3, kit cars on the kerb
@@ -41,6 +42,11 @@ local TerraceBuilder = require(script.Parent.TerraceBuilder)
 local TerraceStreetDresser = {}
 
 TerraceStreetDresser.PART_BUDGET = 1240 -- TEMP; +40 for the third canopy lobe on full-detail trees (X48)
+-- X59 (TEMP): light streets dressed after the rest from their own reserve, so the
+-- Westdale district (RiveremereWestdale.png) isn't left bare by the budget and
+-- the streets nearer the square keep the dressing they had
+TerraceStreetDresser.PRIORITY_STREETS = { "Weir Road" }
+TerraceStreetDresser.PRIORITY_RESERVE = 260
 TerraceStreetDresser.TREE_INSET = 2.2 -- trunk centre from the kerb edge (walkers use pavement centre, +4)
 TerraceStreetDresser.LAMP_CLEAR = 8 -- XZ distance a tree keeps from a lamp post (and its bin, 3 along)
 TerraceStreetDresser.JUNCTION_CLEAR = 10 -- past the crossing road's pavement edge
@@ -799,25 +805,32 @@ function TerraceStreetDresser.build(): string
 		partCount += n
 		full += n
 	end
-	for _, item in light do
-		if TerraceStreetDresser.PART_BUDGET - partCount < MIN_STREET_PARTS then
-			break
+	local function dressLight(priority: boolean, budget: number)
+		for _, item in light do
+			local e = item.entry
+			if (table.find(TerraceStreetDresser.PRIORITY_STREETS, e.road.name) ~= nil) ~= priority then
+				continue
+			end
+			if budget - partCount < MIN_STREET_PARTS then
+				break
+			end
+			local m = Instance.new("Model")
+			m.Name = e.road.name .. (if e.range then " (light)" else "")
+			dressEntry(e, m, roads, false, rng)
+			local n = countParts(m)
+			if partCount + n > budget then
+				m:Destroy()
+				skipped += 1
+				continue -- a shorter street further out may still fit
+			end
+			m.Parent = root
+			partCount += n
+			streets += 1
+			table.insert(parked, e.road.name)
 		end
-		local e = item.entry
-		local m = Instance.new("Model")
-		m.Name = e.road.name .. (if e.range then " (light)" else "")
-		dressEntry(e, m, roads, false, rng)
-		local n = countParts(m)
-		if partCount + n > TerraceStreetDresser.PART_BUDGET then
-			m:Destroy()
-			skipped += 1
-			continue -- a shorter street further out may still fit
-		end
-		m.Parent = root
-		partCount += n
-		streets += 1
-		table.insert(parked, e.road.name)
 	end
+	dressLight(false, TerraceStreetDresser.PART_BUDGET)
+	dressLight(true, math.max(partCount, TerraceStreetDresser.PART_BUDGET) + TerraceStreetDresser.PRIORITY_RESERVE)
 	-- X36: client Traffic keeps off streets with cars parked on both kerbs
 	root:SetAttribute("ParkedStreets", table.concat(parked, "|"))
 	root.Parent = town

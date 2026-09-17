@@ -48,6 +48,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 7. Semis driveways are mostly 5.1 studs wide (76 of 119) or about 3 wide (30). A car sized for the characters is about 9–10 studs wide (the street kit cars are 9.8), so narrow drives can only hold toy-sized cars (DriveCar_small_1). *Done as TEMP at 05:43: drives under 8 studs now stay empty (`EstateDresser.DRIVE_CAR_MIN_WIDTH`). Rec: keep that, and widen the gap between pairs to 11 studs when the estates are next reworked, accepting roughly one pair fewer per long row.*
 8. Club murals (H1.2) are TEMP: one mural once a club has played 3 matches, a second from tier 2, on the terrace gable nearest the market square, shown only on that player's screen. *Rec: keep it client-side, but tie later murals to real milestones (first promotion, first title) so they read as achievements.*
 
+9. Westdale street dressing (X59), TEMP: `TerraceStreetDresser` dresses the town's terrace streets nearest the square first, within 1,240 parts, so Westdale got nothing. Weir Road is now in `PRIORITY_STREETS` and dressed last from its own 260-part reserve (it uses 216), without changing any other street's dressing. The town grows by about 216 parts. *Rec: keep it until the phone measurement (X28/X61). If phones struggle, drop the reserve before cutting the Mill Street showpiece.*
+
 **Buy list for Marcel**
 - Nothing new yet. Free store terraces are a flat-fronted Victorian row. If you want bay windows like `RiveremereWestdale.png`, "UK Housing – Terraced Set 1" (Macwelshman, Fab, $39.99) is the best paid match (see docs/ASSET_KIT.md).
 
@@ -507,4 +509,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Bend joint:** the bend left a 6×6 grass notch with no pavement. Forecourt verge strips now check for a real `Pavement` part (server overlap) and pave to the kerb where there isn't one; `forecourtReach` gained an optional `verge`. A raycast grid over x -940..-680 and z -380..-340 shows no grass between the station and the road.
 - Traffic gets the longer road with a dead end at the car park. The Station bus stop is about 36 studs from the road, as before, so buses still pull up.
 - **Screenshots** StationRoad_before, StationRoad_after and StationRoad_after_3.
+- RunAll 354/354.
+
+### 2026-09-17 05:58 — Westdale gets a dressed street (X59 done)
+- The terrace dressing budget (1,240 parts) runs out on streets near the market square, so Westdale in RiveremereWestdale.png had bare streets. `TerraceStreetDresser.PRIORITY_STREETS = { "Weir Road" }` is dressed after the normal pass from `PRIORITY_RESERVE` (TEMP 260). Doing it first reshuffled the shared random stream: Mill Street's light stretch dropped out and Weaver Street's doubled. Doing it last leaves every earlier street exactly as before: Mill Street 476, Weaver Street 287 and 191 light, Church Lane 46, Mill Street light 229. Weir Road adds 216, so the dressing totals 1,445 parts. This is question 9.
+- **Screenshot** WeirRoad_1: Weir Road with street trees, low brick garden walls with hedges, and parked cars and a van at the kerb.
 - RunAll 354/354.
