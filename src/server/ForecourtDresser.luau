@@ -37,6 +37,7 @@ local ShopDresser = require(script.Parent.ShopDresser)
 local ShopBuilder = require(script.Parent.ShopBuilder)
 local EstateDresser = require(script.Parent.EstateDresser)
 local EstateBuilder = require(script.Parent.EstateBuilder)
+local Planting = require(script.Parent.Planting)
 
 local ForecourtDresser = {}
 
@@ -45,7 +46,7 @@ ForecourtDresser.MAX_GAP = 40
 ForecourtDresser.TUCK = 1 -- the slab runs this far under the pavement
 ForecourtDresser.PAVE_TOP = 0.40
 ForecourtDresser.ZONE_TOP = 0.14
-ForecourtDresser.PART_BUDGET = 780 -- TEMP; +80 for the X103 post office signs, X108 parasols and X109 awnings
+ForecourtDresser.PART_BUDGET = 860 -- TEMP; +80 for the X103 post office signs, X108 parasols and X109 awnings, +80 for X133 planter flowers
 
 local CARRIAGEWAY_MARGIN = 0.5
 local RAY_STEP = 0.25
@@ -57,6 +58,7 @@ local ZONE_INNER = 6 -- cells whose centre is this far inside the square rim are
 local FACADE_T = 0.2 -- ShopBuilder's facade parts stand this far proud of the body
 local BUS_STOP_CLEAR = 8
 local PLANTER_MAX = 8
+local PLANTER_TREE_PARTS = 16 -- planter, soil, trunk, 3 crown balls, a Planting bed of about 10
 local PLANTER_SPACING = 22
 
 local PAVING = Color3.fromRGB(200, 188, 166)
@@ -670,8 +672,10 @@ local function planterTree(parent: Instance, p: Vector3, flowers: Color3)
 	-- X47: soil sunk into the rim and a cushion of flowers round the trunk,
 	-- like the stone planters in RivermereCenter.png
 	part(m, "Soil", Vector3.new(4.4, 0.3, 4.4), base * CFrame.new(0, 2.1, 0), Color3.fromRGB(80, 58, 40), Enum.Material.Ground, false).CastShadow = false
-	-- a bedding block, not a Ball (a ball's diameter is its smallest axis)
-	part(m, "Flowers", Vector3.new(4.2, 0.9, 4.2), base * CFrame.new(0, 2.6, 0), flowers, Enum.Material.Grass, false).CastShadow = false
+	-- X133: a leafy bed with round flower heads (Planting), counted in the budget
+	local before = #m:GetChildren()
+	Planting.bloom(m, base * CFrame.new(0, 2.8, 0), 4.2, 4.2, flowers, Random.new(math.floor(math.abs(p.X) * 3 + math.abs(p.Z))))
+	partCount += #m:GetChildren() - before
 	part(m, "Trunk", Vector3.new(0.9, 9, 0.9), base * CFrame.new(0, 2.2 + 4.5, 0), TRUNK, Enum.Material.Wood, true)
 	local crown = part(m, "Crown", Vector3.new(9, 8, 9), base * CFrame.new(0, 14, 0), LEAVES, Enum.Material.Grass, false);
 	(crown :: any).Shape = Enum.PartType.Ball
@@ -791,7 +795,7 @@ function ForecourtDresser.build(): string
 	local planters: { Vector3 } = {}
 	for _, ringRadius in { 72, 88, 102 } do
 		for k = 0, 23 do
-			if #planters >= PLANTER_MAX or not room(3) then
+			if #planters >= PLANTER_MAX or not room(PLANTER_TREE_PARTS) then
 				break
 			end
 			local a = (k + 0.5) / 24 * math.pi * 2
