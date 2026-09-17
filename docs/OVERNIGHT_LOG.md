@@ -577,3 +577,14 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 ### 2026-09-17 06:31 — X67 attempt reverted (river-facing cafes)
 - I tried café tables and an A-board wherever a building backs onto the promenade, using a pure `cafeSpot` and ForecourtDresser's café set. In Studio the only match was the marina block (café tables in front of a hedge). After restricting it to pub, shop and flats blocks, nothing matched: the riverside flats stand 40+ studs behind the promenade with the marina gardens between, and "waterfront flats" and "pub and cafes" are 70+ away. I reverted it on disk and in Studio (RunAll back to 360/360) and noted on X67 that it needs a layout change to bring a pub or café block to the promenade.
 - **Screenshot** PromenadeCafe_1 shows the rejected marina-hedge placement.
+
+### 2026-09-17 06:36 — Community Sports Centre dressed (X76)
+- Comparing with RivermereAImap.png showed the Community Sports Centre was still greybox: flat green slabs and a plain white box. New `SportsCentreDresser`, run from Main after StationDresser:
+  - Each pitch slab is recoloured in place (grass, or darker Fabric for 3G) and gets white markings: touchlines, goal lines, halfway line, penalty boxes and an 8-chord centre circle, plus two goals scaled to the pitch width.
+  - The 3G pitches also get a translucent green ball-stop fence and four floodlight masts.
+  - The sports hall greybox is replaced by a metal-clad body and roof, with a navy fascia reading RIVERMERE COMMUNITY SPORTS CENTRE, a glazed entrance and a canopy on the road side.
+  - Build summary: 5 pitches, 1 hall, 154 parts.
+- Pure `pitchLines` and `goalWidth` have 3 new tests (inside the slab, mirror-symmetric, clamped goal width, layout still has the blocks).
+- **Screenshots** SportsCentre_before and SportsCentre_after.
+- Logged X77: a car park, paths, and floodlight tags for evening games.
+- RunAll 363/363.
