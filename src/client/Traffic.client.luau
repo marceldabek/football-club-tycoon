@@ -32,6 +32,12 @@ local function maxCars(): number
 	return if player and player:GetAttribute("Quality") == "Low" then MAX_CARS_LOW else MAX_CARS
 end
 local BUS_EVERY = 8 -- 1 in 8 spawns is a bus
+-- F3.3 cyclists: on residential streets only (lanes are too narrow to pass), by the kerb.
+-- Cars don't queue behind them (they're left out of the leader-gap check).
+local BIKE_EVERY = 5 -- TEMP: 1 in 5 spawns on a quiet street is a bike
+local BIKE_SPEED = 11 -- TEMP studs/s
+local BIKE_KERB_INSET = 1.6 -- rider (1.3 wide) clears a car in the lane on a 20-wide residential street
+local BIKE_COLOURS = { Color3.fromRGB(40, 90, 170), Color3.fromRGB(190, 40, 40), Color3.fromRGB(30, 30, 34), Color3.fromRGB(220, 200, 60) }
 local SPAWN_MIN_DIST = 150
 local SPAWN_MAX_DIST = 700
 local DESPAWN_DIST = 800
@@ -116,6 +122,7 @@ type Car = {
 	model: Model,
 	parts: { BasePart },
 	isBus: boolean,
+	isBike: boolean,
 	roadIndex: number,
 	direction: number, -- 1 or -1 along the road's polyline
 	distance: number, -- studs along the current road
@@ -229,23 +236,50 @@ local function buildBus(parent: Instance, color: Color3): { BasePart }
 	return { body, windows, wheelF1, wheelF2, wheelR1, wheelR2 }
 end
 
+-- Bike rig: 2 wheels, frame, rider torso, head, 2 legs = 7 parts.
+local BIKE_WHEEL_RADIUS = 1.05
+local BIKE_OFFSETS: { Vector3 } = {
+	Vector3.new(0, 0.1 + BIKE_WHEEL_RADIUS, -1.35), -- front wheel
+	Vector3.new(0, 0.1 + BIKE_WHEEL_RADIUS, 1.35), -- rear wheel
+	Vector3.new(0, 1.55, 0), -- frame
+	Vector3.new(0, 3.05, 0.25), -- torso
+	Vector3.new(0, 4.3, -0.05), -- head
+	Vector3.new(-0.35, 1.9, 0.05), -- leg
+	Vector3.new(0.35, 1.9, 0.05), -- leg
+}
+
+local function buildBike(parent: Instance, color: Color3): { BasePart }
+	local front = wheel("WheelF", BIKE_WHEEL_RADIUS, 0.15, parent)
+	local rear = wheel("WheelR", BIKE_WHEEL_RADIUS, 0.15, parent)
+	local frame = part("Frame", Vector3.new(0.18, 0.25, 2.7), color, false, parent)
+	local torso = part("Rider", Vector3.new(1.3, 1.7, 0.7), PALETTE[math.random(1, #PALETTE)], false, parent)
+	local head = part("Head", Vector3.new(0.9, 0.9, 0.9), Color3.fromRGB(200, 160, 120), false, parent)
+	head.Shape = Enum.PartType.Ball
+	local legL = part("LegL", Vector3.new(0.45, 1.5, 0.45), Color3.fromRGB(40, 44, 60), false, parent)
+	local legR = part("LegR", Vector3.new(0.45, 1.5, 0.45), Color3.fromRGB(40, 44, 60), false, parent)
+	return { front, rear, frame, torso, head, legL, legR }
+end
+
 -- ------------------------------------------------------------------ spawn / despawn
 
 local function spawnCar(roadIndex: number, distance: number, direction: number)
 	local road = TownLayout.ROADS[roadIndex]
-	local isBus = math.random(1, BUS_EVERY) == 1
-	local color = PALETTE[math.random(1, #PALETTE)]
+	local quiet = road.kind == "residential"
+	local isBike = quiet and math.random(1, BIKE_EVERY) == 1
+	local isBus = not isBike and math.random(1, BUS_EVERY) == 1
+	local color = if isBike then BIKE_COLOURS[math.random(1, #BIKE_COLOURS)] else PALETTE[math.random(1, #PALETTE)]
 
 	local model = Instance.new("Model")
-	model.Name = if isBus then "Bus" else "Car"
+	model.Name = if isBike then "Bike" elseif isBus then "Bus" else "Car"
 	model.Parent = root
 
-	local parts = if isBus then buildBus(model, color) else buildCar(model, color)
+	local parts = if isBike then buildBike(model, color) elseif isBus then buildBus(model, color) else buildCar(model, color)
 
 	local car: Car = {
 		model = model,
 		parts = parts,
 		isBus = isBus,
+		isBike = isBike,
 		roadIndex = roadIndex,
 		direction = direction,
 		distance = distance,
@@ -347,6 +381,9 @@ end
 local function applyLeaderGaps()
 	local groups: { [string]: { Car } } = {}
 	for _, car in cars do
+		if car.isBike then
+			continue -- cars pass cyclists; bikes don't hold up the queue
+		end
 		local key = car.roadIndex .. "|" .. car.direction
 		local list = groups[key]
 		if not list then
@@ -424,14 +461,17 @@ local function moveCar(car: Car, dt: number)
 
 	local currentRoad = TownLayout.ROADS[car.roadIndex]
 	local point, direction = TrafficMath.pointAt(currentRoad.points, car.distance)
-	local flatPos = point + TrafficMath.laneOffset(direction, currentRoad.width, -1)
+	local flatPos = point
+		+ (if car.isBike
+			then TrafficMath.kerbOffset(direction, currentRoad.width, BIKE_KERB_INSET)
+			else TrafficMath.laneOffset(direction, currentRoad.width, -1))
 	car.lastPos = flatPos
 
 	local y = bridgeDeckY(flatPos, car.kind) or roadTopFor(car.kind)
 	local yaw = math.atan2(-direction.X, -direction.Z)
 	local rootCFrame = CFrame.new(flatPos.X, y, flatPos.Z) * CFrame.Angles(0, yaw, 0)
 
-	local offsets = if car.isBus then BUS_OFFSETS else CAR_OFFSETS
+	local offsets = if car.isBike then BIKE_OFFSETS elseif car.isBus then BUS_OFFSETS else CAR_OFFSETS
 	local parts = car.parts
 	for i = 1, #parts do
 		table.insert(moveParts, parts[i])
@@ -455,7 +495,7 @@ RunService.RenderStepped:Connect(function(dt: number)
 	end
 
 	for _, car in cars do
-		car.speed = (SPEED_BY_KIND[car.kind] or SPEED_BY_KIND.lane) * car.jitter
+		car.speed = if car.isBike then BIKE_SPEED * car.jitter else (SPEED_BY_KIND[car.kind] or SPEED_BY_KIND.lane) * car.jitter
 	end
 	applyLeaderGaps()
 

@@ -189,4 +189,14 @@ function T.connectionsAtEndUsesTheLastPoint()
 	assert(#atStart == 0, "main road's start is not near the lane")
 end
 
+function T.kerbOffsetRidesOnTheDrivingSideNearTheKerb()
+	local dir = Vector3.new(0, 0, -1)
+	local lane = TrafficMath.laneOffset(dir, 20, -1)
+	local kerb = TrafficMath.kerbOffset(dir, 20, 2.2)
+	assert(kerb:Dot(lane) > 0, "same side as the driving lane")
+	assert(math.abs(kerb.Magnitude - 7.8) < 1e-6, "width / 2 - inset from the centre line")
+	assert(kerb.Magnitude > lane.Magnitude, "closer to the kerb than the cars")
+	assert(TrafficMath.kerbOffset(dir, 3, 2.2).Magnitude == 0, "never past the centre line")
+end
+
 return T

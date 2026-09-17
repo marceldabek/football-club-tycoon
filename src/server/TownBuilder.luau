@@ -444,6 +444,11 @@ local function buildRoads(parent: Instance)
 	local accepted: { Rect } = {}
 	for _, road in TownLayout.ROADS do
 		local m = model(road.name, parent)
+		-- X62: a carriageway is one long part per polyline segment (up to ~2,600
+		-- studs) and streams by its centre, so far-reaching roads went missing on
+		-- clients and traffic drove over grass. Roads are ~360 parts in all:
+		-- always stream them.
+		m.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 		local top = TownBuilder.roadTop(road.kind)
 		for i = 1, #road.points - 1 do
 			local segTop = top + (if i % 2 == 0 then Y.STEP else 0)

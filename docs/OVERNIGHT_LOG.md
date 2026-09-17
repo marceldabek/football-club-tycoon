@@ -446,3 +446,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Adjusted after the first screenshot:** the forearms swung far enough to cross mid-table, so the swing went from 0.9 to 0.55 rad.
 - **Screenshot** CafeSitters_2: two people at the table outside The Riverside Arms.
 - RunAll 344/344.
+
+### 2026-09-17 05:20 — Cyclists (F3.3) and a road streaming bug (X62)
+- **Cyclists:** Traffic now spawns bikes for 1 in 5 spawns on residential streets: two wheels, a frame, a rider torso, a head and two legs (7 parts), at 11 studs/s. They ride 1.6 studs in from the kerb on the driving side (new `TrafficMath.kerbOffset`, with a test), just clear of a car in the lane on a 20-wide street. Cars aren't held behind them (bikes sit outside the leader-gap check). Lanes are too narrow for passing, so no bikes there.
+- **Bug found while filming a bike (X62):** some cars and bikes were driving over grass. Each carriageway is one long part per polyline segment (Northfields Avenue is a 2,665-stud part), and streaming places a part by its centre, so near the west end of town a client had only 43 of 80 carriageways. TownBuilder now marks every road model Persistent (about 360 parts). After the fix the client held 80 of 80, and 23 of 24 vehicles raycast onto a road; the last was at a junction gap.
+- **Screenshot** Cyclist_2: a rider on a red bike by the kerb in Northfields, with a post box outside Northfields Stores.
+- RunAll 345/345.

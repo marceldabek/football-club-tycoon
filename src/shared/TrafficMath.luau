@@ -97,6 +97,16 @@ function TrafficMath.laneOffset(direction: Vector3, width: number, side: number)
 	return perp * (side * (width / 4))
 end
 
+-- F3.3: a cyclist rides `inset` studs in from the kerb on the left-hand side
+-- (the same side laneOffset(..., -1) drives on).
+function TrafficMath.kerbOffset(direction: Vector3, width: number, inset: number): Vector3
+	local perp = Vector3.new(-direction.Z, 0, direction.X)
+	if perp.Magnitude > 1e-6 then
+		perp = perp.Unit
+	end
+	return perp * -(math.max(width / 2 - inset, 0))
+end
+
 -- --------------------------------------------------------------- junctions
 
 -- Distance-along, closest point, and closest XZ distance from `p` to the

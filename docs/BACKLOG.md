@@ -80,6 +80,7 @@
 - [x] F2.1 Client-side traffic on road polylines, distance-budgeted `[studio]` M
 - [x] F3.1 Client-side pedestrians on pavements, distance-budgeted `[studio]` M
 - [x] F3.2 (seated figures at the 5 nearest cafe sets within 200 studs, 8 parts each; off on Low) Cafe sitters `[studio]` S
+- [x] F3.3 (1 in 5 traffic spawns on residential streets is a bike, 7 parts, 11 studs/s by the kerb; cars pass them) Cyclists `[studio]` S
 - [x] F4.1 (turbines, square flags, chimney smoke) Small motion: flags, bunting sway, chimney smoke `[studio]` S
 - [x] F4.2 (40 nearest tree crowns sway within 160 studs; 2 flocks of 5 birds round the church spire and over the Lune Bridge within 700 studs; all off on Low) Small motion part 2: tree sway, birds `[studio]` S
 
@@ -172,4 +173,5 @@
 - [ ] X59 (04:49 post boxes outside 10 corner shops; 04:52 schools are red-brick with a name board; still open: side-street dressing) Westdale vs RiveremereWestdale.png: its streets have no trees, lamps, parked cars or garden railings (only Mill Street gets full dressing within the part budget), no corner shop (Westdale Stores) with a post box, and a large white civic greybox block stands in the housing `[studio]` M
 - [x] X60 (rail + three home-kit shirts and a warm light behind the glass) Club shop window is an empty dark box; RivermereTurnstileEntrance.png shows shirts on display `[studio]` S
 - [ ] X61 Part count has grown: server workspace 20,557 BaseParts (town 17,147: Mill Street kit Dressing 8,371 is half of it); a client standing at plot 1 streams 10,848 (01:12 baseline 5,740), 60 fps on the Studio PC. Before more dressing, measure on a mid phone (X28) and consider trimming the kit Dressing rows or lowering StreamingTargetRadius `[studio]` M
+- [x] X62 (road models Persistent: client had 43 of 80 carriageways at the west of town) Traffic drove over grass where a long carriageway part (streamed by its centre) had not streamed in `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
