@@ -496,6 +496,18 @@ function StationDresser.build(): string
 	local kioskSign = slab(m, f, "KioskSign", -halfLen + 12, -halfLen + 34, 10, 12.5, 8.6, 9.2, Color3.fromRGB(30, 80, 60), Enum.Material.SmoothPlastic)
 	sign(kioskSign, Enum.NormalId.Back, "ONTRACK  NEWS · DRINKS · SNACKS", Color3.new(1, 1, 1))
 	slab(m, f, "Hatch", -halfLen + 16, -halfLen + 30, 3, 7.5, 9, 9.1, Color3.fromRGB(230, 220, 190), Enum.Material.SmoothPlastic)
+	-- X73: a hanging flower basket off the wall beside the kiosk sign (RivermereStation.png)
+	slab(m, f, "BasketBracket", -halfLen + 35.8, -halfLen + 36.2, 11.4, 11.7, 0, 3.4, IRON, Enum.Material.Metal).CastShadow = false
+	part({
+		Name = "HangingBasket",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.new(2.6, 2.6, 2.6),
+		CFrame = f * CFrame.new(-halfLen + 36, 10.1, 3.2),
+		Color = Color3.fromRGB(214, 80, 130),
+		Material = Enum.Material.LeafyGrass,
+		CastShadow = false,
+		Parent = m,
+	})
 
 	-- bollards along the kerb, planters and a bench, a bin
 	for x = -halfLen + 40, halfLen - 6, 12 do

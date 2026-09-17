@@ -603,3 +603,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - New pure `SportsCentreDresser.carParkRect` (1 test: open ground, a block sends it to the other side, both sides blocked gives nil) places an 84-wide tarmac car park beside the sports hall. It runs from the road's pavement back to the hall's back wall on whichever side is clear of blocks and carriageways, with bay lines along the back. The hall also gets a paved path from the pavement to its entrance. How far the hall stands back from the pavement is measured, not hard-coded.
 - **Screenshot** SportsCentreCarPark_2: the car park opening onto the road next to the hall.
 - RunAll 364/364.
+
+### 2026-09-17 06:43 — Kiosk hanging basket at the station (X73 part)
+- A pink hanging basket on an iron bracket off the station wall, beside the ONTRACK kiosk, as in RivermereStation.png. It's 2 parts and clear of the kiosk and the first window.
+- **Screenshot** KioskBasket_1. Also visible in it: the kiosk's cream hatch reads as a blank panel from this side.
+- RunAll 364/364.
