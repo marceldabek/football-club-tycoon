@@ -42,6 +42,19 @@ function T.footbridgeClearsTheTracks()
 	assert(TownLayout.distanceToPolyline(near:Lerp(far, 0.5), TownLayout.RAIL.points) < half, "the span crosses the line")
 end
 
+function T.farPlatformIsOffTheTrackAndUnderTheFarTower()
+	local f = StationDresser.frontFrame()
+	local p = StationDresser.platformFrame(f, TownLayout.RAIL.station.size)
+	local depth = 11.5
+	local z0, z1 = StationDresser.farPlatformZ(depth, TownLayout.RAIL.width)
+	local half = TownLayout.RAIL.width / 2
+	for _, x in { -100, 0, 100 } do
+		assert(TownLayout.distanceToPolyline(p * Vector3.new(x, 0, z0), TownLayout.RAIL.points) >= half, "track-side edge clear of the rail bed at x " .. x)
+	end
+	local _, _, _, farZ0, farZ1 = StationDresser.footbridgeExtents(depth, TownLayout.RAIL.width)
+	assert(farZ0 >= z0 and farZ1 <= z1, "the far stair tower stands on platform 2")
+end
+
 local function close(a: Vector3, b: Vector3): boolean
 	return (a - b).Magnitude < 1e-3
 end

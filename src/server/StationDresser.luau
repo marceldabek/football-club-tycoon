@@ -250,12 +250,56 @@ function StationDresser.dressPlatform(parent: Instance, front: CFrame, stationSi
 		sign(board, Enum.NormalId.Front, "RIVERMERE", Color3.new(1, 1, 1))
 	end
 	StationDresser.footbridge(parent, p, top, depth)
+	StationDresser.farPlatform(parent, p, top, depth, halfLen)
 	for _, x in { -halfLen + 0.3, halfLen - 0.3 } do
 		slab(parent, p, "EndRail", x - 0.15, x + 0.15, top + 3.3, top + 3.6, 0.3, depth - 0.3, IRON, Enum.Material.Metal)
 		slab(parent, p, "EndRailMid", x - 0.1, x + 0.1, top + 1.6, top + 1.8, 0.3, depth - 0.3, IRON, Enum.Material.Metal)
 		for _, z in { 0.6, depth / 2, depth - 0.6 } do
 			slab(parent, p, "EndRailPost", x - 0.15, x + 0.15, top, top + 3.3, z - 0.15, z + 0.15, IRON, Enum.Material.Metal)
 		end
+	end
+end
+
+-- X81: platform 2 across the line, where the footbridge's far stair tower
+-- stood in grass. Pure extents in the platform frame: z from just past the
+-- rail bed out FAR_PLATFORM_DEPTH (the far tower, at depth + railWidth + 6..13,
+-- stands on it).
+local FAR_PLATFORM_DEPTH = 16
+function StationDresser.farPlatformZ(depth: number, railWidth: number): (number, number)
+	local z0 = depth + railWidth + 0.5
+	return z0, z0 + FAR_PLATFORM_DEPTH
+end
+
+function StationDresser.farPlatform(parent: Instance, p: CFrame, top: number, depth: number, halfLen: number)
+	local z0, z1 = StationDresser.farPlatformZ(depth, TownLayout.RAIL.width)
+	slab(parent, p, "FarPlatform", -halfLen, halfLen, 0, top, z0, z1, Color3.fromRGB(150, 150, 146), Enum.Material.Concrete)
+	slab(parent, p, "EdgeLine", -halfLen, halfLen, top - 0.1, top + 0.06, z0 + 2.4, z0 + 3, Color3.fromRGB(240, 200, 30), Enum.Material.SmoothPlastic)
+	-- black railing along the back edge
+	for _, y in { 1.6, 3.3 } do
+		slab(parent, p, "BackRail", -halfLen, halfLen, top + y, top + y + 0.25, z1 - 0.45, z1 - 0.2, IRON, Enum.Material.Metal).CastShadow = false
+	end
+	local posts = math.floor(halfLen * 2 / 16)
+	for k = 0, posts do
+		local x = -halfLen + 0.3 + k * (halfLen * 2 - 0.6) / posts
+		slab(parent, p, "BackRailPost", x - 0.15, x + 0.15, top, top + 3.6, z1 - 0.5, z1 - 0.15, IRON, Enum.Material.Metal).CastShadow = false
+	end
+	-- a glazed waiting shelter and benches, clear of the far stair tower (x 68.5..75.5)
+	local sx = -30
+	slab(parent, p, "ShelterBack", sx - 8, sx + 8, top, top + 7, z1 - 3, z1 - 2.6, GLASS, Enum.Material.Glass).Transparency = 0.4
+	slab(parent, p, "ShelterRoof", sx - 8.5, sx + 8.5, top + 7, top + 7.5, z1 - 8, z1 - 2.4, NAVY, Enum.Material.Metal)
+	for _, dx in { -8, 8 } do
+		slab(parent, p, "ShelterPost", sx + dx - 0.2, sx + dx + 0.2, top, top + 7, z1 - 7.8, z1 - 7.4, NAVY, Enum.Material.Metal)
+	end
+	for _, x in { sx - 3.5, sx + 3.5, 30 } do
+		KitPlacer.place("UKSP__ParkBenches__ParkBench01", p * CFrame.new(x, top, z1 - 4.5) * CFrame.Angles(0, math.pi, 0), parent, { fallbackSize = Vector3.new(6, 3, 2), fallbackColor = Color3.fromRGB(120, 80, 50) })
+	end
+	for _, x in { -104, 104 } do
+		for _, dx in { -4.5, 4.5 } do
+			slab(parent, p, "BoardPost", x + dx - 0.3, x + dx + 0.3, top, top + 9, z1 - 6.3, z1 - 5.7, IRON, Enum.Material.Metal)
+		end
+		local board = slab(parent, p, "NameBoard", x - 6, x + 6, top + 6, top + 8.5, z1 - 6.25, z1 - 5.75, NAVY, Enum.Material.SmoothPlastic)
+		sign(board, Enum.NormalId.Back, "RIVERMERE", Color3.new(1, 1, 1))
+		sign(board, Enum.NormalId.Front, "RIVERMERE", Color3.new(1, 1, 1))
 	end
 end
 

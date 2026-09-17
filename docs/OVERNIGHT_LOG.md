@@ -646,3 +646,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Client check:** 2,241 walker samples over 20 s near the Sports Centre Roundabout, none on the disc and 55 within 20 of its edge. **Screenshot** RoundaboutWalkers_1.
 - Known limit: walkers don't cross to the far pavement round the roundabout; they turn back. Fine for ambient life.
 - RunAll 366/366.
+
+### 2026-09-17 07:01 — Station platform 2 (X81)
+- The view from the station's track side (StationPlatform_1) showed the footbridge crossing the line to a stair tower standing in grass. `StationDresser.farPlatform` adds platform 2 opposite: a 240 × 16 concrete slab just past the rail bed, a yellow edge line, a black back railing, a glazed shelter, 3 benches and two RIVERMERE name boards. It's about 35 parts, and the far stair tower now stands on it. Pure `farPlatformZ` has 1 test (the track-side edge is clear of the rail bed, and the far tower sits within the platform). A server overlap check found nothing else in its volume.
+- It's decorative: the stair towers are solid, so players can't climb to platform 2.
+- **Screenshot** StationPlatform_2.
+- RunAll 367/367.
