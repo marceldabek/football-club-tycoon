@@ -232,3 +232,6 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Banner and summary:** the PreMatch banner reads "… vs Friendly Test XI · Friendly". The summary header says FRIENDLY, the league row says "No league points · no injuries", and it showed +£300 (FriendlySummary_1).
 - New follow-up X40: the bottom hint pill covers the summary's Back to Club button. This already happened on league summaries too.
 - The Accept path that actually starts a match between two owners is I3.1d, which needs Players = 2.
+
+### 2026-09-17 03:30 — Hint no longer covers Back to Club (X40)
+- HUD hides the bottom hint pill while the match summary or season card is open, and brings it back when either closes. Tested with a 3 s friendly: before the match the hint showed "Matchday! The teams are walking out."; with the summary open it was hidden; after Back to Club it showed "Fans were turned away…" again.

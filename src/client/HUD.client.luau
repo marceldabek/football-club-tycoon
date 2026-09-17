@@ -424,7 +424,8 @@ local refreshHintText: () -> ()
 
 local function refreshHint()
 	refreshHintText()
-	hintLabel.Visible = hintLabel.Text ~= ""
+	-- the summary and season cards own the bottom of the screen (their buttons sit there)
+	hintLabel.Visible = hintLabel.Text ~= "" and not summary.frame.Visible and not seasonCard.frame.Visible
 end
 
 function refreshHintText()
@@ -581,6 +582,9 @@ summaryEvent.OnClientEvent:Connect(function(data)
 	playButton.Visible = false -- the card owns the screen until Back to Club
 	pendingSeason = data.season
 end)
+
+summary.frame:GetPropertyChangedSignal("Visible"):Connect(refreshHint)
+seasonCard.frame:GetPropertyChangedSignal("Visible"):Connect(refreshHint)
 
 refreshCash()
 refreshScoreboard()
