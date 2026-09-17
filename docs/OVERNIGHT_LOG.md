@@ -56,6 +56,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 
 10. Car colours (X45): **resolved at 07:41 without the tint.** Three generated hatchbacks (navy, red, silver, `generate_mesh`, one textured MeshPart each) now mix with the orange kit car in every car list (streets, terrace streets, station and sports car parks). The flat `tint` option stays in KitPlacer but is unused. *Rec: keep them; if you dislike the AI look, the next step is a bought car pack (see buy list).*
 
+11. Quality Low barely lightens the scene (X96). Standing in the market square, a client shows 15,607 visible parts on High and 15,233 on Low: the decor Low hides is small next to the Mill Street kit dressing (8,371 parts) and the terrace rows. *Rec: before phone testing, make Low also hide the kit Dressing street rows further than about 300 studs from the camera (a client-side check every couple of seconds). A lower server `StreamingTargetRadius` would affect everyone including PCs, so keep that as the fallback.*
+
 **Buy list for Marcel**
 - Nothing new yet. Free store terraces are a flat-fronted Victorian row. If you want bay windows like `RiveremereWestdale.png`, "UK Housing – Terraced Set 1" (Macwelshman, Fab, $39.99) is the best paid match (see docs/ASSET_KIT.md).
 
@@ -785,3 +787,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - `PlotGrounds` adds a green timber snack kiosk just inside each plot's pedestrian gate, between the south-side path trees, with its hatch, counter and "PIES · TEAS · CHIPS" board facing the footpath. It's 6 parts per club and has a `Kiosk` footprint, so the existing plot tests check it against the plot square, the other footprints and the stadium keep-out. A new test checks it's close to the path and clear of the path trees and lamps. A server overlap check found nothing touching it.
 - **Screenshot** GateKiosk_1.
 - RunAll 379/379.
+
+### 2026-09-17 08:13 — Quality Low measured (X96)
+- At the market square after claiming Plot 1, both levels ran at 60 fps on this PC. High showed 15,607 visible BaseParts and Low 15,233: Low hides about 2%. The decor list (pots, hedges, baskets, trees, forklifts, kit cars and benches) is a small share of what renders; the bulk is kit street dressing and terrace rows. Logged X96 and question 11 with a recommendation. No code change.
+- Also tried a dusk look by setting `ClockTime` 20.2 by hand. It isn't representative, because the Sky script sets ambient and exposure only through a real evening look, so no conclusion from it.
