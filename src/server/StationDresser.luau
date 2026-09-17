@@ -490,6 +490,13 @@ function StationDresser.footbridge(parent: Instance, p: CFrame, top: number, dep
 		glass.CastShadow = false
 	end
 	slab(parent, p, "BridgeRoof", x - 2.9, x + 2.9, roofY - 0.5, roofY - 0.1, nz1, fz0, NAVY, Enum.Material.Metal)
+	-- X164: a navy PLATFORM board on each stair tower's -X face (towards the
+	-- station building), 0.1 proud of the brick, above the platform canopy (y 11..11.6)
+	for k, zs in { { nz0, nz1 }, { fz0, fz1 } } do
+		local board = slab(parent, p, "PlatformBoard", x - 3.6, x - 3.5, top + 12.5, top + 14.5, zs[1] + 0.8, zs[2] - 0.8, NAVY, Enum.Material.SmoothPlastic)
+		board.CastShadow = false
+		sign(board, Enum.NormalId.Left, "PLATFORM " .. k, Color3.new(1, 1, 1), nil, Enum.Font.GothamBold)
+	end
 end
 
 -- Pure: a roof slope as a WedgePart in the front frame. The wedge is full

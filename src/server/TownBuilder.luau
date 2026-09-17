@@ -1078,7 +1078,7 @@ local function buildBusStop(parent: Instance, stop: TownLayout.BusStop)
 	end
 
 	-- a litter bin beside the pole, clear of the shelter's open side
-	part({
+	local bin = part({
 		Name = "Bin",
 		Size = Vector3.new(1.4, 2.6, 1.4),
 		CFrame = base * CFrame.new(7.4, 0.5 + 1.3, 1.2),
@@ -1086,6 +1086,22 @@ local function buildBusStop(parent: Instance, stop: TownLayout.BusStop)
 		Material = Enum.Material.Metal,
 		Parent = m,
 	})
+	-- X163: a gold LITTER band on the side facing the pavement (local -Z), like the town's kit bins
+	local binGui = Instance.new("SurfaceGui")
+	binGui.Face = Enum.NormalId.Front
+	binGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	binGui.PixelsPerStud = 60
+	binGui.MaxDistance = 80
+	binGui.Parent = bin
+	local band = Instance.new("TextLabel")
+	band.Size = UDim2.fromScale(1, 0.18)
+	band.Position = UDim2.fromScale(0, 0.12)
+	band.BackgroundTransparency = 1
+	band.Font = Enum.Font.GothamBold
+	band.TextScaled = true
+	band.TextColor3 = Color3.fromRGB(212, 176, 90)
+	band.Text = "LITTER"
+	band.Parent = binGui
 
 	-- X47: an advert panel across the shelter's open end, like the poster in
 	-- RivermereCenter.png; clear of the back panel (z 1.6) and the post (z -1.6)
