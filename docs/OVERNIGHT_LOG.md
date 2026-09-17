@@ -1412,3 +1412,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - X251: GO TO MY CLUB hides outside Manage, and the server refuses with "Your match is on. You're already at your ground." Before, a tap during the walkout teleported the owner into the office while the camera kept panning the pitch. Checked in play: visible in Manage, hidden in Match, visible again after.
 - RunAll 437 passed.
 
+### 2026-09-17 14:37 — League table names and iris ownership (X258, X259 done)
+- X258 `ClubPanel` League tab: the Team cell no longer wraps; it truncates at the end like the prospect rows. Checked in play: every row reads `wrapped false, truncate AtEnd`, longest name 139 px of 192.
+- X259 `Iris`: each transition takes a token, and `close`/`open` return false when a newer transition took the frame over. `BusMenu` and `PlotPicker` only open the iris back up when they still own it, so a bus trip or a picker close that overlaps the matchday walkout can't leave the screen black or fight the other tween. Checked in play: after claiming a ground the hole is fully open (2.6).
+- RunAll 437 passed.
+

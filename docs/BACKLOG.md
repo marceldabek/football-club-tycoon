@@ -371,5 +371,5 @@
 - [ ] X255 The plot boundary wall has no coping and the gate piers no caps (the reference has both): a coping strip per run and a cap per pier, ~10 parts `[studio]` S
 - [ ] X256 Shopfront glass has no window vinyl though three reference images letter the windows: a SurfaceGui with two or three lines per front, keyed by front type, 0 parts `[studio]` S
 - [ ] X257 The supporters' bar frontage has bare brick and plain windows while the reference pubs are covered in flowers: two bracket-and-basket pairs and window boxes, ~8 parts `[studio]` S
-- [ ] X258 A long club name wraps inside the League table's one-line row (the Team cell has no TextTruncate, unlike the prospect rows): truncate it, 0 parts `[disk]` S
-- [ ] X259 Iris has one shared frame and no ownership token, so a bus trip or picker close that overlaps the walkout cancels the other's tween and reports success: give each call a token like Sky's transitions, 0 parts `[disk]` S
+- [x] X258 (14:37 done) A long club name wraps inside the League table's one-line row (the Team cell has no TextTruncate, unlike the prospect rows): truncate it, 0 parts `[disk]` S
+- [x] X259 (14:37 done) Iris has one shared frame and no ownership token, so a bus trip or picker close that overlaps the walkout cancels the other's tween and reports success: give each call a token like Sky's transitions, 0 parts `[disk]` S

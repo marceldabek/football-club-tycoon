@@ -656,7 +656,12 @@ local function renderLeague()
 		local posColor = if goesUp then Color3.fromRGB(120, 230, 120) elseif goesDown then Color3.fromRGB(240, 110, 110) else Color3.new(1, 1, 1)
 		cell(f, tostring(r.position), 10, 30, { TextColor3 = posColor, Font = Enum.Font.GothamBold })
 		Crest.draw(f, r.name, 24, { isPlayer = r.isPlayer, position = UDim2.fromOffset(40, 3) })
-		cell(f, r.name, 68, 192, { Font = if r.isPlayer then Enum.Font.GothamBold else Enum.Font.Gotham })
+		-- X258: a long club name used to wrap inside the one-line row
+		cell(f, r.name, 68, 192, {
+			Font = if r.isPlayer then Enum.Font.GothamBold else Enum.Font.Gotham,
+			TextWrapped = false,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+		})
 		cell(f, tostring(r.played), 270, 30)
 		cell(f, tostring(r.won), 305, 30)
 		cell(f, tostring(r.drawn), 340, 30)

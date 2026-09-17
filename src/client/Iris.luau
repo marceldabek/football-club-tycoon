@@ -52,20 +52,29 @@ local function ensure(): Frame
 	return hole
 end
 
-local function play(size: UDim2, duration: number)
+-- X259: one frame, so a bus trip or a picker close that overlaps the walkout
+-- used to cancel the other's tween and still report success. Each call takes a
+-- token; whoever holds the newest one owns the iris.
+local token = 0
+
+local function play(size: UDim2, duration: number): boolean
 	local frame = ensure()
+	token += 1
+	local mine = token
 	local tween = TweenService:Create(frame, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), { Size = size })
 	tween:Play()
-	tween.Completed:Wait()
+	local state = tween.Completed:Wait()
+	return mine == token and state == Enum.PlaybackState.Completed
 end
 
--- Both yield until the transition finishes.
-function Iris.close(duration: number)
-	play(CLOSED, duration)
+-- Both yield until the transition finishes. False means a newer transition took
+-- over: it owns the iris now, so don't tween it back.
+function Iris.close(duration: number): boolean
+	return play(CLOSED, duration)
 end
 
-function Iris.open(duration: number)
-	play(OPEN, duration)
+function Iris.open(duration: number): boolean
+	return play(OPEN, duration)
 end
 
 return Iris
