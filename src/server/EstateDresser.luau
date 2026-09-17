@@ -18,6 +18,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local EstateBuilder = require(script.Parent.EstateBuilder)
+local TownCrest = require(game:GetService("ReplicatedStorage").Shared.TownCrest)
 local KitPlacer = require(script.Parent.KitPlacer)
 local TerraceStreetDresser = require(script.Parent.TerraceStreetDresser)
 
@@ -785,14 +786,17 @@ function EstateDresser.hangLampBanners(lamps: { Instance }, parent: Instance, te
 			gui.PixelsPerStud = 40
 			gui.MaxDistance = 160
 			gui.Parent = banner
+			-- X254: the town crest above the wording, as on the reference banners
+			local ink = Color3.fromRGB(236, 232, 220)
+			TownCrest.draw(gui, ink, UDim2.fromScale(1, 0.26), UDim2.fromScale(0.5, 0.05), Vector2.new(0.5, 0))
 			local label = Instance.new("TextLabel")
 			label.BackgroundTransparency = 1
-			label.Size = UDim2.fromScale(0.9, 0.9)
-			label.Position = UDim2.fromScale(0.05, 0.05)
+			label.Size = UDim2.fromScale(0.9, 0.58)
+			label.Position = UDim2.fromScale(0.05, 0.36)
 			label.Font = Enum.Font.GothamBold
 			label.TextScaled = true
 			label.TextWrapped = true
-			label.TextColor3 = Color3.fromRGB(236, 232, 220)
+			label.TextColor3 = ink
 			label.Text = text
 			label.Parent = gui
 		end

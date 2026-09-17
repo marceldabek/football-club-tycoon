@@ -43,6 +43,8 @@ local BLOCK_CLEAR = 3 -- promenade stops short of buildings and roads
 local STONE = Color3.fromRGB(196, 184, 160)
 local PAVING = Color3.fromRGB(206, 192, 170)
 local IRON = Color3.fromRGB(22, 22, 24)
+local TownCrest = require(game:GetService("ReplicatedStorage").Shared.TownCrest)
+
 local TIMBER = Color3.fromRGB(120, 92, 64)
 local BOAT_HULLS = { Color3.fromRGB(245, 245, 245), Color3.fromRGB(30, 50, 100), Color3.fromRGB(180, 40, 40) }
 local MAST_H = 16 -- X143: sailing boats' masts above the cabin roof
@@ -246,13 +248,16 @@ function RiverDresser.heritageLamp(cf: CFrame, parent: Instance, basket: boolean
 			gui.PixelsPerStud = 50
 			gui.LightInfluence = 0.8
 			gui.Parent = banner
+			-- X254: the town crest above the wording, as on the reference banners
+			local ink = Color3.fromRGB(240, 236, 224)
+			TownCrest.draw(gui, ink, UDim2.fromScale(1, 0.24), UDim2.fromScale(0.5, 0.06), Vector2.new(0.5, 0))
 			local label = Instance.new("TextLabel")
 			label.BackgroundTransparency = 1
-			label.Size = UDim2.fromScale(0.9, 0.9)
-			label.Position = UDim2.fromScale(0.05, 0.05)
+			label.Size = UDim2.fromScale(0.9, 0.62)
+			label.Position = UDim2.fromScale(0.05, 0.33)
 			label.Font = Enum.Font.GothamBold
 			label.TextScaled = true
-			label.TextColor3 = Color3.fromRGB(240, 236, 224)
+			label.TextColor3 = ink
 			label.Text = "RIVERMERE\n\nRIVER\nPEOPLE\nPLACES\nTOGETHER"
 			label.Parent = gui
 		end
