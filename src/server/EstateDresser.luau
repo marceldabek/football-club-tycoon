@@ -103,6 +103,123 @@ function EstateDresser.driveCarFit(footprint: Vector3, width: number, length: nu
 	return scale, yaw
 end
 
+-- X54: an estate entrance totem ("INDUSTRIAL ESTATE / Units / Deliveries /
+-- Trade Counter") on the verge by the estate's bus stop, like
+-- rivermer.industrialestate.png.
+local TOTEM_STOP = "Industrial Estate"
+local TOTEM_NAVY = Color3.fromRGB(28, 42, 74)
+
+local function insideBox(p: Vector3, box: TownLayout.Box, margin: number): boolean
+	local lp = (CFrame.new(box.centre) * CFrame.Angles(0, math.rad(box.yaw), 0)):PointToObjectSpace(Vector3.new(p.X, box.centre.Y, p.Z))
+	return math.abs(lp.X) <= box.size.X / 2 + margin and math.abs(lp.Z) <= box.size.Z / 2 + margin
+end
+
+-- Pure: a spot on grass near `stop` (not on a road or pavement, but within a
+-- few studs of one, clear of every block and at least 10 from the stop), plus
+-- the road point it should face. nil if nothing nearby is clear.
+function EstateDresser.totemSpot(stop: Vector3, roads: { TownLayout.Road }, blocks: { TownLayout.Box }): (Vector3?, Vector3?)
+	for radius = 12, 48, 4 do
+		for k = 0, 23 do
+			local a = k / 24 * math.pi * 2
+			local p = stop + Vector3.new(math.cos(a) * radius, 0, math.sin(a) * radius)
+			local clear, nearest, nearestPoint = true, math.huge, nil
+			for _, road in roads do
+				local reach = road.width / 2 + TownLayout.PAVEMENT_WIDTH
+				local d = TownLayout.distanceToPolyline(p, road.points)
+				if d < reach + 1.5 then
+					clear = false
+					break
+				end
+				if d - reach < nearest then
+					nearest = d - reach
+					nearestPoint = road.points[1]
+					-- aim at the closest point on that road
+					local best = math.huge
+					for i = 1, #road.points - 1 do
+						local a0, b0 = road.points[i], road.points[i + 1]
+						local ab = Vector3.new(b0.X - a0.X, 0, b0.Z - a0.Z)
+						local t = if ab.Magnitude > 0 then math.clamp(Vector3.new(p.X - a0.X, 0, p.Z - a0.Z):Dot(ab) / ab.Magnitude ^ 2, 0, 1) else 0
+						local q = a0 + ab * t
+						local dq = Vector3.new(p.X - q.X, 0, p.Z - q.Z).Magnitude
+						if dq < best then
+							best, nearestPoint = dq, Vector3.new(q.X, 0, q.Z)
+						end
+					end
+				end
+			end
+			if clear and nearest <= 6 then
+				for _, box in blocks do
+					if insideBox(p, box, 3) then
+						clear = false
+						break
+					end
+				end
+			end
+			if clear and nearest <= 6 then
+				return Vector3.new(p.X, 0, p.Z), nearestPoint
+			end
+		end
+	end
+	return nil, nil
+end
+
+local function buildTotem(parent: Instance, at: Vector3, facing: Vector3)
+	local m = Instance.new("Model")
+	m.Name = "EstateTotem"
+	m.Parent = parent
+	local cf = CFrame.lookAt(at, Vector3.new(facing.X, 0, facing.Z))
+	local function slab(name: string, size: Vector3, offset: CFrame, colour: Color3, material: Enum.Material): BasePart
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Anchored = true
+		p.Size = size
+		p.CFrame = cf * offset
+		p.Color = colour
+		p.Material = material
+		p.TopSurface = Enum.SurfaceType.Smooth
+		p.BottomSurface = Enum.SurfaceType.Smooth
+		p.Parent = m
+		return p
+	end
+	slab("Plinth", Vector3.new(5, 0.8, 1.8), CFrame.new(0, 0.3, 0), Color3.fromRGB(150, 150, 146), Enum.Material.Concrete)
+	local panel = slab("Panel", Vector3.new(4.4, 10, 0.7), CFrame.new(0, 0.65 + 5, 0), TOTEM_NAVY, Enum.Material.SmoothPlastic)
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 36
+		gui.Parent = panel
+		local label = Instance.new("TextLabel")
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(0.9, 0.42)
+		label.Position = UDim2.fromScale(0.05, 0.04)
+		label.Font = Enum.Font.GothamBold
+		label.TextScaled = true
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.Text = "RIVERMERE\n\nINDUSTRIAL\nESTATE"
+		label.Parent = gui
+		-- one label per destination row, so each line scales on its own
+		local list = Instance.new("Frame")
+		list.BackgroundColor3 = Color3.fromRGB(226, 228, 232)
+		list.BorderSizePixel = 0
+		list.Size = UDim2.fromScale(0.9, 0.44)
+		list.Position = UDim2.fromScale(0.05, 0.52)
+		list.Parent = gui
+		for row, text in { "Units 1 - 6  >", "Units 7 - 12  >", "Deliveries  >", "Trade Counter  >" } do
+			local line = Instance.new("TextLabel")
+			line.BackgroundTransparency = 1
+			line.Size = UDim2.fromScale(0.9, 0.22)
+			line.Position = UDim2.fromScale(0.05, 0.02 + (row - 1) * 0.245)
+			line.Font = Enum.Font.GothamMedium
+			line.TextScaled = true
+			line.TextXAlignment = Enum.TextXAlignment.Left
+			line.TextColor3 = Color3.fromRGB(24, 28, 36)
+			line.Text = text
+			line.Parent = list
+		end
+	end
+end
+
 -- Removes the greybox body + roof for this exact block (matched by name and
 -- XZ position, since a district's greybox has many same-named siblings).
 local function removeGreyboxFor(greybox: Instance?, block: TownLayout.Box)
@@ -194,6 +311,22 @@ function EstateDresser.build(): string
 			else
 				EstateBuilder.shed(cf, Vector3.new(width, block.size.Y, depth), m, rng, block.use)
 				shedCount += 1
+			end
+		end
+	end
+
+	-- X54: estate entrance totem by the estate bus stop
+	for _, stop in TownLayout.BUS_STOPS do
+		if stop.name == TOTEM_STOP then
+			local blocks: { TownLayout.Box } = {}
+			for _, district in TownLayout.DISTRICTS do
+				for _, block in district.blocks do
+					table.insert(blocks, block)
+				end
+			end
+			local spot, facing = EstateDresser.totemSpot(stop.position, TownLayout.ROADS, blocks)
+			if spot and facing then
+				buildTotem(estates, spot, facing)
 			end
 		end
 	end

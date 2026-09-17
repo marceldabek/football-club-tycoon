@@ -291,4 +291,37 @@ function T.driveCarFitShrinksTheKitCarOntoTheDrive()
 	assert(EstateDresser.driveCarFit(kit, 10, 12) == nil, "too short: block car")
 end
 
+function T.totemSpotIsOnTheVergeNotTheRoadOrABlock()
+	local roads: { TownLayout.Road } = {
+		{ name = "Test Road", kind = "main", width = 20, points = { Vector3.new(-200, 0, 0), Vector3.new(200, 0, 0) } },
+	}
+	local blocks: { TownLayout.Box } = {
+		{ centre = Vector3.new(0, 0, 40), size = Vector3.new(60, 10, 30), yaw = 0, use = "warehouse" },
+	}
+	local stop = Vector3.new(0, 0, 20)
+	local spot, facing = EstateDresser.totemSpot(stop, roads, blocks)
+	assert(spot and facing, "found a spot")
+	local d = math.abs(spot.Z)
+	local reach = 10 + TownLayout.PAVEMENT_WIDTH
+	assert(d >= reach + 1.5 and d <= reach + 6 + 1e-6, "on the verge beside the pavement, got " .. d)
+	assert((Vector3.new(spot.X, 0, spot.Z) - stop).Magnitude >= 10, "clear of the bus stop")
+	assert(not (math.abs(spot.X) <= 33 and spot.Z >= 22 and spot.Z <= 58), "not inside the block")
+	assert(math.abs(facing.Z) < 1e-3 and math.abs(facing.X - spot.X) < 1e-3, "faces the closest road point") -- Vector3 is float32
+	assert(EstateDresser.totemSpot(Vector3.new(0, 0, 5000), roads, blocks) == nil, "no road nearby -> nil")
+end
+
+function T.realEstateTotemSpotExists()
+	local blocks = {}
+	for _, district in TownLayout.DISTRICTS do
+		for _, block in district.blocks do
+			table.insert(blocks, block)
+		end
+	end
+	for _, stop in TownLayout.BUS_STOPS do
+		if stop.name == "Industrial Estate" then
+			assert(EstateDresser.totemSpot(stop.position, TownLayout.ROADS, blocks) ~= nil, "the estate stop has a clear verge")
+		end
+	end
+end
+
 return T

@@ -356,3 +356,11 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 ### 2026-09-17 04:28 — Turnstile lane signs (X53, part)
 - Each turnstile lane has a navy sign under the fascia on the walk-up side, reading HOME FANS / TICKETS / HOME FANS, as in the reference. They have no collision and give 7.4 studs of headroom.
 - **Screenshot** Turnstiles_signs_3: straight on, the entrance now reads as a small football ground's gate (club-name fascia, brick piers, iron gates, turnstile drums, lane signs).
+
+### 2026-09-17 04:35 — Industrial estate entrance sign (X54)
+- **Compared with `rivermer.industrialestate.png`:** the reference opens with a tall navy estate totem. Ours had none.
+- **Change:** EstateDresser finds a clear verge spot near the Industrial Estate bus stop: off the road and pavement but within 6 studs of one, clear of every block, at least 10 from the stop. It builds a navy totem there facing the road, on a concrete plinth: "RIVERMERE INDUSTRIAL ESTATE" and a light panel listing Units 1-6, Units 7-12, Deliveries and Trade Counter, readable from both sides. `totemSpot` is pure, with 2 tests (a synthetic road and block, plus the real estate stop). 2 parts.
+- **Fixed along the way:** the destination list first wrapped, then shrank to unreadable when wrapping was switched off, so it's now one label per row. A test tolerance was also loosened to 1e-3, because Vector3 maths is float32.
+- **Screenshot** Estate_totem_4.
+- **Still missing from the reference (new X55):** unit numbers and brick plinths on the sheds, palisade yard fences and gates, lorries, pallets and forklifts, and a planted mini roundabout at the estate entrance.
+- RunAll 334/334.
