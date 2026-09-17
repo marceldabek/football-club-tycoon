@@ -296,6 +296,7 @@ seasonContinue.Activated:Connect(function()
 end)
 
 local pendingSeason: any = nil
+local lastWasFriendly = false
 local function showSeason(data)
 	seasonCard.title.Text = ("SEASON %d OVER"):format(data.season)
 	local headline
@@ -324,7 +325,8 @@ summaryContinue.Activated:Connect(function()
 		local data = pendingSeason
 		pendingSeason = nil
 		showSeason(data)
-	else
+	elseif not lastWasFriendly then
+		-- X225: friendlies don't move the season on, so no week passes
 		Sky.fastForward("match") -- a week passes
 	end
 end)
@@ -605,6 +607,7 @@ summaryEvent.OnClientEvent:Connect(function(data)
 	summary.show(data)
 	playButton.Visible = false -- the card owns the screen until Back to Club
 	pendingSeason = data.season
+	lastWasFriendly = data.friendly == true
 end)
 
 summary.frame:GetPropertyChangedSignal("Visible"):Connect(refreshHint)

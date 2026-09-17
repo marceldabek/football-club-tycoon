@@ -287,7 +287,8 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		scorers = scorers,
 		news = news,
 		development = development,
-		division = ClubState.get("DivisionName"),
+		-- X216: the season may have rolled over; the card is about the season just played
+		division = if roundResult.summary then roundResult.summary.division else ClubState.get("DivisionName"),
 		position = roundResult.position,
 		round = roundResult.round,
 		rounds = roundResult.rounds,

@@ -287,12 +287,13 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		TextYAlignment = Enum.TextYAlignment.Center,
 	})
 	local columns: { [string]: TextLabel } = {}
+	local columnTitles: { [string]: TextLabel } = {}
 	for i, spec in { { "Tickets", "tickets" }, { "Concessions", "concessions" }, { "Result bonus", "bonus" } } do
 		local x = UDim.new((i - 1) / 3, 16)
 		if i > 1 then
 			divider(earnings, UDim.new((i - 1) / 3, 0), 92, 46)
 		end
-		Theme.text(earnings, spec[1], "muted", {
+		columnTitles[spec[2]] = Theme.text(earnings, spec[1], "muted", {
 			Size = UDim2.new(1 / 3, -24, 0, 18),
 			Position = UDim2.new(x.Scale, x.Offset, 0, 92),
 			TextSize = 14,
@@ -553,6 +554,8 @@ function MatchSummary.new(gui: ScreenGui): Summary
 
 		total.Text = "+" .. money(data.total or 0)
 		columns.tickets.Text = money(data.ticketRevenue or 0)
+		-- X225: a friendly pays the home club a share of the gate, not every ticket
+		columnTitles.tickets.Text = if data.friendly then "Gate share" else "Tickets"
 		columns.concessions.Text = money(data.concessionRevenue or 0)
 		columns.bonus.Text = money(data.resultBonus or 0)
 
@@ -586,6 +589,11 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		news.Text = table.concat(lines, "\n")
 
 		balanceLabel.Text = ("Club balance   %s"):format(Theme.rich(money(data.cash or 0), C.cash, true))
+		-- X217: the season prize is already in the balance but not in the match earnings
+		local prize = if type(data.season) == "table" then data.season.prize else nil
+		if type(prize) == "number" and prize > 0 then
+			balanceLabel.Text ..= ("   <font color=\"#7c8594\">includes %s season prize</font>"):format(money(prize))
+		end
 		body.CanvasPosition = Vector2.zero
 		frame.Visible = true
 	end
