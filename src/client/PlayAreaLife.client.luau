@@ -73,6 +73,19 @@ local function build(area: Model): Area?
 	local folder = Instance.new("Folder")
 	folder.Name = "PlayAreaLife"
 	folder.Parent = area
+	-- X174: children playing, heard near the area (Pro Sound Effects, licensed
+	-- library: "Park Playgrounds 1"); removed in teardown
+	local sound = Instance.new("Sound")
+	sound.Name = "Playground"
+	sound.SoundId = "rbxassetid://9112841549"
+	sound.Looped = true
+	sound.Volume = 0.35
+	sound.RollOffMode = Enum.RollOffMode.InverseTapered
+	sound.RollOffMinDistance = 20
+	sound.RollOffMaxDistance = 140
+	sound.TimePosition = math.random() * 20
+	sound.Parent = surface
+	sound:Play()
 	local parts: { BasePart } = {}
 	-- the left swing's seat and chains (x -2.2 in the swing frame at (6, 0, 7))
 	local swing = cf * CFrame.new(6, 0, 7)
@@ -120,6 +133,11 @@ local function teardown(area: Area)
 	local f = area.model:FindFirstChild("PlayAreaLife")
 	if f then
 		f:Destroy()
+	end
+	local surface = area.model:FindFirstChild("Surface")
+	local sound = surface and surface:FindFirstChild("Playground")
+	if sound then
+		sound:Destroy()
 	end
 end
 

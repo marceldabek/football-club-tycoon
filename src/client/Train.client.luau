@@ -89,6 +89,20 @@ for _, pieces in carriages do
 	end
 end
 
+-- X172: a rolling rumble on the middle carriage while the train moves (Pro
+-- Sound Effects, licensed library: "L Pass Bys 1"), faded out while it waits
+local rumble = Instance.new("Sound")
+rumble.Name = "TrainRumble"
+rumble.SoundId = "rbxassetid://9116330273"
+rumble.Looped = true
+rumble.Volume = 0
+rumble.RollOffMode = Enum.RollOffMode.InverseTapered
+rumble.RollOffMinDistance = 40
+rumble.RollOffMaxDistance = 400
+rumble.Parent = carriages[math.ceil(CARRIAGES / 2)][2].part -- the Body
+rumble:Play()
+local RUMBLE_VOLUME = 0.6
+
 -- start at the station heading away from the west end, dwelling
 local direction = 1
 local head = stationDistance + trainLength / 2
@@ -129,6 +143,8 @@ task.spawn(function()
 end)
 
 RunService.Heartbeat:Connect(function(dt: number)
+	local wantVolume = if wait > 0 then 0 else RUMBLE_VOLUME
+	rumble.Volume += (wantVolume - rumble.Volume) * math.min(1, dt * 1.5)
 	if wait > 0 then
 		wait -= dt
 	else
