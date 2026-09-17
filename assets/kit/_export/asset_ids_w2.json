@@ -1,0 +1,430 @@
+{
+ "UKSP__LitterBin__LitterBin.glb": {
+  "assetId": null,
+  "name": "(uploaded by another worker)"
+ },
+ "MEH__Garage_01_VAR01__ts1.glb": {
+  "assetId": null,
+  "name": "(uploaded by another worker)"
+ },
+ "MEH__House_01_VAR01__ts1.glb": {
+  "assetId": null,
+  "name": "(uploaded by another worker)"
+ },
+ "MEH__House_01_VAR01__ts3.glb": {
+  "assetId": null,
+  "name": "(uploaded by another worker)"
+ },
+ "MEH__House_02_VAR1__ts1.glb": {
+  "assetId": null,
+  "name": "(uploaded by another worker)"
+ },
+ "MEH__House_02_VAR1__ts3.glb": {
+  "assetId": null,
+  "name": "(uploaded by another worker)"
+ },
+ "MEH__House_03_VAR01__ts1.glb": {
+  "assetId": null,
+  "name": "(uploaded by another worker)"
+ },
+ "MEH__House_03_VAR01__ts3.glb": {
+  "assetId": null,
+  "name": "(uploaded by another worker)"
+ },
+ "MEH__House_04_VAR01__ts1.glb": {
+  "assetId": null,
+  "name": "(uploaded by another worker)"
+ },
+ "MEH__House_04_VAR01__ts3.glb": {
+  "assetId": null,
+  "name": "(uploaded by another worker)"
+ },
+ "MEH__House_05_VAR01__ts1.glb": {
+  "assetId": null,
+  "name": "(uploaded by another worker)"
+ },
+ "MEH__House_06_VAR01__ts3.glb": {
+  "assetId": "138510985296105",
+  "name": "MEH House_06_VAR01 ts3"
+ },
+ "PH__Television_01.glb": {
+  "assetId": "113944883182738",
+  "name": "PH Television_01"
+ },
+ "PH__classic_laptop.glb": {
+  "assetId": "116105367565980",
+  "name": "PH classic_laptop"
+ },
+ "PH__exterior_aircon_unit.glb": {
+  "assetId": "103952894080313",
+  "name": "PH exterior_aircon_unit"
+ },
+ "PH__medical_box.glb": {
+  "assetId": "70654743936682",
+  "name": "PH medical_box"
+ },
+ "PH__office_notepads.glb": {
+  "assetId": "133157132216983",
+  "name": "PH office_notepads"
+ },
+ "PH__power_box_01.glb": {
+  "assetId": "105815703482254",
+  "name": "PH power_box_01"
+ },
+ "PH__security_camera_01.glb": {
+  "assetId": "96667353405207",
+  "name": "PH security_camera_01"
+ },
+ "PH__water_manhole_cover.glb": {
+  "assetId": "76360863950916",
+  "name": "PH water_manhole_cover"
+ },
+ "UKSP__BusShelter__BusShelter.glb": {
+  "assetId": "90308440914889",
+  "name": "UKSP BusShelter BusShelter"
+ },
+ "UKSP__ConcreteBarriers__BarrierA03.glb": {
+  "assetId": "85496561923615",
+  "name": "UKSP ConcreteBarriers BarrierA03"
+ },
+ "UKSP__ConcreteBarriers__BarrierB03.glb": {
+  "assetId": "139274666383126",
+  "name": "UKSP ConcreteBarriers BarrierB03"
+ },
+ "UKSP__CorrugatedFence__CorrugatedFenceA01.glb": {
+  "assetId": "72600487519820",
+  "name": "UKSP CorrugatedFence CorrugatedFenceA01"
+ },
+ "UKSP__CorrugatedFence__CorrugatedFenceB01.glb": {
+  "assetId": "140376689634317",
+  "name": "UKSP CorrugatedFence CorrugatedFenceB01"
+ },
+ "UKSP__CrowdBarrier__CrowdBarrierNewA.glb": {
+  "assetId": "115411298725373",
+  "name": "UKSP CrowdBarrier CrowdBarrierNewA"
+ },
+ "UKSP__CrowdBarrier__CrowdBarrierOldB.glb": {
+  "assetId": "84650829655967",
+  "name": "UKSP CrowdBarrier CrowdBarrierOldB"
+ },
+ "UKSP__Fences__FenceMediumRustAPost.glb": {
+  "assetId": "109365338747773",
+  "name": "UKSP Fences FenceMediumRustAPost"
+ },
+ "UKSP__Fences__FenceMediumRustBBlock.glb": {
+  "assetId": "93877487326840",
+  "name": "UKSP Fences FenceMediumRustBBlock"
+ },
+ "UKSP__Fences__FenceNewA02.glb": {
+  "assetId": "122083611336874",
+  "name": "UKSP Fences FenceNewA02"
+ },
+ "UKSP__Fences__FenceNewB02.glb": {
+  "assetId": "107645348873166",
+  "name": "UKSP Fences FenceNewB02"
+ },
+ "UKSP__Fences__FenceRustedA01.glb": {
+  "assetId": "119446046368252",
+  "name": "UKSP Fences FenceRustedA01"
+ },
+ "UKSP__Fences__FenceRustedB01.glb": {
+  "assetId": "94910060266932",
+  "name": "UKSP Fences FenceRustedB01"
+ },
+ "UKSP__Fences__FenceRustedC.glb": {
+  "assetId": "88686700757558",
+  "name": "UKSP Fences FenceRustedC"
+ },
+ "UKSP__GardenWallA__GardenWallAWithoutFence.glb": {
+  "assetId": "127468269915610",
+  "name": "UKSP GardenWallA GardenWallAWithoutFence"
+ },
+ "UKSP__GardenWallB__WallBCurvedWithoutRailing.glb": {
+  "assetId": "96509205073952",
+  "name": "UKSP GardenWallB WallBCurvedWithoutRailing"
+ },
+ "UKSP__GardenWall__PostA.glb": {
+  "assetId": "113649960955659",
+  "name": "UKSP GardenWall PostA"
+ },
+ "UKSP__GuardRails__GuardRailACorner.glb": {
+  "assetId": "75234862857786",
+  "name": "UKSP GuardRails GuardRailACorner"
+ },
+ "UKSP__GuardRails__GuardRailBCorner.glb": {
+  "assetId": "112315115407705",
+  "name": "UKSP GuardRails GuardRailBCorner"
+ },
+ "UKSP__GuardRails__GuardRailCEnd.glb": {
+  "assetId": "101004412238730",
+  "name": "UKSP GuardRails GuardRailCEnd"
+ },
+ "UKSP__GuardRails__GuardRailDCap.glb": {
+  "assetId": "82921452781815",
+  "name": "UKSP GuardRails GuardRailDCap"
+ },
+ "UKSP__ParkBenches__ParkBench03.glb": {
+  "assetId": "130541162201523",
+  "name": "UKSP ParkBenches ParkBench03"
+ },
+ "UKSP__RailingWall__Post.glb": {
+  "assetId": "124925269829590",
+  "name": "UKSP RailingWall Post"
+ },
+ "UKSP__RedPhoneBoxes__Door.001.glb": {
+  "assetId": "107795274289691",
+  "name": "UKSP RedPhoneBoxes Door.001"
+ },
+ "UKSP__RedPhoneBoxes__RedPhoneBoxDirty.glb": {
+  "assetId": "137233927105859",
+  "name": "UKSP RedPhoneBoxes RedPhoneBoxDirty"
+ },
+ "UKSP__RoadWorksSign__RoadWorksSignNew.glb": {
+  "assetId": "135640337473216",
+  "name": "UKSP RoadWorksSign RoadWorksSignNew"
+ },
+ "UKSP__RoadWorksSign__Sign.glb": {
+  "assetId": "84483026218043",
+  "name": "UKSP RoadWorksSign Sign"
+ },
+ "UKSP__Signs__SignNew03.glb": {
+  "assetId": "133064539811316",
+  "name": "UKSP Signs SignNew03"
+ },
+ "UKSP__Signs__SignNew06.glb": {
+  "assetId": "122103897726833",
+  "name": "UKSP Signs SignNew06"
+ },
+ "UKSP__Signs__SignNew09.glb": {
+  "assetId": "73075663161194",
+  "name": "UKSP Signs SignNew09"
+ },
+ "UKSP__Signs__SignNew12.glb": {
+  "assetId": "136556041174014",
+  "name": "UKSP Signs SignNew12"
+ },
+ "UKSP__Signs__SignNew15.glb": {
+  "assetId": "138780886051246",
+  "name": "UKSP Signs SignNew15"
+ },
+ "UKSP__Signs__SignNew18.glb": {
+  "assetId": "133058789469004",
+  "name": "UKSP Signs SignNew18"
+ },
+ "UKSP__Signs__SignNew21.glb": {
+  "assetId": "85400868052138",
+  "name": "UKSP Signs SignNew21"
+ },
+ "UKSP__Signs__SignNew24.glb": {
+  "assetId": "102610315487595",
+  "name": "UKSP Signs SignNew24"
+ },
+ "UKSP__Signs__SignNew27.glb": {
+  "assetId": "140624296451364",
+  "name": "UKSP Signs SignNew27"
+ },
+ "UKSP__Signs__SignNew30.glb": {
+  "assetId": "100974466752498",
+  "name": "UKSP Signs SignNew30"
+ },
+ "UKSP__Signs__SignNew33.glb": {
+  "assetId": "93516446398488",
+  "name": "UKSP Signs SignNew33"
+ },
+ "UKSP__Signs__SignNew36.glb": {
+  "assetId": "117328864127358",
+  "name": "UKSP Signs SignNew36"
+ },
+ "UKSP__Signs__SignNew39.glb": {
+  "assetId": "90177475596179",
+  "name": "UKSP Signs SignNew39"
+ },
+ "UKSP__Signs__SignOld03.glb": {
+  "assetId": "110014998477704",
+  "name": "UKSP Signs SignOld03"
+ },
+ "UKSP__Signs__SignOld06.glb": {
+  "assetId": "74790774519041",
+  "name": "UKSP Signs SignOld06"
+ },
+ "UKSP__Signs__SignOld09.glb": {
+  "assetId": "126797830858679",
+  "name": "UKSP Signs SignOld09"
+ },
+ "UKSP__Signs__SignOld12.glb": {
+  "assetId": "83666080489229",
+  "name": "UKSP Signs SignOld12"
+ },
+ "UKSP__Signs__SignOld15.glb": {
+  "assetId": "121330903648670",
+  "name": "UKSP Signs SignOld15"
+ },
+ "UKSP__Signs__SignOld18.glb": {
+  "assetId": "78815523990711",
+  "name": "UKSP Signs SignOld18"
+ },
+ "UKSP__Signs__SignOld21.glb": {
+  "assetId": "124204646051769",
+  "name": "UKSP Signs SignOld21"
+ },
+ "UKSP__Signs__SignOld24.glb": {
+  "assetId": "139671623204452",
+  "name": "UKSP Signs SignOld24"
+ },
+ "UKSP__Signs__SignOld27.glb": {
+  "assetId": "102045735674547",
+  "name": "UKSP Signs SignOld27"
+ },
+ "UKSP__Signs__SignOld30.glb": {
+  "assetId": "81406479660943",
+  "name": "UKSP Signs SignOld30"
+ },
+ "UKSP__Signs__SignOld33.glb": {
+  "assetId": "98205616706599",
+  "name": "UKSP Signs SignOld33"
+ },
+ "UKSP__Signs__SignOld36.glb": {
+  "assetId": "101095879396870",
+  "name": "UKSP Signs SignOld36"
+ },
+ "UKSP__Signs__SignOld39.glb": {
+  "assetId": "81899368060589",
+  "name": "UKSP Signs SignOld39"
+ },
+ "UKSP__StreetLights__StreetLight01.glb": {
+  "assetId": "138469749661848",
+  "name": "UKSP StreetLights StreetLight01"
+ },
+ "UKSP__TelegraphPoles__A01.glb": {
+  "assetId": "88968011703753",
+  "name": "UKSP TelegraphPoles A01"
+ },
+ "UKSP__TelegraphPoles__A04.glb": {
+  "assetId": "99263068294510",
+  "name": "UKSP TelegraphPoles A04"
+ },
+ "UKSP__TelegraphPoles__Cap1M.glb": {
+  "assetId": "120650458194350",
+  "name": "UKSP TelegraphPoles Cap1M"
+ },
+ "UKSP__TelegraphPoles__Cap__5M.glb": {
+  "assetId": "86721128149616",
+  "name": "UKSP TelegraphPoles Cap 5M"
+ },
+ "UKSP__TelegraphPoles__Wall2M.glb": {
+  "assetId": "80547503176346",
+  "name": "UKSP TelegraphPoles Wall2M"
+ },
+ "UKSP__TrachCan__TrashcanBase.glb": {
+  "assetId": "111275504169392",
+  "name": "UKSP TrachCan TrashcanBase"
+ },
+ "UKSP__TrafficCones__TrafficCone02.glb": {
+  "assetId": "79062971430437",
+  "name": "UKSP TrafficCones TrafficCone02"
+ },
+ "UKSP__TrafficCones__TrafficCone05.glb": {
+  "assetId": "119452212798654",
+  "name": "UKSP TrafficCones TrafficCone05"
+ },
+ "UKSP__TrafficCones__TrafficCone08.glb": {
+  "assetId": "102384702732294",
+  "name": "UKSP TrafficCones TrafficCone08"
+ },
+ "UKSP__TrafficProps__BollardStayLeftA.glb": {
+  "assetId": "120426936239930",
+  "name": "UKSP TrafficProps BollardStayLeftA"
+ },
+ "UKSP__TrafficProps__BollardStayRightB.glb": {
+  "assetId": "82168486894490",
+  "name": "UKSP TrafficProps BollardStayRightB"
+ },
+ "UKSP__TrafficProps__ConcreteCrossingCurvedB.glb": {
+  "assetId": "91659670462737",
+  "name": "UKSP TrafficProps ConcreteCrossingCurvedB"
+ },
+ "UKSP__TrafficProps__MainRoadTrafficLight.glb": {
+  "assetId": "115703123706479",
+  "name": "UKSP TrafficProps MainRoadTrafficLight"
+ },
+ "UKSP__TrafficProps__TrafficLightNoLeftTurn.glb": {
+  "assetId": "138047171196641",
+  "name": "UKSP TrafficProps TrafficLightNoLeftTurn"
+ },
+ "UKSP__TrafficProps__ZebraCrossingPostA.glb": {
+  "assetId": "114216176496383",
+  "name": "UKSP TrafficProps ZebraCrossingPostA"
+ },
+ "UKSP__TrafficProps__ZebraCrossingStripsA.glb": {
+  "assetId": "131498358595696",
+  "name": "UKSP TrafficProps ZebraCrossingStripsA"
+ },
+ "UKSP__TrashBags__Bag01.glb": {
+  "assetId": "81368367772726",
+  "name": "UKSP TrashBags Bag01"
+ },
+ "UKSP__TrashBags__Bag04.glb": {
+  "assetId": "80749416381411",
+  "name": "UKSP TrashBags Bag04"
+ },
+ "UKSP__WoodFences__FarmGate01Posts.glb": {
+  "assetId": "82163271811660",
+  "name": "UKSP WoodFences FarmGate01Posts"
+ },
+ "UKSP__WoodFences__Fence02.glb": {
+  "assetId": "138427081840090",
+  "name": "UKSP WoodFences Fence02"
+ },
+ "UKSP__WoodFences__Fence05.glb": {
+  "assetId": "92848690140980",
+  "name": "UKSP WoodFences Fence05"
+ },
+ "UKSP__WoodFences__Gate.glb": {
+  "assetId": "134610097553761",
+  "name": "UKSP WoodFences Gate"
+ },
+ "UKSP__WoodFences__PlankSingleBottom.glb": {
+  "assetId": "129406890255483",
+  "name": "UKSP WoodFences PlankSingleBottom"
+ },
+ "UKSP__WoodPallets__PalletA01.glb": {
+  "assetId": "72150964221500",
+  "name": "UKSP WoodPallets PalletA01"
+ },
+ "UKSP__WoodPallets__PalletB01.glb": {
+  "assetId": "133724524455230",
+  "name": "UKSP WoodPallets PalletB01"
+ },
+ "UKSP__WoodPallets__PalletC01.glb": {
+  "assetId": "79061199988146",
+  "name": "UKSP WoodPallets PalletC01"
+ },
+ "UKSP__WoodenFence__WoodenFence.glb": {
+  "assetId": "112507684000186",
+  "name": "UKSP WoodenFence WoodenFence"
+ },
+ "UKSP__armcoBarrier__ArmcoBarrierCap.glb": {
+  "assetId": "139800218559545",
+  "name": "UKSP armcoBarrier ArmcoBarrierCap"
+ },
+ "UKSP__boxes__Box03.glb": {
+  "assetId": "82918057858601",
+  "name": "UKSP boxes Box03"
+ },
+ "UKSP__boxes__Box06.glb": {
+  "assetId": "110816815828326",
+  "name": "UKSP boxes Box06"
+ },
+ "UKSP__boxes__Box09.glb": {
+  "assetId": "137405164426393",
+  "name": "UKSP boxes Box09"
+ },
+ "UKSP__dumpster__DumpsterNew.glb": {
+  "assetId": "129680815553128",
+  "name": "UKSP dumpster DumpsterNew"
+ },
+ "UKSP__dumpster__DumpsterRusted.glb": {
+  "assetId": "124269447175890",
+  "name": "UKSP dumpster DumpsterRusted"
+ }
+}

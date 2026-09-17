@@ -18,6 +18,11 @@ Thumbs.db
 assets/kit/*
 !assets/kit/MANIFEST.md
 !assets/kit/README.md
+# ...except the small id maps for uploaded kit models, which cost a re-upload to lose
+!assets/kit/_export/
+assets/kit/_export/*
+!assets/kit/_export/asset_ids*.json
+!assets/kit/_export/kit_ids.luau
 
 # Open Cloud key for tools/upload_kit.py (never commit)
 .roblox_api_key
