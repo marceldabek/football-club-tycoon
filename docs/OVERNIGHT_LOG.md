@@ -766,3 +766,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Roadmap G1 lists "queues, barriers". `MatchdayLife` now puts up 12 grey crowd-control barrier sections alongside the stewards (rail, mesh and two feet, 4 parts each). They sit either side of the final walk from the forecourt edge to the turnstiles, 5 studs off the line, since fans stay within ±2.5 of it. They come and go with the rest of the matchday crowd. Pure `MatchdayRoutes.barrierSections` has 1 test (beside the walk, within the last leg, clear of the piers, running along it).
 - **Playtest:** DebugRun `playMatch|60|15` on Plot 1 showed 12 barriers with fans walking between them into the turnstiles (**MatchdayBarriers_1**). All 12 were gone 54 s later when the crowd cleared.
 - RunAll 376/376.
+
+### 2026-09-17 08:03 — Extra matchday traffic (X92)
+- Roadmap G1 "extra traffic": Traffic's pool cap rises by TEMP 8 cars (3 on Low) while any ground within 900 studs of the camera is in PreMatch or Match. **Client check** from (1000, 8, 700) near Plot 1: the peak was 24 vehicles before the match and 32 during DebugRun `playMatch|60|10`.
+- RunAll 376/376 (client-only change).

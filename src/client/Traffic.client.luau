@@ -27,9 +27,38 @@ local MAX_CARS = 24 -- mobile budget; raise/lower this alone to retune the pool
 local MAX_CARS_LOW = 8 -- TEMP, Quality "Low" (mirrors Shared.Quality.BUDGETS.Low.maxCars)
 
 -- C3.2: QualityController publishes "High" | "Low" on the LocalPlayer.
+-- X92 (roadmap G1 "extra traffic"): a ground with a crowd arriving or a match
+-- on within MATCHDAY_RADIUS of the camera adds MATCHDAY_EXTRA cars (TEMP).
+local MATCHDAY_EXTRA = 8
+local MATCHDAY_EXTRA_LOW = 3
+local MATCHDAY_RADIUS = 900
+local function nearLiveGround(): boolean
+	local clubs = ReplicatedStorage:FindFirstChild("Clubs")
+	local camera = workspace.CurrentCamera
+	if not (clubs and camera) then
+		return false
+	end
+	local p = camera.CFrame.Position
+	for _, folder in clubs:GetChildren() do
+		local phase = folder:GetAttribute("Phase")
+		local cf = folder:GetAttribute("PlotCFrame")
+		if (phase == "PreMatch" or phase == "Match") and typeof(cf) == "CFrame" then
+			if Vector3.new(cf.X - p.X, 0, cf.Z - p.Z).Magnitude <= MATCHDAY_RADIUS then
+				return true
+			end
+		end
+	end
+	return false
+end
+
 local function maxCars(): number
 	local player = game:GetService("Players").LocalPlayer
-	return if player and player:GetAttribute("Quality") == "Low" then MAX_CARS_LOW else MAX_CARS
+	local low = player and player:GetAttribute("Quality") == "Low"
+	local base = if low then MAX_CARS_LOW else MAX_CARS
+	if nearLiveGround() then
+		base += if low then MATCHDAY_EXTRA_LOW else MATCHDAY_EXTRA
+	end
+	return base
 end
 local BUS_EVERY = 8 -- 1 in 8 spawns is a bus
 -- F2.2: buses pull up at the TownLayout bus stops on their road
