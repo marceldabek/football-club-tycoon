@@ -331,3 +331,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshot** Station_windows_1: the brick front reads as a row of sash windows.
 - **Still different from the reference (new X50):** a grass strip between Station Road's pavement and the forecourt, which the reference has paved to the kerb. There's also no newsagent kiosk and no taxi or bus-stop road markings.
 - RunAll 331/331.
+
+### 2026-09-17 04:21 — Station forecourt paved to the pavement (X50, part); glass colour fix
+- StationDresser now paves out from the forecourt in 8-stud strips to wherever Station Road's pavement begins. That's 14 strips, each tucked 1 stud under the pavement edge (paving top 0.3, pavement top 0.45), skipping the drop-off lane, and leaving the grass alone where no road comes within 70 studs. `forecourtReach` is pure, with a test that checks the strips end on a road pavement.
+- **Bug found and fixed:** the X49 commit added a second `local GLASS` that shadowed the entrance and footbridge glass colour below it. It's renamed to WINDOW_GLASS, so the entrance and footbridge glass have their original pale colour back.
+- **Screenshot** Station_verge_1: paving runs from the station front right to the Station Road pavement.
+- RunAll 332/332.

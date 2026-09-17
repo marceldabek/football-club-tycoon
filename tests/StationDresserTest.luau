@@ -70,4 +70,27 @@ function T.gableWedgesMeetAtTheApex()
 	end
 end
 
+function T.forecourtReachStopsAtARoadPavement()
+	local f = StationDresser.frontFrame()
+	local nearRoad = false
+	for x = -120, 112, 8 do
+		local reach = StationDresser.forecourtReach(f, x + 4, 22, 70, 1)
+		assert(reach >= 22 and reach <= 70, "reach stays in range at x " .. x)
+		if reach < 70 then
+			nearRoad = true
+			local p = f * Vector3.new(x + 4, 0, reach)
+			local onPavement = false
+			for _, road in TownLayout.ROADS do
+				if TownLayout.distanceToPolyline(p, road.points) <= road.width / 2 + TownLayout.PAVEMENT_WIDTH then
+					onPavement = true
+				end
+			end
+			assert(onPavement, "reach ends on a road's pavement at x " .. x)
+		end
+	end
+	assert(nearRoad, "Station Road should come within reach of the front")
+	-- nowhere near a road: the whole run is grass
+	assert(StationDresser.forecourtReach(CFrame.new(99999, 0, 99999), 0, 22, 70, 1) == 70, "no road -> zMax")
+end
+
 return T

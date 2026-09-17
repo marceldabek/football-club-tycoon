@@ -56,7 +56,8 @@ local function slab(parent: Instance, frame: CFrame, name: string, x0: number, x
 	})
 end
 
-local GLASS = Color3.fromRGB(58, 74, 90)
+local WINDOW_GLASS = Color3.fromRGB(58, 74, 90)
+local FORECOURT_MAX = 70 -- no road within this of the front wall: keep the grass (X50)
 local SASH_WHITE = Color3.fromRGB(236, 234, 226)
 
 -- A vertical mullion and a horizontal transom across a window centred on x
@@ -105,6 +106,24 @@ function StationDresser.frontFrame(): CFrame
 		return base * CFrame.new(0, 0, half)
 	end
 	return base * CFrame.new(0, 0, -half) * CFrame.Angles(0, math.pi, 0)
+end
+
+-- Pure (X50): how far out from the front wall (local z) a paving strip at
+-- local x should run so it meets the pavement of the nearest road instead of
+-- leaving grass. Starts at z0, steps out to zMax; returns z0 when a road
+-- pavement is already there, zMax when no road comes near.
+function StationDresser.forecourtReach(front: CFrame, x: number, z0: number, zMax: number, step: number): number
+	local z = z0
+	while z < zMax do
+		local p = front * Vector3.new(x, 0, z)
+		for _, road in TownLayout.ROADS do
+			if TownLayout.distanceToPolyline(p, road.points) <= road.width / 2 + TownLayout.PAVEMENT_WIDTH then
+				return z
+			end
+		end
+		z += step
+	end
+	return zMax
 end
 
 local function buildTaxi(parent: Instance, cf: CFrame)
@@ -351,6 +370,17 @@ function StationDresser.build(): string
 
 	-- forecourt paving in front of the building
 	slab(m, f, "Forecourt", -halfLen, halfLen, 0, 0.3, 0, 22, PAVING, Enum.Material.Pavement)
+	-- X50: pave on to the road's pavement in 8-stud strips instead of leaving a
+	-- grass verge (RivermereStation.png is paved to the kerb); strips run 1 stud
+	-- under the pavement edge (its top is 0.45, ours 0.3) and skip the drop-off lane
+	for x = -halfLen, halfLen - 8, 8 do
+		local dropOff = x + 8 > -90 and x < -14
+		local z0 = if dropOff then 38 else 22
+		local reach = StationDresser.forecourtReach(f, x + 4, z0, FORECOURT_MAX, 1)
+		if reach < FORECOURT_MAX and reach > z0 + 0.5 then
+			slab(m, f, "ForecourtVerge", x, x + 8, 0.02, 0.3, z0 - 0.05, reach + 1, PAVING, Enum.Material.Pavement)
+		end
+	end
 
 	-- entrance: glazed doors and windows set into the wall, navy canopy with the name
 	slab(m, f, "Entrance", -22, 22, 0.3, 12, -0.4, 0.1, GLASS, Enum.Material.Glass).Reflectance = 0.15
@@ -398,7 +428,7 @@ function StationDresser.build(): string
 	for x = -halfLen + 10, halfLen - 10, 16 do
 		local clearOfEntrance = math.abs(x) > 34 and not (x > 26 and x < 46)
 		if clearOfEntrance and x > -halfLen + 38 then
-			slab(m, f, "Window", x - 3.5, x + 3.5, 3, 10.5, 0, 0.3, GLASS, Enum.Material.Glass)
+			slab(m, f, "Window", x - 3.5, x + 3.5, 3, 10.5, 0, 0.3, WINDOW_GLASS, Enum.Material.Glass)
 			slab(m, f, "Lintel", x - 4.2, x + 4.2, 10.5, 11.5, 0, 0.6, Color3.fromRGB(215, 205, 185), Enum.Material.Limestone)
 			-- X49: white glazing bars and a stone sill, so the windows read as
 			-- sashes (RivermereStation.png) rather than dark blank panels
@@ -406,7 +436,7 @@ function StationDresser.build(): string
 			glazingBars(m, f, x, 3.5, 3, 10.5)
 		end
 		if math.abs(x) > 30 then
-			slab(m, f, "UpperWindow", x - 3, x + 3, 16.5, 21, 0, 0.3, GLASS, Enum.Material.Glass)
+			slab(m, f, "UpperWindow", x - 3, x + 3, 16.5, 21, 0, 0.3, WINDOW_GLASS, Enum.Material.Glass)
 			glazingBars(m, f, x, 3, 16.5, 21)
 		end
 	end
