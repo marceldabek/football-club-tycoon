@@ -22,9 +22,9 @@ local ViaductDresser = require(script.Parent.ViaductDresser)
 
 local BridgeDresser = {}
 
-local STONE = Color3.fromRGB(196, 182, 156)
-local STONE_DARK = Color3.fromRGB(170, 156, 132)
-local COPING = Color3.fromRGB(214, 204, 184)
+local STONE = Color3.fromRGB(210, 184, 140) -- warm honey sandstone like RivermereRiverside.png (X43)
+local STONE_DARK = Color3.fromRGB(184, 158, 118)
+local COPING = Color3.fromRGB(226, 208, 172)
 
 local MAX_ARCH = 24 -- TEMP: widest single arch, studs
 local SLICES = 6 -- slices per arch; each slice's underside is a wedge, so the arch is a smooth 6-sided curve (X41)

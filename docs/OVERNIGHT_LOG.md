@@ -270,3 +270,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Parts:** 128 per bridge (54 of them wedges), 384 for the three.
 - **Still different from the reference:** the stone is pale grey rather than warm honey sandstone, and there are no voussoirs (arch-ring stones) or lamp standards on the parapets.
 - RunAll 327/327.
+
+### 2026-09-17 03:53 — Bridge stone colour (X43), nothing stranded on the decks (X42)
+- **X43:** the bridge stone went from grey-beige to warm honey sandstone (stone 210,184,140; piers and cutwaters 184,158,118; coping 226,208,172), closer to `RivermereRiverside.png` (LuneBridge_colour_1).
+- **X42:** an overlap query over every Deck and DeckRamp found only the road and pavement ends that already ran under the bridge ends. There are no lamps, banners or props on the old flat deck height.

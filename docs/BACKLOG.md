@@ -147,5 +147,6 @@
 - [ ] X39 Spectating needs a real two-player check (B2.1d): the solo test faked a live match by cloning the club folder onto the Plot2 lot `[studio]` S
 - [x] X40 (hint hides while the summary or season card is open) The bottom hint pill (e.g. "Fans were turned away...") sits on top of the match summary's Back to Club button (seen on the friendly summary, also true for league matches); hide hints while the summary or season card is open, or raise the card's DisplayOrder `[studio]` S
 - [x] X41 (a WedgePart under each of 6 slices; 128 parts per bridge) Bridge arches are stepped slices; replace each slice bottom with a pair of wedges (or a curved mesh) so the arch reads as a smooth curve from a distance like RivermereRiverside.png `[studio]` S
-- [ ] X42 Street lamps / banners on road bridges: check none stand on the old flat deck height now that the decks are humped (none seen on the Lune Bridge) `[studio]` S
+- [x] X42 (overlap query over every deck piece found only road and pavement ends under the ramps, no lamps or props) Street lamps / banners on road bridges: check none stand on the old flat deck height now that the decks are humped (none seen on the Lune Bridge) `[studio]` S
+- [x] X43 (STONE 210,184,140 / dark 184,158,118 / coping 226,208,172) Road bridge stone reads pale grey; warm it to the honey sandstone of RivermereRiverside.png `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
