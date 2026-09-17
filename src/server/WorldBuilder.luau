@@ -1185,6 +1185,47 @@ local function buildOffice(parent: Instance)
 	spawn.Parent = office
 end
 
+-- X312: a new player spawns at the office desk facing a wall. Nothing in the
+-- office, the corridor or the tunnel says the pitch is that way, though
+-- CLAUDE.md s12 gives minute 0-1 to "walk outside and immediately see your tiny
+-- grassroots club". Three signs and an arrow, lit so they read in a dim
+-- corridor: over the office door, on the corridor wall, and on the tunnel floor.
+local function buildWayOut(parent: Instance)
+	local signs = Instance.new("Model")
+	signs.Name = "WayOut"
+	signs.Parent = parent
+
+	local green = Color3.fromRGB(26, 92, 48)
+	-- over the office doorway, facing back into the room
+	local overDoor = box("OfficeExit", Vector3.new(0.4, 2.2, 7), Vector3.new(OFFICE_CX + OFFICE_W / 2 - 0.7, OFFICE_Y + OFFICE_H - 3.4, OFFICE_CZ),
+		green, Enum.Material.SmoothPlastic, signs)
+	addSign(overDoor, "TO THE PITCH →", { Enum.NormalId.Left })
+
+	-- on the corridor wall, halfway along, facing anyone walking out
+	local corridor = box("CorridorExit", Vector3.new(6, 2, 0.3), Vector3.new(CORRIDOR_END + 34, DECK_Y + TUNNEL_H - 2.4, TUNNEL_HALF - 0.25),
+		green, Enum.Material.SmoothPlastic, signs)
+	addSign(corridor, "PITCH →", { Enum.NormalId.Front })
+
+	-- and a painted arrow on the tunnel floor at the mouth
+	local arrow = box("TunnelArrow", Vector3.new(10, 0.08, 4), Vector3.new(-(SIDE_EDGE + 8), DECK_Y + 0.06, 0),
+		Color3.fromRGB(236, 232, 210), Enum.Material.SmoothPlastic, signs)
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "Arrow"
+	gui.Face = Enum.NormalId.Top
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 24
+	gui.LightInfluence = 0.3
+	gui.Parent = arrow
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.GothamBlack
+	label.TextScaled = true
+	label.TextColor3 = Color3.fromRGB(40, 44, 40)
+	label.Text = "PITCH →"
+	label.Parent = gui
+end
+
 -- X291: the office only ever showed league titles, so a club promoted four
 -- times without winning a division had a bare wall and nothing at all for the
 -- players who got it there. A pennant per promotion along the wall above the
@@ -2447,6 +2488,7 @@ function WorldBuilder.build(standLevels: { [string]: number }, amenityLevel: num
 	buildTurnstiles(club)
 	buildForecourt(club)
 	buildOffice(club)
+	buildWayOut(club) -- X312
 	-- the team coach, parked on the forecourt beside the office (decorative)
 	buildTeamBus(club, Vector3.new(FORECOURT_CX + 18, DECK_Y, FORECOURT_CZ - 22))
 

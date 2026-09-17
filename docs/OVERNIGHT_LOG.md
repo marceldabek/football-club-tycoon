@@ -1720,3 +1720,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Left alone deliberately:** the match is still played at this club's ground (CLAUDE.md MVP scope) and the full gate still goes to the player, because what an away club earns is an economy decision - questions 18 and 19.
 - RunAll 465 passed.
 
+### 2026-09-17 18:49 — The way out of the office (X312)
+- A new player spawns at the office desk facing a wall, and nothing in the office, the corridor or the tunnel said the pitch was that way - though CLAUDE.md s12 gives minute 0-1 to "walk outside and immediately see your tiny grassroots club".
+- Three signs, near-unlit so they read in a dim corridor: **TO THE PITCH** over the office doorway (facing back into the room, so it is the first thing you see from the desk), **PITCH** on the corridor wall halfway along, and a painted **PITCH** arrow on the tunnel floor at the mouth. 3 parts.
+- Verified in play: from the spawn point at the desk the green sign sits over the doorway with the corridor sign visible beyond it (screenshot).
+- RunAll 465 passed.
+
