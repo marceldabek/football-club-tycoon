@@ -740,6 +740,71 @@ local function plantIsland(parent: Instance, rb: TownLayout.Roundabout)
 	arrow.Parent = gui
 end
 
+-- X121 (rivermer.industrialestate.png): navy RIVERMERE / BUSINESS BUILDS
+-- COMMUNITIES banners on the estate's street lamps, on the post's side away
+-- from the lamp arm, facing along the road. 2 parts a lamp.
+local function lampBanners(town: Instance, parent: Instance): number
+	local dressing = town:FindFirstChild("Dressing")
+	local estate = dressing and dressing:FindFirstChild("Industrial Estate")
+	if not estate then
+		return 0
+	end
+	local count = 0
+	for _, lamp in estate:GetChildren() do
+		local post, arm = lamp:FindFirstChild("Post"), lamp:FindFirstChild("Arm")
+		if not (lamp:IsA("Model") and lamp.Name == "TerraceLamp" and post and arm and post:IsA("BasePart") and arm:IsA("BasePart")) then
+			continue
+		end
+		local out = Vector3.new(arm.Position.X - post.Position.X, 0, arm.Position.Z - post.Position.Z)
+		if out.Magnitude < 1e-3 then
+			continue
+		end
+		local away = -out.Unit
+		local p = post.Position
+		local bracketY = p.Y + 3.6
+		local bracket = Instance.new("Part")
+		bracket.Name = "BannerBracket"
+		bracket.Anchored = true
+		bracket.Size = Vector3.new(0.12, 0.12, 1.6)
+		bracket.CFrame = CFrame.lookAt(Vector3.new(p.X, bracketY, p.Z) + away * 0.95, Vector3.new(p.X, bracketY, p.Z) + away * 2)
+		bracket.Color = Color3.fromRGB(24, 24, 26)
+		bracket.Material = Enum.Material.Metal
+		bracket.CastShadow = false
+		bracket.Parent = parent
+		local banner = Instance.new("Part")
+		banner.Name = "EstateBanner"
+		banner.Anchored = true
+		banner.Size = Vector3.new(1.3, 3.8, 0.1)
+		local centre = Vector3.new(p.X, bracketY - 2.05, p.Z) + away * 1.0
+		-- broad faces look along the road (perpendicular to the arm)
+		banner.CFrame = CFrame.lookAt(centre, centre + Vector3.new(-away.Z, 0, away.X))
+		banner.Color = Color3.fromRGB(24, 40, 78)
+		banner.Material = Enum.Material.Fabric
+		banner.CastShadow = false
+		banner.Parent = parent
+		for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+			local gui = Instance.new("SurfaceGui")
+			gui.Face = face
+			gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+			gui.PixelsPerStud = 40
+			gui.MaxDistance = 160
+			gui.Parent = banner
+			local label = Instance.new("TextLabel")
+			label.BackgroundTransparency = 1
+			label.Size = UDim2.fromScale(0.9, 0.9)
+			label.Position = UDim2.fromScale(0.05, 0.05)
+			label.Font = Enum.Font.GothamBold
+			label.TextScaled = true
+			label.TextWrapped = true
+			label.TextColor3 = Color3.fromRGB(236, 232, 220)
+			label.Text = "RIVERMERE\n\nBUSINESS\nBUILDS\nCOMMUNITIES"
+			label.Parent = gui
+		end
+		count += 1
+	end
+	return count
+end
+
 function EstateDresser.build(): string
 	local town = workspace:FindFirstChild("Town")
 	if not town then
@@ -900,6 +965,7 @@ function EstateDresser.build(): string
 		end
 	end
 
+	lampBanners(town, estates)
 	for _, rb in TownLayout.ROUNDABOUTS do
 		if table.find(EstateDresser.PLANTED_ROUNDABOUTS, rb.name) then
 			plantIsland(estates, rb)
