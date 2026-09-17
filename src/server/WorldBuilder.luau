@@ -1000,8 +1000,59 @@ local function buildOffice(parent: Instance)
 		Color3.fromRGB(70, 70, 70), Enum.Material.Slate, office)
 
 	local wy = OFFICE_Y + h / 2
-	box("WallW", Vector3.new(1, h, d), Vector3.new(cx - w / 2, wy, cz), wallColor, wallMat, office)
-	box("WallN", Vector3.new(w, h, 1), Vector3.new(cx, wy, cz - d / 2), wallColor, wallMat, office)
+	local wallW = box("WallW", Vector3.new(1, h, d), Vector3.new(cx - w / 2, wy, cz), wallColor, wallMat, office)
+	local wallN = box("WallN", Vector3.new(w, h, 1), Vector3.new(cx, wy, cz - d / 2), wallColor, wallMat, office)
+	-- X170: the early office is rundown (CLAUDE.md s5): damp stains on the
+	-- inside of the west and north walls and a curling fixtures notice behind
+	-- the desk, drawn with SurfaceGuis (no parts)
+	local function wallGui(wall: BasePart, face: Enum.NormalId): SurfaceGui
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = "Wear"
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 20
+		gui.LightInfluence = 1
+		gui.Parent = wall
+		return gui
+	end
+	local function stain(gui: SurfaceGui, x: number, y: number, sw: number, sh: number)
+		local f = Instance.new("Frame")
+		f.Name = "Damp"
+		f.Position = UDim2.fromScale(x, y)
+		f.Size = UDim2.fromScale(sw, sh)
+		f.BackgroundColor3 = Color3.fromRGB(110, 96, 70)
+		f.BackgroundTransparency = 0.72
+		f.BorderSizePixel = 0
+		f.Parent = gui
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0.5, 0)
+		corner.Parent = f
+	end
+	local westGui = wallGui(wallW, Enum.NormalId.Right) -- +X, into the room
+	stain(westGui, 0.02, 0.62, 0.22, 0.34)
+	stain(westGui, 0.1, 0.8, 0.3, 0.2)
+	stain(westGui, 0.8, 0.0, 0.18, 0.2)
+	local northGui = wallGui(wallN, Enum.NormalId.Back) -- +Z, into the room
+	stain(northGui, 0.0, 0.0, 0.16, 0.24)
+	stain(northGui, 0.86, 0.7, 0.14, 0.3)
+	local notice = Instance.new("Frame")
+	notice.Name = "FixturesNotice"
+	notice.AnchorPoint = Vector2.new(0.5, 0.5)
+	notice.Position = UDim2.fromScale(0.5, 0.38)
+	notice.Size = UDim2.fromOffset(60, 76)
+	notice.Rotation = -4
+	notice.BackgroundColor3 = Color3.fromRGB(236, 228, 204)
+	notice.BorderSizePixel = 0
+	notice.Parent = westGui
+	local noticeText = Instance.new("TextLabel")
+	noticeText.BackgroundTransparency = 1
+	noticeText.Size = UDim2.fromScale(0.86, 0.9)
+	noticeText.Position = UDim2.fromScale(0.07, 0.05)
+	noticeText.Font = Enum.Font.PatrickHand
+	noticeText.TextScaled = true
+	noticeText.TextColor3 = Color3.fromRGB(40, 40, 46)
+	noticeText.Text = "FIXTURES\nSat 3pm\nSat 3pm\nTue 7:45\nSat 3pm"
+	noticeText.Parent = notice
 	box("WallS", Vector3.new(w, h, 1), Vector3.new(cx, wy, cz + d / 2), wallColor, wallMat, office)
 	-- east wall has a doorway facing the ground
 	local doorW = 8
@@ -1027,13 +1078,36 @@ local function buildOffice(parent: Instance)
 		Color3.fromRGB(110, 75, 45), Enum.Material.Wood, office)
 	local computer = box("Computer", Vector3.new(1, 2, 2.5), Vector3.new(cx - 8, desk.Position.Y + 1.5 + 1, cz),
 		Color3.fromRGB(200, 200, 190), Enum.Material.Plastic, office)
+	-- X169: an old green-screen monitor facing the chair (-X)
+	local screen = Instance.new("SurfaceGui")
+	screen.Name = "Screen"
+	screen.Face = Enum.NormalId.Left
+	screen.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	screen.PixelsPerStud = 60
+	screen.LightInfluence = 0
+	screen.Parent = computer
+	local glass = Instance.new("TextLabel")
+	glass.Name = "Display"
+	glass.Position = UDim2.fromScale(0.08, 0.1)
+	glass.Size = UDim2.fromScale(0.84, 0.66)
+	glass.BackgroundColor3 = Color3.fromRGB(12, 30, 16)
+	glass.BorderSizePixel = 0
+	glass.Font = Enum.Font.Code
+	glass.TextScaled = true
+	glass.TextXAlignment = Enum.TextXAlignment.Left
+	glass.TextColor3 = Color3.fromRGB(90, 230, 110)
+	glass.Text = " CLUB OFFICE\n > _"
+	glass.Parent = screen
 	-- Club management lives on the office computer. The client opens the panel
 	-- when this prompt fires (ProximityPromptService.PromptTriggered).
 	local clubPrompt = addPrompt(computer, "Club Office", "Manage squad, scouting & staff")
 	clubPrompt.Name = "ClubPrompt"
 	clubPrompt.HoldDuration = 0
-	box("Chair", Vector3.new(2, 2, 2), Vector3.new(cx - 11.5, OFFICE_Y + 1, cz),
-		Color3.fromRGB(60, 60, 60), Enum.Material.Fabric, office)
+	-- X168: a cheap swivel chair facing the desk (+X): pedestal, seat, back
+	local chairX = cx - 11.5
+	box("ChairBase", Vector3.new(0.4, 1.4, 0.4), Vector3.new(chairX, OFFICE_Y + 0.7, cz), Color3.fromRGB(40, 40, 42), Enum.Material.Metal, office)
+	box("Chair", Vector3.new(2, 0.5, 2), Vector3.new(chairX, OFFICE_Y + 1.65, cz), Color3.fromRGB(60, 60, 60), Enum.Material.Fabric, office)
+	box("ChairBack", Vector3.new(0.4, 2.2, 1.8), Vector3.new(chairX - 0.8, OFFICE_Y + 3, cz), Color3.fromRGB(60, 60, 60), Enum.Material.Fabric, office)
 
 	local light = Instance.new("PointLight")
 	light.Brightness = 1.2
