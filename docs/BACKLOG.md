@@ -80,6 +80,7 @@
 - [x] F2.1 Client-side traffic on road polylines, distance-budgeted `[studio]` M
 - [x] F3.1 Client-side pedestrians on pavements, distance-budgeted `[studio]` M
 - [x] F4.1 (turbines, square flags, chimney smoke) Small motion: flags, bunting sway, chimney smoke `[studio]` S
+- [x] F4.2 (40 nearest tree crowns sway within 160 studs; 2 flocks of 5 birds round the church spire and over the Lune Bridge within 700 studs; all off on Low) Small motion part 2: tree sway, birds `[studio]` S
 
 ## Phase G/H — Matchday town & influence
 - [x] G1.1 Matchday around a plot (all players): fans walking to the ground, stewards, barriers; fades after `[studio]` M dep: B2.1c

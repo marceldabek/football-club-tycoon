@@ -417,3 +417,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Server workspace:** 20,557 BaseParts. The town is 17,147: Mill Street kit Dressing 8,371, Estates 1,960, TerraceStreets 1,229, Imperfections 900, Riverside 801, Shops 698, Forecourts 666, Bridges 504, Park 429, Roads 363, Square 331, Marina 312, Church 238, StationFront 180, BusStops 88. Also Plot1 681, three for-sale lots 168, Backdrop 974, VerticalSlice 1,565.
 - **Client at plot 1:** streams 10,848 parts (01:12 baseline 5,740) at 60 fps on the Studio PC. The Studio memory figure (4.5 GB) covers both the server and client test sessions, so it isn't meaningful.
 - This PC result says nothing about a mid-range phone. New X61: measure on a phone before adding more dressing (with X28). The biggest single lever is the Mill Street kit Dressing (8,371 parts).
+
+### 2026-09-17 04:59 — Tree sway and birds (F4.2)
+- New client script TownMotion. The 40 tree crowns nearest the camera (within 160 studs; street, planter and park trees) sway up to 0.35 studs, each with its own phase and a slowly turning gust direction. Every second the nearest set is re-picked and trees that drop out snap back to their server CFrame. Two flocks of 5 birds (a body and two flapping wings, client-only parts) wheel round the church spire at 95 up and over the Lune Bridge at 28 up, and exist only within 700 studs. Everything turns off on Quality Low. The maths is pure in Shared.TownMotion; TownMotionTest has 3 tests.
+- **Playtest:** a canopy 23 studs away moved 0.47 studs in 1.1 s, and 30 bird parts were live. With Quality Low there were 0 bird parts and the canopy was still; toggling back restored both. No console errors.
+- **Screenshot** Birds_spire_1: five birds circling the spire above the terraces.
+- RunAll 338/338.
