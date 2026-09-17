@@ -427,6 +427,20 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		Visible = false,
 	})
 
+	-- ------------------------------------------------- elsewhere (X294)
+	-- The division plays around you: without this the table just moved and no
+	-- other club ever had a score.
+	local elsewhere = Theme.text(body, "", "body", {
+		Name = "Elsewhere",
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		TextSize = 14,
+		TextColor3 = C.muted,
+		RichText = true,
+		LayoutOrder = 7,
+		Visible = false,
+	})
+
 	-- --------------------------------------------------------- balance
 	local balance = Instance.new("Frame")
 	balance.Name = "Balance"
@@ -640,6 +654,16 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		end
 		news.Visible = #lines > 0
 		news.Text = table.concat(lines, "\n")
+
+		-- X294: the rest of the division's results, home side first
+		local others = {}
+		for _, r in data.elsewhere or {} do
+			table.insert(others, ("%s  %d - %d  %s"):format(r.home, r.hg, r.ag, r.away))
+		end
+		elsewhere.Visible = #others > 0
+		elsewhere.Text = if #others > 0
+			then ("<b>ELSEWHERE THIS WEEK</b>\n%s"):format(table.concat(others, "\n"))
+			else ""
 
 		balanceLabel.Text = ("Club balance   %s"):format(Theme.rich(money(data.cash or 0), C.cash, true))
 		-- X217: the season prize is already in the balance but not in the match earnings

@@ -226,6 +226,27 @@ function League.completeRound(season: Season, round: number, playerFor: number, 
 	end
 end
 
+export type RoundResult = { home: string, away: string, hg: number, ag: number, player: boolean }
+
+-- X294: the other five clubs play every round and the player never saw a score,
+-- only the table moving. `completeRound` already stores hg/ag on the fixture, so
+-- this is just reading them back for the summary card and the league tab.
+function League.roundResults(season: Season, round: number): { RoundResult }
+	local out: { RoundResult } = {}
+	for _, f in season.fixtures do
+		if f.round == round and f.played and f.hg and f.ag then
+			table.insert(out, {
+				home = season.teams[f.home].name,
+				away = season.teams[f.away].name,
+				hg = f.hg :: number,
+				ag = f.ag :: number,
+				player = f.home == season.playerIndex or f.away == season.playerIndex,
+			})
+		end
+	end
+	return out
+end
+
 function League.standings(season: Season): { Row }
 	local rows: { Row } = {}
 	for i, t in season.teams do

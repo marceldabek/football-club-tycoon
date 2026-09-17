@@ -1602,3 +1602,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - I clobbered the debug save's cash to £100 while testing X295's "save up" hint (the hint reads a published attribute and the autosave took it); restored to ~£2m and saved.
 - RunAll 450 passed.
 
+### 2026-09-17 17:27 — The division plays around you (X294)
+- Five other clubs played a fixture every round and the player never saw a single score: the table moved and that was the only trace. `League.completeRound` has been storing `hg`/`ag` on every fixture all along, so nothing needed simulating - just reading it back.
+- New `League.roundResults(season, round)` returns each fixture in a round with both club names, the score and whether it was the player's. The season service publishes the round just played (minus the player's own match, which is the card's headline) and passes it to the summary.
+- The match summary card gained an **ELSEWHERE THIS WEEK** block under the news, and the LEAGUE tab a **MATCH n ELSEWHERE** table under the standings.
+- Verified in play: after match 6 the published round read `Fenmoor Athletic 2-0 Sunday Legends` and `Millpond Town 4-1 Oakhollow United`, the summary card showed exactly those two lines (screenshot), and the league tab listed them under the table with the scores centred between the club names.
+- RunAll 451 passed (one new League test: every fixture in a played round comes back with a score, exactly one of them is the player's, and an unplayed round returns nothing).
+

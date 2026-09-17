@@ -214,4 +214,27 @@ function T.ordinals()
 	assert(League.ordinal(4) == "4th" and League.ordinal(11) == "11th" and League.ordinal(22) == "22nd", "bad ordinals")
 end
 
+function T.roundResultsReadsBackEveryScore()
+	local season = League.newSeason(1, 7, "Test FC", 3)
+	League.completeRound(season, 1, 3, 1, Random.new(9))
+	local results = League.roundResults(season, 1)
+	local teams = #season.teams
+	assert(#results == math.floor(teams / 2), "every fixture in the round should have a score")
+	local players, total = 0, 0
+	for _, r in results do
+		assert(r.home ~= "" and r.away ~= "" and r.home ~= r.away, "both clubs should be named")
+		assert(r.hg >= 0 and r.ag >= 0, "scores should be real")
+		players += if r.player then 1 else 0
+		total += r.hg + r.ag
+	end
+	assert(players == 1, "exactly one fixture is the player's")
+	assert(total > 0, "a whole round of 0-0s is not a real result set")
+	for _, r in results do
+		if r.player then
+			assert((r.hg == 3 and r.ag == 1) or (r.hg == 1 and r.ag == 3), "the player's own score should be the one recorded")
+		end
+	end
+	assert(#League.roundResults(season, 2) == 0, "an unplayed round has no results")
+end
+
 return T

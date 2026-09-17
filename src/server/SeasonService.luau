@@ -169,6 +169,7 @@ function SeasonService.nextFixture(): Fixture?
 end
 
 export type RoundResult = {
+	elsewhere: { League.RoundResult }, -- X294: the other clubs' scores this round
 	position: number,
 	round: number,
 	rounds: number,
@@ -183,12 +184,22 @@ function SeasonService.recordPlayerResult(goalsFor: number, goalsAgainst: number
 	League.completeRound(season, round, goalsFor, goalsAgainst, rng)
 	popularity = Economy.popularityAfter(popularity, outcome)
 	local position = League.positionOf(season, season.playerIndex)
+	-- X294: the rest of the division's scores, for the summary card and the
+	-- league tab (the player's own fixture is dropped: it is the card's headline)
+	local elsewhere = {}
+	for _, r in League.roundResults(season, round) do
+		if not r.player then
+			table.insert(elsewhere, r)
+		end
+	end
+	ClubState.set("LastRound", HttpService:JSONEncode({ round = round, results = elsewhere }))
 	local result: RoundResult = {
 		position = position,
 		round = round,
 		rounds = season.rounds,
 		seasonOver = League.isOver(season),
 		summary = nil,
+		elsewhere = elsewhere,
 	}
 	if result.seasonOver then
 		result.summary = SeasonService.endSeason()

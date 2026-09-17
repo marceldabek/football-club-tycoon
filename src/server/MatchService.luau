@@ -317,6 +317,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		round = roundResult.round,
 		rounds = roundResult.rounds,
 		season = roundResult.summary,
+		elsewhere = roundResult.elsewhere, -- X294
 	})
 	return true
 end

@@ -825,6 +825,29 @@ local function renderHistory()
 	end
 end
 
+-- X294: last week's other results, under the table. The season only felt like
+-- a league on the summary card; the tab that shows the table never said who
+-- beat whom.
+local function renderLastRound()
+	local raw = get("LastRound")
+	if type(raw) ~= "string" or raw == "" then
+		return
+	end
+	local ok, data = pcall(function()
+		return HttpService:JSONDecode(raw)
+	end)
+	if not ok or type(data) ~= "table" or type(data.results) ~= "table" or #data.results == 0 then
+		return
+	end
+	section(("MATCH %d ELSEWHERE"):format(data.round or 0))
+	for i, r in data.results do
+		local f = row(i % 2 == 0)
+		cell(f, tostring(r.home), 10, 190, { TextXAlignment = Enum.TextXAlignment.Right })
+		cell(f, ("%d - %d"):format(r.hg, r.ag), 205, 60, { Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Center })
+		cell(f, tostring(r.away), 270, 190)
+	end
+end
+
 render = function()
 	if not panel.Visible then
 		return
@@ -855,6 +878,7 @@ render = function()
 	end
 	if currentTab == "League" then
 		renderLeague()
+		renderLastRound() -- X294
 	elseif currentTab == "History" then
 		renderHistory()
 	elseif currentTab == "Scouting" then
@@ -906,7 +930,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
 	end
 end)
 
-for _, key in { "Club", "Cash", "MatchesPlayed", "LeagueTable", "Demand", "History", "ClubName", "OwnerUserId" } do
+for _, key in { "Club", "Cash", "MatchesPlayed", "LeagueTable", "LastRound", "Demand", "History", "ClubName", "OwnerUserId" } do
 	state:GetAttributeChangedSignal(key):Connect(render)
 end
 state:GetAttributeChangedSignal("Phase"):Connect(function()
