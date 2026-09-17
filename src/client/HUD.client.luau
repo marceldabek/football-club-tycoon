@@ -507,6 +507,7 @@ end)
 
 local refreshHintText: () -> ()
 
+local midGameHint: () -> string
 local function refreshHint()
 	refreshHintText()
 	-- the summary and season cards own the bottom of the screen (their buttons sit there)
@@ -550,8 +551,80 @@ function refreshHintText()
 	elseif (get("AmenityLevel") or 0) == 0 then
 		hintLabel.Text = "Fans spend money too: build a Snack Bar at the CONCOURSE sign on the forecourt."
 	else
-		hintLabel.Text = ""
+		hintLabel.Text = midGameHint()
 	end
+end
+
+-- X295: past the Snack Bar the pill went blank for the rest of the game, so
+-- nothing ever pointed at a coach, a bigger ground, a better scout or the
+-- promotion run-in. This picks the cheapest thing the club is actually missing
+-- (and says what to save for when nothing is affordable), with the run-in
+-- taking priority because it expires.
+function midGameHint(): string
+	local roundsLeft = (get("Rounds") or 10) - (get("Round") or 0)
+	local position = get("Position") or 99
+	if roundsLeft > 0 and roundsLeft <= 3 and position <= 3 then
+		return ("%d to play and you're %s. Win these and you go up."):format(roundsLeft, ordinal(position))
+	end
+
+	local candidates: { { cost: number, what: string, text: string } } = {}
+	local turnedAway = (get("Demand") or 0) - (get("Capacity") or 0)
+	if turnedAway > 0 then
+		local best, bestCost = nil, math.huge
+		for _, plot in Config.StandPlots do
+			local level = (get("Stand_" .. plot.key) :: number?) or plot.start
+			local nextLevel = Config.StandLevels[level + 1]
+			if nextLevel and nextLevel.cost < bestCost then
+				best, bestCost = plot, nextLevel.cost
+			end
+		end
+		if best then
+			table.insert(candidates, {
+				cost = bestCost,
+				what = ("bigger %s"):format((best :: any).label),
+				text = ("About %d fans are being turned away. Expand the %s."):format(turnedAway, (best :: any).label),
+			})
+		end
+	end
+	local nextCoach = Config.CoachLevels[((get("CoachLevel") :: number?) or 0) + 2]
+	if nextCoach then
+		table.insert(candidates, {
+			cost = nextCoach.cost,
+			what = nextCoach.name,
+			text = ("A %s picks the team and brings your young players on: CLUB OFFICE, then STAFF."):format(nextCoach.name),
+		})
+	end
+	local nextScout = Config.ScoutLevels[((get("ScoutLevel") :: number?) or 0) + 1]
+	if nextScout then
+		table.insert(candidates, {
+			cost = nextScout.cost,
+			what = nextScout.name,
+			text = ("A %s finds better players: CLUB OFFICE, then SCOUTING."):format(nextScout.name),
+		})
+	end
+	local nextAmenity = Config.AmenityLevels[((get("AmenityLevel") :: number?) or 0) + 2]
+	if nextAmenity and (get("Capacity") or 0) > (get("Demand") or 0) then
+		-- only worth selling when the ground has room for the fans it brings (X280)
+		table.insert(candidates, {
+			cost = nextAmenity.cost,
+			what = nextAmenity.name,
+			text = ("A %s takes more money off every fan: the CONCOURSE sign."):format(nextAmenity.name),
+		})
+	end
+	if #candidates == 0 then
+		return ""
+	end
+	table.sort(candidates, function(a, b)
+		return a.cost < b.cost
+	end)
+	local cash = get("Cash") or 0
+	for _, c in candidates do
+		if cash >= c.cost then
+			return c.text
+		end
+	end
+	-- nothing affordable: name the target, short enough for the pill
+	return ("Play matches and save %s for a %s."):format(money(candidates[1].cost - cash), candidates[1].what)
 end
 
 local function refreshCash()
@@ -618,7 +691,14 @@ state:GetAttributeChangedSignal("Cash"):Connect(refreshCash)
 for _, key in { "Phase", "HomeGoals", "AwayGoals", "TimeLeft", "Opponent" } do
 	state:GetAttributeChangedSignal(key):Connect(refreshScoreboard)
 end
-for _, key in { "Phase", "MatchesPlayed", "StandLevel", "ScoutLevel", "AmenityLevel", "Round", "NeedsName", "Demand", "Capacity" } do
+-- X295: the mid-game hints read cash, the table and each stand plot, so those
+-- have to nudge the pill too (the per-plot keys were missing even for X240's
+-- onboarding hint)
+local hintKeys = { "Phase", "MatchesPlayed", "StandLevel", "ScoutLevel", "AmenityLevel", "CoachLevel", "Round", "Rounds", "Position", "NeedsName", "Demand", "Capacity", "Cash" }
+for _, plot in Config.StandPlots do
+	table.insert(hintKeys, "Stand_" .. plot.key)
+end
+for _, key in hintKeys do
 	state:GetAttributeChangedSignal(key):Connect(refreshHint)
 end
 for _, key in { "Phase", "OwnerUserId", "NeedsName", "NextOpponent", "Round", "Rounds", "MatchesPlayed" } do
