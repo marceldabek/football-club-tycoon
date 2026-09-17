@@ -30,6 +30,7 @@ export type Fixture = {
 	strength: number,
 	kit: { number },
 	seed: number,
+	atHome: boolean, -- X261: the fixture list alternates venues
 }
 
 export type SeasonSummary = {
@@ -150,6 +151,7 @@ function SeasonService.nextFixture(): Fixture?
 		strength = team.strength + rng:NextInteger(-3, 3),
 		kit = team.kit,
 		seed = team.seed,
+		atHome = f.home == season.playerIndex,
 	}
 end
 

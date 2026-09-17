@@ -122,7 +122,7 @@ end
 -- Shared matchday: sim up front, crowd, PreMatch walkout, Match clock with
 -- goals replayed on the scoreboard, authoritative final score. Leaves the
 -- club in Match phase; the caller settles and calls finishCore.
-local function playCore(opponent: Opponent, bias: number, evening: boolean, duration: number, walkout: number): Played
+local function playCore(opponent: Opponent, bias: number, evening: boolean, duration: number, walkout: number, playerIsAway: boolean?): Played
 	-- Simulation layer: result decided up front from squad strength vs the opponent.
 	local prepared = ClubService.prepareMatch()
 	homeSquad = prepared.matchSquad
@@ -130,6 +130,9 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 		homeStrength = prepared.strength,
 		awayStrength = opponent.strength,
 		bias = bias,
+		-- X261: an away fixture gives the venue advantage to the opponent. The
+		-- match is still watched at this club's ground (CLAUDE.md MVP scope).
+		playerIsAway = playerIsAway,
 	})
 	local scorerSlots = Squad.assignScorers(result.events :: any, homeSquad, Random.new())
 	subsMade = {}
@@ -243,7 +246,8 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		-- TEMP rule in DayCycle: some fixtures kick off under the floodlights
 		DayCycle.isEveningFixture(matchIndex),
 		durationOverride or Config.MatchDurationSeconds,
-		walkoutOverride or Config.WalkoutSeconds
+		walkoutOverride or Config.WalkoutSeconds,
+		fixture.atHome == false
 	)
 	local result = played.result
 

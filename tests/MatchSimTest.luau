@@ -154,4 +154,23 @@ function T.trimGoalsKeepsWinnerAndMargin()
 	end
 end
 
+
+function T.awayFixturesLoseTheVenueAdvantage()
+	-- X261: same squads, 400 seeds each way. At home the club should score more
+	-- and concede less than the same fixture away.
+	local function run(away: boolean): (number, number)
+		local goalsFor, goalsAgainst = 0, 0
+		for seed = 1, 400 do
+			local r = MatchSim.simulate({ homeStrength = 50, awayStrength = 50, seed = seed, playerIsAway = away })
+			goalsFor += r.homeGoals
+			goalsAgainst += r.awayGoals
+		end
+		return goalsFor, goalsAgainst
+	end
+	local homeFor, homeAgainst = run(false)
+	local awayFor, awayAgainst = run(true)
+	assert(homeFor > awayFor, ("home %d should score more than away %d"):format(homeFor, awayFor))
+	assert(homeAgainst < awayAgainst, ("home %d should concede less than away %d"):format(homeAgainst, awayAgainst))
+end
+
 return T

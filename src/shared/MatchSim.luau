@@ -21,6 +21,7 @@ export type Result = {
 }
 
 export type Params = {
+	playerIsAway: boolean?, -- X261: the reported side is the visitor
 	homeStrength: number,
 	awayStrength: number,
 	seed: number?,
@@ -137,9 +138,18 @@ function MatchSim.simulate(params: Params): Result
 	-- X201: unseeded matches get their own random sequence (os.time() gave two
 	-- clubs kicking off in the same second identical games)
 	local rng = if params.seed then Random.new(params.seed) else Random.new()
-	local home = math.max(params.homeStrength + HOME_ADVANTAGE, 1)
-	local away = math.max(params.awayStrength, 1)
-	local edge = (home / away) ^ STRENGTH_EXPONENT
+	-- `homeStrength` is the side this result is reported for (its goals come back
+	-- as homeGoals). X261: when that side is actually the visitor, the venue
+	-- advantage belongs to the opponent instead, so a player's away fixtures are
+	-- no longer played as if every match were at home.
+	local us = math.max(params.homeStrength, 1)
+	local them = math.max(params.awayStrength, 1)
+	local edge
+	if params.playerIsAway then
+		edge = (us / math.max(them + HOME_ADVANTAGE, 1)) ^ STRENGTH_EXPONENT
+	else
+		edge = (math.max(us + HOME_ADVANTAGE, 1) / them) ^ STRENGTH_EXPONENT
+	end
 
 	local homeGoals = samplePoisson(rng, math.clamp(BASE_XG * edge, MIN_XG, MAX_XG))
 	local awayGoals = samplePoisson(rng, math.clamp(BASE_XG / edge, MIN_XG, MAX_XG))
