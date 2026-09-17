@@ -264,18 +264,55 @@ local function clockFace(target: BasePart, face: Enum.NormalId)
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = 30
 	gui.Parent = target
-	local dial = Instance.new("TextLabel")
-	dial.Size = UDim2.fromScale(0.9, 0.9)
-	dial.Position = UDim2.fromScale(0.05, 0.05)
+	-- X68: a round dial with XII / III / VI / IX and two hands (it was one
+	-- TextLabel reading "XII · 3 ·", which scaled into a garbled "XI 3"). The
+	-- hands show the same time as the station clock.
+	local ink = Color3.fromRGB(20, 20, 20)
+	local dial = Instance.new("Frame")
+	dial.AnchorPoint = Vector2.new(0.5, 0.5)
+	dial.Position = UDim2.fromScale(0.5, 0.5)
+	dial.Size = UDim2.fromScale(0.86, 0.86)
 	dial.BackgroundColor3 = Color3.fromRGB(245, 242, 232)
-	dial.TextColor3 = Color3.fromRGB(20, 20, 20)
-	dial.Font = Enum.Font.Garamond
-	dial.TextScaled = true
-	dial.Text = "XII\n· 3 ·"
+	dial.BorderSizePixel = 0
 	dial.Parent = gui
+	local aspect = Instance.new("UIAspectRatioConstraint")
+	aspect.AspectRatio = 1
+	aspect.Parent = dial
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0.5, 0)
 	corner.Parent = dial
+	local rim = Instance.new("UIStroke")
+	rim.Color = ink
+	rim.Thickness = 4
+	rim.Parent = dial
+	for i, numeral in { "XII", "III", "VI", "IX" } do
+		local angle = math.rad((i - 1) * 90)
+		local label = Instance.new("TextLabel")
+		label.AnchorPoint = Vector2.new(0.5, 0.5)
+		label.Position = UDim2.fromScale(0.5 + 0.36 * math.sin(angle), 0.5 - 0.36 * math.cos(angle))
+		label.Size = UDim2.fromScale(0.22, 0.16)
+		label.BackgroundTransparency = 1
+		label.TextColor3 = ink
+		label.Font = Enum.Font.Garamond
+		label.TextScaled = true
+		label.Text = numeral
+		label.Parent = dial
+	end
+	-- a full-size holder rotates about the dial centre; the hand runs up from it
+	for _, hand in { { rotation = 85, length = 0.22, width = 0.05 }, { rotation = 300, length = 0.33, width = 0.03 } } do
+		local holder = Instance.new("Frame")
+		holder.Size = UDim2.fromScale(1, 1)
+		holder.BackgroundTransparency = 1
+		holder.Rotation = hand.rotation
+		holder.Parent = dial
+		local bar = Instance.new("Frame")
+		bar.AnchorPoint = Vector2.new(0.5, 1)
+		bar.Position = UDim2.fromScale(0.5, 0.5)
+		bar.Size = UDim2.fromScale(hand.width, hand.length)
+		bar.BackgroundColor3 = ink
+		bar.BorderSizePixel = 0
+		bar.Parent = holder
+	end
 end
 
 local function buildClockTower(parent: Instance, centre: Vector3)
@@ -313,13 +350,14 @@ local function buildPlanter(parent: Instance, cf: CFrame, rng: Random)
 	local f = cf * CFrame.new(0, TOP, 0)
 	slab(m, f, "Box", -5, 5, 0, 2.6, -2.5, 2.5, STONE, Enum.Material.Limestone)
 	slab(m, f, "Soil", -4.4, 4.4, 2.6, 2.8, -1.9, 1.9, SOIL, Enum.Material.Ground)
+	-- X69: a planted bed over the soil (a Ball's diameter is its smallest axis,
+	-- so the old 8.4 x 2.6 x 3.8 ball rendered as one 2.6 ball in bare soil)
 	part({
 		Name = "Flowers",
-		Shape = Enum.PartType.Ball,
-		Size = Vector3.new(8.4, 2.6, 3.8),
-		CFrame = f * CFrame.new(0, 3.6, 0),
+		Size = Vector3.new(8.6, 1.2, 3.6),
+		CFrame = f * CFrame.new(0, 3.3, 0),
 		Color = FLOWERS[rng:NextInteger(1, #FLOWERS)],
-		Material = Enum.Material.Grass,
+		Material = Enum.Material.LeafyGrass,
 		CastShadow = false,
 		Parent = m,
 	})

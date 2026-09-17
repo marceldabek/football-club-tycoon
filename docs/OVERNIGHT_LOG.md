@@ -528,3 +528,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshot** HeritageLamps_1.
 - Not done: the navy banner on the lamps. TownLife's client banners only look at `Town.Dressing` lamps.
 - RunAll 355/355.
+
+### 2026-09-17 06:09 — Market square clock faces and planters (X68, X69)
+- In the comparison with RivermereCenter.png, the clock tower's four faces read "XI 3". Each face was one TextLabel with "XII
+· 3 ·" and TextScaled. `SquareDresser.clockFace` now draws a round dial (aspect-locked, with a dark rim), the numerals XII, III, VI and IX, and hour and minute hands at the station clock's time.
+- The square's planters showed a small ball of flowers in bare soil. The 8.4 × 2.6 × 3.8 Ball rendered 2.6 across, because a Ball's diameter is its smallest axis. They're now a planted bed covering the soil.
+- **Screenshots** Center_clock_1 (before), Center_clock_2 and Center_planters_2.
+- RunAll 355/355.
