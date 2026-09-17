@@ -93,4 +93,26 @@ function T.forecourtReachStopsAtARoadPavement()
 	assert(StationDresser.forecourtReach(CFrame.new(99999, 0, 99999), 0, 22, 70, 1) == 70, "no road -> zMax")
 end
 
+function T.laybyMeetsTheForecourtAndOpensOntoStationRoad()
+	local f = StationDresser.frontFrame()
+	local l = StationDresser.laybyLocal(f)
+	assert(math.abs(l.z0 - 22) < 1e-3, "inner edge on the forecourt edge (local z 22), got " .. l.z0)
+	assert(l.x1 - l.x0 > 60, "long enough for two taxis and a free bay")
+	local road
+	for _, r in TownLayout.ROADS do
+		if r.name == "Station Road" then
+			road = r
+		end
+	end
+	assert(road, "Station Road exists")
+	-- along the lay-by, its outer edge sits on the carriageway edge: no pavement between
+	for x = l.x0, l.x1, 8 do
+		local outer = f * Vector3.new(x, 0, l.z1)
+		local d = TownLayout.distanceToPolyline(outer, road.points)
+		assert(math.abs(d - road.width / 2) < 0.5, ("outer edge %.2f from the centreline at local x %d"):format(d, x))
+		local inner = f * Vector3.new(x, 0, l.z0)
+		assert(TownLayout.distanceToPolyline(inner, road.points) > road.width / 2, "the lay-by itself is off the carriageway")
+	end
+end
+
 return T

@@ -500,3 +500,11 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Server check: none of the 43 sheds' yards, fences or posts overlap anything under `Town.Roads`.
 - **Screenshot** ShedYardFit_1: Mill Lane Motors (unit 8), with its yard behind the pavement.
 - RunAll 353/353.
+
+### 2026-09-17 05:55 — Station Road meets the station and its taxi rank (X51)
+- **Layout change (`TownLayout`):** Station Road used to stop diagonally at the forecourt's east corner, and the drop-off lane and taxi rank sat in grass. The road now turns at (-790, -337) and runs along the front of the station to the station car park at (-938, -337). The new `TownLayout.STATION_LAYBY` is an 8-wide lay-by between the forecourt and the carriageway. `TownBuilder` lays no pavement over it (it's a pavement blocker), so the lay-by opens straight onto the road.
+- `StationDresser.laybyLocal(f)` (pure, 1 new test) reads the lay-by into the front frame. The drop-off tarmac, the two taxis, the yellow rank line and the TAXIS marking are placed from it rather than hard-coded numbers. The lay-by's inner edge is exactly the forecourt edge, and its outer edge sits on the carriageway edge along its whole length.
+- **Bend joint:** the bend left a 6×6 grass notch with no pavement. Forecourt verge strips now check for a real `Pavement` part (server overlap) and pave to the kerb where there isn't one; `forecourtReach` gained an optional `verge`. A raycast grid over x -940..-680 and z -380..-340 shows no grass between the station and the road.
+- Traffic gets the longer road with a dead end at the car park. The Station bus stop is about 36 studs from the road, as before, so buses still pull up.
+- **Screenshots** StationRoad_before, StationRoad_after and StationRoad_after_3.
+- RunAll 354/354.

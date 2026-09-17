@@ -355,6 +355,11 @@ local function pavementBlockers(): Blockers
 			table.insert(rects, r)
 		end
 	end
+	local layby = TownLayout.STATION_LAYBY
+	local laybyRect = TownBuilder.segmentRect(layby.from, layby.to, layby.width / 2)
+	if laybyRect then
+		table.insert(rects, laybyRect)
+	end
 	local rail = TownLayout.RAIL
 	for i = 1, #rail.points - 1 do
 		local r = TownBuilder.segmentRect(rail.points[i], rail.points[i + 1], rail.width / 2 + 1)

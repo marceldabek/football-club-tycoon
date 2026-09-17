@@ -60,6 +60,11 @@ TownLayout.PLOT_LANE_END = Vector3.new(-390, 0, 80) -- plot-local, 10 outside th
 
 TownLayout.SQUARE = { name = "Market Square", centre = Vector3.new(0, 0, 0), radius = 60 }
 
+-- X51: the station taxi rank / drop-off lay-by, cut into Station Road's
+-- station-side pavement between the forecourt and the carriageway. TownBuilder
+-- lays no pavement over it; StationDresser surfaces it and parks the taxis.
+TownLayout.STATION_LAYBY = { from = Vector3.new(-890, 0, -354), to = Vector3.new(-804, 0, -354), width = 8 }
+
 TownLayout.ROUNDABOUTS = {
 	{ name = "Northfields Roundabout", centre = Vector3.new(0, 0, -1050), radius = 40 },
 	{ name = "Plot 4 Roundabout", centre = Vector3.new(-1300, 0, -800), radius = 40 },
@@ -178,7 +183,8 @@ TownLayout.ROADS = {
 		kind = "main",
 		width = 26,
 		points = {
-			Vector3.new(-460, 0, -60), Vector3.new(-700, 0, -300), Vector3.new(-800, 0, -340),
+			-- X51: turns to run along the station forecourt and on to the car park
+			Vector3.new(-460, 0, -60), Vector3.new(-700, 0, -300), Vector3.new(-790, 0, -337), Vector3.new(-938, 0, -337),
 		},
 	},
 	{

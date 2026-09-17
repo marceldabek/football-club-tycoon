@@ -113,18 +113,40 @@ end
 -- local x should run so it meets the pavement of the nearest road instead of
 -- leaving grass. Starts at z0, steps out to zMax; returns z0 when a road
 -- pavement is already there, zMax when no road comes near.
-function StationDresser.forecourtReach(front: CFrame, x: number, z0: number, zMax: number, step: number): number
+-- `verge` (default PAVEMENT_WIDTH) is how far past the carriageway edge counts
+-- as reached; 0 reaches the carriageway itself (X51, where no pavement got laid).
+function StationDresser.forecourtReach(front: CFrame, x: number, z0: number, zMax: number, step: number, verge: number?): number
 	local z = z0
+	local extra = verge or TownLayout.PAVEMENT_WIDTH
 	while z < zMax do
 		local p = front * Vector3.new(x, 0, z)
 		for _, road in TownLayout.ROADS do
-			if TownLayout.distanceToPolyline(p, road.points) <= road.width / 2 + TownLayout.PAVEMENT_WIDTH then
+			if TownLayout.distanceToPolyline(p, road.points) <= road.width / 2 + extra then
 				return z
 			end
 		end
 		z += step
 	end
 	return zMax
+end
+
+-- Pure (X51): TownLayout.STATION_LAYBY in the front frame `f`: local x range
+-- along the frontage and local z range out from the front wall.
+function StationDresser.laybyLocal(f: CFrame): { x0: number, x1: number, z0: number, z1: number }
+	local layby = TownLayout.STATION_LAYBY
+	local a, b = f:PointToObjectSpace(layby.from), f:PointToObjectSpace(layby.to)
+	local z = (a.Z + b.Z) / 2
+	return { x0 = math.min(a.X, b.X), x1 = math.max(a.X, b.X), z0 = z - layby.width / 2, z1 = z + layby.width / 2 }
+end
+
+-- True if a TownBuilder pavement part covers this ground point.
+local function pavementAt(p: Vector3): boolean
+	for _, hit in workspace:GetPartBoundsInBox(CFrame.new(p.X, 0.2, p.Z), Vector3.new(0.5, 0.4, 0.5)) do
+		if hit.Name == "Pavement" then
+			return true
+		end
+	end
+	return false
 end
 
 local function buildTaxi(parent: Instance, cf: CFrame)
@@ -370,16 +392,28 @@ function StationDresser.build(): string
 	end
 
 	-- forecourt paving in front of the building
+	local layby = StationDresser.laybyLocal(f)
 	slab(m, f, "Forecourt", -halfLen, halfLen, 0, 0.3, 0, 22, PAVING, Enum.Material.Pavement)
 	-- X50: pave on to the road's pavement in 8-stud strips instead of leaving a
 	-- grass verge (RivermereStation.png is paved to the kerb); strips run 1 stud
 	-- under the pavement edge (its top is 0.45, ours 0.3) and skip the drop-off lane
 	for x = -halfLen, halfLen - 8, 8 do
-		local dropOff = x + 8 > -90 and x < -4
-		local z0 = if dropOff then 38 else 22
+		local dropOff = x + 8 > layby.x0 and x < layby.x1
+		local z0 = if dropOff then layby.z1 else 22
 		local reach = StationDresser.forecourtReach(f, x + 4, z0, FORECOURT_MAX, 1)
-		if reach < FORECOURT_MAX and reach > z0 + 0.5 then
-			slab(m, f, "ForecourtVerge", x, x + 8, 0.02, 0.3, z0 - 0.05, reach + 1, PAVING, Enum.Material.Pavement)
+		if reach < FORECOURT_MAX then
+			local to = if reach > z0 + 0.5 then reach + 1 else z0
+			if not dropOff and not pavementAt(f * Vector3.new(x + 4, 0, reach + 2)) then
+				-- X51: TownBuilder left the pavement out here (a bend joint): pave on
+				-- to the carriageway edge instead of leaving grass
+				local kerb = StationDresser.forecourtReach(f, x + 4, z0, FORECOURT_MAX, 0.5, 0)
+				if kerb < FORECOURT_MAX then
+					to = math.max(to, kerb)
+				end
+			end
+			if to > z0 + 0.5 then
+				slab(m, f, "ForecourtVerge", x, x + 8, 0.02, 0.3, z0 - 0.05, to, PAVING, Enum.Material.Pavement)
+			end
 		end
 	end
 
@@ -442,17 +476,18 @@ function StationDresser.build(): string
 		end
 	end
 
-	-- drop-off lane and taxi rank at the kerb beyond the forecourt
-	-- X51: runs on to x -4, towards the end of Station Road; a grass gap to the
-	-- road's diagonal end remains until the road itself is extended (see backlog)
-	slab(m, f, "DropOff", -90, -4, 0, 0.25, 22, 38, Color3.fromRGB(70, 72, 76), Enum.Material.Asphalt)
-	for _, x in { -60, -44 } do
-		buildTaxi(m, f * CFrame.new(x, 0.25, 30) * CFrame.Angles(0, math.pi / 2, 0))
+	-- drop-off lane and taxi rank: X51 the lay-by (TownLayout.STATION_LAYBY) cut
+	-- into Station Road's pavement, so it opens straight onto the carriageway;
+	-- its tarmac tucks 0.2 over the carriageway edge (0.25 top vs the road's 0.22)
+	local laneMid = (layby.z0 + layby.z1) / 2
+	slab(m, f, "DropOff", layby.x0, layby.x1, 0, 0.25, layby.z0, layby.z1 + 0.2, Color3.fromRGB(70, 72, 76), Enum.Material.Asphalt)
+	for _, x in { layby.x0 + 30, layby.x0 + 46 } do
+		buildTaxi(m, f * CFrame.new(x, 0.25, laneMid) * CFrame.Angles(0, math.pi / 2, 0))
 	end
 	-- X50: yellow rank markings like RivermereStation.png: an edge line along the
 	-- lane and TAXIS painted on the free bay (a clear plate 0.02 above the tarmac)
-	slab(m, f, "RankLine", -90, -14, 0.23, 0.28, 36.9, 37.3, MARKING_YELLOW, Enum.Material.SmoothPlastic).CastShadow = false
-	local word = slab(m, f, "TaxiMarking", -34, -18, 0.25, 0.27, 24, 36, MARKING_YELLOW)
+	slab(m, f, "RankLine", layby.x0, layby.x1 - 10, 0.23, 0.28, layby.z1 - 0.5, layby.z1 - 0.1, MARKING_YELLOW, Enum.Material.SmoothPlastic).CastShadow = false
+	local word = slab(m, f, "TaxiMarking", layby.x0 + 56, layby.x0 + 72, 0.25, 0.27, layby.z0 + 0.5, layby.z1 - 0.7, MARKING_YELLOW)
 	word.Transparency = 1
 	word.CastShadow = false
 	sign(word, Enum.NormalId.Top, "TAXIS", MARKING_YELLOW, nil, Enum.Font.GothamBlack)
