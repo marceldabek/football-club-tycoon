@@ -98,7 +98,7 @@
   - [ ] I3.1d Two-player friendly test (needs Players = 2) `[studio]` S
 - [~] I4.1 Same-server player trades (cash only as part of a deal) `[studio]` L → split:
   - [x] I4.1a Pure `Trade` module: offer validation (a player must move, cash one way, affordability, squad min/max, keep a GK, max 3 each way), `move` with new ids + shirt numbers, offer book with expiry, tests `[disk]` S
-  - [ ] I4.1b Server `TradeService`: propose/respond remotes, re-validate on accept with both clubs in Manage, apply to both ClubServices + cash, save both, toasts `[studio]` M
+  - [x] I4.1b (solo round trip via DebugRun "tradeRoundTrip|id"; remotes untested until I4.1d) Server `TradeService`: propose/respond remotes, re-validate on accept with both clubs in Manage, apply to both ClubServices + cash, save both, toasts `[studio]` M
   - [ ] I4.1c Client trade screen from the visitor club card (both squads, pick up to 3 each way, cash either way) + offer card with Accept/Decline `[studio]` M
   - [ ] I4.1d Two-player trade test (needs Players = 2) `[studio]` S
 

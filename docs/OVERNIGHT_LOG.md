@@ -240,3 +240,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 ### 2026-09-17 03:32 — Trades part 1: pure rules (I4.1a)
 - I4.1 split into a/b/c/d. New `Trade` module: `validate` (no self-trades; at least one player moves, so no cash gifts; up to 3 each way; whole non-negative cash going one way that the payer can afford; players must belong to the right club, no duplicates; both squads within Config.SquadMin/Max and keeping a goalkeeper), `move` (fresh id and lowest free shirt number at the new club, stats copied), and an offer book (one outgoing offer, 60 s expiry, dropUser). TradeTest has 8 tests. The TEMP rules are question 6.
 - RunAll 322/322.
+
+### 2026-09-17 03:35 — Trades part 2: server (I4.1b)
+- **TradeService (global):** remotes TradePropose(targetPlot, give, take, giveCash, takeCash), TradeRespond(fromUserId, accept) and TradeOffer (to the other owner, with names, roles, ratings, ages and injuries of the players involved). Remote input is sanitised: short lists of whole numbers, and numeric cash. The offer is checked with `Trade.validate` when proposed and again on accept, and both clubs must be in Manage with no match running. It is then applied in one non-yielding step: `tradeAway` on both clubs, `tradeIn` on both, the cash moves, and both saves are flushed. Offers expire, are dropped when someone leaves, and each step toasts both owners.
+- **ClubService:** `squadCopy`, `tradeAway(ids)`, `tradeIn(players)` (fresh ids via `Trade.move`, then the lineup is recomputed and published). **PlotService:** `modulesFor(userId)` (ClubService, ClubState, Session, MatchService copies for that club).
+- **Playtest (solo):** DebugRun `tradeRoundTrip|16` traded bench player Callum Skyward (#16, id16) out and straight back in. He returned as #16 id17, and the squad stayed at 16. A league match afterwards still counted (32 played). Save, then reload from the snapshot, kept him as id17. No errors.
+- RunAll 322/322.

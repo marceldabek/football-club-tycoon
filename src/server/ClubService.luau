@@ -11,6 +11,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Squad = require(ReplicatedStorage.Shared.Squad)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local Profile = require(ReplicatedStorage.Shared.Profile)
+local Trade = require(ReplicatedStorage.Shared.Trade)
 local ClubState = require(script.Parent.ClubState)
 local PlotContext = require(script.Parent.PlotContext)
 
@@ -481,6 +482,46 @@ end
 
 function ClubService.squadAverage(): number
 	return Squad.average(players)
+end
+
+-- Trades (I4.1). A copy of the squad for validation; changing it changes nothing.
+function ClubService.squadCopy(): { Squad.Player }
+	local out = {}
+	for _, p in players do
+		table.insert(out, table.clone(p))
+	end
+	return out
+end
+
+-- Removes these players for a trade and returns them. Callers validate first
+-- (Trade.validate); unknown ids are skipped.
+function ClubService.tradeAway(ids: { number }): { Squad.Player }
+	local gone: { Squad.Player } = {}
+	for _, id in ids do
+		for i, p in players do
+			if p.id == id then
+				table.insert(gone, table.remove(players, i) :: Squad.Player)
+				break
+			end
+		end
+	end
+	recomputeLineup()
+	publish()
+	return gone
+end
+
+-- Adds traded-in players under fresh ids and the lowest free shirt numbers.
+function ClubService.tradeIn(arrivals: { Squad.Player }): { Squad.Player }
+	local incoming = table.clone(arrivals)
+	local ids = {}
+	for _, p in incoming do
+		table.insert(ids, p.id)
+	end
+	local moved
+	nextId, moved = Trade.move(ids, incoming :: any, players :: any, nextId)
+	recomputeLineup()
+	publish()
+	return moved :: any
 end
 
 return ClubService

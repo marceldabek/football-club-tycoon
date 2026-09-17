@@ -42,6 +42,13 @@ if game:GetService("RunService"):IsStudio() then
 		local a1, a2, a3 = args[1], args[2], args[3]
 		if command == "playMatch" then
 			return m.MatchService.playMatch(a1, a2)
+		elseif command == "tradeRoundTrip" then
+			-- trades a player out of the first club and straight back in (new id and number)
+			local owner = game:GetService("Players"):GetPlayers()[1]
+			if not owner then
+				return false, "no player"
+			end
+			return require(script.Parent.TradeService).debugRoundTrip(owner.UserId, { a1 })
 		elseif command == "invite" then
 			-- shows the friendly invite card to the first player without a second club
 			local target = game:GetService("Players"):GetPlayers()[1]
@@ -138,5 +145,6 @@ print("[FCT] " .. require(script.Parent.BridgeDresser).build())
 PlotService.start()
 require(script.Parent.BusService).start()
 require(script.Parent.FriendlyService).start()
+require(script.Parent.TradeService).start()
 
 print("[FCT] town ready")

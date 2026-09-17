@@ -362,7 +362,25 @@ function PlotService.clubOf(userId: number): (number?, Player?, any)
 	return plot, runtime.owner, runtime.match
 end
 
--- Same, looked up by plot index.
+-- The per-club module copies a cross-club feature needs (trades), or nil.
+function PlotService.modulesFor(userId: number): { [string]: any }?
+	local plot = registry:plotOf(userId)
+	local runtime = plot and runtimes[plot]
+	if not runtime then
+		return nil
+	end
+	local folder = runtime.folder
+	return {
+		plot = plot,
+		owner = runtime.owner,
+		session = runtime.session,
+		match = runtime.match,
+		club = require(folder:FindFirstChild("ClubService") :: ModuleScript),
+		state = require(folder:FindFirstChild("ClubState") :: ModuleScript),
+	}
+end
+
+-- Same as clubOf, looked up by plot index.
 function PlotService.clubAt(plot: number): (Player?, any)
 	local runtime = runtimes[plot]
 	if not runtime then
