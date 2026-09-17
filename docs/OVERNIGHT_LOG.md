@@ -698,3 +698,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 
 ### 2026-09-17 07:21 — X86 horizon closed as haze
 - A live Studio test added a ring of 28 large Persistent grassy hill parts 3,400 studs out, not saved to disk. It was completely invisible from the plot 2 picker (HorizonRing_try), so the lavender band is the Atmosphere haze rather than a hole in the world. The flat edge is terrain that hasn't streamed yet, fading into haze, and nearby hills appear once they stream in. I removed the test ring and closed X86; no code change.
+
+### 2026-09-17 07:24 — Overlap audit of tonight's props; turnstile plaque fix (X84)
+- Ran a server `GetPartsInPart` audit over the new semis street trees, flower beds, forklifts and play area; the station platform 2, car park, finger post, basket and yellow lines; the sports centre; and the turnstile additions. I first checked the audit catches a known overlap: 41 of 41 hedges touch their garden wall by design. The only unexpected hit was the MATCH DAYS plaque running 1.1 studs into the start of the perimeter wall, which would clip its text. The others were by design: pitch lines sink 0.02 into the slab, and yellow lines sit on a road joint.
+- **Fixed:** the plaques are now 3.4 wide at x - 3.9 .. x - 0.5, clear of the wall (the re-audit finds nothing). The shrub planter, which TurnstilePlaques_3 showed standing right in front of the plaque, moved out beside it. Both plaque labels render text (client TextBounds checked).
+- RunAll 371/371.

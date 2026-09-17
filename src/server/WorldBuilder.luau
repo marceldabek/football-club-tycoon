@@ -867,7 +867,8 @@ local function buildTurnstiles(parent: Instance)
 	-- gates (RivermereTurnstileEntrance.png)
 	for i, slogan in { "PRIDE\nPEOPLE\nRIVERMERE", "MATCH DAYS\nBRING PEOPLE\nTOGETHER" } do
 		local side = if i == 1 then -1 else 1
-		local plaque = box("Plaque", Vector3.new(4.4, 3.4, 0.15), Vector3.new(x - 1.5, DECK_Y + 4.6, TURNSTILE_Z + side * (total / 2 + 0.075)), Color3.fromRGB(24, 36, 72), Enum.Material.SmoothPlastic, gate)
+		-- x - 3.9 .. x - 0.5: clear of the perimeter wall (x +- 0.4) that starts at the pier
+		local plaque = box("Plaque", Vector3.new(3.4, 3.4, 0.15), Vector3.new(x - 2.2, DECK_Y + 4.6, TURNSTILE_Z + side * (total / 2 + 0.075)), Color3.fromRGB(24, 36, 72), Enum.Material.SmoothPlastic, gate)
 		plaque.CanCollide = false
 		local plaqueGui = Instance.new("SurfaceGui")
 		plaqueGui.Face = if side < 0 then Enum.NormalId.Front else Enum.NormalId.Back
@@ -884,13 +885,14 @@ local function buildTurnstiles(parent: Instance)
 		plaqueText.Text = slogan
 		plaqueText.Parent = plaqueGui
 	end
-	local planterZ = TURNSTILE_Z + total / 2 + 3
-	box("Planter", Vector3.new(3, 2.2, 3), Vector3.new(x - 5, DECK_Y + 1.1, planterZ), Color3.fromRGB(58, 60, 64), Enum.Material.Concrete, gate)
+	-- out beside the plaque (x - 3.9 .. x - 0.5), not in front of it
+	local planterX, planterZ = x - 7.5, TURNSTILE_Z + total / 2 + 2.5
+	box("Planter", Vector3.new(3, 2.2, 3), Vector3.new(planterX, DECK_Y + 1.1, planterZ), Color3.fromRGB(58, 60, 64), Enum.Material.Concrete, gate)
 	local shrub = part({
 		Name = "Shrub",
 		Shape = Enum.PartType.Ball,
 		Size = Vector3.new(3.4, 3.4, 3.4),
-		CFrame = CFrame.new(x - 5, DECK_Y + 2.2 + 1.2, planterZ),
+		CFrame = CFrame.new(planterX, DECK_Y + 2.2 + 1.2, planterZ),
 		Color = Color3.fromRGB(62, 104, 50),
 		Material = Enum.Material.LeafyGrass,
 		Parent = gate,
