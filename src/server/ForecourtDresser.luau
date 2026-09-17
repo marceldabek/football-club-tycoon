@@ -500,6 +500,21 @@ local function basket(parent: Instance, frame: CFrame, frontX: number, z: number
 end
 
 -- Two chalkboards leaning into an A; the faces look along local -X / +X of `base`.
+-- X59: a red pillar post box outside corner shops (RiveremereWestdale.png):
+-- a cylinder with a dome cap and a black slot band
+local POST_RED = Color3.fromRGB(196, 24, 30)
+local POSTBOX_MAX = 10
+
+local function postBox(parent: Instance, base: CFrame)
+	local m = Instance.new("Model")
+	m.Name = "PostBox"
+	m.Parent = parent
+	local body = part(m, "Pillar", Vector3.new(3.4, 1.3, 1.3), base * CFrame.new(0, 1.7, 0) * CFrame.Angles(0, 0, math.pi / 2), POST_RED, Enum.Material.SmoothPlastic, true);
+	(body :: any).Shape = Enum.PartType.Cylinder
+	local cap = part(m, "Cap", Vector3.new(1.45, 1.45, 1.45), base * CFrame.new(0, 3.35, 0), POST_RED, Enum.Material.SmoothPlastic, false);
+	(cap :: any).Shape = Enum.PartType.Ball
+end
+
 local function aBoard(parent: Instance, base: CFrame, text: string)
 	local m = Instance.new("Model")
 	m.Name = "ABoard"
@@ -700,7 +715,7 @@ function ForecourtDresser.build(): string
 
 	-- X23: cafe seating, A-boards, hanging baskets
 	local rows = modelsByName(town:FindFirstChild("Shops"), "ShopRow")
-	local sets, boards, baskets = 0, 0, 0
+	local sets, boards, baskets, postBoxes = 0, 0, 0, 0
 	for _, rec in shops do
 		local row = modelAt(rows, rec.frame.Position)
 		local bays = baysFor(row, rec.frame, rec.length, rec.block.use)
@@ -728,6 +743,15 @@ function ForecourtDresser.build(): string
 					aBoard(shopsModel, rec.frame * CFrame.new(x, ForecourtDresser.PAVE_TOP, z), text)
 					boards += 1
 				end
+			end
+		end
+		if rec.block.use == "corner shop" and postBoxes < POSTBOX_MAX and g >= 3 and room(2) then
+			local x = frontX - math.clamp(g - 1.2, 1.2, 3)
+			local z = rec.length / 2 - 2
+			local p = rec.frame * Vector3.new(x, 0, z)
+			if clearOfRoads(p, 1) and not nearBusStop(p) then
+				postBox(shopsModel, rec.frame * CFrame.new(x, ForecourtDresser.PAVE_TOP, z))
+				postBoxes += 1
 			end
 		end
 		if g >= 2 then

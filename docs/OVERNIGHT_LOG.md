@@ -394,3 +394,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshot** BusFlag_1: the Westdale stop.
 - **Still different in Westdale (new X59):** the side streets are bare (no trees, lamps, cars or railings), there's no corner shop with a post box, and a big white civic greybox block sits among the houses.
 - RunAll 335/335.
+
+### 2026-09-17 04:49 — Post boxes by the corner shops (X59, part)
+- ForecourtDresser puts a red pillar post box (a cylinder and a dome cap, 2 parts) on the forecourt at one end of each corner shop, up to 10, if it's clear of roads and bus stops. It's modelled on the post box beside Westdale Stores in the reference. All 10 were placed.
+- **Screenshot** PostBox_1: a post box outside a corner shop, with a club banner lamp and the terrace behind (the player's own helmet is in the foreground).
+- **Found:** the big white block in Westdale is the "school" greybox, which nothing dresses yet (part of X59).
+- RunAll 335/335.
