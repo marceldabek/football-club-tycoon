@@ -234,4 +234,5 @@
 - [x] X119 (09:49 Foundry Way Roundabout island: stone kerb rim, six shrubs, a blue keep-left sign facing the High Street approach; 9 parts, Decor) rivermer.industrialestate.png's planted roundabout; ours was a bare grass disc `[studio]` S
 - [x] X120 (09:50 "ALL VISITORS REPORT TO RECEPTION / CCTV IN OPERATION" notice on the front palisade of every other shed yard; 21 signs, 1 part each) rivermer.industrialestate.png's gate notices `[studio]` S
 - [x] X121 (09:53 navy RIVERMERE / BUSINESS BUILDS COMMUNITIES banners on the 6 industrial estate street lamps, 2 parts each) rivermer.industrialestate.png's lamp banners `[studio]` S
+- [x] X122 (09:55 the club shop fascia reads "<CLUB NAME>  CLUB SHOP"; the name label is called ClubName so a rename repaints it) RivermereTurnstileEntrance.png: "RIVERMERE FC CLUB SHOP"; ours said only "CLUB SHOP" `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

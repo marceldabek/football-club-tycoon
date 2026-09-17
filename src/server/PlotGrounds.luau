@@ -572,7 +572,22 @@ local function buildShop(parent: Instance)
 
 	-- club-coloured fascia across the front, standing proud of the brick
 	local fascia = extents("Fascia", fx0, x1 + FASCIA_PROUD, frontTop, top, z0, z1, Config.HomeKit, Enum.Material.SmoothPlastic, shop)
-	addSign(fascia, "CLUB SHOP", { Enum.NormalId.Right })
+	-- X122 (RivermereTurnstileEntrance.png: "<CLUB> CLUB SHOP"): the club's name
+	-- on the left of the fascia, in a label named ClubName so
+	-- WorldBuilder.setClubName repaints it after a rename, "CLUB SHOP" on the right
+	addSign(fascia, "", { Enum.NormalId.Right })
+	local shopGui = fascia:FindFirstChild("Sign") :: SurfaceGui
+	local shopText = shopGui:FindFirstChild("Text") :: TextLabel
+	shopText.Size = UDim2.fromScale(0.36, 1)
+	shopText.Position = UDim2.fromScale(0.62, 0)
+	shopText.Text = "CLUB SHOP"
+	local nameText = shopText:Clone()
+	nameText.Name = "ClubName"
+	nameText.Size = UDim2.fromScale(0.58, 1)
+	nameText.Position = UDim2.fromScale(0.02, 0)
+	local stateName = PlotContext.stateFolder():GetAttribute("ClubName")
+	nameText.Text = string.upper(if type(stateName) == "string" and stateName ~= "" then stateName else Config.ClubName)
+	nameText.Parent = shopGui
 	extents("RoofCap", x0 - 0.5, x1 + FASCIA_PROUD + 0.5, top, top + 1, z0 - 0.5, z1 + 0.5,
 		Color3.fromRGB(70, 70, 74), Enum.Material.Concrete, shop)
 
