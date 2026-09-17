@@ -37,7 +37,7 @@
 - [~] B2.1 Per-club services: each owner gets their own ClubState folder (`ReplicatedStorage.Clubs.<userId>`), match, upgrades, season, history, save; server remotes route by player; clients read `player:GetAttribute("ClubFolder")` `[studio]` L → split:
   - [x] B2.1a Design note `docs/PLOTS.md`: how services become per-club (module instancing vs context tables), remotes routing, what stays global `[disk]` S
   - [x] B2.1b Server: per-club service instances, save per player, loop works for one player `[studio]` M
-  - [ ] B2.1c Clients bind to their own club folder; visitors see other clubs read-only `[studio]` M
+  - [x] B2.1c Clients bind to their own club folder; visitors see other clubs read-only `[studio]` M
   - [ ] B2.1d Two-client Studio test (Players = 2): both play a match at the same time `[studio]` M
 - [x] B2.2 Plot picker on load: camera flies between free plots (for-sale lots), Prev / Next / Choose buttons; choosing claims the plot, builds the club, spawns the player in their office `[studio]` M dep: B1.1, B2.1b
 - [x] B2.3 Despawn on leave: flush save, destroy the club model, release the plot, rebuild the for-sale lot `[studio]` S dep: B2.1b

@@ -26,7 +26,7 @@ station pitched roof + gable clock (X21), stone road bridges (X19), semis gable 
 (X25–X29), floodlight tag lookup (X2), separate Studio save store (X1, TEMP), season end verified (A2.2),
 marina quay + riverside gardens (X18), hedged backdrop fields (X16), road imperfections (E10.1), semis with driveways
 (X30), square flags + chimney smoke + matchday pub drinkers (F4.1/G2.1), smaller plot car park + bus menu sizing (X9/X15),
-Mill Street front gardens, railings, street trees, signs and parked cars (X11).
+Mill Street front gardens, railings, street trees, signs and parked cars (X11), visitors see other clubs read-only (B2.1c).
 **Half-done:** the new bus menu sizing is merged but not click-tested.
 **Reverted:** none.
 
@@ -181,3 +181,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11).
 - **Boats and traffic (X32/X36):** boat bows now taper to a point (the wedge was turned the wrong way). Traffic keeps off Mill Street, Weaver Street and Church Lane, which have cars parked on both kerbs, using the new TerraceStreets `ParkedStreets` attribute.
 - **Driveway cars (X33):** not done. The kit hatchback is 9.8 × 19.4 studs, too big for 10-stud drives.
 - RunAll 297/297.
+
+### 2026-09-17 03:04 — Visitors see other clubs read-only (B2.1c)
+- The server was already safe: stand, amenity and matchday prompts check `ClubState.isOwner`, and every club remote goes through RemoteRouter to the sender's own plot. Client UIs already read the player's own club through `ClubRef` (the ClubPlot attribute).
+- Gap closed: visitors still saw Expand, Build and Play prompts on other grounds, and the office prompt there opened their own club panel. The new client script `VisitorPrompts` turns off, on that client only, every prompt inside a plot the player doesn't own. The server changes `Enabled` at matchday, so the rule is re-applied whenever it changes. Rule is in the shared `PlotVisit`, test is PlotVisitTest.
+- Playtest: claimed Plot1, whose 7 prompts stayed on. A test prompt the server put in Plot2 stayed off on the client after the server set it false and then true. During a 30 s match the Plot1 prompts went 6 off, then 6 on in Manage. No errors.
+- Follow-up: B2.1d, the two-client test, still needs Studio's Players = 2 test server.
+- RunAll 300/300.
