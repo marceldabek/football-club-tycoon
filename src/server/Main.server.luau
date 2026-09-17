@@ -108,6 +108,7 @@ require(script.Parent.Backdrop).build()
 print("[FCT] " .. require(script.Parent.StreetDresser).build())
 print("[FCT] " .. require(script.Parent.SquareDresser).build())
 print("[FCT] " .. require(script.Parent.RiverDresser).build())
+print("[FCT] " .. require(script.Parent.StationDresser).build())
 PlotService.start()
 require(script.Parent.BusService).start()
 
