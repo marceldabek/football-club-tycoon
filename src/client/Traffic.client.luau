@@ -630,6 +630,75 @@ local function moveCar(car: Car, dt: number)
 	end
 end
 
+-- ------------------------------------------------------------------ headlights
+
+-- X160: after dark the nearest cars and buses get a forward SpotLight on an
+-- Attachment in their first part (no parts). The Attachment turns back by the
+-- mesh yaw so it faces the root's -Z, the way the car is travelling.
+local HEADLIGHT_MAX = 8 -- TEMP
+local HEADLIGHT_RADIUS = 200
+local headlights: { [Model]: Attachment } = {}
+
+local function skyIsDark(): boolean
+	local t = game:GetService("Lighting").ClockTime
+	return t >= 17.8 or t <= 6.2
+end
+
+local function refreshHeadlights()
+	local want: { [Model]: Car } = {}
+	local player = game:GetService("Players").LocalPlayer
+	if skyIsDark() and not (player and player:GetAttribute("Quality") == "Low") then
+		local camPos = currentCameraPosition()
+		local ranked = {}
+		for _, car in cars do
+			if not car.isBike then
+				local d = flatDistance(car.lastPos, camPos)
+				if d <= HEADLIGHT_RADIUS then
+					table.insert(ranked, { car = car, d = d })
+				end
+			end
+		end
+		table.sort(ranked, function(x, y)
+			return x.d < y.d
+		end)
+		for i = 1, math.min(HEADLIGHT_MAX, #ranked) do
+			want[ranked[i].car.model] = ranked[i].car
+		end
+	end
+	for model, a in headlights do
+		if not want[model] or not model.Parent then
+			a:Destroy()
+			headlights[model] = nil
+		end
+	end
+	for model, car in want do
+		local host = car.parts[1]
+		if not headlights[model] and host then
+			local reach = math.max(host.Size.X, host.Size.Z) / 2
+			local a = Instance.new("Attachment")
+			a.Name = "Headlights"
+			a.CFrame = CFrame.Angles(0, -car.meshYaw, 0) * CFrame.new(0, 0, -reach)
+			local light = Instance.new("SpotLight")
+			light.Face = Enum.NormalId.Front
+			light.Angle = 60
+			light.Range = 40
+			light.Brightness = 2
+			light.Color = Color3.fromRGB(255, 244, 220)
+			light.Shadows = false
+			light.Parent = a
+			a.Parent = host
+			headlights[model] = a
+		end
+	end
+end
+
+task.spawn(function()
+	while true do
+		refreshHeadlights()
+		task.wait(1)
+	end
+end)
+
 -- ------------------------------------------------------------------ main loop
 
 RunService.RenderStepped:Connect(function(dt: number)
