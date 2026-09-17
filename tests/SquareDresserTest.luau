@@ -21,4 +21,13 @@ function T.fingerPostDestinationsExist()
 	assert(SquareDresser.destination("Atlantis") == nil, "unknown names are nil")
 end
 
+function T.basketLampsAreTheNearestInRange()
+	local centre = Vector3.zero
+	local positions = { Vector3.new(300, 0, 0), Vector3.new(50, 0, 0), Vector3.new(0, 0, -20), Vector3.new(0, 5, 100) }
+	local picks = SquareDresser.basketLamps(centre, positions, 200, 2)
+	assert(#picks == 2 and picks[1] == 3 and picks[2] == 2, "nearest two in range, nearest first")
+	assert(#SquareDresser.basketLamps(centre, positions, 200, 10) == 3, "out-of-range lamps are skipped")
+	assert(#SquareDresser.basketLamps(centre, {}, 200, 10) == 0, "no lamps")
+end
+
 return T

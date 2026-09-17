@@ -179,6 +179,85 @@ local function buildFingerPost(parent: Instance, at: Vector3)
 	end
 end
 
+-- X47: hanging flower baskets on the lamp posts round the town centre, like
+-- RivermereCenter.png. Lamps are StreetDresser's TerraceLamp models (arm on
+-- local -Z, so the basket hangs off +Z) and the kit lamps (arms across X, basket on +Z).
+local BASKET_RADIUS = 420 -- TEMP: studs from the square centre (reaches the Mill Street lamps)
+local BASKET_MAX = 30
+local BASKET_Y = 9.4
+
+-- Pure: which lamps get a basket: the nearest `max` within `radius` of `centre`.
+function SquareDresser.basketLamps(centre: Vector3, positions: { Vector3 }, radius: number, max: number): { number }
+	local picks = {}
+	for i, p in positions do
+		local d = Vector3.new(p.X - centre.X, 0, p.Z - centre.Z).Magnitude
+		if d <= radius then
+			table.insert(picks, { index = i, distance = d })
+		end
+	end
+	table.sort(picks, function(a, b)
+		return a.distance < b.distance
+	end)
+	local out = {}
+	for k = 1, math.min(max, #picks) do
+		table.insert(out, picks[k].index)
+	end
+	return out
+end
+
+local function hangBasket(parent: Instance, post: CFrame, colour: Color3)
+	local m = Instance.new("Model")
+	m.Name = "LampBasket"
+	m:SetAttribute("Decor", true)
+	m.Parent = parent
+	part({
+		Name = "Bracket",
+		Size = Vector3.new(0.2, 0.2, 1.5),
+		CFrame = post * CFrame.new(0, BASKET_Y + 1.1, 0.85),
+		Color = IRON,
+		Material = Enum.Material.Metal,
+		Parent = m,
+	})
+	part({
+		Name = "Basket",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.new(1.8, 1.8, 1.8),
+		CFrame = post * CFrame.new(0, BASKET_Y, 1.45),
+		Color = colour,
+		Material = Enum.Material.Grass,
+		CastShadow = false,
+		Parent = m,
+	})
+end
+
+local function dressLampBaskets(town: Instance, square: Instance, centre: Vector3, rng: Random): number
+	local posts: { CFrame } = {}
+	for _, d in town:GetDescendants() do
+		if d:IsA("Model") then
+			if d.Name == "TerraceLamp" and d.PrimaryPart then
+				local pivot = d.PrimaryPart.CFrame * CFrame.Angles(0, 0, -math.pi / 2) -- undo the upright cylinder turn
+				local p = pivot.Position
+				table.insert(posts, CFrame.lookAt(Vector3.new(p.X, 0, p.Z), Vector3.new(p.X, 0, p.Z) + Vector3.new(pivot.LookVector.X, 0, pivot.LookVector.Z)))
+			elseif d:GetAttribute("Kit") == "LampVictorian" then
+				local cf = d:GetBoundingBox()
+				table.insert(posts, CFrame.new(cf.X, TOP, cf.Z))
+			end
+		end
+	end
+	local positions = {}
+	for _, post in posts do
+		table.insert(positions, post.Position)
+	end
+	local count = 0
+	for _, index in SquareDresser.basketLamps(centre, positions, BASKET_RADIUS, BASKET_MAX) do
+		local post = posts[index]
+		-- terrace lamps stand on the pavement (their CFrame is at ground level)
+		hangBasket(square, post, FLOWERS[rng:NextInteger(1, #FLOWERS)])
+		count += 1
+	end
+	return count
+end
+
 local function clockFace(target: BasePart, face: Enum.NormalId)
 	local gui = Instance.new("SurfaceGui")
 	gui.Face = face
@@ -374,6 +453,7 @@ function SquareDresser.build(): string
 	end
 
 	square.Parent = town
+	local baskets = dressLampBaskets(town, square, centre, rng)
 	local parts = 0
 	for _, d in square:GetDescendants() do
 		if d:IsA("BasePart") then
@@ -381,7 +461,7 @@ function SquareDresser.build(): string
 		end
 	end
 	local churchParts = dressChurch(town)
-	return ("square: %d parts, church: %d parts"):format(parts, churchParts)
+	return ("square: %d parts (%d lamp baskets), church: %d parts"):format(parts, baskets, churchParts)
 end
 
 return SquareDresser

@@ -312,3 +312,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshot** Shelter_advert_1: the Town Centre shelter with the red club advert, the finger post and a planter's flowers in the same view.
 - X47 still has hanging baskets on lamp posts and the lollipop trees to do.
 - RunAll 330/330.
+
+### 2026-09-17 04:14 — Hanging baskets on the lamp posts (X47 done)
+- SquareDresser hangs a flower basket (a bracket plus a flower ball, tagged Decor so Quality Low hides it) on the 30 lamps nearest the square within TEMP 420 studs: the square's 4 kit lamps, the Mill Street kit lamps, and StreetDresser's TerraceLamps (off the side away from their lantern arm). `basketLamps` is pure, with a test. 60 parts.
+- The first try only found the 4 square lamps: I had limited kit lamps to the square, and the nearest TerraceLamp is 261 studs out. Widened as above.
+- **Screenshot** LampBasket_1: a yellow basket hanging from a Mill Street lamp, with the terrace behind.
+- X47 is done. The trees still look like lollipops against the reference, so that's new X48.
+- RunAll 331/331.
