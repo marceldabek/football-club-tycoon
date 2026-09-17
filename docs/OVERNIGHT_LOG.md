@@ -1387,3 +1387,11 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - `cardAt` ignores bench cards whose point lies outside the bench scroll frame's visible area, so a drop can't land on a card that's scrolled out of view.
 - Checked in play with the mouse: tapping cards still selects them (the detail window showed Finn Mbeki), and there were no console errors. The touch-only paths can't be driven from Studio's MCP input tools; added to the phone check in Start here. RunAll 437 passed.
 
+### 2026-09-17 14:18 — Studio vs disk parity check (no code changes)
+- Compared all 33 scripts touched since 03317b4 (everything from X196 onward) between disk and the Studio copies, ignoring blank lines, comment lines and trailing inline comments, using a line count plus a rolling checksum.
+- **26 of 33 are identical.** Seven differ:
+  - `Sky` (1 line): read the whole normalised Studio copy and diffed it. The only difference is style: the Studio copy calls `game:GetService("CollectionService")`/`("ReplicatedStorage")` inline where disk keeps top-level locals. Same behaviour.
+  - `HUD`, `PlotPicker` (1 line each): the same pattern (disk has a top-level `local TextService = game:GetService("TextService")`, the Studio copy doesn't). Heads of both files were compared; the rest of the difference wasn't read line by line.
+  - `EstateBuilder` (-45), `PlotGrounds` (-22), `PlotService` (-26), `RiverDresser` (+1): these Studio copies were condensed when they were first hand-pasted (known bug 4), so they carry fewer lines. **Not verified line by line** — reconnecting Rojo and pushing disk over Studio is still the thing to do (X4/X34).
+- Nothing here needs a fix: RunAll (437) and every play test run against the Studio copies, and disk stays the source of truth.
+
