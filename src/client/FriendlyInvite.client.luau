@@ -50,6 +50,18 @@ inviteEvent.OnClientEvent:Connect(function(data: any)
 	if type(data) ~= "table" or type(data.from) ~= "number" then
 		return
 	end
+	-- X209: the challenger left
+	if data.cancelled == true then
+		if current and current.from == data.from then
+			hide()
+		end
+		return
+	end
+	-- X210: a newer challenge replaces the card, so decline the old one rather
+	-- than leaving it live on the server with no way to answer
+	if current and current.from ~= data.from then
+		respondEvent:FireServer(current.from, false)
+	end
 	local invite = {
 		from = data.from,
 		fromName = tostring(data.fromName or "Someone"),

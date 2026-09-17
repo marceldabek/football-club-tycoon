@@ -321,9 +321,9 @@
 - [x] X206 (13:11 done, needs a two-player check) A player who rejoins the same server within ~180 s is stuck in the plot picker: PlotService.release frees the registry only after the old match ends, and onClaimPlot silently ignores listed owners; free the user entry at once and block only the plot, 0 parts `[disk]` S
 - [x] X207 (13:11 done, needs a two-player check) Leaving while Session.start is still acquiring the save lock leaves the lock held (start's early returns don't release), so the next join waits 30 s: release on those paths, 0 parts `[disk]` S
 - [x] X208 (13:11 done, needs a two-player check) Leaving mid-match wipes the match from the save (stop flushes then sets stopped before the result settles), so a losing player can quit to dodge it: finish the match before the final save, 0 parts `[disk]` S
-- [ ] X209 Friendly invite and trade offer cards stay open after the other club leaves: send a cancel so the card hides with a reason, 0 parts `[disk]` S
-- [ ] X210 A second trade offer / friendly invite silently replaces the first card while the first stays live on the server: decline the replaced one server-side (or queue), 0 parts `[disk]` S
-- [ ] X211 Challenges and trade offers target a plot number, so an offer can reach a new owner who claimed the plot meanwhile: send the expected OwnerUserId and refuse if changed, 0 parts `[disk]` S
+- [x] X209 (13:16 done, needs a two-player check) Friendly invite and trade offer cards stay open after the other club leaves: send a cancel so the card hides with a reason, 0 parts `[disk]` S
+- [x] X210 (13:16 done, needs a two-player check) A second trade offer / friendly invite silently replaces the first card while the first stays live on the server: decline the replaced one server-side (or queue), 0 parts `[disk]` S
+- [x] X211 (13:16 done, needs a two-player check) Challenges and trade offers target a plot number, so an offer can reach a new owner who claimed the plot meanwhile: send the expected OwnerUserId and refuse if changed, 0 parts `[disk]` S
 - [x] X212 (13:13 done) ClubVisit leaks a ClubPlot attribute connection for every club office prompt it ever sees: disconnect when the prompt goes, 0 parts `[disk]` S
 - [x] X213 (13:13 done) A club can take the same name as an AI club in its division (duplicate table rows and crests): reject names matching Config.Clubs, case-insensitive, 0 parts `[disk]` S
 - [x] X214 (13:13 done) Scouted prospects can share a name with a current squad player: seed the prospect name generator's used set with squad names, 0 parts `[disk]` S

@@ -42,6 +42,7 @@ local challengeEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("F
 
 local openAt: BasePart? = nil
 local openPlot: number? = nil
+local openOwner: number? = nil -- X211: who owned the plot when the card opened
 local openName = ""
 
 local function close()
@@ -92,6 +93,7 @@ local function open(plot: number, at: BasePart)
 	card.frame.Visible = true
 	openAt = at
 	openPlot = plot
+	openOwner = if type(attrs.OwnerUserId) == "number" then attrs.OwnerUserId else nil
 end
 
 local function attach(clubPrompt: ProximityPrompt)
@@ -139,7 +141,7 @@ closeButton.Activated:Connect(close)
 challengeButton.Activated:Connect(function()
 	local plot = openPlot
 	if plot then
-		challengeEvent:FireServer(plot)
+		challengeEvent:FireServer(plot, openOwner)
 		close()
 	end
 end)

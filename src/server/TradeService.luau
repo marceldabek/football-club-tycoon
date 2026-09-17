@@ -103,7 +103,7 @@ local function check(offer: Trade.Offer, from: { [string]: any }, to: { [string]
 	)
 end
 
-local function onPropose(player: Player, rawPlot: unknown, rawGive: unknown, rawTake: unknown, rawGiveCash: unknown, rawTakeCash: unknown)
+local function onPropose(player: Player, rawPlot: unknown, rawGive: unknown, rawTake: unknown, rawGiveCash: unknown, rawTakeCash: unknown, rawOwner: unknown)
 	local give, take = idList(rawGive), idList(rawTake)
 	local giveCash, takeCash = cashOf(rawGiveCash), cashOf(rawTakeCash)
 	if type(rawPlot) ~= "number" or not give or not take or not giveCash or not takeCash then
@@ -118,6 +118,11 @@ local function onPropose(player: Player, rawPlot: unknown, rawGive: unknown, raw
 	local to = target and PlotService.modulesFor(target.UserId)
 	if not (target and to) then
 		toast(player, "Nobody owns that ground right now.")
+		return
+	end
+	-- X211: refuse if the plot changed hands while the trade screen was open
+	if type(rawOwner) == "number" and (target :: Player).UserId ~= rawOwner then
+		toast(player, "That ground has a new owner now. Visit their office to trade.")
 		return
 	end
 	local offer: Trade.Offer = {
@@ -209,6 +214,10 @@ function TradeService.start()
 		for _, offer in book:dropUser(player.UserId) do
 			local other = Players:GetPlayerByUserId(if offer.from == player.UserId then offer.to else offer.from)
 			toast(other, "The trade offer was cancelled: the other club left.")
+			-- X209: close the offer card if it was waiting on the player who left
+			if other and offer.from == player.UserId then
+				remote("TradeOffer"):FireClient(other, { from = offer.from, cancelled = true })
+			end
 		end
 	end)
 

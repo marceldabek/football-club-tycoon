@@ -50,6 +50,17 @@ offerEvent.OnClientEvent:Connect(function(data: any)
 	if type(data) ~= "table" or type(data.from) ~= "number" then
 		return
 	end
+	-- X209: the other club left
+	if data.cancelled == true then
+		if current and current.from == data.from then
+			hide()
+		end
+		return
+	end
+	-- X210: decline an offer the new one replaces, so it doesn't hang unanswerable
+	if current and current.from ~= data.from then
+		respondEvent:FireServer(current.from, false)
+	end
 	current = data
 	token += 1
 	local mine = token

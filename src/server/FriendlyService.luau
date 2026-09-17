@@ -59,7 +59,7 @@ local function isIdle(plot: number?, match: any): boolean
 	return match ~= nil and folder ~= nil and folder:GetAttribute("Phase") == "Manage" and not match.isRunning()
 end
 
-local function onChallenge(player: Player, rawPlot: unknown)
+local function onChallenge(player: Player, rawPlot: unknown, rawOwner: unknown)
 	if type(rawPlot) ~= "number" then
 		return
 	end
@@ -72,6 +72,11 @@ local function onChallenge(player: Player, rawPlot: unknown)
 	local target, targetMatch = PlotService.clubAt(targetPlot)
 	if not target then
 		toast(player, "Nobody owns that ground right now.")
+		return
+	end
+	-- X211: the club the player was looking at may have left and the plot been re-claimed
+	if type(rawOwner) == "number" and target.UserId ~= rawOwner then
+		toast(player, "That ground has a new owner now. Visit their office to challenge them.")
 		return
 	end
 	local ok, reason = book:challenge(
@@ -144,6 +149,10 @@ function FriendlyService.start()
 		for _, invite in book:dropUser(player.UserId) do
 			local other = Players:GetPlayerByUserId(if invite.from == player.UserId then invite.to else invite.from)
 			toast(other, "The friendly challenge was cancelled: the other club left.")
+			-- X209: close the invite card if it was waiting on the player who left
+			if other and invite.from == player.UserId then
+				remote("FriendlyInvite"):FireClient(other, { from = invite.from, cancelled = true })
+			end
 		end
 	end)
 

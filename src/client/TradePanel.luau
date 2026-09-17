@@ -116,6 +116,7 @@ local cancelButton = Theme.button(panel, "Cancel", "secondary", {
 local proposeEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("TradePropose") :: RemoteEvent
 
 local targetPlot: number? = nil
+local targetOwner: number? = nil -- X211: the owner when the screen opened
 local giving: { number } = {}
 local taking: { number } = {}
 local youPay = true
@@ -218,6 +219,8 @@ function TradePanel.open(plot: number, clubName: string)
 	if not own or not theirs then
 		return
 	end
+	local ownerId = theirs:GetAttribute("OwnerUserId")
+	targetOwner = if type(ownerId) == "number" then ownerId else nil
 	targetPlot = plot
 	giving, taking = {}, {}
 	cashBox.Text = ""
@@ -249,7 +252,7 @@ sendButton.Activated:Connect(function()
 		refreshStatus()
 		return
 	end
-	proposeEvent:FireServer(plot, giving, taking, if youPay then cash else 0, if youPay then 0 else cash)
+	proposeEvent:FireServer(plot, giving, taking, if youPay then cash else 0, if youPay then 0 else cash, targetOwner)
 	close()
 end)
 
