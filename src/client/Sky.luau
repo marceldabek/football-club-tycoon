@@ -8,6 +8,7 @@
 --   after a match / season: a skippable fast-forward back to the afternoon
 -- Looks and tracks are data in Shared.DayCycle.
 
+local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -33,17 +34,31 @@ local function effect(name: string, className: string): Instance
 end
 
 -- Floodlight heads light up with the look (local only; the server switches
--- them for everyone on an evening matchday).
-local function setFloodHeads(on: boolean)
-	for _, d in workspace:GetDescendants() do
-		if d:IsA("BasePart") and d.Name == "HeadLamps" then
-			d.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
-			d.Color = if on then Color3.fromRGB(255, 250, 225) else Color3.fromRGB(150, 145, 125)
-		end
+-- them for everyone on an evening matchday). The server tags every head
+-- (Scenery.FLOOD_HEAD_TAG); heads streaming in later pick up the current state.
+local FLOOD_HEAD_TAG = "FloodHead"
+local floodsShown: boolean? = nil
+
+local function paintHead(d: Instance, on: boolean)
+	if d:IsA("BasePart") then
+		d.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
+		d.Color = if on then Color3.fromRGB(255, 250, 225) else Color3.fromRGB(150, 145, 125)
 	end
 end
 
-local floodsShown: boolean? = nil
+local function setFloodHeads(on: boolean)
+	for _, d in CollectionService:GetTagged(FLOOD_HEAD_TAG) do
+		paintHead(d, on)
+	end
+end
+
+-- only light late arrivals: an unlit look must not switch off another
+-- club's evening floodlights that the server has turned on for everyone
+CollectionService:GetInstanceAddedSignal(FLOOD_HEAD_TAG):Connect(function(d: Instance)
+	if floodsShown == true then
+		paintHead(d, true)
+	end
+end)
 local function apply(look: DayCycle.Look)
 	current = look
 	Lighting.ClockTime = look.clock

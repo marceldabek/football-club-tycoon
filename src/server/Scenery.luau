@@ -4,6 +4,7 @@
 -- floodlight masts. Built once per server (idempotent), independent of the
 -- Club model that WorldBuilder rebuilds on reload. No assets, all procedural.
 
+local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -305,6 +306,8 @@ end
 -- Four masts outside the corners. Heads are Neon so they read from anywhere;
 -- real lights only reach 60 studs so the sun does the actual lighting.
 local floodHeads: { Part } = {}
+-- Clients find the heads by this tag instead of scanning the workspace (X2).
+Scenery.FLOOD_HEAD_TAG = "FloodHead"
 local function setupFloodlights(parent: Instance)
 	table.clear(floodHeads)
 	-- clear of the corners even when every plot is a full-depth grandstand
@@ -324,6 +327,7 @@ local function setupFloodlights(parent: Instance)
 						d:Destroy()
 					elseif d:IsA("BasePart") and d.Name == "StadiumLight" then
 						d.CastShadow = false
+						CollectionService:AddTag(d, Scenery.FLOOD_HEAD_TAG)
 						table.insert(floodHeads, d)
 					end
 				end
@@ -357,6 +361,7 @@ local function setupFloodlights(parent: Instance)
 				CastShadow = false,
 				Parent = parent,
 			})
+			CollectionService:AddTag(head, Scenery.FLOOD_HEAD_TAG)
 			table.insert(floodHeads, head)
 		end
 	end
