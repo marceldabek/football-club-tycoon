@@ -64,4 +64,35 @@ function T.heritageLampIsLightWithABasketOverThePromenadeSide()
 	end
 end
 
+function T.aboutHalfTheBoatsHaveAMast()
+	local masts, total = 0, 0
+	for x = 0, 200, 9 do
+		for z = 0, 90, 11 do
+			total += 1
+			if RiverDresser.hasMast(Vector3.new(x + 0.5, 0, z + 0.5)) then
+				masts += 1
+			end
+		end
+	end
+	local share = masts / total
+	assert(share > 0.35 and share < 0.65, "mast share " .. share)
+	local folder = Instance.new("Folder")
+	local rng = Random.new(3)
+	local with, without = nil, nil
+	for x = 0, 12 do
+		local p = Vector3.new(x * 21, 0, 0)
+		if RiverDresser.hasMast(p) and not with then
+			RiverDresser.buildBoat(folder, CFrame.new(p), rng)
+			with = folder:GetChildren()[#folder:GetChildren()]
+		elseif not RiverDresser.hasMast(p) and not without then
+			RiverDresser.buildBoat(folder, CFrame.new(p), rng)
+			without = folder:GetChildren()[#folder:GetChildren()]
+		end
+	end
+	assert(with and with:FindFirstChild("SailMast") and with:FindFirstChild("Boom") and with:FindFirstChild("Forestay"), "sailing boat rigged")
+	assert(without and not without:FindFirstChild("SailMast"), "motor boat has no mast")
+	assert(#without:GetChildren() == 5, "motor boat still 5 parts")
+	folder:Destroy()
+end
+
 return T

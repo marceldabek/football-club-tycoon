@@ -45,6 +45,7 @@ local PAVING = Color3.fromRGB(206, 192, 170)
 local IRON = Color3.fromRGB(22, 22, 24)
 local TIMBER = Color3.fromRGB(120, 92, 64)
 local BOAT_HULLS = { Color3.fromRGB(245, 245, 245), Color3.fromRGB(30, 50, 100), Color3.fromRGB(180, 40, 40) }
+local MAST_H = 16 -- X143: sailing boats' masts above the cabin roof
 
 local MARINA_X0, MARINA_X1 = 780, 1120 -- moorings along this reach of the north bank
 local MARINA_USE = "marina"
@@ -294,6 +295,29 @@ function RiverDresser.buildBoat(parent: Instance, cf: CFrame, rng: Random)
 	part({ Name = "Cabin", Size = Vector3.new(4.6, 2.2, length * 0.35), CFrame = cf * CFrame.new(0, 2.5, -length * 0.1), Color = Color3.fromRGB(240, 240, 235), Parent = m })
 	part({ Name = "Glass", Size = Vector3.new(4.2, 1.2, 0.2), CFrame = cf * CFrame.new(0, 2.9, -length * 0.1 - length * 0.175 - 0.1), Color = Color3.fromRGB(40, 60, 80), Material = Enum.Material.Glass, Parent = m })
 	part({ Name = "Cover", Size = Vector3.new(5.4, 0.4, length * 0.3), CFrame = cf * CFrame.new(0, 1.6, length * 0.3), Color = Color3.fromRGB(30, 40, 60), Material = Enum.Material.Fabric, Parent = m })
+	-- X143: about half are sailing boats with a mast, boom and forestay. Picked
+	-- from the berth position rather than `rng`, so nothing placed after a boat moves.
+	if RiverDresser.hasMast(cf.Position) then
+		local mastZ = -length * 0.1
+		local top = Vector3.new(0, 3.6 + MAST_H, mastZ)
+		part({ Name = "SailMast", Size = Vector3.new(0.35, MAST_H, 0.35), CFrame = cf * CFrame.new(0, 3.6 + MAST_H / 2, mastZ), Color = Color3.fromRGB(225, 225, 220), Material = Enum.Material.Metal, CastShadow = false, Parent = m })
+		part({ Name = "Boom", Size = Vector3.new(0.3, 0.3, length * 0.45), CFrame = cf * CFrame.new(0, 5.2, mastZ + length * 0.225), Color = Color3.fromRGB(225, 225, 220), Material = Enum.Material.Metal, CastShadow = false, Parent = m })
+		local bowTip = Vector3.new(0, 1.4, -length / 2 - 4.8)
+		local stay = top - bowTip
+		part({
+			Name = "Forestay",
+			Size = Vector3.new(0.08, 0.08, stay.Magnitude),
+			CFrame = cf * CFrame.lookAt((top + bowTip) / 2, top),
+			Color = Color3.fromRGB(60, 60, 60),
+			CastShadow = false,
+			Parent = m,
+		})
+	end
+end
+
+-- X143: deterministic 1-in-2 pick from a boat's berth position (a 7-stud checkerboard)
+function RiverDresser.hasMast(p: Vector3): boolean
+	return (math.floor(p.X / 7) + math.floor(p.Z / 7)) % 2 == 0
 end
 
 -- X67: a single-storey café pavilion facing the river from the grass behind the
