@@ -1167,3 +1167,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - `AmbientAudio.client.luau`: a new `station` bed, Pro Sound Effects "Elevated New York City Subway 1" (9114300983; exterior platform, brakes, P.A.) at 0.25. It's full within 40 of the station footprint and fades over 160, and birds give way to it like they do to the town bed. The clip is American (subway P.A.), so it's a TEMP pick until a UK station clip is found.
 - X175: the outdoor beds (town, birds, river, industry, station, distant crowd) drop to 30% while the camera is inside any plot's Office or DressingRooms bounding box (refreshed every 4 s).
 - Checked by placing the camera in play: in the office birds were 0.09, in the club car park 0.30, and at the station the station bed was 0.25 with birds at 0.09. The levels behave as intended; the agent can't hear the clip itself. RunAll 428 passed (client only).
+
+
+### 2026-09-17 12:19 — Health check
+- `playMatch|8|1` after X154–X175: returned true, Phase back to Manage, club saved (#335), office ClubPrompt still enabled, no console errors. Part counts unchanged since 11:36 except station +2 (platform boards) and the office's +2 per club.
