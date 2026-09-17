@@ -625,7 +625,9 @@ local function renderLeague()
 			TextXAlignment = Enum.TextXAlignment.Center,
 		})
 		Crest.draw(fixture, nextOpp, 30, { position = UDim2.fromOffset(64, 8) })
-		label(fixture, ("Match %d of %d next: %s.  You are %s."):format(played + 1, rounds, nextOpp, ordinal(get("Position") or 1)), {
+		-- X261: home or away decides who gets the home advantage in the sim
+		local venue = if get("NextAtHome") == false then "away at" else "at home to"
+		label(fixture, ("Match %d of %d next: %s %s.  You are %s."):format(played + 1, rounds, venue, nextOpp, ordinal(get("Position") or 1)), {
 			Position = UDim2.fromOffset(106, 8),
 			Size = UDim2.new(1, -116, 0, 30),
 			TextSize = 15,

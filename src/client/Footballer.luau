@@ -334,9 +334,16 @@ function Footballer.sit(self: Footballer)
 	end
 end
 
+-- X264 (review): also used to end a celebration early, so a player retargeted
+-- before the pose runs out goes back on the run cycle instead of sliding.
 function Footballer.stand(self: Footballer)
-	if self.pose == "sit" then
+	if self.pose == "sit" or self.pose == "celebrate" then
 		setPose(self, "idle")
+		local track = self.celebrateTrack
+		if track then
+			track:Stop(0.2)
+			self.celebrateTrack = nil
+		end
 	end
 	if self.fallback then
 		self.fallback:stand()

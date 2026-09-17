@@ -161,7 +161,7 @@ local function injuryChip(parent: Instance, matches: number)
 	local chip = Instance.new("TextLabel")
 	chip.Name = "InjuredChip"
 	chip.Size = UDim2.fromOffset(44, 16)
-	chip.Position = UDim2.new(1, -48, 1, -20)
+	chip.Position = UDim2.new(1, -52, 1, -22)
 	chip.BackgroundColor3 = Theme.colors.bad
 	chip.BorderSizePixel = 0
 	chip.Font = Theme.fonts.bold

@@ -27,7 +27,8 @@ Config.PopularityBaseline = { 24, 36, 48, 58, 66 }
 Config.PopularitySeasonDrift = 0.25
 -- How far this season's form can move demand, at ±1 per point of (wins - losses)
 Config.FormDemandPerNet = 0.015
-Config.FormDemandCap = 0.18
+-- a 10-match season can reach ±10 net, so ±0.15 is the real ceiling
+Config.FormDemandCap = 0.15
 
 -- The fictional pyramid, bottom to top. TEMP names and numbers (CLAUDE.md §25).
 -- baseStrength is what the squad's average overall has to keep up with.
@@ -122,20 +123,30 @@ end
 -- falls through to the home kit. Any other unknown name gets a stable colour
 -- derived from the name itself rather than a shared default, so a club added
 -- later still reads as its own side until it is given real colours.
--- X263: how far round the hue wheel a kit must sit from HomeKit to read as a
--- different side on the pitch
+-- X263: every player club wears HomeKit, so an opponent whose colour sits on
+-- the same hue puts two near-identical sides on the pitch for 90 seconds.
+--
+-- The review of the first attempt caught the real trap: the shirt was shifted
+-- but the crest beside the club's name was not, which breaks the invariant in
+-- League.luau ("the shirt in the 3D match has to agree with the crest drawn
+-- beside its name in the table"). So there is one rule here, and both the crest
+-- and the shirt go through it.
+--
+-- Only a kit that really could be mistaken for HomeKit is moved: close in hue
+-- AND similarly bright and saturated. A dark claret or a brown is left alone.
 local CREST_HUE_CLEARANCE = 0.09
+local CREST_VALUE_TOLERANCE = 0.35
+local CREST_MIN_SATURATION = 0.45
 
--- Every player club wears HomeKit, so an opponent whose colour lands on the
--- same hue puts two near-identical sides on the pitch for 90 seconds. The
--- league's designed crest colours are left alone (they are the club's
--- identity); this shifts only the shirts a match is played in.
 function Config.pitchKit(kit: Color3): Color3
 	local hue, sat, val = Color3.toHSV(kit)
-	local homeHue = select(1, Color3.toHSV(Config.HomeKit))
+	if sat < CREST_MIN_SATURATION or val < 0.2 then
+		return kit -- greyscale or very dark: never confusable, and a hue shift is a no-op
+	end
+	local homeHue, _, homeVal = Color3.toHSV(Config.HomeKit)
 	local gap = math.abs(hue - homeHue)
 	gap = math.min(gap, 1 - gap)
-	if gap >= CREST_HUE_CLEARANCE then
+	if gap >= CREST_HUE_CLEARANCE or math.abs(val - homeVal) > CREST_VALUE_TOLERANCE then
 		return kit
 	end
 	return Color3.fromHSV((hue + 0.5) % 1, sat, val)
@@ -147,23 +158,14 @@ function Config.clubCrest(name: string?, isPlayer: boolean?): (Color3, Color3)
 	end
 	local known = crestByName[name]
 	if known then
-		return known.kit, known.accent
+		-- X263: the designed colour, moved only if it would read as our own red
+		return Config.pitchKit(known.kit), known.accent
 	end
 	local hash = 0
 	for i = 1, #name do
 		hash = (hash * 31 + name:byte(i)) % 360
 	end
-	local hue = hash / 360
-	-- X263: every player club wears HomeKit, so a hashed kit that lands on the
-	-- same hue puts two near-identical sides on the pitch for 90 seconds. Push
-	-- it round the wheel until it is clearly a different colour.
-	local homeHue = select(1, Color3.toHSV(Config.HomeKit))
-	local gap = math.abs(hue - homeHue)
-	gap = math.min(gap, 1 - gap)
-	if gap < CREST_HUE_CLEARANCE then
-		hue = (hue + 0.5) % 1
-	end
-	return Color3.fromHSV(hue, 0.55, 0.55), Color3.fromRGB(240, 240, 240)
+	return Config.pitchKit(Color3.fromHSV(hash / 360, 0.55, 0.55)), Color3.fromRGB(240, 240, 240)
 end
 
 -- Squad (Milestone 3). All TEMP.

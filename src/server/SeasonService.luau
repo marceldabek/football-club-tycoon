@@ -71,8 +71,11 @@ local function publish()
 	ClubState.set("Rounds", season.rounds)
 	ClubState.set("Popularity", popularity)
 	ClubState.set("Demand", SeasonService.demand())
-	local _, opp = League.playerFixture(season, round + 1)
+	local nextF, opp = League.playerFixture(season, round + 1)
 	ClubState.set("NextOpponent", if opp then season.teams[opp].name else "")
+	-- X261 (review): the venue decides the sim's home advantage, so it has to be
+	-- on screen. TEMP: the match is still played and paid for at this ground.
+	ClubState.set("NextAtHome", if nextF then nextF.home == season.playerIndex else true)
 	publishTable()
 	ClubState.markDirty()
 end
@@ -135,12 +138,10 @@ end
 
 -- X262: this season's wins minus losses, so a run shows up at the gate
 local function formNet(): number
-	for _, row in League.standings(season) do
-		if row.index == season.playerIndex then
-			return row.won - row.lost
-		end
-	end
-	return 0
+	-- read the player's own row: standings() clones and sorts every team, and
+	-- demand() can be asked before a season is restored
+	local row = season and season.teams[season.playerIndex]
+	return if row then row.won - row.lost else 0
 end
 
 function SeasonService.demand(): number

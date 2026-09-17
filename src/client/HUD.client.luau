@@ -570,9 +570,12 @@ local function refreshPhasePanels()
 		summary.frame.Visible = false -- a lingering card must never cover the next match
 		seasonCard.frame.Visible = false
 		welcome.frame.Visible = false
+		-- X261: an away fixture is harder (the opponent gets the home advantage),
+		-- so the walk-out card says so
+		local venue = if get("NextAtHome") == false then "  ·   Away" else ""
 		bannerBody.Text = if get("Friendly") == true
 			then ("%s  vs  %s   ·   Friendly"):format(get("ClubName") or "Home", get("Opponent") or "Away")
-			else ("%s  vs  %s   ·   Match %d of %d"):format(get("ClubName") or "Home", get("Opponent") or "Away", (get("Round") or 0) + 1, get("Rounds") or 10)
+			else ("%s  vs  %s   ·   Match %d of %d%s"):format(get("ClubName") or "Home", get("Opponent") or "Away", (get("Round") or 0) + 1, get("Rounds") or 10, venue)
 	end
 end
 

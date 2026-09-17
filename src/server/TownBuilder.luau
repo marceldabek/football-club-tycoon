@@ -946,7 +946,8 @@ end
 -- and the direction it runs there. Only the station lay-by had a painted bay,
 -- so the fast-travel stops read as street furniture from the carriageway.
 local function nearestRoad(at: Vector3): (TownLayout.Road?, Vector3, Vector3)
-	local best, bestPoint, bestDir, bestD = nil, at, Vector3.new(0, 0, 1), math.huge
+	local best: TownLayout.Road? = nil
+	local bestPoint, bestDir, bestD = at, Vector3.new(0, 0, 1), math.huge
 	for _, road in TownLayout.ROADS do
 		for i = 1, #road.points - 1 do
 			local a, b = road.points[i], road.points[i + 1]
@@ -975,6 +976,9 @@ end
 -- would not sit inside the bay at any size that stayed readable, and the
 -- station's own BUS STOP wording is built from parts (X72).
 local function busStopBay(parent: Instance, stop: TownLayout.BusStop)
+	if stop.name == "Station" then
+		return -- StationDresser paints that bay by hand, with its own legend (X72)
+	end
 	local road, point, dir = nearestRoad(stop.position)
 	if not road then
 		return

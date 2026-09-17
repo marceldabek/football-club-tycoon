@@ -1360,16 +1360,21 @@ TownLayout.LANDMARKS = {
 	{ name = "Lune Bridge", position = Vector3.new(100, 0, 420), height = 14 },
 } :: { Landmark }
 
+-- X268 (review): `yaw` is the direction the shelter opens. Four stops had it
+-- backwards, so the shelter's back panel faced the road and passengers sat
+-- looking at the verge; the painted bay made that obvious. Checked against the
+-- bay each stop resolves: Town Centre, Riverside Park, Industrial Estate and
+-- Sports Centre all have their road at +Z, so they open at 180.
 TownLayout.BUS_STOPS = {
-	{ name = "Town Centre", position = Vector3.new(90, 0, -20), yaw = 0 },
+	{ name = "Town Centre", position = Vector3.new(90, 0, -20), yaw = 180 },
 	-- X71: on Station Road's station-side pavement west of the taxi lay-by, facing the road
 	-- (it stood on the forecourt over a planter and bench once the road moved, X51)
 	{ name = "Station", position = Vector3.new(-915, 0, -355), yaw = 180 },
 	{ name = "Riverside", position = Vector3.new(700, 0, 80), yaw = 0 },
-	{ name = "Riverside Park", position = Vector3.new(1180, 0, -40), yaw = 0 },
-	{ name = "Industrial Estate", position = Vector3.new(-1600, 0, -130), yaw = 0 },
+	{ name = "Riverside Park", position = Vector3.new(1180, 0, -40), yaw = 180 },
+	{ name = "Industrial Estate", position = Vector3.new(-1600, 0, -130), yaw = 180 },
 	{ name = "Westdale", position = Vector3.new(-1075, 0, 964), yaw = 0 },
-	{ name = "Sports Centre", position = Vector3.new(40, 0, 1180), yaw = 0 },
+	{ name = "Sports Centre", position = Vector3.new(40, 0, 1180), yaw = 180 },
 	{ name = "Plot 1", position = Vector3.new(992, 0, 840), yaw = 90 },
 	{ name = "Plot 2", position = Vector3.new(1490, 0, -1142), yaw = 180 },
 	{ name = "Plot 3", position = Vector3.new(1540, 0, 522), yaw = 0 },

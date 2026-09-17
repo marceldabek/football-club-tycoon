@@ -382,11 +382,15 @@ function Presenter.walkout(self: Presenter, seconds: number)
 end
 
 -- Snap everyone into formation (late joiners / after a goal).
+-- X264 (review): a celebrate pose outlives CELEBRATE_SECONDS, and the pose keeps
+-- the idle track playing, so a player retargeted mid-pose slid across the pitch
+-- with his feet still. Clearing the pose here puts him back on the run cycle.
 function Presenter.resetToFormation(self: Presenter)
 	setAll(self, function(teamName, idx, fb)
 		fb.busy = false
 		fb.speed = RUN_SPEED
 		fb:setTagVisible(true)
+		fb:stand() -- drops a celebrate pose, so nobody slides back feet-still
 		fb:setTarget(self.teams[teamName].slots[idx])
 	end)
 end
@@ -676,8 +680,13 @@ function Presenter.playSequence(self: Presenter, ev: Event, shotAt: number)
 			local mate = T.players[mates[i].idx]
 			table.insert(joined, mate)
 			mate.busy = true
-			mate:setTarget(shooter.position + Vector3.new(if i == 1 then -4 else 4, 0, -3))
-			task.delay(1.1, function()
+			-- beside the scorer and a little behind him, in his team's own terms,
+			-- and kept on the grass
+			local spot = clampToPitch(shooter.position + Vector3.new(if i == 1 then -4 else 4, 0, -dir * 3))
+			mate:setTarget(spot)
+			-- celebrate when he could plausibly have got there, not on a fixed beat
+			local travel = math.clamp((spot - mate.position).Magnitude / 22, 0.3, CELEBRATE_SECONDS - 0.5)
+			task.delay(travel, function()
 				if self.mode == "play" then
 					mate:celebrate()
 				end
@@ -691,6 +700,9 @@ function Presenter.playSequence(self: Presenter, ev: Event, shotAt: number)
 			MatchAudio.nearMiss()
 		end
 		task.wait(CELEBRATE_SECONDS)
+		if self.mode ~= "play" then
+			return -- full time arrived during the celebration; finish() owns them now
+		end
 		for _, mate in joined do
 			mate.busy = false
 			mate:setTarget(nil)

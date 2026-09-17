@@ -517,12 +517,12 @@ function RiverDresser.build(): string
 
 	-- X267: a finger post on the promenade, as on RivermereRiverside.png. The
 	-- town had exactly one, in the market square, and none of its blades pointed
-	-- at a club ground. ~7 parts.
+	-- at a club ground. 10 parts (post, finial, 4 blades, 4 tips).
 	SquareDresser.fingerPost(furniture, Vector3.new(RiverDresser.CAFE_SITE.X - 26, 0, RiverDresser.CAFE_SITE.Z - 4), PROM_TOP, {
 		"Town Centre",
 		"Station",
 		"Riverside Park",
-		{ name = "Club Grounds", position = Vector3.new(992, 0, 840) },
+		{ name = "Club Grounds", position = SquareDresser.destination("Plot 1") or Vector3.new(992, 0, 840) },
 	})
 
 	root.Parent = town
