@@ -104,6 +104,7 @@ end
 
 Scenery.setupTown()
 TownBuilder.build()
+print("[FCT] " .. require(script.Parent.StreetDresser).build())
 PlotService.start()
 
 print("[FCT] town ready")

@@ -10,6 +10,7 @@
 -- assets/kit/_export/kit_ids.luau for what is actually uploaded):
 --   ServerStorage.Kit.Meshes.<name>  -- uploaded kit GLBs (Rojo can't own these, they're binary)
 --   ServerStorage.Kit.<name>         -- Creator Store models, stripped of scripts on import
+--   ServerStorage.Kit.<Folder>.<name> -- the same, sorted into category folders (Town, Vehicles, ...)
 --   ServerStorage.Assets.<dotted.path> -- generic asset library, see Assets.luau
 
 local ServerStorage = game:GetService("ServerStorage")
@@ -68,6 +69,15 @@ function KitPlacer.find(name: string): Instance?
 		local direct = root:FindFirstChild(name)
 		if direct then
 			return direct
+		end
+		-- category folders one level down (Kit.Town, Kit.Vehicles, Kit.Vegetation, ...)
+		for _, folder in root:GetChildren() do
+			if folder:IsA("Folder") then
+				local found = folder:FindFirstChild(name)
+				if found then
+					return found
+				end
+			end
 		end
 	end
 
