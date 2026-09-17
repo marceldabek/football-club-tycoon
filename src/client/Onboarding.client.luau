@@ -5,6 +5,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Theme = require(script.Parent.Theme)
@@ -22,6 +23,24 @@ local gui = Theme.screenGui("Onboarding", 8)
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local card = Theme.card(gui, "Card", "NAME YOUR CLUB", UDim2.fromOffset(480, 290), UDim2.fromScale(0.5, 0.45))
+
+-- X252: on a phone the on-screen keyboard covers the bottom of the card, and
+-- "Found the club" sits on its bottom edge. Keep the card centred in whatever
+-- height is left above the keyboard.
+local function placeCard()
+	local camera = workspace.CurrentCamera
+	local viewport = if camera then camera.ViewportSize else Vector2.new(1280, 720)
+	local keyboard = if UserInputService.OnScreenKeyboardVisible then UserInputService.OnScreenKeyboardSize.Y else 0
+	local usable = math.max(viewport.Y - keyboard, 240)
+	if keyboard <= 0 then
+		card.frame.Position = UDim2.fromScale(0.5, 0.45)
+		return
+	end
+	card.frame.Position = UDim2.new(0.5, 0, 0, math.floor(usable / 2))
+end
+UserInputService:GetPropertyChangedSignal("OnScreenKeyboardVisible"):Connect(placeCard)
+UserInputService:GetPropertyChangedSignal("OnScreenKeyboardSize"):Connect(placeCard)
+placeCard()
 card.body.Text = "This is your club now. Give it a name, or keep the one we picked."
 card.body.Size = UDim2.new(1, -40, 0, 44)
 

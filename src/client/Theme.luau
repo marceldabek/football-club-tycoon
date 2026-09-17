@@ -99,6 +99,16 @@ function Theme.padding(inst: Instance, all: number, horizontal: number?)
 	return p
 end
 
+-- X252: the cards are laid out in pixels (480-560 wide), which overflows a
+-- phone held in portrait. Every screen gets a UIScale that shrinks it to fit
+-- the viewport, so nothing runs off the edge; a desktop stays at 1.
+local DESIGN_WIDTH = 600 -- the widest card plus a margin
+local MIN_SCALE = 0.55
+
+function Theme.fitScale(viewport: Vector2): number
+	return math.clamp(math.min(viewport.X / DESIGN_WIDTH, viewport.Y / 560), MIN_SCALE, 1)
+end
+
 function Theme.screenGui(name: string, order: number?): ScreenGui
 	local gui = Instance.new("ScreenGui")
 	gui.Name = name
@@ -106,6 +116,22 @@ function Theme.screenGui(name: string, order: number?): ScreenGui
 	gui.IgnoreGuiInset = true
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.DisplayOrder = order or 0
+	local scale = Instance.new("UIScale")
+	scale.Name = "FitScale"
+	scale.Parent = gui
+	local function refit()
+		local camera = workspace.CurrentCamera
+		scale.Scale = Theme.fitScale(if camera then camera.ViewportSize else Vector2.new(1280, 720))
+	end
+	local function watch()
+		local camera = workspace.CurrentCamera
+		if camera then
+			camera:GetPropertyChangedSignal("ViewportSize"):Connect(refit)
+		end
+		refit()
+	end
+	workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(watch)
+	watch()
 	return gui
 end
 
