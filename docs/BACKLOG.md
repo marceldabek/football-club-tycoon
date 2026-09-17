@@ -79,6 +79,7 @@
 - [x] F1.1 Ambient audio zones (town, river, station, park) from the Roblox library `[studio]` M
 - [x] F2.1 Client-side traffic on road polylines, distance-budgeted `[studio]` M
 - [x] F3.1 Client-side pedestrians on pavements, distance-budgeted `[studio]` M
+- [x] F3.2 (seated figures at the 5 nearest cafe sets within 200 studs, 8 parts each; off on Low) Cafe sitters `[studio]` S
 - [x] F4.1 (turbines, square flags, chimney smoke) Small motion: flags, bunting sway, chimney smoke `[studio]` S
 - [x] F4.2 (40 nearest tree crowns sway within 160 studs; 2 flocks of 5 birds round the church spire and over the Lune Bridge within 700 studs; all off on Low) Small motion part 2: tree sway, birds `[studio]` S
 

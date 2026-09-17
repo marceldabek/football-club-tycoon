@@ -301,4 +301,37 @@ function TownLifeMath.distantCrowdWeight(distance: number): number
 	return 1 - (distance - TownLifeMath.CROWD_PEAK) / (TownLifeMath.CROWD_SILENT - TownLifeMath.CROWD_PEAK)
 end
 
+-- F3.2: a seated figure for the cafe tables. `seat` is the centre of the seat
+-- top with -Z facing the table. Returns CFrames in the order torso, head,
+-- thighL, thighR, shinL, shinR, armL, armR, and the part sizes to use.
+TownLifeMath.SEATED = {
+	thigh = Vector3.new(0.75, 0.7, 1.5),
+	shin = Vector3.new(0.75, 1.9, 0.75), -- feet stop 0.05 above the floor under a 1.6-high seat top
+}
+
+function TownLifeMath.seatedFigureCFrames(seat: CFrame): { CFrame }
+	local F = TownLifeMath.FIGURE
+	local S = TownLifeMath.SEATED
+	local legX = 0.45
+	local armX = F.torso.X / 2 + F.arm.X / 2 + 0.03
+	local hipY = S.thigh.Y / 2 + 0.02 -- thighs rest on the seat
+	local torsoY = S.thigh.Y + F.torso.Y / 2
+	local shoulderY = S.thigh.Y + F.torso.Y - 0.1
+	-- knees S.thigh.Z forward of the hip; shins hang from the knees to the floor
+	local kneeZ = -S.thigh.Z + 0.35
+	local shinY = S.thigh.Y / 2 - S.shin.Y / 2
+	-- forearms resting towards the table: arms swung forward from the shoulder
+	local armHang = CFrame.new(0, -F.arm.Y / 2 + 0.1, 0)
+	return {
+		seat * CFrame.new(0, torsoY, 0.2),
+		seat * CFrame.new(0, torsoY + F.torso.Y / 2 + F.head / 2, 0.2),
+		seat * CFrame.new(-legX, hipY, -S.thigh.Z / 2 + 0.35),
+		seat * CFrame.new(legX, hipY, -S.thigh.Z / 2 + 0.35),
+		seat * CFrame.new(-legX, shinY, kneeZ),
+		seat * CFrame.new(legX, shinY, kneeZ),
+		seat * CFrame.new(-armX, shoulderY, 0.2) * CFrame.Angles(0.55, 0, 0) * armHang,
+		seat * CFrame.new(armX, shoulderY, 0.2) * CFrame.Angles(0.55, 0, 0) * armHang,
+	}
+end
+
 return TownLifeMath

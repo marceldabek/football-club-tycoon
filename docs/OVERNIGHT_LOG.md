@@ -440,3 +440,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Roadmap G2 ("chants carrying across town"):** AmbientAudio has a fifth bed, the stadium crowd loop run through an EqualizerSoundEffect (highs −30 dB, mids −8, lows +2) so it reads as a distant roar. Its level follows the nearest ground with a live match, any club's: silent within 220 studs (MatchAudio or spectating covers that), loudest at 420, and fading out by 1,500 (`TownLifeMath.distantCrowdWeight`, 1 new test). It's quieter high above town, like the other beds.
 - **Playtest:** during a match, the bed was at 0.218 about 420 studs from the ground and 0.000 standing inside it.
 - RunAll 343/343.
+
+### 2026-09-17 05:13 — People at the café tables (F3.2)
+- **Roadmap F3 ("café sitters"):** new client script CafeSitters. At the 5 café sets nearest the camera (within 200 studs), it seats 1–2 people facing the table: torso, head, thighs on the seat, shins to the floor, and forearms towards the table, 8 parts each, in varied skin, top and trouser colours seeded by table. They're there all day, not only on matchday, and off on Quality Low. The pose is pure in `TownLifeMath.seatedFigureCFrames` (1 new test: sits on the seat, feet just above the floor, turns with the seat).
+- **Adjusted after the first screenshot:** the forearms swung far enough to cross mid-table, so the swing went from 0.9 to 0.55 rad.
+- **Screenshot** CafeSitters_2: two people at the table outside The Riverside Arms.
+- RunAll 344/344.

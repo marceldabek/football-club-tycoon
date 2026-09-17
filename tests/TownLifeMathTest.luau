@@ -263,4 +263,24 @@ function T.distantCrowdRisesThenFadesAcrossTown()
 	assert(math.abs(rising - 0.5) < 1e-6 and math.abs(falling - 0.5) < 1e-6, "linear ramps")
 end
 
+function T.seatedFigureSitsFacingForward()
+	local seatTop = 1.6
+	local seat = CFrame.new(10, seatTop, 20)
+	local cfs = TownLifeMath.seatedFigureCFrames(seat)
+	assert(#cfs == 8, "eight parts")
+	local F, S = TownLifeMath.FIGURE, TownLifeMath.SEATED
+	local torso, head = cfs[1].Position, cfs[2].Position
+	assert(torso.Y - F.torso.Y / 2 >= seatTop + S.thigh.Y - 0.01, "torso sits on the thighs")
+	assert(head.Y > torso.Y, "head above torso")
+	local thigh = cfs[3].Position
+	assert(math.abs(thigh.Y - S.thigh.Y / 2 - seatTop - 0.02) < 1e-4, "thighs rest on the seat")
+	assert(thigh.Z < 20, "thighs point forward (-Z)")
+	local shin = cfs[5].Position
+	assert(shin.Z < thigh.Z, "shins hang in front of the hips")
+	local shinBottom = shin.Y - S.shin.Y / 2
+	assert(shinBottom > 0 and shinBottom < 0.3, "feet near the floor, bottom " .. shinBottom)
+	local turned = TownLifeMath.seatedFigureCFrames(CFrame.new(0, seatTop, 0) * CFrame.Angles(0, math.pi, 0))
+	assert(turned[3].Position.Z > 0, "turning the seat turns the figure")
+end
+
 return T
