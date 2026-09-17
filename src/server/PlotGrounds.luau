@@ -228,6 +228,54 @@ function PlotGrounds.pathsideSpots(): ({ Vector3 }, { Vector3 })
 	return trees, lamps
 end
 
+-- X95: planted borders inside the entrance (-X) wall, either side of the two
+-- gates (RivermereNorthfields.png / RivermereTurnstileEntrance.png beds of
+-- shrubs and lavender). Pure pitch-local rects (x = across, y = along z); the
+-- bed starts 0.1 in from the wall's inner face and stops 0.5 short of each pier.
+PlotGrounds.BORDER_DEPTH = 4
+local BORDER_H = 0.6
+local BORDER_RUNS = {
+	{ -80, PEDESTRIAN_GATE[1] - PIER_W - 0.5 }, -- north of the pedestrian gate
+	{ PEDESTRIAN_GATE[2] + PIER_W + 0.5, VEHICLE_GATE[1] - PIER_W - 0.5 }, -- between the gates
+	{ VEHICLE_GATE[2] + PIER_W + 0.5, 160 }, -- south of the vehicle gate
+}
+local SHRUB_STEP = 12
+function PlotGrounds.borderBeds(): { Footprint }
+	local out: { Footprint } = {}
+	local x0 = -HALF + WALL_T + 0.1
+	for i, run in BORDER_RUNS do
+		table.insert(out, {
+			name = "Border" .. i,
+			min = Vector2.new(x0, run[1]),
+			max = Vector2.new(x0 + PlotGrounds.BORDER_DEPTH, run[2]),
+		})
+	end
+	return out
+end
+
+local function buildBorders(parent: Instance)
+	local m = model("Borders", parent)
+	local shrubColours = { Color3.fromRGB(62, 104, 50), Color3.fromRGB(78, 120, 58) }
+	local flowerColours = { Color3.fromRGB(150, 120, 196), Color3.fromRGB(226, 196, 84), Color3.fromRGB(206, 96, 130) }
+	for i, bed in PlotGrounds.borderBeds() do
+		local x0, x1, z0, z1 = bed.min.X, bed.max.X, bed.min.Y, bed.max.Y
+		extents("Soil", x0, x1, GROUND_Y, GROUND_Y + BORDER_H, z0, z1, Color3.fromRGB(92, 70, 52), Enum.Material.Ground, m)
+		-- a low flower strip along the front edge, one colour per bed
+		extents("Flowers", x1 - 1.6, x1 - 0.2, GROUND_Y + BORDER_H, GROUND_Y + BORDER_H + 0.5, z0 + 0.3, z1 - 0.3,
+			flowerColours[(i - 1) % #flowerColours + 1], Enum.Material.LeafyGrass, m)
+		-- rounded shrubs against the wall
+		local count = math.max(1, math.floor((z1 - z0) / SHRUB_STEP))
+		local step = (z1 - z0) / count
+		for k = 1, count do
+			local d = 2.6 + (k % 2) * 0.4
+			local shrub = box("Shrub", Vector3.one * d, CFrame.new(x0 + 1.7, GROUND_Y + BORDER_H + d * 0.3, z0 + (k - 0.5) * step),
+				shrubColours[k % 2 + 1], Enum.Material.LeafyGrass, m)
+			shrub.Shape = Enum.PartType.Ball
+			shrub.CastShadow = false
+		end
+	end
+end
+
 local function buildPathside(parent: Instance)
 	local m = model("Pathside", parent)
 	local trees, lamps = PlotGrounds.pathsideSpots()
@@ -581,6 +629,7 @@ function PlotGrounds.build(club: Model): Model
 	buildFootpath(grounds)
 	buildPathside(grounds)
 	buildKiosk(grounds)
+	buildBorders(grounds)
 
 	PlotContext.place(grounds)
 	return grounds

@@ -140,4 +140,27 @@ function T.kioskStandsBesideTheFootpathClearOfTrees()
 	end
 end
 
+-- X95: planted borders inside the entrance wall keep off both gate openings
+-- (and their piers), the footpath, the access road and every footprint.
+function T.borderBedsKeepClearOfGatesPathAndFootprints()
+	local beds = PlotGrounds.borderBeds()
+	assert(#beds >= 3, "beds " .. #beds)
+	local keepOut: { Rect } = {
+		{ name = "PedestrianGate", min = Vector2.new(-HALF, -22), max = Vector2.new(-HALF + 30, -2) },
+		{ name = "VehicleGate", min = Vector2.new(-HALF, 58), max = Vector2.new(-HALF + 30, 102) },
+		{ name = "Footpath", min = Vector2.new(-HALF, -16), max = Vector2.new(-261, -8) },
+		{ name = "WallW", min = Vector2.new(-HALF, -HALF), max = Vector2.new(-HALF + 1, HALF) },
+	}
+	for _, fp in PlotGrounds.footprints() do
+		table.insert(keepOut, fp)
+	end
+	for _, bed in beds do
+		assert(bed.min.X < bed.max.X and bed.min.Y < bed.max.Y, "degenerate " .. describe(bed))
+		assert(bed.min.X >= -HALF and bed.min.Y >= -HALF and bed.max.Y <= HALF, "outside the plot: " .. describe(bed))
+		for _, k in keepOut do
+			assert(not overlaps(bed, k), describe(bed) .. " hits " .. describe(k))
+		end
+	end
+end
+
 return T
