@@ -102,6 +102,9 @@ local function publish()
 end
 
 local function startSeason()
+	-- X294 (review): the old division's results must not sit under the new
+	-- table, which is exactly where a promoted player looks first
+	ClubState.set("LastRound", "")
 	season = League.newSeason(tier, rng:NextInteger(1, 1000000), ClubState.get("ClubName") :: string, Config.HomeSquadSeed)
 	round = 0
 end

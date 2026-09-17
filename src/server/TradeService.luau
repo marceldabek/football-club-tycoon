@@ -196,11 +196,12 @@ local function onRespond(player: Player, rawFrom: unknown, rawAccept: unknown, r
 	to.club.tradeIn(toReceiver)
 	from.club.tradeIn(toProposer)
 	if offer.giveCash > 0 then
-		from.state.addCash(-offer.giveCash)
-		to.state.addCash(offer.giveCash)
+		-- X299 (review): trade cash was the one movement the ledger never saw
+		from.state.addCash(-offer.giveCash, "trades")
+		to.state.addCash(offer.giveCash, "tradesIn")
 	elseif offer.takeCash > 0 then
-		to.state.addCash(-offer.takeCash)
-		from.state.addCash(offer.takeCash)
+		to.state.addCash(-offer.takeCash, "trades")
+		from.state.addCash(offer.takeCash, "tradesIn")
 	end
 
 	task.spawn(from.session.saveNow)

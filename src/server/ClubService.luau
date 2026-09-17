@@ -381,8 +381,7 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 		if cash < nextLevel.cost then
 			return false, ("Need %s more"):format(money(nextLevel.cost - cash))
 		end
-		ClubState.addCash(-nextLevel.cost)
-		scoutLevel += 1
+		ClubState.addCash(-nextLevel.cost, "staff") -- X299 (review): scouting is staff
 		refreshShortlist()
 		publish()
 		return true, ("%s hired. %d prospects found."):format(nextLevel.name, #shortlist)

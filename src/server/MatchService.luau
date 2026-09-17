@@ -272,6 +272,10 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 
 	local news, development, award = ClubService.finishMatch(played.scorerSlots, homeSquad, subsMade, result.awayGoals)
 	local scorers = scorerLines(result)
+	-- X301 (review): the season service publishes the office fixture notice,
+	-- and the evening-kickoff rule counts the club's matches, so the count has
+	-- to be right before the round is recorded. The payment still comes last.
+	bump("MatchesPlayed", 1)
 	-- league bookkeeping after the squad: at season end this ages the squad and rolls the division
 	local roundResult = SeasonService.recordPlayerResult(result.homeGoals, result.awayGoals, settlement.outcome)
 
@@ -282,6 +286,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 	ClubState.addCash(settlement.ticketRevenue, "gate")
 	ClubState.addCash(settlement.concessionRevenue, "concessions")
 	ClubState.addCash(settlement.resultBonus, "bonus")
+
 	ClubState.recordMatchFinance({
 		round = roundResult.round,
 		gate = settlement.ticketRevenue,
@@ -289,7 +294,6 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		bonus = settlement.resultBonus,
 		total = settlement.total,
 	})
-	bump("MatchesPlayed", 1)
 	if settlement.outcome == "Win" then
 		bump("Wins", 1)
 	elseif settlement.outcome == "Draw" then

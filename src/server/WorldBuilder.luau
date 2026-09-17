@@ -1178,6 +1178,205 @@ local function buildOffice(parent: Instance)
 	spawn.Parent = office
 end
 
+-- X290: the office was the same damp-walled room with the green-screen
+-- computer after five promotions and three titles, though CLAUDE.md s5 promises
+-- repainting, a better desk, computer, chairs, branding and lighting. The
+-- fittings follow the club's tier, the way the ground outside follows it
+-- (GroundInfluence/X105). TEMP thresholds:
+--   tier 2  the damp is painted over and a filing cabinet arrives
+--   tier 3  a flat screen, a tactics board and a chair for a visitor
+--   tier 4+ the club crest on the wall behind the desk, a plant, better light
+local OFFICE_TIER_PAINT = 2
+local OFFICE_TIER_SCREEN = 3
+local OFFICE_TIER_BRAND = 4
+
+function WorldBuilder.dressOffice(tier: number)
+	local club = PlotContext.clubModel()
+	local office = club and club:FindFirstChild("Office")
+	if not office then
+		return
+	end
+	local level = math.max(math.floor(tier), 1)
+	local old = office:FindFirstChild("Fittings")
+	if old then
+		old:Destroy()
+	end
+	local fittings = Instance.new("Model")
+	fittings.Name = "Fittings"
+	fittings.Parent = office
+
+	local cx, cz = OFFICE_CX, OFFICE_CZ
+	local w, d, h = OFFICE_W, OFFICE_D, OFFICE_H
+
+	-- the walls themselves: painted over once the club is out of the bottom
+	local painted = level >= OFFICE_TIER_PAINT
+	local wallColour = if painted then Color3.fromRGB(226, 222, 210) else Color3.fromRGB(170, 160, 135)
+	for _, name in { "WallW", "WallN", "WallS", "WallE1", "WallE2", "DoorHeader" } do
+		local wall = office:FindFirstChild(name)
+		if wall and wall:IsA("BasePart") then
+			wall.Color = wallColour
+		end
+	end
+	-- the damp stains are frames on the wall guis; the fixtures notice stays
+	for _, gui in office:GetDescendants() do
+		if gui:IsA("Frame") and gui.Name == "Damp" then
+			gui.Visible = not painted
+		end
+	end
+
+	-- the computer: a green-screen terminal at the bottom, a flat screen later
+	local computer = office:FindFirstChild("Computer")
+	local display = computer and computer:FindFirstChild("Display", true)
+	if display and display:IsA("TextLabel") then
+		if level >= OFFICE_TIER_SCREEN then
+			display.BackgroundColor3 = Color3.fromRGB(18, 26, 40)
+			display.TextColor3 = Color3.fromRGB(150, 200, 255)
+			display.Text = " CLUB OFFICE\n SQUAD  TRANSFERS\n FINANCE"
+			if computer and computer:IsA("BasePart") then
+				computer.Color = Color3.fromRGB(45, 48, 56)
+			end
+		else
+			display.BackgroundColor3 = Color3.fromRGB(12, 30, 16)
+			display.TextColor3 = Color3.fromRGB(90, 230, 110)
+			display.Text = " CLUB OFFICE\n > _"
+			if computer and computer:IsA("BasePart") then
+				computer.Color = Color3.fromRGB(200, 200, 190)
+			end
+		end
+	end
+
+	-- the bulb: a bare one at the bottom, a brighter cooler fitting later
+	local bulb = office:FindFirstChild("Bulb")
+	local light = bulb and bulb:FindFirstChildOfClass("PointLight")
+	if light then
+		light.Brightness = if level >= OFFICE_TIER_BRAND then 2.4 else if painted then 1.8 else 1.2
+		light.Color = if level >= OFFICE_TIER_BRAND then Color3.fromRGB(255, 248, 235) else Color3.fromRGB(255, 235, 200)
+	end
+
+	if painted then
+		-- a filing cabinet against the south wall: two drawers and a top
+		local cabX = cx - w / 2 + 3
+		local cabZ = cz + d / 2 - 4
+		box("Cabinet", Vector3.new(3, 5, 4), Vector3.new(cabX, OFFICE_Y + 2.5, cabZ),
+			Color3.fromRGB(120, 124, 130), Enum.Material.Metal, fittings)
+		box("CabinetHandle", Vector3.new(0.3, 0.4, 2.4), Vector3.new(cabX + 1.6, OFFICE_Y + 3.4, cabZ),
+			Color3.fromRGB(60, 62, 66), Enum.Material.Metal, fittings)
+	end
+
+	if level >= OFFICE_TIER_SCREEN then
+		-- a tactics board on the north wall, with a pitch and a 4-4-2 on it
+		local board = box("TacticsBoard", Vector3.new(10, 6, 0.3), Vector3.new(cx + 2, OFFICE_Y + h - 5, cz - d / 2 + 0.6),
+			Color3.fromRGB(28, 70, 40), Enum.Material.SmoothPlastic, fittings)
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = "Tactics"
+		gui.Face = Enum.NormalId.Back
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 24
+		gui.LightInfluence = 0.4
+		gui.Parent = board
+		local pitch = Instance.new("Frame")
+		pitch.Name = "Pitch"
+		pitch.Size = UDim2.fromScale(0.86, 0.82)
+		pitch.Position = UDim2.fromScale(0.07, 0.09)
+		pitch.BackgroundColor3 = Color3.fromRGB(38, 96, 52)
+		pitch.BorderSizePixel = 0
+		pitch.Parent = gui
+		local line = Instance.new("Frame")
+		line.Name = "Halfway"
+		line.Size = UDim2.new(1, 0, 0, 2)
+		line.Position = UDim2.fromScale(0, 0.5)
+		line.BackgroundColor3 = Color3.fromRGB(230, 240, 230)
+		line.BorderSizePixel = 0
+		line.Parent = pitch
+		-- 4-4-2 in magnetic discs: keeper, four, four, two
+		local rows = { { 0.5 }, { 0.2, 0.4, 0.6, 0.8 }, { 0.2, 0.4, 0.6, 0.8 }, { 0.38, 0.62 } }
+		local ys = { 0.9, 0.68, 0.42, 0.2 }
+		for i, cols in rows do
+			for _, x in cols do
+				local disc = Instance.new("Frame")
+				disc.Name = "Disc"
+				disc.Size = UDim2.fromOffset(12, 12)
+				disc.AnchorPoint = Vector2.new(0.5, 0.5)
+				disc.Position = UDim2.fromScale(x, ys[i])
+				disc.BackgroundColor3 = if i == 1 then Color3.fromRGB(240, 220, 90) else Color3.fromRGB(235, 240, 245)
+				disc.BorderSizePixel = 0
+				disc.Parent = pitch
+				local corner = Instance.new("UICorner")
+				corner.CornerRadius = UDim.new(0.5, 0)
+				corner.Parent = disc
+			end
+		end
+		-- a chair on the visitor's side of the desk
+		local guestX = cx - 4
+		box("GuestChairBase", Vector3.new(0.4, 1.4, 0.4), Vector3.new(guestX, OFFICE_Y + 0.7, cz + 3),
+			Color3.fromRGB(40, 40, 42), Enum.Material.Metal, fittings)
+		box("GuestChair", Vector3.new(2, 0.5, 2), Vector3.new(guestX, OFFICE_Y + 1.65, cz + 3),
+			Color3.fromRGB(70, 74, 82), Enum.Material.Fabric, fittings)
+		box("GuestChairBack", Vector3.new(0.4, 2.2, 1.8), Vector3.new(guestX + 0.8, OFFICE_Y + 3, cz + 3),
+			Color3.fromRGB(70, 74, 82), Enum.Material.Fabric, fittings)
+	end
+
+	if level >= OFFICE_TIER_BRAND then
+		-- the crest and the club's name on the wall behind the desk
+		local state = PlotContext.stateFolder()
+		local name = (state and state:GetAttribute("ClubName") :: string?) or Config.ClubName
+		local kit = Config.clubCrest(name, true)
+		-- on the long wall, not the one behind the desk: that one carries the
+		-- fixtures notice (X170/X301) and the panel would cover it
+		local panel = box("CrestPanel", Vector3.new(14, 8, 0.3), Vector3.new(cx, OFFICE_Y + h - 6, cz + d / 2 - 0.7),
+			Color3.fromRGB(26, 30, 38), Enum.Material.SmoothPlastic, fittings)
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = "Brand"
+		gui.Face = Enum.NormalId.Front
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 24
+		gui.LightInfluence = 0.25
+		gui.Parent = panel
+		-- the same shield the turnstile fascia and the plaques carry
+		-- 8 studs tall at 24 px/stud, so a 120px shield fills most of the panel
+		CrestBadge.draw(gui, kit, UDim2.fromOffset(97, 120), UDim2.fromScale(0.07, 0.5), Vector2.new(0, 0.5))
+		local label = Instance.new("TextLabel")
+		label.Name = "Name"
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(0.58, 0.5)
+		label.Position = UDim2.fromScale(0.38, 0.25)
+		label.Font = Enum.Font.GothamBlack
+		label.TextScaled = true
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		label.TextColor3 = Color3.fromRGB(240, 242, 248)
+		label.Text = string.upper(name)
+		label.Parent = gui
+		-- and something alive in the corner
+		box("PlantPot", Vector3.new(2, 2, 2), Vector3.new(cx + w / 2 - 4, OFFICE_Y + 1, cz - d / 2 + 4),
+			Color3.fromRGB(150, 90, 60), Enum.Material.Slate, fittings)
+		box("Plant", Vector3.new(3, 5, 3), Vector3.new(cx + w / 2 - 4, OFFICE_Y + 4.5, cz - d / 2 + 4),
+			Color3.fromRGB(60, 120, 60), Enum.Material.Grass, fittings)
+	end
+
+	-- everything above is in pitch-local coordinates, like the rest of the
+	-- builder; anything added after the club was placed has to be moved into
+	-- the plot itself (the trophy shelf does the same)
+	PlotContext.place(fittings)
+end
+
+local officeBound = false
+
+-- Keeps the fittings in step with promotions, the way the scoreboard keeps up
+-- with the score.
+local function bindOffice()
+	local state = PlotContext.stateFolder()
+	if officeBound or not state then
+		return
+	end
+	officeBound = true
+	local function refresh()
+		WorldBuilder.dressOffice((state:GetAttribute("Tier") :: number?) or 1)
+	end
+	state:GetAttributeChangedSignal("Tier"):Connect(refresh)
+	state:GetAttributeChangedSignal("ClubName"):Connect(refresh)
+	task.defer(refresh)
+end
+
 -- Trophy shelf on the inside of the office's north wall: one gold cup per
 -- league title (Milestone 5 club history). Safe to call again after a title.
 function WorldBuilder.buildTrophies(count: number)
@@ -1674,8 +1873,8 @@ end
 
 -- X297: where the visiting supporters go. Review: it was pinned to the North
 -- Terrace, which starts unbuilt, so most of tier 1 had no away end at all and
--- away goals still landed on a motionless ground. It now follows whichever
--- stand is smallest among those actually built (the traditional away end), and
+-- away goals still landed on a motionless ground. It now follows the first
+-- built stand in a fixed preference order (see AWAY_END_PREFERENCE below), and
 -- it fills at the same density as the rest of the ground: a sell-out has to
 -- look like a sell-out, and CrowdCount has to stay honest.
 -- Behind a goal first, the main stand last: an away end in the North or South
@@ -2067,6 +2266,7 @@ function WorldBuilder.build(standLevels: { [string]: number }, amenityLevel: num
 		WorldBuilder.setClubName((state:GetAttribute("ClubName") :: string?) or Config.ClubName)
 	end
 	bindScoreboard()
+	bindOffice() -- X290
 
 	return {
 		model = club,

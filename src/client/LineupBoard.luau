@@ -187,6 +187,25 @@ local function injuryDot(parent: Instance)
 	Theme.stroke(inj)
 end
 
+-- X287 (review): the same trap as the injury dot below - a card is built once
+-- and kept, so an academy graduate wore NEW for his whole career and an age
+-- froze at whatever it was the day the card appeared. Called on every update.
+local function refreshAge(frame: Frame, p: Player)
+	local label = frame:FindFirstChild("Age")
+	if label and label:IsA("TextLabel") then
+		label.Text = if string.find(label.Text, "aged", 1, true) then ("aged %d"):format(p.age) else ("%d"):format(p.age)
+		label.TextColor3 = ageColour(p.age)
+	end
+	local chip = frame:FindFirstChild("NewChip")
+	if (p.apps or 0) == 0 then
+		if not chip then
+			newChip(frame)
+		end
+	elseif chip then
+		chip:Destroy()
+	end
+end
+
 -- X265: cards and rows are cached per player and only built once, so an injury
 -- picked up later never showed its dot at all. Called on every update.
 local function refreshInjury(frame: Frame, p: Player, dotParent: Instance, withChip: boolean)
@@ -728,6 +747,7 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 					cards[p.id] = c
 				end
 				refreshInjury(c, p, c, false)
+				refreshAge(c, p) -- X287 (review)
 				c.Position = slotPosition(slot)
 				if empties[slot] then
 					empties[slot]:Destroy()
@@ -772,6 +792,7 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 				rows[p.id] = r
 			end
 			refreshInjury(r, p, r:FindFirstChild("Face") or r, true)
+			refreshAge(r, p) -- X287 (review)
 			r.LayoutOrder = order
 			wantRow[p.id] = true
 		end

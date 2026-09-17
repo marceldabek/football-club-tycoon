@@ -12,7 +12,10 @@ local Finance = {}
 -- Every way money moves. `gate`, `concessions`, `bonus`, `prize` and `sales`
 -- are income; the rest is spend. Stored as positive totals either way, so the
 -- tab can show them side by side.
-Finance.INCOME = { "gate", "concessions", "bonus", "prize", "sales", "friendly" }
+-- `tradesIn` and `trades` are the two halves of the same thing: cash that came
+-- in with a player trade, and cash that went out with one. They are separate
+-- names because a category lives on one side of the ledger only.
+Finance.INCOME = { "gate", "concessions", "bonus", "prize", "sales", "friendly", "tradesIn" }
 Finance.SPEND = { "transfers", "stands", "amenities", "staff", "trades" }
 
 export type MatchRow = { round: number, gate: number, concessions: number, bonus: number, total: number }
@@ -57,11 +60,17 @@ function Finance.record(ledger: Ledger, category: string, amount: number)
 	if amount == 0 or amount ~= amount then
 		return
 	end
+	-- Review: `math.abs` alone would file a negative "income" as income. A
+	-- movement whose sign disagrees with its category is dropped instead.
 	local size = math.abs(amount)
 	if isIncome(category) then
-		ledger.income[category] = (ledger.income[category] or 0) + size
+		if amount > 0 then
+			ledger.income[category] = (ledger.income[category] or 0) + size
+		end
 	elseif isSpend(category) then
-		ledger.spend[category] = (ledger.spend[category] or 0) + size
+		if amount < 0 then
+			ledger.spend[category] = (ledger.spend[category] or 0) + size
+		end
 	end
 end
 

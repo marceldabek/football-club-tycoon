@@ -206,6 +206,7 @@ local tabButtons: { [string]: TextButton } = {}
 local render: () -> ()
 
 -- Five tabs share the row: each takes a fifth of the width minus its share of the gaps.
+-- X299 added FINANCE; the row divides itself by #TAB_NAMES
 local TAB_NAMES = { "Squad", "League", "Finance", "History", "Scouting", "Staff" }
 local tabGapShare = math.ceil(8 * (#TAB_NAMES - 1) / #TAB_NAMES)
 for i, name in TAB_NAMES do
@@ -360,7 +361,7 @@ Theme.corner(capacityFill, 6)
 
 local squadHint = Theme.text(squadBar, "", "muted", {
 	Name = "Hint",
-	Size = UDim2.new(1, -546, 0, SQUAD_BAR_H),
+	Size = UDim2.new(1, -636, 0, SQUAD_BAR_H), -- X287 (review): clear of the wider bar
 	Position = UDim2.new(1, -14, 0, 0),
 	AnchorPoint = Vector2.new(1, 0),
 	TextSize = 13,
@@ -757,7 +758,8 @@ local FINANCE_LABELS: { [string]: string } = {
 	stands = "Stands",
 	amenities = "Amenities",
 	staff = "Coach & scouting",
-	trades = "Trades",
+	tradesIn = "Trades in",
+	trades = "Trades out",
 }
 
 local function renderFinance()
