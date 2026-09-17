@@ -510,6 +510,14 @@ local function onGoHome(player: Player)
 	if not plot then
 		return -- visitor: nothing to go home to
 	end
+	-- X251: the walkout and the match own the camera; a teleport home mid-match
+	-- dropped the owner in the office while the pitch kept panning
+	local modules = PlotService.modulesFor(player.UserId)
+	local phase = modules and modules.state.get("Phase")
+	if phase == "PreMatch" or phase == "Match" then
+		toast(player, "Your match is on. You're already at your ground.")
+		return
+	end
 	local now = os.clock()
 	local last = lastGoHome[player.UserId]
 	if last and now - last < GO_HOME_COOLDOWN then

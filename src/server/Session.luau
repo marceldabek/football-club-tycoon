@@ -110,6 +110,10 @@ local function requestMatch(player: Player)
 		toast(player, "A match is already in progress")
 		return
 	end
+	if ClubState.get("NeedsName") == true then
+		toast(player, "Name your club first.")
+		return
+	end
 	local started = MatchService.playMatch()
 	if not started then
 		toast(player, "A match is already in progress")
@@ -176,7 +180,18 @@ function Session.refreshPromptLock()
 	end
 	local phase = ClubState.get("Phase")
 	local managing = phase == "Manage"
-	w.matchdayPrompt.Enabled = managing
+	-- X250: the HUD's PLAY MATCH hides until the club is named; the board must
+	-- agree, or match 1 can start with the placeholder name still on the card
+	local named = ClubState.get("NeedsName") ~= true
+	w.matchdayPrompt.Enabled = managing and named
+	-- X249: the office computer prompt is part of matchday lock-out too. The
+	-- client's panel refuses to open outside Manage, so an enabled prompt that
+	-- does nothing was the only thing that still looked usable.
+	local clubPrompt = w.model:FindFirstChild("ClubPrompt", true)
+	if clubPrompt and clubPrompt:IsA("ProximityPrompt") then
+		clubPrompt.Enabled = managing
+		clubPrompt.ObjectText = if managing then "Manage squad, scouting & staff" else "Locked during matchday"
+	end
 	UpgradeService.refreshPrompt()
 	Scenery.setMatchday(phase == "PreMatch" or phase == "Match", ClubState.get("Evening") == true)
 end
@@ -401,6 +416,7 @@ function Session.start(owner: Player): boolean
 	-- the prompts follow the phase; listen before the flip to Manage so the
 	-- matchday board and upgrade signs come on at boot, not at the next change
 	ClubState.Folder:GetAttributeChangedSignal("Phase"):Connect(Session.refreshPromptLock)
+	ClubState.Folder:GetAttributeChangedSignal("NeedsName"):Connect(Session.refreshPromptLock)
 	ClubState.set("Phase", "Manage")
 	Session.refreshPromptLock()
 	print(("[FCT] %s %s profile for %s (%s): %s, %d matches played"):format(

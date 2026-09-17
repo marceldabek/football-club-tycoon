@@ -362,9 +362,9 @@
 - [x] X246 (14:09 done) River pontoons have no mooring posts (the reference has tall timber posts): 2 posts with caps per pontoon, ~16 parts `[studio]` S
 - [x] X247 (13:58 done) The club visit card counts the East Stand's starting level as an upgrade ("1 stand upgrade" on a brand-new club): count levels above each plot's start, 0 parts `[disk]` S
 - [ ] X248 Five client scripts each poll `Lighting.ClockTime` for "dark", but a fast-forward sweeps the clock through night in about 2.5 s, so lamps, lit windows, headlights and train windows switch late or miss the night: have Sky publish the look's `streetLights` and make them refresh on change, 0 parts `[disk]` M
-- [ ] X249 The office computer prompt isn't phase-locked, so during matchday holding E does nothing while the CLUB OFFICE button is hidden: lock it with the other prompts, 0 parts `[disk]` S
-- [ ] X250 The matchday board can start match 1 before the club is named (the HUD button hides but the world prompt doesn't), and the naming card comes back afterwards: refuse while NeedsName, 0 parts `[disk]` S
-- [ ] X251 GO TO MY CLUB works during matchday: it teleports the owner into the office while the walkout camera pans the pitch: hide it outside Manage and refuse server-side, 0 parts `[disk]` S
+- [x] X249 (14:34 done) The office computer prompt isn't phase-locked, so during matchday holding E does nothing while the CLUB OFFICE button is hidden: lock it with the other prompts, 0 parts `[disk]` S
+- [x] X250 (14:34 done) The matchday board can start match 1 before the club is named (the HUD button hides but the world prompt doesn't), and the naming card comes back afterwards: refuse while NeedsName, 0 parts `[disk]` S
+- [x] X251 (14:34 done) GO TO MY CLUB works during matchday: it teleports the owner into the office while the walkout camera pans the pitch: hide it outside Manage and refuse server-side, 0 parts `[disk]` S
 - [ ] X252 On a phone the NAME YOUR CLUB card sits under the on-screen keyboard, and the 480–560 px cards overflow a small viewport: lift the focused card by the keyboard height and add a viewport UIScale in Theme, 0 parts `[disk]` M
 - [ ] X253 The pitch is mown across the pitch; pitch-board.png stripes run goal to goal: swap the stripe axis, 14 parts unchanged `[studio]` S
 - [ ] X254 No town crest on the street furniture (lamp banners, estate/station banners, bin bands) though every reference image has one: add a Shared/TownCrest drawing beside CrestBadge, 0 parts `[studio]` S

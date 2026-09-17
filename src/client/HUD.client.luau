@@ -547,12 +547,14 @@ local function refreshScoreboard()
 end
 
 local function refreshLoading()
-	local loading = get("Phase") == "Loading"
+	local phase = get("Phase")
+	local loading = phase == "Loading"
 	loadingCover.Visible = loading
 	cashLabel.Visible = not loading
 	seasonLabel.Visible = not loading
 	musicButton.Visible = not loading
-	goHomeButton.Visible = not loading
+	-- X251: matchday keeps the owner at their ground; the server refuses anyway
+	goHomeButton.Visible = not loading and phase ~= "PreMatch" and phase ~= "Match"
 	if not loading then
 		maybeWelcome()
 	end

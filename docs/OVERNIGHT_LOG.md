@@ -1406,3 +1406,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Renamed the new stand sign GUI to `StandStreetSign`: the town's street-name signs already use `StreetSign` (14 of them), which made the count confusing.
 - Tested: RunAll 437 passed; in play the town dressed with 2 firm boards, 4 mooring posts and 5 stand signs on the claimed ground, no console errors.
 
+### 2026-09-17 14:34 — Matchday locks: office computer, unnamed club, go home (X249–X251 done)
+- X249 `Session.refreshPromptLock`: the office computer prompt is locked with the rest during PreMatch/Match and reads "Locked during matchday". The client panel already refused to open then, so an enabled prompt that did nothing was the only thing still looking usable. Checked in play: Manage true → matchday false ("Locked during matchday") → back to true after full time.
+- X250: the matchday board prompt is disabled while `NeedsName` is set, and `requestMatch` refuses with "Name your club first." Before, a brand-new owner could start match 1 from the board with the placeholder name, and the naming card came back after the match. `refreshPromptLock` now also listens to `NeedsName`. Checked in play by flipping the attribute: board disabled, then enabled again when cleared.
+- X251: GO TO MY CLUB hides outside Manage, and the server refuses with "Your match is on. You're already at your ground." Before, a tap during the walkout teleported the owner into the office while the camera kept panning the pitch. Checked in play: visible in Manage, hidden in Match, visible again after.
+- RunAll 437 passed.
+
