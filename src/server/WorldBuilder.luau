@@ -806,14 +806,21 @@ local function bindScoreboard()
 		end
 		local phase = state:GetAttribute("Phase")
 		local inMatch = phase == "Match" or phase == "PreMatch"
-		set("HomeName", abbreviate((state:GetAttribute("ClubName") :: string?) or Config.ClubName))
-		set("AwayName", if inMatch then abbreviate((state:GetAttribute("Opponent") :: string?) or "Away") else "")
+		-- X310: the hosts are named first, so an away fixture reads the way it
+		-- would on the day: THEM 2 - 1 US.
+		local atHome = state:GetAttribute("AtHome") ~= false
+		local us = abbreviate((state:GetAttribute("ClubName") :: string?) or Config.ClubName)
+		local them = abbreviate((state:GetAttribute("Opponent") :: string?) or "Away")
+		set("HomeName", if atHome or not inMatch then us else them)
+		set("AwayName", if not inMatch then "" elseif atHome then them else us)
 		if not inMatch then
 			set("Score", "- -")
 			set("Clock", "")
 			return
 		end
-		set("Score", ("%d - %d"):format((state:GetAttribute("HomeGoals") :: number?) or 0, (state:GetAttribute("AwayGoals") :: number?) or 0))
+		local ours = (state:GetAttribute("HomeGoals") :: number?) or 0
+		local theirs = (state:GetAttribute("AwayGoals") :: number?) or 0
+		set("Score", if atHome then ("%d - %d"):format(ours, theirs) else ("%d - %d"):format(theirs, ours))
 		local left = (state:GetAttribute("TimeLeft") :: number?) or 0
 		local total = math.max((state:GetAttribute("MatchDuration") :: number?) or 90, 1)
 		local minute = math.clamp(math.floor((1 - left / total) * 90), 0, 90)
@@ -2169,10 +2176,16 @@ end
 -- budget is shared across all four plots.
 -- `awayKit` (X297) puts the visiting club's colour in one end. Nil for a
 -- preview or between matches: then the whole ground is home support.
-function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: number, capacity: number, awayKit: Color3?)
-	local awayColours = if awayKit
-		then { awayKit, awayKit, Color3.fromRGB(240, 240, 240), Color3.fromRGB(40, 40, 40), Color3.fromRGB(90, 90, 100) }
-		else nil
+-- X310: `hostKit` is the colour of whoever the ground belongs to. At home that
+-- is us and the visitors take the away end; away from home the two swap, so the
+-- stands round the player are full of the other club and their own following is
+-- the pocket in the corner.
+function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: number, capacity: number, awayKit: Color3?, hostKit: Color3?)
+	local function palette(kit: Color3)
+		return { kit, kit, Color3.fromRGB(240, 240, 240), Color3.fromRGB(40, 40, 40), Color3.fromRGB(90, 90, 100) }
+	end
+	local awayColours = if awayKit then palette(awayKit) else nil
+	local homeColours = if hostKit then palette(hostKit) else nil
 	local awayKey = if awayColours then awayEndKey(levels) else nil
 	local club = PlotContext.clubModel() :: Model
 	local stands = club:FindFirstChild("Stands") :: Folder
@@ -2238,7 +2251,7 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 					end
 					local z = run[1] + 1 + nudge + spacing * (i - 0.5)
 					-- yaw so the fan's front faces the pitch (local -X)
-					buildFan(PlotContext.cframe * geo.frame * CFrame.new(x, top, z) * CFrame.Angles(0, math.pi / 2, 0), rng, crowd, row <= FAN_LEG_ROWS, if awayEnd then awayColours else nil)
+					buildFan(PlotContext.cframe * geo.frame * CFrame.new(x, top, z) * CFrame.Angles(0, math.pi / 2, 0), rng, crowd, row <= FAN_LEG_ROWS, if awayEnd then awayColours else homeColours)
 					placed += 1
 				end
 			end

@@ -147,8 +147,19 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	local demand = SeasonService.demand()
 	local attendance = math.min(capacity, demand)
 	-- X297: the visiting club's colours fill one end
-	WorldBuilder.buildCrowd(ClubState.plotLevels(), attendance, capacity, Config.pitchKit(jsonToColor(opponent.kit)))
+	-- X310: away from home the stands wear the hosts' colour and our following
+	-- takes the away end
+	local theirKit = Config.pitchKit(jsonToColor(opponent.kit))
+	if playerIsAway then
+		WorldBuilder.buildCrowd(ClubState.plotLevels(), attendance, capacity, Config.HomeKit, theirKit)
+	else
+		WorldBuilder.buildCrowd(ClubState.plotLevels(), attendance, capacity, theirKit)
+	end
 
+	-- X310: the venue of the match actually being played (X261 published only
+	-- the next fixture's), so the scoreboard, the crowd and the card can dress
+	-- an away match as an away match
+	ClubState.set("AtHome", playerIsAway ~= true)
 	ClubState.set("Opponent", opponent.name)
 	ClubState.set("HomeGoals", 0)
 	ClubState.set("AwayGoals", 0)
@@ -340,6 +351,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		rounds = roundResult.rounds,
 		season = roundResult.summary,
 		elsewhere = roundResult.elsewhere, -- X294
+		atHome = fixture.atHome ~= false, -- X310
 		award = award, -- X302
 	})
 	return true

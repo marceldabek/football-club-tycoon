@@ -1713,3 +1713,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Verified in play at tier 4 with popularity 20: £1,020 a match, recorded under `sponsor` in the ledger, and the matchday row's total includes it.
 - RunAll 465 passed, with a new Economy test (a fee for every division, more for a better-known club, capped past 100 popularity, rounded to ten, and a deterministic sponsor name for every seed) and the existing settle test updated to expect the fee in the total.
 
+### 2026-09-17 18:46 — An away fixture looks like one (X310)
+- X261 gave the simulation the real venue, but the presentation stayed at home: your own ground, a crowd in your own red, your name first on both scoreboards, and nothing on the card. Five of every ten matches looked identical to the other five.
+- The venue of the match being played is now published (`AtHome`, not just X261's `NextAtHome`), and three things read it: **the crowd** - away from home the stands wear the hosts' colour and our own following is the pocket in the away end that X297 built; **both scoreboards** - the hosts are named first and the score reads their way round, in the world and on the HUD, with their crest first; and **the summary card** - "MATCH 5 / 10 · AWAY AT SILVERTON CITY".
+- Verified in play on a real away fixture: `AtHome false vs Silverton City`, the East, West and South stands' commonest shirt was Silverton's silver (188,192,198) and the away end's was our red (200,40,50); the in-world board read "SIL 1 - 0 MDI" while our goals attribute said 0-1, and the HUD read "Silverton City 1 - 0 MDino24 FC" (screenshot, under the floodlights).
+- **Left alone deliberately:** the match is still played at this club's ground (CLAUDE.md MVP scope) and the full gate still goes to the player, because what an away club earns is an economy decision - questions 18 and 19.
+- RunAll 465 passed.
+

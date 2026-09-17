@@ -171,6 +171,7 @@ function ClubState.init()
 	ClubState.set("Popularity", Config.StartingPopularity)
 	ClubState.set("Demand", 0)
 	ClubState.set("NextOpponent", "")
+	ClubState.set("AtHome", true) -- X310
 	ClubState.set("LeagueTable", "[]") -- JSON standings
 	ClubState.set("AmenityLevel", 0)
 	ClubState.set("History", "{}") -- JSON { seasons, servants, honours } (HistoryService)

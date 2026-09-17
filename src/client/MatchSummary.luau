@@ -589,7 +589,12 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		if stateFolder then
 			clubName = stateFolder:GetAttribute("ClubName") or clubName
 		end
-		matchLine.Text = if data.friendly then "FRIENDLY" else ("MATCH %d / %d"):format(data.round or 0, data.rounds or 10)
+		-- X310: five of ten fixtures are away and the card never said so
+		local away = data.atHome == false
+		matchLine.Text = if data.friendly
+			then "FRIENDLY"
+			elseif away then ("MATCH %d / %d   ·   AWAY AT %s"):format(data.round or 0, data.rounds or 10, string.upper(tostring(data.opponent or "")))
+			else ("MATCH %d / %d"):format(data.round or 0, data.rounds or 10)
 		-- Same colours the crest uses everywhere else, looked up by club name.
 		local homeKit, homeAccent = Config.clubCrest(clubName, true)
 		homeInitials.Text = initials(clubName)

@@ -747,10 +747,18 @@ local function refreshScoreboard()
 		lastMinute = nil
 		return
 	end
-	local homeName, awayName = get("ClubName") or "Home", get("Opponent") or "Away"
-	Crest.update(homeCrest, homeName, true)
-	Crest.update(awayCrest, awayName)
-	scoreLabel.Text = ("%s   %d - %d   %s"):format(homeName, get("HomeGoals") or 0, get("AwayGoals") or 0, awayName)
+	-- X310: the hosts first, so the scoreboard says where the match is
+	local atHome = get("AtHome") ~= false
+	local us, them = get("ClubName") or "Home", get("Opponent") or "Away"
+	local ours, theirs = get("HomeGoals") or 0, get("AwayGoals") or 0
+	local homeName, awayName = us, them
+	if not atHome then
+		homeName, awayName = them, us
+		ours, theirs = theirs, ours
+	end
+	Crest.update(homeCrest, homeName, atHome)
+	Crest.update(awayCrest, awayName, not atHome)
+	scoreLabel.Text = ("%s   %d - %d   %s"):format(homeName, ours, theirs, awayName)
 	local total = get("TimeLeft") or 0
 	-- show a football minute rather than raw seconds; the real clock is hidden
 	local elapsedFrac = 1 - (total / math.max(get("MatchDuration") or 90, 1))
