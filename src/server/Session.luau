@@ -325,15 +325,28 @@ function Session.start(owner: Player): boolean
 	if not lockOk then
 		warn(("[FCT] save lock acquire failed for %d: %s (continuing without a lock)"):format(owner.UserId, tostring(lockErr)))
 	end
+	-- X207: leaving while the lock or save was loading must still free the lock
+	-- (stop() ran before haveLock was set), or the next join waits the full maxWait
+	local function releaseEarly()
+		if haveLock then
+			pcall(function()
+				(locker :: SaveLock.Locker):release(owner.UserId)
+			end)
+			haveLock = false
+		end
+	end
 	if owner.Parent ~= Players or stopped then
+		releaseEarly()
 		return false -- left while we were waiting for the lock
 	end
 
 	local data, status = saver:load(owner.UserId)
 	if owner.Parent ~= Players or stopped then
+		releaseEarly()
 		return false -- left while we were loading
 	end
 	if status == "error" then
+		releaseEarly()
 		owner:Kick("Your club could not be loaded. Please rejoin.")
 		return false
 	end

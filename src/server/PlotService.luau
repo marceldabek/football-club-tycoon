@@ -60,6 +60,9 @@ local runtimeRoot: Folder
 -- Guards a double ClaimPlot fire (double-click, laggy client) while a claim
 -- for that player is still in flight (session.start yields on the save load).
 local claiming: { [number]: boolean } = {}
+-- X208: clubs whose owner left mid-match; the match finishes (and saves)
+-- before the session stops. BindToClose still stops them.
+local finishing: { [Runtime]: boolean } = {}
 local lastGoHome: { [number]: number } = {}
 
 local function findOrCreate(parent: Instance, name: string, className: string): Instance
@@ -354,17 +357,22 @@ function PlotService.release(player: Player)
 	claiming[player.UserId] = nil
 	lastGoHome[player.UserId] = nil
 	if runtime then
-		local ok, err = pcall(runtime.session.stop)
-		if not ok then
-			warn("[FCT] session stop failed: " .. tostring(err))
-		end
+		finishing[runtime] = true
 	end
 	task.spawn(function()
+		-- X208: a match still in progress plays out and settles (result, cash,
+		-- injuries, table) and is saved before the session stops; stopping first
+		-- dropped it from the save, so quitting a losing match dodged the result
 		local deadline = os.clock() + 180
 		while runtime and runtime.match.isRunning() and os.clock() < deadline do
 			task.wait(1)
 		end
 		if runtime then
+			local ok, err = pcall(runtime.session.stop)
+			if not ok then
+				warn("[FCT] session stop failed: " .. tostring(err))
+			end
+			finishing[runtime] = nil
 			runtime.folder:Destroy()
 		end
 		local stale = plotModel(plot):FindFirstChild("Club")
@@ -470,7 +478,13 @@ end
 -- ClaimPlot (client -> server, arg: plot number). The client's PlotPicker
 -- calls this once the player has chosen a free ground.
 local function onClaimPlot(player: Player, rawPlot: unknown)
-	if registry:plotOf(player.UserId) then
+	local ownPlot = registry:plotOf(player.UserId)
+	if ownPlot then
+		-- X206: a rejoin while the last visit's club is still finishing its match
+		-- and saving; say so instead of silently ignoring the click
+		if not runtimes[ownPlot] then
+			toast(player, "Your club is still finishing its last match. Try again in a moment.")
+		end
 		return -- already owns a plot: ignore (idempotent-ish, no toast needed)
 	end
 	if claiming[player.UserId] then
@@ -548,6 +562,9 @@ function PlotService.start()
 	game:BindToClose(function()
 		for _, runtime in runtimes do
 			runtime.session.stop()
+		end
+		for runtime in finishing do
+			pcall(runtime.session.stop)
 		end
 	end)
 end
