@@ -236,4 +236,5 @@
 - [x] X121 (09:53 navy RIVERMERE / BUSINESS BUILDS COMMUNITIES banners on the 6 industrial estate street lamps, 2 parts each) rivermer.industrialestate.png's lamp banners `[studio]` S
 - [x] X122 (09:55 the club shop fascia reads "<CLUB NAME>  CLUB SHOP"; the name label is called ClubName so a rename repaints it) RivermereTurnstileEntrance.png: "RIVERMERE FC CLUB SHOP"; ours said only "CLUB SHOP" `[studio]` S
 - [x] X123 (09:56 a dark glazed walk-through door with a push bar in the club shop doorway) The shop doorway was an open hole; the reference shop is fully glazed `[studio]` S
+- [x] X124 (09:59 warm block paving (Pavement material, sandstone colour) on the stadium forecourt instead of flat grey concrete) RivermereTurnstileEntrance.png's paved approach `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

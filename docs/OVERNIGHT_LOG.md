@@ -40,7 +40,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 6. The Rojo panel in Studio shows "Unknown HTTP error: NetFail", although `rojo serve` is running on port 34872 and serving this branch. Click Connect (or Disconnect, then Connect) in the Rojo panel before editing, so Studio's hand-pasted copies are replaced from disk. The HTTP sync fallback in `tools/studio-sync.luau` no longer works from the MCP, because its sandbox lacks the Network capability.
 7. Created in Studio through the MCP tonight, not by Rojo: `ReplicatedStorage.Shared.TrainMath`, `StarterPlayerScripts.Client.ClubScarves`, `StarterPlayerScripts.Client.Deliveries`, `ServerScriptService.Server.SportsCentreDresser`, `StarterPlayerScripts.Client.Train`, and tests `TrainMathTest` / `SportsCentreDresserTest`. The disk versions carry full comments; a Rojo reconnect replaces the Studio copies.
 8. Traffic's roundabout fix (X79) is only visual: vehicles are pushed onto a ring round the island, with no give-way or real circulation, so two cars can overlap at a busy roundabout. The train (X82) runs under the station footbridge without a clearance check (deck 16, carriage roof about 9, so it's fine today).
-9. Last RunAll in Studio: **410 passed, 0 failed** (09:56). WireDresser, CrossingDresser, CentreTreeDresser, GreeneryDresser, GroundInfluence (shared + client), Swans (client) and their tests were created in Studio with multi_edit (comments trimmed there). TownBuilderTest now exists in Studio as a shortened copy (made with multi_edit); the disk file is the full one.
+9. Last RunAll in Studio: **410 passed, 0 failed** (09:59). WireDresser, CrossingDresser, CentreTreeDresser, GreeneryDresser, GroundInfluence (shared + client), Swans (client) and their tests were created in Studio with multi_edit (comments trimmed there). TownBuilderTest now exists in Studio as a shortened copy (made with multi_edit); the disk file is the full one.
 
 **Questions for Marcel**
 1. **Done as TEMP, please confirm:** Studio playtests now use the DataStore `ClubProfiles_Studio`, so Studio opens a fresh club and onboarding instead of Dino FC. To get your real club back in Studio, set `Config.Save.studioStoreSuffix = ""`. *Rec: keep it; live servers are unchanged.*
@@ -936,3 +936,6 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 
 ### 2026-09-17 09:56 — Glazed club shop door (X123 done)
 - The club shop doorway was an empty hole. It now has a dark glazed door (non-colliding, so players can still walk in) with a push bar, 2 parts per club. The first try with pale glass at 0.5 transparency was nearly invisible; darker glass at 0.25 reads as a door (re-shot). RunAll 410 passed.
+
+### 2026-09-17 09:59 — Block paving on the stadium forecourt (X124 done)
+- From the turnstile viewpoint against RivermereTurnstileEntrance.png, the forecourt was a big flat grey concrete slab. WorldBuilder's forecourt paving now uses the Pavement material in a warm sandstone colour, so it reads as herringbone block paving. The bay lines, barriers and TV van still sit on it. RunAll 410 passed. Before and after screenshots from the forecourt checked.

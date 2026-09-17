@@ -952,7 +952,8 @@ local function buildForecourt(parent: Instance)
 	local w = FORECOURT_X1 - FORECOURT_X0
 	local d = FORECOURT_Z1 - FORECOURT_Z0
 	box("Paving", Vector3.new(w, DECK_Y, d), Vector3.new((FORECOURT_X0 + FORECOURT_X1) / 2, DECK_Y / 2, (FORECOURT_Z0 + FORECOURT_Z1) / 2),
-		Color3.fromRGB(138, 136, 132), Enum.Material.Concrete, yard)
+		-- X124: warm block paving like RivermereTurnstileEntrance.png (was flat grey concrete)
+		Color3.fromRGB(196, 176, 148), Enum.Material.Pavement, yard)
 	-- car park bays between the office and the corner
 	local bayZ = FORECOURT_Z1 - 13
 	for i = 0, 5 do
