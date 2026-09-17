@@ -139,6 +139,20 @@ function StationDresser.laybyLocal(f: CFrame): { x0: number, x1: number, z0: num
 	return { x0 = math.min(a.X, b.X), x1 = math.max(a.X, b.X), z0 = z - layby.width / 2, z1 = z + layby.width / 2 }
 end
 
+-- Pure (X72): the painted bus stop bay in front of the Station bus stop, in the
+-- front frame: 30 long centred on the stop, 4.8 wide on the carriageway just
+-- inside the kerb (the lay-by's outer edge line, which is the kerb line).
+function StationDresser.busBay(f: CFrame): { x0: number, x1: number, z0: number, z1: number }?
+	for _, stop in TownLayout.BUS_STOPS do
+		if stop.name == "Station" then
+			local p = f:PointToObjectSpace(stop.position)
+			local kerb = StationDresser.laybyLocal(f).z1
+			return { x0 = p.X - 15, x1 = p.X + 15, z0 = kerb + 0.6, z1 = kerb + 5.4 }
+		end
+	end
+	return nil
+end
+
 -- True if a TownBuilder pavement part covers this ground point.
 local function pavementAt(p: Vector3): boolean
 	for _, hit in workspace:GetPartBoundsInBox(CFrame.new(p.X, 0.2, p.Z), Vector3.new(0.5, 0.4, 0.5)) do
@@ -492,6 +506,22 @@ function StationDresser.build(): string
 	word.Transparency = 1
 	word.CastShadow = false
 	sign(word, Enum.NormalId.Top, "TAXIS", MARKING_YELLOW, nil, Enum.Font.GothamBlack)
+
+	-- X72: a yellow bus stop bay with BUS STOP painted in it, like RivermereStation.png
+	local bay = StationDresser.busBay(f)
+	if bay then
+		local y0, y1 = 0.225, 0.25 -- on the carriageway top (0.22)
+		for _, z in { bay.z0, bay.z1 } do
+			slab(m, f, "BayLine", bay.x0, bay.x1, y0, y1, z - 0.2, z + 0.2, MARKING_YELLOW, Enum.Material.SmoothPlastic).CastShadow = false
+		end
+		for _, x in { bay.x0, bay.x1 } do
+			slab(m, f, "BayLine", x - 0.2, x + 0.2, y0, y1, bay.z0 + 0.2, bay.z1 - 0.2, MARKING_YELLOW, Enum.Material.SmoothPlastic).CastShadow = false
+		end
+		local busWord = slab(m, f, "BusStopMarking", (bay.x0 + bay.x1) / 2 - 8, (bay.x0 + bay.x1) / 2 + 8, y0, y1 + 0.01, bay.z0 + 0.6, bay.z1 - 0.6, MARKING_YELLOW)
+		busWord.Transparency = 1
+		busWord.CastShadow = false
+		sign(busWord, Enum.NormalId.Top, "BUS STOP", MARKING_YELLOW, nil, Enum.Font.GothamBlack)
+	end
 
 	-- platform side (X20): read the greybox platform so its depth stays TownBuilder's call
 	local platform = greybox and greybox:FindFirstChild("Platform")

@@ -115,4 +115,27 @@ function T.laybyMeetsTheForecourtAndOpensOntoStationRoad()
 	end
 end
 
+function T.busBayIsOnTheCarriagewayInFrontOfTheStationStop()
+	local f = StationDresser.frontFrame()
+	local bay = StationDresser.busBay(f)
+	assert(bay, "the Station stop exists")
+	local road
+	for _, r in TownLayout.ROADS do
+		if r.name == "Station Road" then
+			road = r
+		end
+	end
+	assert(road, "Station Road")
+	for _, corner in { Vector3.new(bay.x0, 0, bay.z0), Vector3.new(bay.x1, 0, bay.z0), Vector3.new(bay.x0, 0, bay.z1), Vector3.new(bay.x1, 0, bay.z1) } do
+		local d = TownLayout.distanceToPolyline(f * corner, road.points)
+		assert(d < road.width / 2, ("bay corner %.2f from the centreline, off the carriageway"):format(d))
+	end
+	for _, stop in TownLayout.BUS_STOPS do
+		if stop.name == "Station" then
+			local p = f:PointToObjectSpace(stop.position)
+			assert(math.abs((bay.x0 + bay.x1) / 2 - p.X) < 1e-3, "centred on the stop")
+		end
+	end
+end
+
 return T

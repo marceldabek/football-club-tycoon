@@ -541,3 +541,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - The screenshot of the station planter showed the Station bus shelter standing on the forecourt over a planter and the bench. The stop had been placed for the old diagonal road end. `TownLayout.BUS_STOPS` Station moves to (-915, -355), yaw 180, on the station-side pavement west of the taxi lay-by, with its back to the forecourt and open to the road. An overlap check finds only its own poster (ImperfectionDresser puts one on the back panel). It is about 18 studs from the road, so buses still pull up.
 - **Screenshots** SandHeap_1, StationPlanters_1 (before the move) and StationStop_1.
 - RunAll 356/356.
+
+### 2026-09-17 06:15 — Bus stop bay at the station (X72), more station follow-ups (X73)
+- New pure `StationDresser.busBay(f)` (1 test: all four corners on the Station Road carriageway, centred on the Station stop) places a 30 × 4.8 yellow bay just inside the kerb in front of the moved Station stop, with BUS STOP painted in it, as in RivermereStation.png. It's 5 parts (4 lines and a transparent text plate).
+- **Screenshot** StationBusBay_1. The painted words are small, because the text plate is only as tall as the bay is wide.
+- Logged X73 for the rest of that comparison: a finger post, double yellow lines, a kiosk basket, and the raised platform wall with railings.
+- RunAll 357/357.
