@@ -9,7 +9,7 @@
 -- Coordinates come from PlotGrounds.luau's layout comment (pedestrian gate at
 -- x=-380 z -20..-4, footpath along z=-12 from x=-379 to x=-265, then north
 -- along x=-265 to z=-187, then east along z=-187 to the forecourt edge
--- x=-190; car park x -350..-250, z 40..340) and WorldBuilder's turnstile
+-- x=-190; car park x -350..-250, z 40..190) and WorldBuilder's turnstile
 -- constants (SIDE_EDGE=121, END_EDGE=179, CORNER_Z=155,
 -- TURNSTILE_Z = -(CORNER_Z + END_EDGE)/2 = -167, turnstile lanes at
 -- x = -SIDE_EDGE = -121).
@@ -44,7 +44,7 @@ MatchdayRoutes.ROUTES = {
 		TURNSTILE,
 	} :: Route,
 	fromCarPark = {
-		pt(-300, 190), -- car park centre
+		pt(-300, 115), -- car park centre
 		pt(-350, 40), -- north-west corner of the car park
 		JOIN,
 		NORTH_TURN,
