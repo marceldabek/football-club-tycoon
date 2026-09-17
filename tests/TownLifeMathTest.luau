@@ -52,4 +52,186 @@ function T.bladeCFrameAtZeroAngleIsJustTheOffsetAtTheHub()
 	assert((cf.Position - Vector3.new(3, 0, 0)).Magnitude < EPS, "position " .. tostring(cf.Position))
 end
 
+-- ------------------------------------------------------------------ flags
+
+function T.ringPointsSitOnTheCircle()
+	local centre = Vector3.new(10, 0.25, -5)
+	local pts = TownLifeMath.ringPoints(centre, 52, 4, math.pi / 8)
+	assert(#pts == 4, "expected 4 points, got " .. #pts)
+	for _, p in pts do
+		assert(math.abs((p - centre).Magnitude - 52) < EPS, "radius " .. tostring((p - centre).Magnitude))
+		assert(math.abs(p.Y - 0.25) < EPS, "keeps the centre height")
+	end
+	assert((pts[1] - pts[3]).Magnitude > 103.9, "opposite points are a diameter apart")
+end
+
+local function flagChainChecks(t: number)
+	local attach = CFrame.fromMatrix(Vector3.new(3, 22, 7), Vector3.new(0, 0, 1), Vector3.new(0, 1, 0))
+	local w = 1.8
+	local segs = TownLifeMath.flagSegmentCFrames(attach, w, 3, t)
+	assert(#segs == 3, "expected 3 segments, got " .. #segs)
+	local inner = segs[1]:PointToWorldSpace(Vector3.new(-w / 2, 0, 0))
+	assert((inner - attach.Position).Magnitude < EPS, "first segment starts at the pole, t=" .. t)
+	for i = 1, #segs do
+		assert(math.abs(segs[i].Position.Y - 22) < EPS, "segment stays at attach height")
+		assert(math.abs(segs[i].UpVector.Y - 1) < EPS, "segment stays upright")
+		if i < #segs then
+			local outer = segs[i]:PointToWorldSpace(Vector3.new(w / 2, 0, 0))
+			local nextInner = segs[i + 1]:PointToWorldSpace(Vector3.new(-w / 2, 0, 0))
+			assert((outer - nextInner).Magnitude < EPS, "segments joined edge to edge at hinge " .. i)
+		end
+	end
+	-- the flag flies roughly along attach +X (world +Z here): the wave never folds it back
+	local tip = segs[#segs]:PointToWorldSpace(Vector3.new(w / 2, 0, 0))
+	assert(tip.Z - 7 > 3 * w * 0.8, "tip reach " .. tostring(tip.Z - 7))
+end
+
+function T.flagSegmentsStayJoinedThroughTheWave()
+	for _, t in { 0, 0.3, 1.1, 2.7, 10 } do
+		flagChainChecks(t)
+	end
+end
+
+function T.flagSegmentsActuallyMove()
+	local attach = CFrame.new(0, 20, 0)
+	local a = TownLifeMath.flagSegmentCFrames(attach, 2, 3, 0)
+	local b = TownLifeMath.flagSegmentCFrames(attach, 2, 3, 0.6)
+	assert((a[3].Position - b[3].Position).Magnitude > 0.05, "outer segment should move over time")
+end
+
+-- ------------------------------------------------------------------ smoke
+
+function T.positionBucketIsStableAndInRange()
+	local p = Vector3.new(-812.4, 30, 455.6)
+	local b = TownLifeMath.positionBucket(p, 8)
+	assert(b >= 0 and b < 8 and b == math.floor(b), "bucket in 0..7, got " .. b)
+	assert(TownLifeMath.positionBucket(Vector3.new(-812.1, 12, 455.9), 8) == b, "same stud -> same bucket")
+end
+
+function T.positionBucketPicksAboutOneInEight()
+	-- a terrace-like grid of stacks 9 studs apart
+	local zero = 0
+	local total = 0
+	for x = -20, 19 do
+		for z = -20, 19 do
+			total += 1
+			if TownLifeMath.positionBucket(Vector3.new(x * 9 + 0.3, 0, z * 42), 8) == 0 then
+				zero += 1
+			end
+		end
+	end
+	local share = zero / total
+	assert(share > 0.08 and share < 0.17, "share in bucket 0: " .. share)
+end
+
+function T.nearestIndicesSortsAndFilters()
+	local pts = { Vector3.new(10, 0, 0), Vector3.new(3, 99, 0), Vector3.new(500, 0, 0), Vector3.new(0, 0, -5) }
+	local got = TownLifeMath.nearestIndices(pts, Vector3.zero, 3, 100)
+	assert(#got == 3, "expected 3, got " .. #got)
+	assert(got[1] == 2 and got[2] == 4 and got[3] == 1, "order " .. table.concat(got, ","))
+	local capped = TownLifeMath.nearestIndices(pts, Vector3.zero, 2)
+	assert(#capped == 2 and capped[1] == 2, "n caps the result")
+end
+
+function T.smokeChimneysRespectsBucketRadiusAndMax()
+	local tops: { Vector3 } = {}
+	for i = 0, 399 do
+		table.insert(tops, Vector3.new((i % 20) * 9, 30, math.floor(i / 20) * 40))
+	end
+	local cam = Vector3.new(90, 40, 400)
+	local picked = TownLifeMath.smokeChimneys(tops, cam, 300, 8, 12)
+	assert(#picked > 0 and #picked <= 12, "picked " .. #picked)
+	local lastD = -1
+	for _, i in picked do
+		local p = tops[i]
+		assert(TownLifeMath.positionBucket(p, 8) == 0, "only bucket-0 chimneys smoke")
+		local d = Vector3.new(p.X - cam.X, 0, p.Z - cam.Z).Magnitude
+		assert(d <= 300, "within radius")
+		assert(d >= lastD, "nearest first")
+		lastD = d
+	end
+	assert(#TownLifeMath.smokeChimneys(tops, Vector3.new(5000, 0, 5000), 300, 8, 12) == 0, "none when far away")
+end
+
+-- --------------------------------------------------------------- drinkers
+
+-- A Shopfront like ShopBuilder's: row frame yawed, part at (frontX, g/2, z), front = local -X.
+local function pubFront(): (CFrame, Vector3)
+	local row = CFrame.new(200, 0, -80) * CFrame.Angles(0, math.rad(35), 0)
+	local g = 11
+	return row * CFrame.new(-9.1, g / 2, 4), Vector3.new(0.2, g, 12)
+end
+
+function T.drinkerSpotsStandOutsideThePubOnThePavement()
+	local front, size = pubFront()
+	for _, count in { 1, 2, 3, 5, 10 } do
+		local spots = TownLifeMath.drinkerSpots(front, size, count, 42)
+		assert(#spots == count, ("count %d -> %d spots"):format(count, #spots))
+		for _, cf in spots do
+			local lp = front:PointToObjectSpace(cf.Position)
+			local out = -lp.X - size.X / 2
+			assert(out > 4.4 and out < 8.5, "distance out of the front " .. out)
+			assert(math.abs(cf.Position.Y - TownLifeMath.PAVEMENT_TOP) < EPS, "feet on the pavement, y " .. cf.Position.Y)
+			assert(math.abs(cf.LookVector.Y) < EPS, "stands upright")
+			assert(math.abs(lp.Z) < math.max(size.Z * 0.45, count / 3 * 2.5) + 2, "near the frontage, z " .. lp.Z)
+		end
+	end
+end
+
+function T.drinkerSpotsDoNotOverlap()
+	local front, size = pubFront()
+	for seed = 1, 20 do
+		local spots = TownLifeMath.drinkerSpots(front, size, 5, seed)
+		for i = 1, #spots do
+			for j = i + 1, #spots do
+				local d = (spots[i].Position - spots[j].Position).Magnitude
+				assert(d >= 1.9, ("seed %d: drinkers %d and %d only %.2f apart"):format(seed, i, j, d))
+			end
+		end
+	end
+end
+
+function T.drinkerSpotsHuddleFacesInwards()
+	local front, size = pubFront()
+	local spots = TownLifeMath.drinkerSpots(front, size, 3, 7)
+	local centre = (spots[1].Position + spots[2].Position + spots[3].Position) / 3
+	for _, cf in spots do
+		local toCentre = (centre - cf.Position).Unit
+		assert(cf.LookVector:Dot(toCentre) > 0.99, "faces the huddle centre")
+	end
+end
+
+function T.drinkerSpotsAreDeterministic()
+	local front, size = pubFront()
+	local a = TownLifeMath.drinkerSpots(front, size, 5, 99)
+	local b = TownLifeMath.drinkerSpots(front, size, 5, 99)
+	for i = 1, #a do
+		assert((a[i].Position - b[i].Position).Magnitude < EPS, "same seed, same spot")
+	end
+	assert(#TownLifeMath.drinkerSpots(front, size, 0, 1) == 0, "zero drinkers")
+end
+
+function T.figureCFramesStackFromTheFeet()
+	local feet = CFrame.new(5, 0.45, 5) * CFrame.Angles(0, 1, 0)
+	local plain = TownLifeMath.figureCFrames(feet, false)
+	assert(#plain == 6, "6 parts without a pint")
+	local F = TownLifeMath.FIGURE
+	for _, i in { 3, 4 } do
+		local bottom = plain[i].Position.Y - F.leg.Y / 2
+		assert(math.abs(bottom - 0.45) < EPS, "legs reach the ground")
+	end
+	assert(plain[2].Position.Y > plain[1].Position.Y, "head above torso")
+
+	local drinking = TownLifeMath.figureCFrames(feet, true)
+	assert(#drinking == 7, "7 parts with a pint")
+	local glass = feet:PointToObjectSpace(drinking[7].Position)
+	assert(glass.Z < -1, "pint held out in front, z " .. glass.Z)
+	assert(glass.Y > F.leg.Y and glass.Y < F.leg.Y + F.torso.Y + F.head, "pint at chest height, y " .. glass.Y)
+	assert(math.abs(drinking[7].RightVector.Y) > 0.99, "glass stands upright (cylinder X up)")
+	-- raised arm's far end is the hand, right under the glass
+	local armTip = drinking[6]:PointToWorldSpace(Vector3.new(0, -F.arm.Y / 2, 0))
+	local flatGap = Vector3.new(armTip.X - drinking[7].Position.X, 0, armTip.Z - drinking[7].Position.Z).Magnitude
+	assert(flatGap < 0.3, "glass sits over the hand, gap " .. flatGap)
+end
+
 return T
