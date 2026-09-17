@@ -23,16 +23,20 @@ Northfields semis and industrial sheds (E4.1/E5.1), client traffic (F2.1), club 
 station platform + footbridge + brick viaduct (E7.1/X20), pedestrians (F3.1), Low/High quality toggle (C3.2),
 shop forecourts with A-boards and café tables + paved square (X17/X22/X23), Riverside Park (E6.2),
 station pitched roof + gable clock (X21), stone road bridges (X19), semis gable roofs + gate gaps + basket/chair polish
-(X25–X29), floodlight tag lookup (X2), separate Studio save store (X1, TEMP), season end verified (A2.2).
-**Half-done:** F4.1 has spinning turbines but no flags/smoke; G2.1 has matchday bunting but no busy pub.
-Nothing is sitting unmerged.
+(X25–X29), floodlight tag lookup (X2), separate Studio save store (X1, TEMP), season end verified (A2.2),
+marina quay + riverside gardens (X18), hedged backdrop fields (X16), road imperfections (E10.1), semis with driveways
+(X30), square flags + chimney smoke + matchday pub drinkers (F4.1/G2.1), smaller plot car park + bus menu sizing (X9/X15).
+**Half-done:** Mill Street dressing pass (X11: street trees, garden walls/railings, street name signs, cars on both
+kerbs) is written on a worktree branch and being merged/synced. Pub drinkers and the new bus menu sizing are merged but
+not yet seen in a playtest.
 **Reverted:** none.
 
 **Known bugs**
 1. Up to 02:20 Studio playtests used your real DataStore club. Agent tests added matches, cash and one North-stand level to Dino FC (it went from 7 to 8 matches tonight). Since 02:20 Studio uses a separate store (see question 1).
 2. Studio holds condensed copies of the new modules (comments trimmed). Reconnect Rojo to overwrite them from disk.
 3. Season-end fast-forward: the server rollover is verified; the client 10 s sweep has not been watched.
-4. Studio shows "Assistant plugin version changed ... restart Roblox Studio" warnings; the MCP kept working, but restart Studio before trusting the Assistant.
+4. Studio holds hand-pasted copies of every module merged tonight (comments stripped). Disk is the source of truth; reconnect Rojo before editing in Studio (X4/X34).
+5. Studio shows "Assistant plugin version changed ... restart Roblox Studio" warnings; the MCP kept working, but restart Studio before trusting the Assistant.
 
 **Questions for Marcel**
 1. **Done as TEMP, please confirm:** Studio playtests now use the DataStore `ClubProfiles_Studio`, so Studio opens a fresh club and onboarding instead of Dino FC. To get your real club back in Studio, set `Config.Save.studioStoreSuffix = ""`. *Rec: keep it; live servers are unchanged.*
@@ -154,3 +158,14 @@ Nothing is sitting unmerged.
 - **New follow-ups:** semis pairs abut like a terrace and the hedges stand on the pavement (X30); bridge arches too shallow (X31).
 - Two agents still running: marina/backdrop (X18/X16) and the imperfection pass (E10.1).
 - RunAll 241/241.
+
+### 2026-09-17 02:48 — Marina, backdrop, imperfections, semis spacing, flags/smoke/pubs, car park merged
+- Merged five agent branches and pasted each into Studio (Rojo isn't connected, so every module is a hand sync; that is now the slowest part of the night, X34).
+- **Marina (X18, reference `RivermereRiverside.png`):** paved quay with railings and gangway gaps, a walkway pontoon, finger pontoons and piles, moored boats, a "RIVERMERE MARINA" kiosk, and hedged gardens with trees along the north bank. 312 parts. Screenshot from (970, 30, 350). Difference: boat bows look detached (X32).
+- **Backdrop fields (X16):** Grass/LeafyGrass/Ground fields with hedges on all four sides and hedgerow trees.
+- **Imperfections (E10.1):** 110 road patches, 45 manholes, 40 grates, 12 give-way markings, 430 faded centre dashes, 95 weed clumps, bins, cones, a skip and 15 fictional posters. 900 parts, all tagged Decor so Low hides them.
+- **Semis spacing (X30, reference `RivermereNorthfields.png`):** pairs now have 10-stud driveways (119 in town, some with a parked car) and the front gardens sit inside the block. Front paths went from 57 to 108. Screenshot from (215, 14, -420): reads as semis now, not terraces. Cars are plain blocks (X33).
+- **Town life (F4.1/G2.1):** 4 club-coloured waving flags round the square, up to 12 chimney smokes (off on Low), matchday drinkers outside the 2 nearest pubs. The first two were seen; the pubs haven't been checked in a match yet.
+- **Car park and bus menu (X9/X15):** plot car park halved to 100x150 and the fan route moved; the bus menu card sizes to the screen and syncs its scroll canvas. The bus menu was not click-tested again.
+- Estates are now 1,632 parts, forecourts 614, imperfections 900, marina 312.
+- RunAll 286/286.

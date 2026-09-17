@@ -73,17 +73,17 @@
 - [x] E6.2 Riverside Park: paths, pond, playground, trees, bandstand `[studio]` M
 - [x] E4.1 (semis; flats are ShopBuilder.flats) Northfields semis and small flats `[studio]` M
 - [x] E9.2 Backdrop: hills, wind turbines, distant floodlights, low detail `[studio]` S
-- [ ] E10.1 Imperfection pass: patches, faded markings, weeds, posters, clutter `[studio]` M
+- [x] E10.1 (road patches, faded dashes, give-ways, weeds, bins, cones, skip, posters; 900 parts) Imperfection pass: patches, faded markings, weeds, posters, clutter `[studio]` M
 
 ## Phase F — Life & sound
 - [x] F1.1 Ambient audio zones (town, river, station, park) from the Roblox library `[studio]` M
 - [x] F2.1 Client-side traffic on road polylines, distance-budgeted `[studio]` M
 - [x] F3.1 Client-side pedestrians on pavements, distance-budgeted `[studio]` M
-- [~] F4.1 (turbines spin, verified; flags/smoke not done) Small motion: flags, bunting sway, chimney smoke `[studio]` S
+- [x] F4.1 (turbines, square flags, chimney smoke) Small motion: flags, bunting sway, chimney smoke `[studio]` S
 
 ## Phase G/H — Matchday town & influence
 - [x] G1.1 Matchday around a plot (all players): fans walking to the ground, stewards, barriers; fades after `[studio]` M dep: B2.1c
-- [~] G2.1 (bunting near the plot during PreMatch/Match, verified in a match; busy pub not done) Matchday town for the playing player only: banners on lamp posts, busy pub `[studio]` M
+- [x] G2.1 (bunting verified; pub drinkers merged, not yet seen in a match) Matchday town for the playing player only: banners on lamp posts, busy pub `[studio]` M
 - [x] H1.1 Club identity banners in town (client-side, player's own club colours/name) `[studio]` S
 - [x] H2.1 Club shop building on the plot (visual) `[studio]` S dep: E8.1
 - [x] H3.1 Training pitches on the plot (visual) `[studio]` S dep: E8.1
@@ -106,16 +106,16 @@
 - [x] X6 Plot access lanes in TownLayout end at local z≈0 but the PlotGrounds vehicle gate is at local z 60..100: align the lane end with the gate `[disk]` S
 - [x] X7 Picker viewpoint is too high and hazy; lower/closer view onto the FOR SALE board; reduce Atmosphere density for town scale (HeroAfternoon 0.32 hides anything past ~600 studs) `[studio]` S
 - [x] X8 Town edge: terrain stops dead at x ±2800 / z ±2200; needs a backdrop (hills, tree belt) `[studio]` M
-- [ ] X9 Car park (100 × 300) dominates the plot entrance; halve it or turn it `[disk]` S
+- [x] X9 (halved to 100x150) Car park (100 × 300) dominates the plot entrance; halve it or turn it `[disk]` S
 - [ ] X10 Roads z-fight risk: overlapping tops only 0.004–0.01 apart; check at distance on a mid phone `[studio]` S
 - [ ] X11 Mill Street vs `RiveremereWestdale.png`: add street trees, front garden walls/railings + hedges, club banners on lamp posts, street name signs, cars on both kerbs `[studio]` M
 - [x] X12 Low-part terrace row (≤ 25 parts: body, roof wedges, chimney stacks, door/window decals) so every terraced block in town can be dressed within the mobile budget `[disk]` M
 - [x] X13 Kit lamp is 36 parts: build a ≤ 6-part Victorian lamp for town-wide use `[disk]` S
 - [x] X14 TeamBus (Assets "Bus") is 587 parts per club; swap for a low-part coach or drop it `[studio]` S
-- [ ] X15 Bus menu: clicking a destination scrolled out of view did nothing in the test; check ScrollingFrame input and make the card taller on desktop `[studio]` S
-- [ ] X16 Backdrop fields read as flat plastic slabs: use Grass/Ground materials with a texture, hedges on all four sides and taller, more tree clumps along hedges `[studio]` S
+- [x] X15 (card sized to screen; not re-tested by clicking) Bus menu: clicking a destination scrolled out of view did nothing in the test; check ScrollingFrame input and make the card taller on desktop `[studio]` S
+- [x] X16 Backdrop fields read as flat plastic slabs: use Grass/Ground materials with a texture, hedges on all four sides and taller, more tree clumps along hedges `[studio]` S
 - [x] X17 Market square is an island in grass: pave the gap to the shop blocks, add a pedestrian zone and café seating (RivermereCenter.png) `[studio]` M
-- [ ] X18 Marina block is a flat light-blue plastic slab on the grass; make it a water basin (carve terrain) or a paved quay with the boats; fill the grass between the riverside flats and the promenade (gardens, trees, paths) `[studio]` S
+- [x] X18 (paved quay + pontoons + boats + riverside gardens) Marina block is a flat light-blue plastic slab on the grass; make it a water basin (carve terrain) or a paved quay with the boats; fill the grass between the riverside flats and the promenade (gardens, trees, paths) `[studio]` S
 - [x] X19 (stone arches, cutwaters, string course; arches only ~2 high because decks sit 2.7 above water, X31) Road bridges are plain decks; add stone arch spandrels/cutwaters so the Lune Bridge reads like RivermereRiverside.png `[studio]` M
 - [x] X20 (platform, footbridge, viaduct arches; no path from the car park yet) Station: platform-side dressing (yellow edge, benches, railings, name boards), footbridge, viaduct over the Lune, path from the car park `[studio]` M
 - [x] X21 Station roofline is a flat box; the reference has a pitched slate roof with a gable/clock over the entrance `[studio]` S
@@ -127,6 +127,9 @@
 - [x] X27 Café chairs are solid blocks; thin seat + back + legs, or a kit chair `[studio]` S
 - [ ] X28 Quality Low hides decor via LocalTransparencyModifier; measure real phone fps Low vs High and consider streaming radius per level `[studio]` M
 - [x] X29 Semis garden walls/hedges have no gate gap where the new front paths cross them `[studio]` S
-- [ ] X30 Semis: pairs abut into a continuous terrace and the garden hedge stands on the pavement; leave a side gap between pairs (driveway) and pull the front garden inside the block `[studio]` M
+- [x] X30 Semis: pairs abut into a continuous terrace and the garden hedge stands on the pavement; leave a side gap between pairs (driveway) and pull the front garden inside the block `[studio]` M
 - [ ] X31 Road bridges: raise the decks (ramps on the approaches) or lower the water so the stone arches read; currently ~2 studs of arch `[studio]` M
+- [ ] X32 Marina boats: the white bow wedges look detached/rotated at the moorings; check RiverDresser.buildBoat bow orientation `[studio]` S
+- [ ] X33 Semis driveway cars are plain blocks; use the kit hatchback (KitPlacer) with the block as fallback `[studio]` S
+- [ ] X34 Syncing merged branches into Studio by pasting source is the night's bottleneck; get Rojo reconnected (X4) before the next big batch `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
