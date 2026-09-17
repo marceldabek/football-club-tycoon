@@ -286,13 +286,18 @@ function StationDresser.dressPlatform(parent: Instance, front: CFrame, stationSi
 	end
 end
 
--- X73: a raised terrace at platform height beside the east end of the
--- building (RivermereStation.png: a brick retaining wall with railings on top
--- and ivy hanging over it, seen beside the frontage). Pure extents in the
--- front frame: x just past the building end, z from the rear wall line to
--- just behind the front wall line.
+-- X73: a raised terrace beside the east end of the building
+-- (RivermereStation.png: a brick retaining wall with railings on top and ivy
+-- hanging over it, seen beside the frontage). Pure extents in the front frame:
+-- x just past the building end, z from the rear wall line to just behind the
+-- front wall line. X98: 6 high (the reference wall is tall), with a flight of
+-- steps up along the front wall from the building end and a gap in the front
+-- railing at their top.
 local TERRACE_LENGTH = 50
-StationDresser.TERRACE_TOP = 3 -- TownBuilder Y.PLATFORM
+StationDresser.TERRACE_TOP = 6
+StationDresser.TERRACE_STEPS = 10
+StationDresser.TERRACE_STEP_RUN = 1.2
+StationDresser.TERRACE_STAIR_DEPTH = 4 -- out from the wall
 function StationDresser.terraceExtents(stationSize: Vector3): (number, number, number, number)
 	local x0 = stationSize.X / 2 + 0.1
 	return x0, x0 + TERRACE_LENGTH, -stationSize.Z, -0.5
@@ -307,23 +312,53 @@ function StationDresser.platformTerrace(parent: Instance, f: CFrame, stationSize
 	-- the fill's front and east faces are the retaining walls
 	slab(m, f, "TerraceWall", x0, x1, 0, top - 0.3, z0, z1, BRICK, Enum.Material.Brick)
 	slab(m, f, "TerraceCoping", x0, x1 + 0.2, top - 0.3, top, z0, z1 + 0.2, Color3.fromRGB(176, 170, 160), Enum.Material.Concrete)
-	-- railings a little in from the coping edge, along the front and the east end
-	local rx, rz = x1 - 0.4, z1 - 0.4
+	-- steps rising east along the front wall, each its own block (no overlaps)
+	local steps, run, rise = StationDresser.TERRACE_STEPS, StationDresser.TERRACE_STEP_RUN, top / StationDresser.TERRACE_STEPS
+	local stairEnd = x0 + steps * run
+	for k = 1, steps do
+		slab(m, f, "TerraceStep", x0 + (k - 1) * run, x0 + k * run, 0, k * rise, z1 + 0.2, z1 + 0.2 + StationDresser.TERRACE_STAIR_DEPTH, Color3.fromRGB(176, 170, 160), Enum.Material.Concrete)
+	end
+	-- a sloping handrail on the open outer edge of the flight, and a short rail
+	-- across its top end where it stops short of the terrace's east part
+	local zo = z1 + 0.2 + StationDresser.TERRACE_STAIR_DEPTH - 0.25
+	local a = Vector3.new(x0 + 0.6, rise + 3, zo)
+	local b = Vector3.new(stairEnd - 0.6, top + 3, zo)
+	part({
+		Name = "StairHandrail",
+		Size = Vector3.new(0.2, 0.2, (b - a).Magnitude),
+		CFrame = f * CFrame.lookAt((a + b) / 2, b),
+		Color = IRON,
+		Material = Enum.Material.Metal,
+		Parent = m,
+	})
+	slab(m, f, "StairRailPost", a.X - 0.12, a.X + 0.12, rise, a.Y - 0.1, zo - 0.12, zo + 0.12, IRON, Enum.Material.Metal)
+	slab(m, f, "StairRailPost", b.X - 0.12, b.X + 0.12, top, b.Y - 0.1, zo - 0.12, zo + 0.12, IRON, Enum.Material.Metal)
+	local ex = stairEnd - 0.15
+	for _, pz in { z1 + 0.35, zo } do
+		slab(m, f, "StairRailPost", ex - 0.12, ex + 0.12, top, top + 3.4, pz - 0.12, pz + 0.12, IRON, Enum.Material.Metal)
+	end
 	for _, y in { top + 1.6, top + 3.3 } do
-		slab(m, f, "TerraceRail", x0, rx + 0.1, y, y + 0.2, rz - 0.1, rz + 0.1, IRON, Enum.Material.Metal)
+		slab(m, f, "StairEndRail", ex - 0.1, ex + 0.1, y, y + 0.2, z1 + 0.47, zo - 0.12, IRON, Enum.Material.Metal)
+	end
+	-- railings a little in from the coping edge, along the front (from the top
+	-- of the steps) and the east end
+	local rx, rz = x1 - 0.4, z1 - 0.4
+	local railStart = stairEnd + 0.5
+	for _, y in { top + 1.6, top + 3.3 } do
+		slab(m, f, "TerraceRail", railStart, rx + 0.1, y, y + 0.2, rz - 0.1, rz + 0.1, IRON, Enum.Material.Metal)
 		slab(m, f, "TerraceRail", rx - 0.1, rx + 0.1, y, y + 0.2, z0, rz - 0.1, IRON, Enum.Material.Metal)
 	end
 	local postStep = 8
-	for x = x0 + 4, rx, postStep do
+	for x = railStart + 0.3, rx - 1, postStep do
 		slab(m, f, "TerraceRailPost", x - 0.15, x + 0.15, top, top + 3.4, rz - 0.15, rz + 0.15, IRON, Enum.Material.Metal)
 	end
 	slab(m, f, "TerraceRailPost", rx - 0.15, rx + 0.15, top, top + 3.4, rz - 0.15, rz + 0.15, IRON, Enum.Material.Metal)
 	for z = rz - postStep, z0 + 2, -postStep do
 		slab(m, f, "TerraceRailPost", rx - 0.15, rx + 0.15, top, top + 3.4, z - 0.15, z + 0.15, IRON, Enum.Material.Metal)
 	end
-	-- ivy hanging over the front wall in uneven clumps, hung on the coping face
+	-- ivy hanging over the front wall past the steps in uneven clumps, hung on the coping face
 	local IVY = Color3.fromRGB(58, 96, 46)
-	for i, spec in { { 3, 9, 2.4 }, { 14, 18, 1.4 }, { 24, 33, 2.7 }, { 40, 45, 1.8 } } do
+	for i, spec in { { 15, 21, 3.8 }, { 25, 29, 2.2 }, { 33, 41, 5.0 }, { 44, 48, 3.0 } } do
 		local ix0, ix1, drop = x0 + spec[1], x0 + spec[2], spec[3]
 		local clump = slab(m, f, "Ivy", ix0, ix1, top - drop, top + 0.35, z1 + 0.2, z1 + 0.55, if i % 2 == 0 then IVY:Lerp(Color3.new(0, 0, 0), 0.15) else IVY, Enum.Material.LeafyGrass)
 		clump.CastShadow = false

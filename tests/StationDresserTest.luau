@@ -199,8 +199,9 @@ function T.platformTerraceKeepsOffRoadsAndTheRailway()
 	local station = TownLayout.RAIL.station
 	local x0, x1, z0, z1 = StationDresser.terraceExtents(station.size)
 	assert(x0 > station.size.X / 2 and x1 > x0 and z0 < z1 and z1 < 0, "terrace sits beside the building, behind the front line")
+	-- the steps stand out in front of the wall line
 	for x = x0, x1, 5 do
-		for z = z0, z1, 5 do
+		for z = z0, z1 + 0.2 + StationDresser.TERRACE_STAIR_DEPTH, 5 do
 			local p = f * Vector3.new(x, 0, z)
 			for _, road in TownLayout.ROADS do
 				local clear = road.width / 2 + TownLayout.PAVEMENT_WIDTH
