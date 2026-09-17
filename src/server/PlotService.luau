@@ -31,6 +31,7 @@ local PER_CLUB = {
 	"Session",
 	"Assets",
 	"SaveService",
+	"SaveLock",
 	"Scenery",
 }
 
@@ -210,13 +211,23 @@ function PlotService.claim(player: Player, plot: number): (boolean, string?)
 	end
 	folder.Parent = runtimeRoot
 
-	local session = require(folder:FindFirstChild("Session") :: ModuleScript) :: any
-	local match = require(folder:FindFirstChild("MatchService") :: ModuleScript) :: any
-	local runtime: Runtime = { folder = folder, owner = player, session = session, match = match }
-	runtimes[plot] = runtime
-
-	local started = session.start(player)
-	if not started then
+	-- a module error while loading must not leave the plot half-claimed
+	local loaded, result = pcall(function()
+		local session = require(folder:FindFirstChild("Session") :: ModuleScript) :: any
+		local match = require(folder:FindFirstChild("MatchService") :: ModuleScript) :: any
+		local runtime: Runtime = { folder = folder, owner = player, session = session, match = match }
+		runtimes[plot] = runtime
+		return session.start(player)
+	end)
+	if not loaded or not result then
+		warn(("[FCT] plot %d failed to start for %s: %s"):format(plot, player.Name, tostring(result)))
+		if not runtimes[plot] then
+			folder:Destroy()
+			player:SetAttribute("ClubPlot", nil)
+			registry:release(player.UserId)
+			buildLot(plot)
+			return false, "load failed"
+		end
 		PlotService.release(player)
 		return false, "load failed"
 	end
@@ -243,7 +254,10 @@ function PlotService.release(player: Player)
 	runtimes[plot] = nil
 	RemoteRouter.unbindPlot(plot)
 	if runtime then
-		runtime.session.stop()
+		local ok, err = pcall(runtime.session.stop)
+		if not ok then
+			warn("[FCT] session stop failed: " .. tostring(err))
+		end
 	end
 	task.spawn(function()
 		local deadline = os.clock() + 180
