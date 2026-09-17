@@ -215,6 +215,28 @@ local function buildStewards(crowd: PlotCrowd)
 	end
 end
 
+-- X91: grey crowd-control barriers either side of the last walk to the
+-- turnstiles, up for as long as the crowd is. Each section: two feet, a top
+-- rail and a mesh infill (4 parts).
+local BARRIER_GREY = Color3.fromRGB(150, 154, 160)
+local function buildBarriers(crowd: PlotCrowd)
+	local half = MatchdayRoutes.BARRIER_LENGTH / 2
+	for _, cf in MatchdayRoutes.barrierSections() do
+		local model = Instance.new("Model")
+		model.Name = "Barrier"
+		local base = crowd.plotCFrame * cf * CFrame.new(0, 0.3, 0) -- on the forecourt paving
+		part("Rail", Vector3.new(0.2, 0.2, MatchdayRoutes.BARRIER_LENGTH), BARRIER_GREY, model).CFrame = base * CFrame.new(0, 3.3, 0)
+		local mesh = part("Mesh", Vector3.new(0.08, 2.4, MatchdayRoutes.BARRIER_LENGTH - 0.4), BARRIER_GREY, model)
+		mesh.CFrame = base * CFrame.new(0, 1.95, 0)
+		mesh.Transparency = 0.45
+		for _, z in { -half + 0.4, half - 0.4 } do
+			part("Foot", Vector3.new(1.6, 0.25, 0.3), BARRIER_GREY, model).CFrame = base * CFrame.new(0, 0.125, z)
+		end
+		model.Parent = crowd.model
+		table.insert(crowd.stewards, model) -- torn down with the stewards
+	end
+end
+
 -- ------------------------------------------------------------------ parked cars
 
 -- G1.2: the club car park fills with supporters' cars on matchday. Bays come
@@ -276,6 +298,7 @@ end
 local function spawnCrowd(crowd: PlotCrowd)
 	crowd.plotCFrame = plotCFrameOf(crowd.folder)
 	buildStewards(crowd)
+	buildBarriers(crowd)
 	buildCars(crowd)
 	adjustFanCount(crowd)
 end

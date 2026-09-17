@@ -63,6 +63,35 @@ MatchdayRoutes.STEWARD_SPOTS = {
 	CFrame.lookAt(Vector3.new(-350, 0, 38), Vector3.new(-265, 0, -12)), -- car park exit, facing the path to the gate
 } :: { CFrame }
 
+-- X91 (roadmap G1 "queues, barriers"): crowd-control barrier sections either
+-- side of the final walk from the forecourt edge to the turnstiles, pitch-local
+-- CFrames at ground level looking along the walk. Sections are BARRIER_LENGTH
+-- long with small gaps; they start BARRIER_START in from the forecourt edge and
+-- stop BARRIER_STOP short of the turnstile piers. Fans walk within +-2.5 of the
+-- line, so +-BARRIER_OFFSET keeps them in the lane.
+MatchdayRoutes.BARRIER_LENGTH = 7
+MatchdayRoutes.BARRIER_OFFSET = 5
+local BARRIER_STEP = 7.6
+local BARRIER_START = 6
+local BARRIER_STOP = 16
+function MatchdayRoutes.barrierSections(): { CFrame }
+	local a, b = FORECOURT_EDGE, TURNSTILE
+	local along = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+	local len = along.Magnitude
+	local dir = along.Unit
+	local side = Vector3.new(-dir.Z, 0, dir.X)
+	local out = {}
+	local d = BARRIER_START + MatchdayRoutes.BARRIER_LENGTH / 2
+	while d + MatchdayRoutes.BARRIER_LENGTH / 2 <= len - BARRIER_STOP do
+		for _, s in { -1, 1 } do
+			local c = Vector3.new(a.X, 0, a.Z) + dir * d + side * s * MatchdayRoutes.BARRIER_OFFSET
+			table.insert(out, CFrame.lookAt(c, c + dir))
+		end
+		d += BARRIER_STEP
+	end
+	return out
+end
+
 -- Total length of a route's polyline.
 function MatchdayRoutes.length(route: Route): number
 	local total = 0

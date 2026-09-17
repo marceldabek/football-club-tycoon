@@ -99,4 +99,23 @@ function T.parkedCarsScaleWithAttendance()
 	assert(MatchdayRoutes.parkedCars(500, 0) == 0, "no bays")
 end
 
+function T.barriersLineTheTurnstileApproachWithoutBlockingIt()
+	local sections = MatchdayRoutes.barrierSections()
+	assert(#sections >= 8 and #sections % 2 == 0, "pairs of sections, got " .. #sections)
+	local route = MatchdayRoutes.ROUTES.fromTown
+	local a, b = route[#route - 1], route[#route]
+	for _, cf in sections do
+		local p = cf.Position
+		-- distance from the last leg of the walk
+		local ab = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+		local t = math.clamp(Vector3.new(p.X - a.X, 0, p.Z - a.Z):Dot(ab) / ab.Magnitude ^ 2, 0, 1)
+		local q = Vector3.new(a.X, 0, a.Z) + ab * t
+		local off = Vector3.new(p.X - q.X, 0, p.Z - q.Z).Magnitude
+		assert(math.abs(off - MatchdayRoutes.BARRIER_OFFSET) < 1e-3, "beside the walk, got " .. off)
+		assert(t > 0 and t < 1, "within the final leg")
+		assert(Vector3.new(p.X - b.X, 0, p.Z - b.Z).Magnitude > 12, "clear of the turnstile piers")
+		assert(math.abs(cf.LookVector:Dot(ab.Unit) - 1) < 1e-3, "runs along the walk")
+	end
+end
+
 return T
