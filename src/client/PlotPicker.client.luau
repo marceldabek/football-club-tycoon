@@ -95,6 +95,14 @@ end
 local camera = workspace.CurrentCamera :: Camera
 camera.CameraType = Enum.CameraType.Scriptable
 local flyTween: Tween? = nil
+local picking = true
+-- the default camera scripts put the camera back on the character when it
+-- spawns; keep it on the picker's viewpoints until a ground is chosen
+local cameraTypeConn = camera:GetPropertyChangedSignal("CameraType"):Connect(function()
+	if picking and camera.CameraType ~= Enum.CameraType.Scriptable then
+		camera.CameraType = Enum.CameraType.Scriptable
+	end
+end)
 
 local function flyTo(plot: number)
 	if flyTween then
@@ -108,6 +116,8 @@ local function flyTo(plot: number)
 end
 
 local function restoreCamera()
+	picking = false
+	cameraTypeConn:Disconnect()
 	if flyTween then
 		flyTween:Cancel()
 		flyTween = nil
@@ -217,7 +227,10 @@ local function finish()
 		return
 	end
 	destroyed = true
-	Iris.close(0.5)
+	-- close the iris over the picker, swap to the player's own camera behind
+	-- it (they are already standing in their office), then open on the club
+	Iris.close(0.4)
+	task.wait(0.45)
 	restoreCamera()
 	if hudGui then
 		hudGui.Enabled = true

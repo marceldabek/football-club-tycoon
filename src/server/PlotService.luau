@@ -437,6 +437,15 @@ function PlotService.start()
 	runtimeRoot.Name = "ClubRuntime"
 	runtimeRoot.Parent = ServerScriptService
 	townSpawn()
+	-- new arrivals start in the town square; other spawn points in the place
+	-- (the vertical slice's review spawn) must not steal them
+	for _, d in workspace:GetDescendants() do
+		if d:IsA("SpawnLocation") and d.Name ~= "TownSpawn" then
+			d.Enabled = false
+		end
+	end
+	-- the picker listens for toasts before any club has created the remote
+	remote("Toast")
 	for plot = 1, PLOT_COUNT do
 		buildLot(plot)
 	end
