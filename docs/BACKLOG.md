@@ -227,4 +227,5 @@
 - [x] X112 (09:24 free Creator Store K6 box, asset 760731465, on the market square between the stalls, scale 0.62; 66 parts) A red K6 telephone box, the one iconic British street prop the town lacked; found by a free Creator Store search as OVERNIGHT.md asks, instead of primitives `[studio]` S
 - [x] X113 (09:27 swans now clone a free one-mesh swan, asset 15968285610, from ReplicatedStorage.ClientKit; primitives only as a fallback) X111's swans were 4 primitive blocks; OVERNIGHT.md asks for free models first `[studio]` S
 - [x] X114 (09:31 13 shed yards now show a free textured forklift mesh, 1 part instead of 8; primitives kept as the fallback) The X55 forklift was 8 orange blocks `[studio]` S
+- [x] X115 (09:33 hanging club-colour sign on an iron bracket, two door planters with shrubs, a "Good Food Great Company All Welcome" chalkboard; +8 parts per club) RivermereTurnstileEntrance.png's pub vs the X97 supporters' bar `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

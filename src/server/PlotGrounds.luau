@@ -370,6 +370,37 @@ local function buildSupportersBar(parent: Instance)
 	local py0, py1 = GROUND_Y, GROUND_Y + PATH_TOP
 	extents("Patio", x0, x1, py0, py1, z1 + 0.5, z1 + PUB_PATIO_D, CONCRETE, Enum.Material.Concrete, m)
 	extents("PatioPath", xc - 2, xc + 2, py0, py1, z1 + PUB_PATIO_D, PATH_Z - PATH_W / 2, CONCRETE, Enum.Material.Concrete, m)
+	-- X115 (RivermereTurnstileEntrance.png's pub): a hanging sign on an iron
+	-- bracket at the east corner, planters either side of the door and a
+	-- chalkboard at the patio's edge
+	local iron = Color3.fromRGB(24, 24, 26)
+	local signX = x1 - 1.5
+	extents("SignBracket", signX - 0.1, signX + 0.1, GROUND_Y + 9.5, GROUND_Y + 9.7, z1, z1 + 3.4, iron, Enum.Material.Metal, m)
+	local sign = extents("HangingSign", signX - 0.08, signX + 0.08, GROUND_Y + 6.2, GROUND_Y + 9.3, z1 + 0.8, z1 + 3.2, Config.HomeKit, Enum.Material.Wood, m)
+	addSign(sign, "SUPPORTERS' BAR", { Enum.NormalId.Left, Enum.NormalId.Right })
+	for _, px in { xc - 3.2, xc + 3.2 } do
+		extents("Planter", px - 0.8, px + 0.8, py1, py1 + 1.3, z1 + 0.7, z1 + 1.9, Color3.fromRGB(58, 60, 64), Enum.Material.Concrete, m)
+		local shrub = box("PlanterShrub", Vector3.one * 1.8, CFrame.new(px, py1 + 1.3 + 0.6, z1 + 1.3), Color3.fromRGB(64, 108, 52), Enum.Material.LeafyGrass, m)
+		shrub.Shape = Enum.PartType.Ball
+		shrub.CastShadow = false
+	end
+	local chalk = extents("Chalkboard", x1 - 2.2, x1 - 0.4, py1, py1 + 3, z1 + 6.6, z1 + 6.75, Color3.fromRGB(34, 38, 36), Enum.Material.Wood, m)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Back -- +Z, toward the footpath
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 40
+	gui.Parent = chalk
+	local words = Instance.new("TextLabel")
+	words.BackgroundTransparency = 1
+	words.Size = UDim2.fromScale(0.86, 0.86)
+	words.Position = UDim2.fromScale(0.07, 0.07)
+	words.Font = Enum.Font.PatrickHand
+	words.TextScaled = true
+	words.TextWrapped = true
+	words.TextColor3 = Color3.fromRGB(244, 240, 228)
+	words.Text = "Good Food Great Company All Welcome"
+	words.Parent = gui
+
 	local wood = Color3.fromRGB(140, 104, 68)
 	for _, bx in { x0 + 5, x1 - 5 } do
 		local bz = z1 + 4.6
