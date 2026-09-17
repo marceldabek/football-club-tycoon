@@ -703,6 +703,10 @@ local function refreshHeadlights()
 	end
 end
 
+-- X248 (review): Traffic had only the poll, so headlights and lit bus windows
+-- could still miss much of a fast-forward night
+game:GetService("Players").LocalPlayer:GetAttributeChangedSignal("SkyDark"):Connect(refreshHeadlights)
+
 task.spawn(function()
 	while true do
 		refreshHeadlights()

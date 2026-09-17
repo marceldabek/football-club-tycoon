@@ -1429,7 +1429,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 
 ### 2026-09-17 14:46 — Wall coping, pier caps and flowers on the bar (X255, X257 done)
 - X255 `PlotGrounds.buildBoundary`: a pale limestone coping strip along every boundary wall run (overhanging 0.2 both faces, like the stand coping) and a cap on each of the four gate piers, as on `RivermereTurnstileEntrance.png`. 6 coping runs + 4 caps = **10 parts per plot**. Screenshot checked along the west wall.
-- X257: the supporters' bar frontage gets a flower box on each of the three upper sills and two hanging baskets on brackets either side of the door. **10 parts.** The first placement hung the baskets in front of the red fascia; they now hang below it, beside the ground-floor windows (screenshot checked).
+- X257: the supporters' bar frontage gets a flower box on each of the three upper sills and two hanging baskets on brackets either side of the door. **12 parts.** The first placement hung the baskets in front of the red fascia; they now hang below it, beside the ground-floor windows (screenshot checked).
 - Both sit clear of existing geometry (boxes stand proud of the panes, baskets in front of the frontage, not through the door). RunAll 437 passed.
 
 ### 2026-09-17 14:49 — The town crest on the street banners (X254 done)
@@ -1455,4 +1455,14 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
   - After a stop/start the club reloaded with cash 848,826, 62 matches, season 7 County League, and the saved settings (music on, quality High).
 - Load time after Build varied a lot again: 24 s on the first join, 1 s on the rejoin. No save-lock warning either time, so it looks like DataStore latency in Studio rather than the lock. Worth a glance if it shows up in a real server.
 - Buying an upgrade could not be exercised from here: stand and concourse purchases only happen through world ProximityPrompts, which the MCP input tools can't trigger (same limit as the bus stop). The prompts' enabled/locked state was checked directly in the X249 work.
+
+### 2026-09-17 15:10 — Fixes from the review of X248–X259
+- **X252 was broken in a way the desktop test could not show.** A `UIScale` on a ScreenGui also multiplies its children's *scale* positions, so everything anchored right or bottom slid toward the top-left. Measured in Studio at 0.62: GO TO MY CLUB moved from y 106 to y 44. The scale now goes on each top-level panel (`Theme.fitPanel`, added from `Theme.panel` when the parent is a ScreenGui), where the panel's own position is resolved unscaled. Re-measured: the button stays at (20, 106), and a card forced to 0.75 shrinks 480→360 while staying centred (centre 709 of a 1418-wide viewport).
+- Knock-ons from that, all fixed: the lineup drag ghost is sized and positioned in real pixels but lives outside the scaled panel, so it now carries its own matching `UIScale`; the scoreboard's text-fit divides the fit scale back out of `AbsoluteSize` before measuring with TextService; `MIN_SCALE` is 0.75, not 0.55, so a 44 px button never drops below 33 px; and `fitPanel` keeps one camera connection, replaces the viewport one, and disconnects both when the panel is destroyed.
+- The naming card's keyboard placement was in the wrong units and clamped the wrong way (it could still leave the button under the keyboard in landscape). It now measures the card's real height and pins the card's top to the screen when there isn't room to centre it.
+- **X248 missed Traffic**: `skyIsDark` read the new flag but nothing subscribed, so headlights and lit bus windows still waited up to a second. Connected.
+- X255: the coping overhung all four sides, so the four corners shared volume with coplanar tops (flicker) and each west run buried 0.2 studs into a gate pier. It now overhangs only the wall's thickness axis.
+- X257: the baskets were 0.3 studs off the wall and hung at chest height over the patio, and they collided. They now start at the frontage face, hang above head height and are walk-through. The 14:46 entry said 10 parts; it is 12.
+- X259: `Iris.close` returns a ticket and `Iris.owns(ticket)` is checked immediately before the matching open, instead of trusting a boolean captured a second earlier.
+- Tested: RunAll 437 passed; in play the HUD, cards and panels all sat correctly and a match summary and club panel opened with no console errors.
 

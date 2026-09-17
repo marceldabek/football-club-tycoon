@@ -358,13 +358,18 @@ local function buildSupportersBar(parent: Instance)
 	end
 	-- X257: two hanging baskets on brackets between the ground-floor windows
 	for _, bx in { x0 + 10.5, x1 - 10.5 } do
-		-- bracket arm out of the frontage, basket hung under it, blooms spilling below
-		extents("BasketBracket", bx - 0.15, bx + 0.15, GROUND_Y + 4.6, GROUND_Y + 4.9, z1 + 0.6, z1 + 1.6,
+		-- bracket arm from the frontage face (z1 + 0.3), basket hung under it,
+		-- blooms spilling below. Above head height and walk-through, so nobody
+		-- bumps into them on the patio.
+		local bracket = extents("BasketBracket", bx - 0.15, bx + 0.15, GROUND_Y + 6.1, GROUND_Y + 6.4, z1 + 0.3, z1 + 1.6,
 			Color3.fromRGB(24, 26, 30), Enum.Material.Metal, m)
-		extents("Basket", bx - 0.9, bx + 0.9, GROUND_Y + 3.7, GROUND_Y + 4.6, z1 + 0.7, z1 + 1.5,
+		local basket = extents("Basket", bx - 0.9, bx + 0.9, GROUND_Y + 5.2, GROUND_Y + 6.1, z1 + 0.7, z1 + 1.5,
 			Color3.fromRGB(70, 48, 34), Enum.Material.Wood, m)
-		extents("BasketBlooms", bx - 1.1, bx + 1.1, GROUND_Y + 3.2, GROUND_Y + 3.7, z1 + 0.6, z1 + 1.6,
+		local blooms = extents("BasketBlooms", bx - 1.1, bx + 1.1, GROUND_Y + 4.7, GROUND_Y + 5.2, z1 + 0.6, z1 + 1.6,
 			Color3.fromRGB(226, 158, 62), Enum.Material.LeafyGrass, m)
+		bracket.CanCollide = false
+		basket.CanCollide = false
+		blooms.CanCollide = false
 	end
 	-- slate roof: two wedges meeting over the middle of the depth (tall side at local +Z)
 	local zc = (z0 + z1) / 2
@@ -439,23 +444,29 @@ local COPING_OUT = 0.2 -- overhangs both faces, as on RivermereTurnstileEntrance
 local function buildBoundary(parent: Instance)
 	local wall = model("BoundaryWall", parent)
 	local y0, y1 = GROUND_Y, GROUND_Y + WALL_H
-	-- X255: coping sits on top of a run; piers get their own, taller cap
-	local function coping(name: string, x0: number, x1: number, z0: number, z1: number)
-		extents(name, x0 - COPING_OUT, x1 + COPING_OUT, y1, y1 + COPING_H, z0 - COPING_OUT, z1 + COPING_OUT,
+	-- X255: coping sits on top of a run; piers get their own, taller cap. The
+	-- overhang is only on the wall's thickness axis ("both faces"): overhanging
+	-- the run's ends too made the four corners share volume with coplanar tops,
+	-- and buried each west run 0.2 into the gate piers.
+	local function coping(name: string, x0: number, x1: number, z0: number, z1: number, acrossZ: boolean)
+		local ox = if acrossZ then 0 else COPING_OUT
+		local oz = if acrossZ then COPING_OUT else 0
+		extents(name, x0 - ox, x1 + ox, y1, y1 + COPING_H, z0 - oz, z1 + oz,
 			COPING, Enum.Material.Concrete, wall)
 	end
 	local function pierCap(x0: number, x1: number, z0: number, z1: number)
+		-- the pier stands proud of the wall already, so its cap overhangs both ways
 		extents("PierCap", x0 - COPING_OUT, x1 + COPING_OUT, GROUND_Y + PIER_H, GROUND_Y + PIER_H + COPING_H,
-			z0 - COPING_OUT, z1 + COPING_OUT, COPING, Enum.Material.Concrete, wall)
+			z0, z1, COPING, Enum.Material.Concrete, wall)
 	end
 	-- north and south run the full width; east and west fit between them
 	extents("WallN", -HALF, HALF, y0, y1, -HALF, -HALF + WALL_T, BRICK, Enum.Material.Brick, wall)
-	coping("CopingN", -HALF, HALF, -HALF, -HALF + WALL_T)
+	coping("CopingN", -HALF, HALF, -HALF, -HALF + WALL_T, true)
 	extents("WallS", -HALF, HALF, y0, y1, HALF - WALL_T, HALF, BRICK, Enum.Material.Brick, wall)
-	coping("CopingS", -HALF, HALF, HALF - WALL_T, HALF)
+	coping("CopingS", -HALF, HALF, HALF - WALL_T, HALF, true)
 	local inner0, inner1 = -HALF + WALL_T, HALF - WALL_T
 	extents("WallE", HALF - WALL_T, HALF, y0, y1, inner0, inner1, BRICK, Enum.Material.Brick, wall)
-	coping("CopingE", HALF - WALL_T, HALF, inner0, inner1)
+	coping("CopingE", HALF - WALL_T, HALF, inner0, inner1, false)
 
 	-- west: three runs broken by the two gates, each gap flanked by piers. The
 	-- runs stop at the piers so no two pieces share volume.
@@ -464,7 +475,7 @@ local function buildBoundary(parent: Instance)
 	for _, gap in gaps do
 		local pierStart = gap[1] - PIER_W
 		extents("WallW", -HALF, -HALF + WALL_T, y0, y1, z, pierStart, BRICK, Enum.Material.Brick, wall)
-		coping("CopingW", -HALF, -HALF + WALL_T, z, pierStart)
+		coping("CopingW", -HALF, -HALF + WALL_T, z, pierStart, false)
 		extents("GatePier", -HALF, -HALF + PIER_W, y0, GROUND_Y + PIER_H, pierStart, gap[1], PIER, Enum.Material.Brick, wall)
 		pierCap(-HALF, -HALF + PIER_W, pierStart, gap[1])
 		extents("GatePier", -HALF, -HALF + PIER_W, y0, GROUND_Y + PIER_H, gap[2], gap[2] + PIER_W, PIER, Enum.Material.Brick, wall)
@@ -472,7 +483,7 @@ local function buildBoundary(parent: Instance)
 		z = gap[2] + PIER_W
 	end
 	extents("WallW", -HALF, -HALF + WALL_T, y0, y1, z, inner1, BRICK, Enum.Material.Brick, wall)
-	coping("CopingW", -HALF, -HALF + WALL_T, z, inner1)
+	coping("CopingW", -HALF, -HALF + WALL_T, z, inner1, false)
 end
 
 -- ------------------------------------------------------------ road + car park

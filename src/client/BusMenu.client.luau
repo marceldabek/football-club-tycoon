@@ -160,11 +160,13 @@ local function travelTo(destinationName: string)
 	lastTravel = os.clock()
 	traveling = true
 	setInteractive(false)
-	local ours = Iris.close(0.35)
+	local ticket = Iris.close(0.35)
 	task.wait(0.4)
 	travelEvent:FireServer(destinationName)
 	task.wait(0.6)
-	if ours then
+	-- re-checked here, not before the waits: a walkout can take the iris over
+	-- during that second
+	if Iris.owns(ticket) then
 		Iris.open(0.5) -- X259: a walkout that took the iris over opens it itself
 	end
 	traveling = false

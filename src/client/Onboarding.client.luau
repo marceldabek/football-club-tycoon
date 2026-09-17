@@ -31,12 +31,22 @@ local function placeCard()
 	local camera = workspace.CurrentCamera
 	local viewport = if camera then camera.ViewportSize else Vector2.new(1280, 720)
 	local keyboard = if UserInputService.OnScreenKeyboardVisible then UserInputService.OnScreenKeyboardSize.Y else 0
-	local usable = math.max(viewport.Y - keyboard, 240)
 	if keyboard <= 0 then
 		card.frame.Position = UDim2.fromScale(0.5, 0.45)
 		return
 	end
-	card.frame.Position = UDim2.new(0.5, 0, 0, math.floor(usable / 2))
+	-- the card is centred in the height left above the keyboard. Both numbers
+	-- are real screen pixels: the card's own Position is resolved by the
+	-- ScreenGui, and its height already includes the fit scale. When there
+	-- isn't room to centre it, pin its top to the top of the screen instead,
+	-- so the title stays on screen and the button stays above the keyboard.
+	local usable = math.max(viewport.Y - keyboard, 0)
+	local height = card.frame.AbsoluteSize.Y
+	local centre = usable / 2
+	if height >= usable then
+		centre = height / 2 + 8
+	end
+	card.frame.Position = UDim2.new(0.5, 0, 0, math.floor(centre))
 end
 UserInputService:GetPropertyChangedSignal("OnScreenKeyboardVisible"):Connect(placeCard)
 UserInputService:GetPropertyChangedSignal("OnScreenKeyboardSize"):Connect(placeCard)

@@ -290,14 +290,14 @@ local function finish()
 	destroyed = true
 	-- close the iris over the picker, swap to the player's own camera behind
 	-- it (they are already standing in their office), then open on the club
-	local ours = Iris.close(0.4)
+	local ticket = Iris.close(0.4)
 	task.wait(0.45)
 	restoreCamera()
 	if hudGui then
 		hudGui.Enabled = true
 	end
 	gui:Destroy()
-	if ours then
+	if Iris.owns(ticket) then
 		Iris.open(0.6) -- X259: something newer owns the iris, leave it alone
 	end
 end

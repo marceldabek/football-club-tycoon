@@ -57,23 +57,33 @@ end
 -- token; whoever holds the newest one owns the iris.
 local token = 0
 
-local function play(size: UDim2, duration: number): boolean
+local function play(size: UDim2, duration: number): number?
 	local frame = ensure()
 	token += 1
 	local mine = token
 	local tween = TweenService:Create(frame, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), { Size = size })
 	tween:Play()
 	local state = tween.Completed:Wait()
-	return mine == token and state == Enum.PlaybackState.Completed
+	if mine == token and state == Enum.PlaybackState.Completed then
+		return mine
+	end
+	return nil
+end
+
+-- True while `ticket` is still the newest transition. A caller that waits
+-- before opening the iris again should check this first: something else may
+-- have taken it over in between (the matchday walkout, say).
+function Iris.owns(ticket: number?): boolean
+	return ticket ~= nil and ticket == token
 end
 
 -- Both yield until the transition finishes. False means a newer transition took
 -- over: it owns the iris now, so don't tween it back.
-function Iris.close(duration: number): boolean
+function Iris.close(duration: number): number?
 	return play(CLOSED, duration)
 end
 
-function Iris.open(duration: number): boolean
+function Iris.open(duration: number): number?
 	return play(OPEN, duration)
 end
 

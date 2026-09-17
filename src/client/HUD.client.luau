@@ -198,7 +198,9 @@ local scoreLabel = Theme.text(scoreboard, "", "body", {
 -- clipping (TextScaled can't be used without wrapping, so size by hand)
 scoreLabel.TextWrapped = false
 local function fitScoreText()
-	local width = scoreLabel.AbsoluteSize.X
+	-- X252: AbsoluteSize already carries the panel's fit scale, but TextService
+	-- measures in design pixels, so scale it back before comparing
+	local width = scoreLabel.AbsoluteSize.X / Theme.scaleOf(scoreLabel)
 	if width <= 0 then
 		return
 	end

@@ -821,10 +821,16 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 			if not moved then
 				moved = true
 				benchScroll.ScrollingEnabled = false
+				-- X252: the overlay is outside the scaled panel, so the clone
+				-- carries the same scale itself and is sized in design pixels
+				local k = Theme.scaleOf(frame)
 				local g = frame:Clone()
 				g.Name = "Ghost"
 				g.AnchorPoint = Vector2.zero
-				g.Size = UDim2.fromOffset(frame.AbsoluteSize.X, frame.AbsoluteSize.Y)
+				local ghostScale = Instance.new("UIScale")
+				ghostScale.Scale = k
+				ghostScale.Parent = g
+				g.Size = UDim2.fromOffset(frame.AbsoluteSize.X / k, frame.AbsoluteSize.Y / k)
 				g.Visible = true
 				g.ZIndex = 100
 				for _, d in g:GetDescendants() do

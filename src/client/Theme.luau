@@ -100,13 +100,65 @@ function Theme.padding(inst: Instance, all: number, horizontal: number?)
 end
 
 -- X252: the cards are laid out in pixels (480-560 wide), which overflows a
--- phone held in portrait. Every screen gets a UIScale that shrinks it to fit
--- the viewport, so nothing runs off the edge; a desktop stays at 1.
+-- phone held in portrait, so each top-level panel gets a UIScale that shrinks
+-- it to fit the viewport. A desktop stays at 1.
+--
+-- The scale goes on the panel, NOT on the ScreenGui: a UIScale on a ScreenGui
+-- also multiplies its children's *scale* positions, which drags anything
+-- anchored right or bottom toward the top-left (measured in Studio: the GO TO
+-- MY CLUB button moved from y 106 to y 44 at 0.62).
 local DESIGN_WIDTH = 600 -- the widest card plus a margin
-local MIN_SCALE = 0.55
+local MIN_SCALE = 0.75 -- below this the 44 px buttons stop being tappable
 
 function Theme.fitScale(viewport: Vector2): number
 	return math.clamp(math.min(viewport.X / DESIGN_WIDTH, viewport.Y / 560), MIN_SCALE, 1)
+end
+
+-- The scale applying to `inst`, so code that measures in design pixels can
+-- divide it back out of an AbsoluteSize.
+function Theme.scaleOf(inst: Instance): number
+	local node: Instance? = inst
+	while node do
+		if node:IsA("GuiObject") then
+			local s = node:FindFirstChild("FitScale")
+			if s and s:IsA("UIScale") then
+				return s.Scale
+			end
+		end
+		node = node.Parent
+	end
+	return 1
+end
+
+-- Adds the fitting UIScale to a top-level panel and keeps it up to date.
+function Theme.fitPanel(frame: GuiObject)
+	local scale = Instance.new("UIScale")
+	scale.Name = "FitScale"
+	scale.Parent = frame
+	local viewportConn: RBXScriptConnection? = nil
+	local function refit()
+		local camera = workspace.CurrentCamera
+		scale.Scale = Theme.fitScale(if camera then camera.ViewportSize else Vector2.new(1280, 720))
+	end
+	local function watch()
+		if viewportConn then
+			viewportConn:Disconnect()
+			viewportConn = nil
+		end
+		local camera = workspace.CurrentCamera
+		if camera then
+			viewportConn = camera:GetPropertyChangedSignal("ViewportSize"):Connect(refit)
+		end
+		refit()
+	end
+	local cameraConn = workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(watch)
+	frame.Destroying:Connect(function()
+		cameraConn:Disconnect()
+		if viewportConn then
+			viewportConn:Disconnect()
+		end
+	end)
+	watch()
 end
 
 function Theme.screenGui(name: string, order: number?): ScreenGui
@@ -116,22 +168,6 @@ function Theme.screenGui(name: string, order: number?): ScreenGui
 	gui.IgnoreGuiInset = true
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.DisplayOrder = order or 0
-	local scale = Instance.new("UIScale")
-	scale.Name = "FitScale"
-	scale.Parent = gui
-	local function refit()
-		local camera = workspace.CurrentCamera
-		scale.Scale = Theme.fitScale(if camera then camera.ViewportSize else Vector2.new(1280, 720))
-	end
-	local function watch()
-		local camera = workspace.CurrentCamera
-		if camera then
-			camera:GetPropertyChangedSignal("ViewportSize"):Connect(refit)
-		end
-		refit()
-	end
-	workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(watch)
-	watch()
 	return gui
 end
 
@@ -146,6 +182,9 @@ function Theme.panel(parent: Instance, name: string, props: { [string]: any }?):
 	Theme.corner(f)
 	Theme.stroke(f)
 	f.Parent = parent
+	if parent:IsA("ScreenGui") then
+		Theme.fitPanel(f) -- X252: a card or panel shrinks to fit a phone
+	end
 	return f
 end
 
