@@ -514,4 +514,29 @@ function T.nameWallSpotStandsBesideTheStoneOnTheVerge()
 	assert(other and (other - rightHand).Magnitude > 20, "moves to the other side of the stone")
 end
 
+-- X55: palisade sections are at most PALISADE_SECTION long, and a shed yard
+-- gets palisade (or the fallback panels) on both sides and the front.
+function T.palisadeSectionsCoverTheFence()
+	local L = EstateBuilder.PALISADE_SECTION
+	for _, length in { 0.5, L - 0.5, L, L + 0.1, 19.5, 43.5 } do
+		local n = EstateBuilder.palisadeSections(length)
+		assert(n >= 1 and length / n <= L + 1e-6, ("length %g: %d sections"):format(length, n))
+		assert(n == 1 or length / (n - 1) > L, ("length %g: %d sections is more than needed"):format(length, n))
+	end
+	local holder = Instance.new("Folder")
+	local shed = EstateBuilder.shed(CFrame.new(), Vector3.new(30, 16, 40), holder, Random.new(2), "workshop", 2)
+	local palisade, panels = 0, 0
+	for _, d in shed:GetChildren() do
+		if d.Name == "Palisade" then
+			palisade += 1
+			assert(math.abs(d.Size.Y - EstateBuilder.PALISADE_H) < 0.2, "palisade height " .. d.Size.Y)
+		elseif string.sub(d.Name, 1, 5) == "Fence" then
+			panels += 1
+		end
+	end
+	local want = 2 * EstateBuilder.palisadeSections(EstateBuilder.YARD_DEPTH - 0.5) + EstateBuilder.palisadeSections(30 - 0.5) -- size.X is the frontage
+	assert(palisade == want or (palisade == 0 and panels == 3), ("palisade %d (want %d), panels %d"):format(palisade, want, panels))
+	holder:Destroy()
+end
+
 return T

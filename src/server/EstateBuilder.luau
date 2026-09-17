@@ -26,7 +26,9 @@
 -- Part budget: semiPair <= 16 (body 1, attic wedges 2, roof slabs 2, ridge 1,
 -- chimney 2, garden wall <= 3 segments, hedge <= 3 segments, porch hoods 2) against a
 -- target of <= 16. driveway <= 3 (slab 1, optional parked car body + cabin 2).
--- shed body 1, roof 2, sign 1, yard 1, fence 7, and either a lorry (X55),
+-- shed body 1, roof 2, sign 1, yard 1, fence 4 posts + palisade sections
+-- (1 per side, width / 20 across the front; 3 mesh panels if the union
+-- fails), and either a lorry (X55),
 -- pallets 2-3, or (every third unit) a forklift 8 + pallets 1-2, +1 sand heap
 -- for "builders yard"; kept <= 30.
 --
@@ -34,6 +36,8 @@
 -- each pair centred in its slot with a SIDE_GAP driveway strip between
 -- neighbours, and fitPair pushes the house back so the whole front garden
 -- (wall + hedge) sits inside the block instead of on the public pavement.
+
+local GeometryService = game:GetService("GeometryService")
 
 local EstateBuilder = {}
 
@@ -256,6 +260,93 @@ local function block(
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	p.Parent = parent
 	return p
+end
+
+-- X55: black steel palisade (rivermer.industrialestate.png yard fences). One
+-- PALISADE_SECTION-long section of pointed pales on two rails is unioned once
+-- per server with GeometryService and cloned along each fence, so a section
+-- costs 1 part instead of ~15. If the union fails (or yields where it can't),
+-- palisadeTemplate stays nil and callers keep the old translucent mesh panel.
+EstateBuilder.PALISADE_SECTION = 20
+EstateBuilder.PALISADE_H = 4.5 -- about 1.6 m
+local PALISADE_PALES = 22
+local PALISADE_COLOUR = Color3.fromRGB(34, 36, 40)
+local palisadeTemplate: BasePart? = nil
+local palisadeTried = false
+
+local function palisadeSection(): BasePart?
+	if palisadeTried then
+		return palisadeTemplate
+	end
+	palisadeTried = true
+	local L, H = EstateBuilder.PALISADE_SECTION, EstateBuilder.PALISADE_H
+	local pieces: { BasePart } = {}
+	local function piece(size: Vector3, cf: CFrame)
+		local q = Instance.new("Part")
+		q.Anchored = true
+		q.Size = size
+		q.CFrame = cf
+		table.insert(pieces, q)
+	end
+	local tipSide = 0.16
+	for i = 1, PALISADE_PALES do
+		local x = -L / 2 + (i - 0.5) * L / PALISADE_PALES
+		piece(Vector3.new(0.22, H - tipSide, 0.08), CFrame.new(x, -tipSide / 2, 0))
+		-- a small square turned 45 degrees makes the pointed top
+		piece(Vector3.new(tipSide, tipSide, 0.08), CFrame.new(x, H / 2 - tipSide * 0.9, 0) * CFrame.Angles(0, 0, math.rad(45)))
+	end
+	for _, y in { -H / 2 + 0.5, H / 2 - 0.6 } do
+		piece(Vector3.new(L, 0.14, 0.1), CFrame.new(0, y, 0.09))
+	end
+	local ok, result = pcall(function()
+		return GeometryService:UnionAsync(pieces[1], { table.unpack(pieces, 2) }, {
+			CollisionFidelity = Enum.CollisionFidelity.Box,
+			RenderFidelity = Enum.RenderFidelity.Automatic,
+			SplitApart = false,
+		})
+	end)
+	for _, q in pieces do
+		q:Destroy()
+	end
+	if ok and result and result[1] and result[1]:IsA("BasePart") then
+		local u = result[1] :: BasePart
+		u.Name = "Palisade"
+		u.Anchored = true
+		u.CanCollide = false
+		u.CanTouch = false
+		u.CanQuery = false
+		u.CastShadow = false
+		u.Material = Enum.Material.Metal
+		u.Color = PALISADE_COLOUR
+		if u:IsA("UnionOperation") then
+			u.UsePartColor = true
+		end
+		palisadeTemplate = u
+	end
+	return palisadeTemplate
+end
+
+-- Sections needed for a fence of `length` (each stretched a little to fit).
+function EstateBuilder.palisadeSections(length: number): number
+	return math.max(1, math.ceil(length / EstateBuilder.PALISADE_SECTION - 1e-6))
+end
+
+-- A palisade run centred on `cf` (bottom at cf's Y) along cf's local X.
+-- Returns false when no template could be made, so the caller can fall back.
+function EstateBuilder.palisade(cf: CFrame, length: number, parent: Instance): boolean
+	local template = palisadeSection()
+	if not template then
+		return false
+	end
+	local count = EstateBuilder.palisadeSections(length)
+	local each = length / count
+	for i = 1, count do
+		local section = template:Clone()
+		section.Size = Vector3.new(each, template.Size.Y, template.Size.Z)
+		section.CFrame = cf * CFrame.new(-length / 2 + (i - 0.5) * each, template.Size.Y / 2, 0)
+		section.Parent = parent
+	end
+	return true
 end
 
 -- A pair of semis sharing a party wall: one body wearing the chosen front
@@ -587,9 +678,16 @@ function EstateBuilder.shed(cframe: CFrame, size: Vector3, parent: Instance, rng
 		Vector3.new(-depth / 2 - YARD_DEPTH, 0, -hw),
 	}
 	for i, c in corners do
-		block("Part", "Post" .. i, Vector3.new(0.3, fenceY * 2, 0.3), cframe * CFrame.new(c.X, fenceY, c.Z), FENCE_POST_COLOUR, Enum.Material.Metal, model, false)
+		block("Part", "Post" .. i, Vector3.new(0.3, EstateBuilder.PALISADE_H + 0.3, 0.3), cframe * CFrame.new(c.X, (EstateBuilder.PALISADE_H + 0.3) / 2, c.Z), FENCE_POST_COLOUR, Enum.Material.Metal, model, false)
 	end
-	for _, spec in {
+	-- X55: steel palisade on the two yard sides and the front, clear of the
+	-- corner posts by 0.2 at each end
+	local sideLength = YARD_DEPTH - 0.5
+	local yardMidX = -depth / 2 - YARD_DEPTH / 2
+	local palisaded = EstateBuilder.palisade(cframe * CFrame.new(yardMidX, 0, -hw), sideLength, model)
+		and EstateBuilder.palisade(cframe * CFrame.new(yardMidX, 0, hw), sideLength, model)
+		and EstateBuilder.palisade(cframe * CFrame.new(-depth / 2 - YARD_DEPTH, 0, 0) * CFrame.Angles(0, math.pi / 2, 0), width - 0.5, model)
+	for _, spec in if palisaded then {} else {
 		{ name = "FenceLeft", size = Vector3.new(YARD_DEPTH, fenceY, 0.15), offset = Vector3.new(-depth / 2 - YARD_DEPTH / 2, fenceY / 2, -hw) },
 		{ name = "FenceRight", size = Vector3.new(YARD_DEPTH, fenceY, 0.15), offset = Vector3.new(-depth / 2 - YARD_DEPTH / 2, fenceY / 2, hw) },
 		{ name = "FenceFront", size = Vector3.new(0.15, fenceY, width), offset = Vector3.new(-depth / 2 - YARD_DEPTH, fenceY / 2, 0) },
