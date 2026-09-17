@@ -129,9 +129,9 @@
 - [x] X29 Semis garden walls/hedges have no gate gap where the new front paths cross them `[studio]` S
 - [x] X30 Semis: pairs abut into a continuous terrace and the garden hedge stands on the pavement; leave a side gap between pairs (driveway) and pull the front garden inside the block `[studio]` M
 - [ ] X31 Road bridges: raise the decks (ramps on the approaches) or lower the water so the stone arches read; currently ~2 studs of arch `[studio]` M
-- [ ] X32 Marina boats: the white bow wedges look detached/rotated at the moorings; check RiverDresser.buildBoat bow orientation `[studio]` S
-- [ ] X33 Semis driveway cars are plain blocks; use the kit hatchback (KitPlacer) with the block as fallback `[studio]` S
+- [x] X32 Marina boats: the white bow wedges look detached/rotated at the moorings; check RiverDresser.buildBoat bow orientation `[studio]` S
+- [ ] X33 (not done: the kit hatchback is 9.8 x 19.4 studs, too big for 10-stud drives; needs a smaller car model) Semis driveway cars are plain blocks; use the kit hatchback (KitPlacer) with the block as fallback `[studio]` S
 - [ ] X34 Syncing merged branches into Studio by pasting source is the night's bottleneck; get Rojo reconnected (X4) before the next big batch `[studio]` S
 - [ ] X35 TerraceStreetDresser: Mill/Weaver showpiece uses 1,013 of its 1,200 parts, so only 1 light street got dressed (26 skipped); thin the railing bars or raise the budget after a phone perf check `[studio]` S
-- [ ] X36 Traffic drives through kerb-parked cars on streets with cars on both kerbs (single shared lane or skip those streets) `[disk]` S
+- [x] X36 (TerraceStreets ParkedStreets attribute; Mill Street, Weaver Street, Church Lane) Traffic drives through kerb-parked cars on streets with cars on both kerbs (single shared lane or skip those streets) `[disk]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
