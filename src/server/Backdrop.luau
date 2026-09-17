@@ -41,7 +41,11 @@ local RIVER_CLEARANCE = 80
 local EXTENT_EDGE_BAND = 150 -- fields/trees may sit this close inside the town extent
 
 local FIELD_BAND = 600 -- how far past the extent the field patchwork reaches
-local FIELD_PART_BUDGET = 180 -- fields + hedges together
+-- X16: fields + hedges together (5 parts a field: slab + four hedges). The
+-- old cap was 180 at 2 parts a field; this cap plus HEDGEROW_TREE_BUDGET keeps
+-- the increase at or under 400 parts.
+local FIELD_PART_BUDGET = 360
+local HEDGEROW_TREE_BUDGET = 220
 
 local HILL_COUNT = 18
 local HILL_MIN_DIST = 3000
@@ -253,23 +257,106 @@ end
 
 -- ------------------------------------------------------------------- fields
 
-local FIELD_COLOURS = {
-	Color3.fromRGB(96, 150, 70),
-	Color3.fromRGB(120, 168, 72),
-	Color3.fromRGB(150, 168, 90),
-	Color3.fromRGB(198, 186, 110),
-}
+-- Real terrain-like materials (no Texture instances): pasture greens on
+-- Grass / LeafyGrass, stubble and ploughed earth on Ground.
+export type FieldStyle = { colour: Color3, material: Enum.Material }
+Backdrop.FIELD_STYLES = {
+	{ colour = Color3.fromRGB(92, 142, 66), material = Enum.Material.Grass },
+	{ colour = Color3.fromRGB(112, 158, 70), material = Enum.Material.LeafyGrass },
+	{ colour = Color3.fromRGB(130, 166, 84), material = Enum.Material.Grass },
+	{ colour = Color3.fromRGB(82, 126, 58), material = Enum.Material.LeafyGrass },
+	{ colour = Color3.fromRGB(104, 150, 62), material = Enum.Material.Grass },
+	{ colour = Color3.fromRGB(176, 164, 100), material = Enum.Material.Ground },
+	{ colour = Color3.fromRGB(128, 104, 74), material = Enum.Material.Ground },
+} :: { FieldStyle }
 local HEDGE_COLOUR = Color3.fromRGB(42, 82, 40)
+local HEDGE_THICKNESS = 4
+local HEDGE_MIN_H, HEDGE_MAX_H = 5.5, 7
 
--- One flat field Part plus one hedge Part along its town-facing edge, tiled
--- along the band strips between the town extent and FIELD_BAND studs beyond
--- it. Skips any tile isClear rejects (river crossing, too near a plot/road,
--- or Workspace.VerticalSlice) rather than trying to route round it.
+export type HedgeBox = { centre: Vector3, size: Vector3, side: string }
+
+-- Pure: the four hedge footprints ringing a field of size sx x sz centred on
+-- (cx, cz), each straddling its field edge. North/south ("+Z"/"-Z") hedges
+-- run the full width plus the corners; east/west ("+X"/"-X") ones fill the
+-- gap between them and poke `overlap` into each so their end faces are never
+-- flush with a north/south hedge's side face. size.Y is 0 (the builder picks
+-- the height).
+function Backdrop.hedgeBoxes(cx: number, cz: number, sx: number, sz: number, thickness: number, overlap: number): { HedgeBox }
+	local out: { HedgeBox } = {}
+	for _, dir in { 1, -1 } do
+		table.insert(out, {
+			centre = Vector3.new(cx, 0, cz + dir * sz / 2),
+			size = Vector3.new(sx + thickness, 0, thickness),
+			side = if dir > 0 then "+Z" else "-Z",
+		})
+	end
+	for _, dir in { 1, -1 } do
+		table.insert(out, {
+			centre = Vector3.new(cx + dir * sx / 2, 0, cz),
+			size = Vector3.new(thickness, 0, math.max(sz - thickness + overlap * 2, 0.2)),
+			side = if dir > 0 then "+X" else "-X",
+		})
+	end
+	return out
+end
+
+-- Cheap hedgerow tree: trunk + one crown, sometimes a second. 2 or 3 parts.
+local function hedgerowTree(parent: Instance, pos: Vector3, rng: Random): number
+	local scale = rng:NextNumber(0.8, 1.4)
+	local trunkH = 7 * scale
+	part({
+		Name = "Trunk",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(trunkH + 0.5, 1.1 * scale, 1.1 * scale),
+		CFrame = CFrame.new(pos + Vector3.new(0, (trunkH - 0.5) / 2, 0)) * CFrame.Angles(0, 0, math.pi / 2),
+		Color = Color3.fromRGB(88, 66, 44),
+		Material = Enum.Material.Wood,
+		CastShadow = false,
+		Parent = parent,
+	})
+	local green = Color3.fromRGB(54 + rng:NextInteger(-8, 16), 100 + rng:NextInteger(-15, 25), 44 + rng:NextInteger(-8, 10))
+	part({
+		Name = "Canopy",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.one * (10 * scale),
+		CFrame = CFrame.new(pos + Vector3.new(0, trunkH + 2.5 * scale, 0)),
+		Color = green,
+		Material = Enum.Material.LeafyGrass,
+		Parent = parent,
+	})
+	if rng:NextNumber() < 0.5 then
+		local a = rng:NextNumber(0, math.pi * 2)
+		part({
+			Name = "CanopyTop",
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * (6.5 * scale),
+			CFrame = CFrame.new(pos + Vector3.new(math.cos(a) * 2.5 * scale, trunkH + 6 * scale, math.sin(a) * 2.5 * scale)),
+			Color = green:Lerp(Color3.fromRGB(140, 170, 80), 0.15),
+			Material = Enum.Material.LeafyGrass,
+			CastShadow = false,
+			Parent = parent,
+		})
+		return 3
+	end
+	return 2
+end
+
+-- One flat field Part ringed by four hedges, tiled along the band strips
+-- between the town extent and FIELD_BAND studs beyond it, with clumps of
+-- trees along the hedgerows. Skips any tile isClear rejects (river crossing,
+-- too near a plot/road, or Workspace.VerticalSlice) rather than trying to
+-- route round it. `rng` keeps the original field layout draws; tints, hedge
+-- heights and trees come from a second generator so the layout is unchanged.
 local function buildFields(parent: Instance): number
 	local rng = Random.new(2604)
+	local styleRng = Random.new(2605)
 	local fieldsModel = Instance.new("Model")
 	fieldsModel.Name = "Fields"
 	fieldsModel.Parent = parent
+	local hedgerowModel = Instance.new("Model")
+	hedgerowModel.Name = "HedgerowTrees"
+	hedgerowModel.Parent = parent
+	local treeParts = 0
 
 	local ext = TownLayout.EXTENT
 	local strips = {
@@ -284,7 +371,7 @@ local function buildFields(parent: Instance): number
 		local depth = if strip.alongX then strip.maxZ - strip.minZ else strip.maxX - strip.minX
 		local length = if strip.alongX then strip.maxX - strip.minX else strip.maxZ - strip.minZ
 		local pos = 0
-		while pos < length and partsUsed <= FIELD_PART_BUDGET - 2 do
+		while pos < length and partsUsed <= FIELD_PART_BUDGET - 5 do
 			local len = math.min(rng:NextNumber(200, 320), length - pos)
 			if len < 60 then
 				break
@@ -306,41 +393,66 @@ local function buildFields(parent: Instance): number
 			local centre = Vector3.new(cx, 0, cz)
 			local radius = math.sqrt((sx / 2) ^ 2 + (sz / 2) ^ 2)
 			if Backdrop.isClear(centre, radius) then
+				local style = Backdrop.FIELD_STYLES[rng:NextInteger(1, #Backdrop.FIELD_STYLES)]
+				local tint = styleRng:NextNumber(-0.06, 0.06)
 				part({
 					Name = "Field",
 					Size = Vector3.new(sx, 0.2, sz),
 					CFrame = CFrame.new(cx, 0.15, cz),
-					Color = FIELD_COLOURS[rng:NextInteger(1, #FIELD_COLOURS)],
-					Material = Enum.Material.SmoothPlastic,
+					Color = if tint > 0 then style.colour:Lerp(Color3.new(1, 1, 0.8), tint) else style.colour:Lerp(Color3.new(0, 0, 0), -tint),
+					Material = style.material,
 					CastShadow = false,
 					Parent = fieldsModel,
 				})
 				partsUsed += 1
 
-				local hedgeSize, hedgeCFrame = Vector3.new(), CFrame.new()
-				if strip.alongX then
-					local edgeZ = if strip.minZ < 0 then cz + sz / 2 else cz - sz / 2
-					hedgeSize = Vector3.new(sx, 4, 3)
-					hedgeCFrame = CFrame.new(cx, 2, edgeZ)
-				else
-					local edgeX = if strip.minX < 0 then cx + sx / 2 else cx - sx / 2
-					hedgeSize = Vector3.new(3, 4, sz)
-					hedgeCFrame = CFrame.new(edgeX, 2, cz)
+				-- east/west hedges a little taller and deeper than north/south,
+				-- so no two meeting hedges share a top or bottom plane
+				local baseH = styleRng:NextNumber(HEDGE_MIN_H, HEDGE_MAX_H - 0.3)
+				local hedges = Backdrop.hedgeBoxes(cx, cz, sx, sz, HEDGE_THICKNESS, 0.1)
+				for _, hedge in hedges do
+					local eastWest = hedge.side == "+X" or hedge.side == "-X"
+					local bottom = if eastWest then -0.6 else -0.5
+					local top = if eastWest then baseH + 0.3 else baseH
+					part({
+						Name = "Hedge",
+						Size = Vector3.new(hedge.size.X, top - bottom, hedge.size.Z),
+						CFrame = CFrame.new(hedge.centre.X, (top + bottom) / 2, hedge.centre.Z),
+						Color = HEDGE_COLOUR:Lerp(Color3.fromRGB(70, 104, 52), styleRng:NextNumber(0, 0.5)),
+						Material = Enum.Material.Grass,
+						CastShadow = false,
+						Parent = fieldsModel,
+					})
+					partsUsed += 1
 				end
-				part({
-					Name = "Hedge",
-					Size = hedgeSize,
-					CFrame = hedgeCFrame,
-					Color = HEDGE_COLOUR,
-					Material = Enum.Material.Grass,
-					CastShadow = false,
-					Parent = fieldsModel,
-				})
-				partsUsed += 1
+
+				-- one to three tree clumps along random hedgerows
+				for _ = 1, styleRng:NextInteger(1, 3) do
+					if treeParts > HEDGEROW_TREE_BUDGET - 3 then
+						break
+					end
+					local hedge = hedges[styleRng:NextInteger(1, #hedges)]
+					local longX = hedge.size.X > hedge.size.Z
+					local run = if longX then hedge.size.X else hedge.size.Z
+					local along = styleRng:NextNumber(-0.4, 0.4) * run
+					for _ = 1, styleRng:NextInteger(2, 3) do
+						if treeParts > HEDGEROW_TREE_BUDGET - 3 then
+							break
+						end
+						local offA = along + styleRng:NextNumber(-12, 12)
+						local offB = styleRng:NextNumber(-2.5, 2.5)
+						local p = if longX
+							then Vector3.new(hedge.centre.X + offA, GROUND_Y, hedge.centre.Z + offB)
+							else Vector3.new(hedge.centre.X + offB, GROUND_Y, hedge.centre.Z + offA)
+						if Backdrop.isClear(p, 6) then
+							treeParts += hedgerowTree(hedgerowModel, p, styleRng)
+						end
+					end
+				end
 			end
 		end
 	end
-	return partsUsed
+	return partsUsed + treeParts
 end
 
 -- -------------------------------------------------------------------- trees
