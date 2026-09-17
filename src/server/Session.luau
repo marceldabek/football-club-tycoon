@@ -284,7 +284,8 @@ function Session.start(owner: Player): boolean
 		Scenery.setup() -- single-club place: the old scenery around the origin
 	end
 
-	local backend, kind = SaveService.autoBackend(Config.Save.storeName)
+	local storeName = SaveService.storeNameFor(Config.Save.storeName, RunService:IsStudio(), Config.Save.studioStoreSuffix)
+	local backend, kind = SaveService.autoBackend(storeName)
 	backendKind = kind
 	saver = SaveService.new(backend, { retries = Config.Save.loadRetries, backoff = Config.Save.retryBackoffSeconds })
 
@@ -296,7 +297,7 @@ function Session.start(owner: Player): boolean
 	-- must never strand the player at a loading screen forever, so an error
 	-- here just logs and continues without a lock instead of blocking.
 	local lockBackend = if backendKind == "datastore"
-		then SaveLock.dataStoreBackend(Config.Save.storeName)
+		then SaveLock.dataStoreBackend(storeName)
 		else SaveLock.memoryBackend()
 	local jobId = if game.JobId ~= "" then game.JobId else ("studio-" .. tostring(os.clock()))
 	locker = SaveLock.new(lockBackend, {

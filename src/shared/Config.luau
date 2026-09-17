@@ -215,6 +215,10 @@ Config.MaxSubs = 3
 -- Persistence (Milestone 5). TEMP values.
 Config.Save = {
 	storeName = "ClubProfiles", -- DataStore name; bump to reset every save during prototyping
+	-- TEMP (overnight 2026-09-17, question 1 in docs/OVERNIGHT_LOG.md): Studio
+	-- playtests use their own DataStore so agent tests never touch the live club.
+	-- Set to "" to load your real club in Studio again.
+	studioStoreSuffix = "_Studio",
 	autosaveSeconds = 30, -- save this often while something changed
 	loadRetries = 3,
 	retryBackoffSeconds = 1,

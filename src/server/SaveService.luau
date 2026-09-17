@@ -74,6 +74,15 @@ function SaveService.dataStoreBackend(storeName: string): Backend
 	}
 end
 
+-- Pure: the DataStore name for this server. Studio sessions add the suffix so
+-- playtests keep their own saves (and save locks) apart from live players'.
+function SaveService.storeNameFor(base: string, isStudio: boolean, studioSuffix: string?): string
+	if isStudio and studioSuffix and studioSuffix ~= "" then
+		return base .. studioSuffix
+	end
+	return base
+end
+
 -- DataStores need a published place. In Studio with an unpublished place we
 -- fall back to memory (no persistence across Play sessions) and say so once.
 function SaveService.autoBackend(storeName: string): (Backend, string)

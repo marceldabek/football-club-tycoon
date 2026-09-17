@@ -94,4 +94,11 @@ function T.flushOnlyWhenDirty()
 	assert(saver:flush(3, snapshot, true), "force should save even when clean")
 end
 
+function T.studioUsesItsOwnStore()
+	assert(SaveService.storeNameFor("ClubProfiles", true, "_Studio") == "ClubProfiles_Studio", "Studio gets the suffix")
+	assert(SaveService.storeNameFor("ClubProfiles", false, "_Studio") == "ClubProfiles", "live servers keep the real store")
+	assert(SaveService.storeNameFor("ClubProfiles", true, "") == "ClubProfiles", "empty suffix opts back into the real store")
+	assert(SaveService.storeNameFor("ClubProfiles", true, nil) == "ClubProfiles", "no suffix configured")
+end
+
 return T
