@@ -169,7 +169,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11).
 - Estates are now 1,632 parts, forecourts 614, imperfections 900, marina 312.
 - RunAll 286/286.
 
-### 2026-09-17 02:58 — Mill Street dressing (X11)
+### 2026-09-17 02:52 — Mill Street dressing (X11)
 - Merged `TerraceStreetDresser` (reference `RiveremereWestdale.png`): brick garden walls with stone coping and piers, black railings or hedges with gate gaps, street trees in tree pits (clear of lamps and junction mouths), black-on-white street name signs at junction corners with the area name, and kit cars and vans parked on the empty kerb. Screenshot from (20, 7, -203) looking east: reads like the reference street. `StreetDresser` gained `isKitRow` and `lampPositions`, with no behaviour change.
 - The showpiece takes 1,013 parts, so only 1 light street fitted under the 1,200 budget (X35). Traffic now drives through cars parked on both kerbs (X36).
 - RunAll 297/297.
