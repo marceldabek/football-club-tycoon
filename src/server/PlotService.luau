@@ -350,6 +350,27 @@ function PlotService.plotOf(player: Player): number?
 	return registry:plotOf(player.UserId)
 end
 
+-- The running club a player owns: plot index, owner and its MatchService copy.
+-- Cross-club features (friendlies) go through this rather than reaching into
+-- another plot's modules themselves.
+function PlotService.clubOf(userId: number): (number?, Player?, any)
+	local plot = registry:plotOf(userId)
+	local runtime = plot and runtimes[plot]
+	if not runtime then
+		return nil, nil, nil
+	end
+	return plot, runtime.owner, runtime.match
+end
+
+-- Same, looked up by plot index.
+function PlotService.clubAt(plot: number): (Player?, any)
+	local runtime = runtimes[plot]
+	if not runtime then
+		return nil, nil
+	end
+	return runtime.owner, runtime.match
+end
+
 -- The required module copies of the first running club, for Studio debug commands.
 function PlotService.debugModules(plot: number?): { [string]: any }?
 	local runtime: Runtime? = nil

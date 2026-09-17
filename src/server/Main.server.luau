@@ -24,6 +24,7 @@ local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 -- BindableFunction here. Arguments are separated by "|":
 --   ServerScriptService.Server:SetAttribute("DebugRun", "preview|4,2,1,0")
 --   ServerScriptService.Server:SetAttribute("DebugRun", "plot|2|playMatch|20|3")
+--   ServerScriptService.Server:SetAttribute("DebugRun", "friendly|20|3")
 -- The result is written back to the "DebugResult" attribute.
 if game:GetService("RunService"):IsStudio() then
 	local function run(command: string, ...): (boolean, string?)
@@ -41,6 +42,12 @@ if game:GetService("RunService"):IsStudio() then
 		local a1, a2, a3 = args[1], args[2], args[3]
 		if command == "playMatch" then
 			return m.MatchService.playMatch(a1, a2)
+		elseif command == "friendly" then
+			-- solo stand-in for a second club: the same side under another name
+			local away = m.MatchService.awayTeam()
+			away.name = "Friendly Test XI"
+			away.kit = { 40, 90, 200 }
+			return m.MatchService.playFriendly(away, a1, a2)
 		elseif command == "expandStand" then
 			return m.UpgradeService.tryExpandStand(a1)
 		elseif command == "amenity" then
@@ -120,5 +127,6 @@ print("[FCT] " .. require(script.Parent.ViaductDresser).build())
 print("[FCT] " .. require(script.Parent.BridgeDresser).build())
 PlotService.start()
 require(script.Parent.BusService).start()
+require(script.Parent.FriendlyService).start()
 
 print("[FCT] town ready")

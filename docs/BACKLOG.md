@@ -93,7 +93,7 @@
 - [x] I2.1 (within TEMP 220 studs of their pitch centre; no scoreboard for spectators yet) Watch another club's match from their stands `[studio]` M
 - [~] I3.1 Local friendly: challenge/accept, no injuries, small home payout, no league effect `[studio]` L → split:
   - [x] I3.1a Pure `Friendly` invite book (challenge/respond/expire/dropUser) + TEMP home payout, tests `[disk]` S
-  - [ ] I3.1b Server `FriendlyService` (remotes, invites, calls the home plot's `MatchService.playFriendly(away)`: away squad + strength from the away plot, no league/injuries/development/W-D-L, TEMP payout) `[studio]` M
+  - [x] I3.1b (DebugRun "friendly|20|3" plays one solo; remotes untested until I3.1d) Server `FriendlyService` (remotes, invites, calls the home plot's `MatchService.playFriendly(away)`: away squad + strength from the away plot, no league/injuries/development/W-D-L, TEMP payout) `[studio]` M
   - [ ] I3.1c Client: "Challenge to a friendly" on the visitor club card, invite card with Accept/Decline for the other owner, FRIENDLY banner `[studio]` M
   - [ ] I3.1d Two-player friendly test (needs Players = 2) `[studio]` S
 - [ ] I4.1 Same-server player trades (cash only as part of a deal) `[studio]` L
