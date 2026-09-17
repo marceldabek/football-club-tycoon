@@ -138,13 +138,14 @@ local function buildPitch(parent: Instance)
 	pitch.Name = "Pitch"
 	pitch.Parent = parent
 
-	-- mowing stripes: alternating shades across the length
+	-- X253: mowing stripes run goal to goal, as in pitch-board.png (they used to
+	-- band across the pitch), so they are stacked across the width
 	local stripes = 14
-	local stripeL = PITCH_L / stripes
+	local stripeW = PITCH_W / stripes
 	local light, dark = Color3.fromRGB(88, 150, 66), Color3.fromRGB(72, 132, 56)
 	for i = 1, stripes do
-		local z = -PITCH_L / 2 + stripeL * (i - 0.5)
-		box(("Stripe%d"):format(i), Vector3.new(PITCH_W, 1, stripeL + 0.02), Vector3.new(0, GROUND_Y + 0.5, z),
+		local x = -PITCH_W / 2 + stripeW * (i - 0.5)
+		box(("Stripe%d"):format(i), Vector3.new(stripeW + 0.02, 1, PITCH_L), Vector3.new(x, GROUND_Y + 0.5, 0),
 			if i % 2 == 0 then light else dark, Enum.Material.Grass, pitch)
 	end
 	-- Turf run-off: unmown grass carrying on past the markings, so the paving

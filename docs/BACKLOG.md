@@ -366,7 +366,7 @@
 - [x] X250 (14:34 done) The matchday board can start match 1 before the club is named (the HUD button hides but the world prompt doesn't), and the naming card comes back afterwards: refuse while NeedsName, 0 parts `[disk]` S
 - [x] X251 (14:34 done) GO TO MY CLUB works during matchday: it teleports the owner into the office while the walkout camera pans the pitch: hide it outside Manage and refuse server-side, 0 parts `[disk]` S
 - [ ] X252 On a phone the NAME YOUR CLUB card sits under the on-screen keyboard, and the 480–560 px cards overflow a small viewport: lift the focused card by the keyboard height and add a viewport UIScale in Theme, 0 parts `[disk]` M
-- [ ] X253 The pitch is mown across the pitch; pitch-board.png stripes run goal to goal: swap the stripe axis, 14 parts unchanged `[studio]` S
+- [x] X253 (14:42 done) The pitch is mown across the pitch; pitch-board.png stripes run goal to goal: swap the stripe axis, 14 parts unchanged `[studio]` S
 - [ ] X254 No town crest on the street furniture (lamp banners, estate/station banners, bin bands) though every reference image has one: add a Shared/TownCrest drawing beside CrestBadge, 0 parts `[studio]` S
 - [ ] X255 The plot boundary wall has no coping and the gate piers no caps (the reference has both): a coping strip per run and a cap per pier, ~10 parts `[studio]` S
 - [ ] X256 Shopfront glass has no window vinyl though three reference images letter the windows: a SurfaceGui with two or three lines per front, keyed by front type, 0 parts `[studio]` S

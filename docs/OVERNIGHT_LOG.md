@@ -1423,3 +1423,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Tested in play: two matches; sampling the attribute at 20 Hz through the post-match fast-forward showed it true at the night part and back to false 1.1 s later, with the clock settling at 15.0. No console errors; the town dressed as usual. RunAll 437 passed.
 - The `Train` windows keep their own last-state check, so an unchanged flag is still a no-op.
 
+### 2026-09-17 14:42 — Mowing stripes run goal to goal (X253 done)
+- `WorldBuilder.buildPitch`: the 14 mowing bands are now stacked across the width (13.6 studs each, 290 long) instead of across the length, so they run goal to goal as in `pitch-board.png`. Same part count.
+- Checked in play from above the pitch (screenshot): bands run between the goals, and the markings, corner arcs and centre circle sit on top as before. RunAll 437 passed.
+
