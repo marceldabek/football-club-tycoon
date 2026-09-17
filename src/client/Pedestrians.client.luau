@@ -275,7 +275,8 @@ local function spawnPedestrian(path: Path, kind: string, distance: number, later
 	model.Name = "Pedestrian"
 	local kit = if math.random() < MATCHDAY_KIT_SHARE and matchdayNear(pos) then Config.HomeKit else nil
 	local parts = buildFigure(model, kit)
-	local dog = DOG_KINDS[kind] == true and math.random() < DOG_CHANCE
+	-- no dogs on Low (walkers already spawned with one keep it until they despawn)
+	local dog = DOG_KINDS[kind] == true and math.random() < DOG_CHANCE and maxPedestrians() == MAX_PEDESTRIANS
 	if dog then
 		local coat = pick(DOG_COLOURS)
 		table.insert(parts, part("DogBody", Vector3.new(0.8, 0.9, 2), coat, true, model))

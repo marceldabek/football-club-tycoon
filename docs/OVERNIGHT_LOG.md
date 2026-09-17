@@ -1136,3 +1136,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 
 ### 2026-09-17 12:06 — Lit bus windows (X165 done)
 - New item, the follow-on from X158. The traffic headlight pass (every second) also turns each bus's window band warm Neon while the sky is dark and back to pale glass by day. 0 parts. Checked with ClockTime forced to 21: a bus near Riverside had lit windows (screenshot of a frozen clone). RunAll 428 passed (client only).
+
+
+### 2026-09-17 12:08 — Low check for tonight's additions
+- Pressing the Quality toggle to Low by the river: the cruiser leaves, all 6 picnics and all 16 window boxes are hidden, and walkers drop to 12. Dogs still spawned on Low (4 of 12), although X142 was meant to be off on Low, so walkers spawned on Low no longer get one (fixed; after moving to Northfields on Low, 0 dogs among 12). Evening lights (plot lamps, shopfronts, headlights) already cap or skip on Low.
