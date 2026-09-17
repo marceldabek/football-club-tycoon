@@ -52,7 +52,7 @@
 - [x] C2.1 `src/server/TownBuilder.luau` greybox: terrain ground, river carved with water, roads (asphalt parts per segment), pavements, bridges, rail line + embankment, district building volumes (grey blocks), plot pads `[studio]` M dep: C1.2
 - [ ] C2.2 Walk test: spawn → centre → each plot, timings logged; sightlines to spire/viaduct screenshot `[studio]` S dep: C2.1
 - [x] C3.1 (baseline numbers in the log; StreamingEnabled was already on) StreamingEnabled on (place setting via code check + note), models grouped per district with `ModelStreamingMode`, part/triangle counts per district logged `[studio]` S dep: C2.1
-- [ ] C3.2 Quality setting (Low/High) client toggle: hides decorative props and far detail on Low `[studio]` M dep: C3.1
+- [x] C3.2 Quality setting (Low/High) client toggle: hides decorative props and far detail on Low `[studio]` M dep: C3.1
 
 ## Phase D — Kit
 - [x] D1.1 Free-model hunt (Creator Store via lead, CC0 via subagent): terraced houses, shopfronts, lamp posts, bus shelter, benches, bins, planters, railings, trees, cars, station and industrial pieces; shortlist with ids/links/licence in `docs/FREE_ASSETS.md` `[disk]` M
@@ -65,12 +65,12 @@
 - [x] E1.1 Market square: round paved square, market stall ring, monument/clock, benches, planters, bunting; reference `RivermereCenter.png` `[studio]` M dep: C2.1
 - [x] E2.1 (no A-boards yet, X23) High street frontage: red-brick shops with ground-floor shopfronts (bakery, grocer, café, pub, barbers), flats above, A-boards, club banners on lamp posts; reference `RivermereCenter.png` `[studio]` L
 - [x] E6.1 River Lune banks, stone road bridge (multi-arch), riverside path with railings and benches; reference `RivermereRiverside.png` `[studio]` M dep: C2.1
-- [ ] E7.1 (frontage done 01:40, platform side/footbridge/viaduct left in X20) Station: platform, canopy, station building, footbridge, car park; railway viaduct over the river; reference `RivermereStation.png` `[studio]` M dep: C2.1
+- [x] E7.1 (frontage, platform, footbridge, viaduct arches; car park path not done) Station: platform, canopy, station building, footbridge, car park; railway viaduct over the river; reference `RivermereStation.png` `[studio]` M dep: C2.1
 - [x] E7.2 Bus stops: shelter + flag at centre, station, each plot, park; bus-stop fast-travel UI (pick a destination → fade → teleport) `[studio]` M dep: C2.1
 - [x] E9.1 Church with spire (landmark) near the centre, visible from every plot `[studio]` S dep: C2.1
 - [x] E5.1 Industrial estate greybox → sheds, yards, fences, loading bays; reference `rivermer.industrialestate.png` `[studio]` M
 - [x] E8.1 Plot surroundings: approach road, car park, club shop box, two training pitches per plot; reference `RivermereTurnstileEntrance.png` `[studio]` M dep: B1.2a, C2.1
-- [ ] E6.2 Riverside Park: paths, pond, playground, trees, bandstand `[studio]` M
+- [x] E6.2 Riverside Park: paths, pond, playground, trees, bandstand `[studio]` M
 - [x] E4.1 (semis; flats are ShopBuilder.flats) Northfields semis and small flats `[studio]` M
 - [x] E9.2 Backdrop: hills, wind turbines, distant floodlights, low detail `[studio]` S
 - [ ] E10.1 Imperfection pass: patches, faded markings, weeds, posters, clutter `[studio]` M
@@ -78,7 +78,7 @@
 ## Phase F — Life & sound
 - [x] F1.1 Ambient audio zones (town, river, station, park) from the Roblox library `[studio]` M
 - [x] F2.1 Client-side traffic on road polylines, distance-budgeted `[studio]` M
-- [ ] F3.1 Client-side pedestrians on pavements, distance-budgeted `[studio]` M
+- [x] F3.1 Client-side pedestrians on pavements, distance-budgeted `[studio]` M
 - [~] F4.1 (turbines spin, verified; flags/smoke not done) Small motion: flags, bunting sway, chimney smoke `[studio]` S
 
 ## Phase G/H — Matchday town & influence
@@ -114,13 +114,17 @@
 - [x] X14 TeamBus (Assets "Bus") is 587 parts per club; swap for a low-part coach or drop it `[studio]` S
 - [ ] X15 Bus menu: clicking a destination scrolled out of view did nothing in the test; check ScrollingFrame input and make the card taller on desktop `[studio]` S
 - [ ] X16 Backdrop fields read as flat plastic slabs: use Grass/Ground materials with a texture, hedges on all four sides and taller, more tree clumps along hedges `[studio]` S
-- [ ] X17 Market square is an island in grass: pave the gap to the shop blocks, add a pedestrian zone and café seating (RivermereCenter.png) `[studio]` M
+- [x] X17 Market square is an island in grass: pave the gap to the shop blocks, add a pedestrian zone and café seating (RivermereCenter.png) `[studio]` M
 - [ ] X18 Marina block is a flat light-blue plastic slab on the grass; make it a water basin (carve terrain) or a paved quay with the boats; fill the grass between the riverside flats and the promenade (gardens, trees, paths) `[studio]` S
 - [ ] X19 Road bridges are plain decks; add stone arch spandrels/cutwaters so the Lune Bridge reads like RivermereRiverside.png `[studio]` M
-- [ ] X20 Station: platform-side dressing (yellow edge, benches, railings, name boards), footbridge, viaduct over the Lune, path from the car park `[studio]` M
+- [x] X20 (platform, footbridge, viaduct arches; no path from the car park yet) Station: platform-side dressing (yellow edge, benches, railings, name boards), footbridge, viaduct over the Lune, path from the car park `[studio]` M
 - [ ] X21 Station roofline is a flat box; the reference has a pitched slate roof with a gable/clock over the entrance `[studio]` S
-- [ ] X22 Grass strip between the pavement and shop/semi fronts; pave the forecourt up to the building line `[studio]` S
-- [ ] X23 High street A-boards and hanging baskets in front of ShopBuilder rows (RivermereCenter.png) `[studio]` S
+- [x] X22 (shops paved; semis get front paths, 56 back onto the pavement) Grass strip between the pavement and shop/semi fronts; pave the forecourt up to the building line `[studio]` S
+- [x] X23 High street A-boards and hanging baskets in front of ShopBuilder rows (RivermereCenter.png) `[studio]` S
 - [x] X24 (bunting seen in a match 01:58, turbines spin after streaming fix) Watch bunting during a real match and turbines spinning; TownLife is only verified for banners so far `[studio]` S
 - [ ] X25 Semis hip-end roof wedges look tall from some angles; check against RivermereNorthfields.png and consider a plain gable `[studio]` S
+- [ ] X26 Hanging baskets are oversized balls placed at row corners, some on side walls; smaller bracket baskets centred over bays `[studio]` S
+- [ ] X27 Café chairs are solid blocks; thin seat + back + legs, or a kit chair `[studio]` S
+- [ ] X28 Quality Low hides decor via LocalTransparencyModifier; measure real phone fps Low vs High and consider streaming radius per level `[studio]` M
+- [ ] X29 Semis garden walls/hedges have no gate gap where the new front paths cross them `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

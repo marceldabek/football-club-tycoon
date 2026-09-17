@@ -6,7 +6,8 @@
 You spawn in your office on that plot; the other plots are FOR SALE lots. Walk or take a bus (prompt on
 any bus-stop sign) around Rivermere: dense textured terraced streets (try Cherry Close at (-600, 9, -640)),
 the Mill Street kit showpiece at (30, 7, -192), the market square with its clock tower at (70, 30, 90), the high street shops from (70, 9, 5) looking north-east,
-Northfields semis at (215, 10, -420), the industrial estate at (-1490, 16, -170), Rivermere Station at (-720, 16, -310),
+Northfields semis at (215, 10, -420), the industrial estate at (-1490, 16, -170), Rivermere Station at (-720, 16, -310), the Lune Viaduct from (-400, 10, 360), Riverside Park from (1165, 22, -150),
+the Riverside Arms forecourt at (-12, 7, -66). Top-right "Quality" button switches Low/High,
 fields/hills/turbines past the edge. Play a match: fans and stewards walk to your turnstiles; every
 4th fixture from match 3 is an evening game under floodlights; "Back to Club" plays the week
 fast-forward. Open CLUB OFFICE for the menu depth of field.
@@ -18,16 +19,19 @@ kit street (E3.1), textured low-part terraces town-wide (X12/X13), market square
 (E9.2), bus fast travel (E7.2), plot grounds: car park, club shop, training pitches (E8.1/H2/H3),
 ambient audio (F1.1), matchday fans (G1.1), 10-part team coach (X14), church (E9.1), riverside
 promenade (E6.1), station frontage and platform (E7.1 part), textured shops/flats/civic buildings (E2.1),
-Northfields semis and industrial sheds (E4.1/E5.1), client traffic (F2.1), club banners on lamp posts (H1.1).
-**Half-done:** E7.1 station (no footbridge/viaduct yet, X20). F4.1 has spinning turbines but no flags/smoke;
-G2.1 has matchday bunting but no busy pub. Background agents are writing pedestrians (F3.1), Riverside Park (E6.2),
-a Low/High quality toggle (C3.2) and shop forecourts/A-boards/square paving (X17/X22/X23); not merged yet.
+Northfields semis and industrial sheds (E4.1/E5.1), client traffic (F2.1), club banners on lamp posts (H1.1),
+station platform + footbridge + brick viaduct (E7.1/X20), pedestrians (F3.1), Low/High quality toggle (C3.2),
+shop forecourts with A-boards and café tables + paved square (X17/X22/X23), Riverside Park (E6.2).
+**Half-done:** F4.1 has spinning turbines but no flags/smoke; G2.1 has matchday bunting but no busy pub.
+Nothing is sitting unmerged.
 **Reverted:** none.
 
 **Known bugs**
 1. Studio playtests use your real DataStore club (the place is published). Agent tests added matches, cash and one North-stand level to it.
 2. Studio holds condensed copies of the new modules (comments trimmed). Reconnect Rojo to overwrite them from disk.
 3. Season-end fast-forward is wired but not playtested.
+4. Every agent playtest match counts on your real club (known bug 1): Dino FC went from 7 to 8 matches played tonight.
+5. Studio shows "Assistant plugin version changed ... restart Roblox Studio" warnings; the MCP kept working, but restart Studio before trusting the Assistant.
 
 **Questions for Marcel**
 1. Should Studio playtests use a separate save key (e.g. `studio_u<id>`) so test sessions never touch your real club? *Rec: yes, with a Config switch to use the real save when you want it.*
@@ -122,3 +126,13 @@ a Low/High quality toggle (C3.2) and shop forecourts/A-boards/square paving (X17
 - Played a match (DebugRun) on Plot 1: 40 red/white bunting strings across the three terraced streets nearest the ground during the match. Reference `RiveremereWestdale.png` (banners/bunting on terraced streets).
 - Turbines were not spinning: they are 3.4–4.1k studs out, so the models streamed without parts and TownLife never retried. Backdrop turbines are now Persistent (5 models, few parts) and TownLife retries when blades stream in; blades move ~24 studs/s at the tip.
 - Started four background agents in worktrees (disk only): pedestrians, Riverside Park, quality toggle, forecourts/A-boards/square paving.
+
+### 2026-09-17 02:16 — Viaduct, footbridge, pedestrians, quality toggle, forecourts, park
+- **Viaduct and footbridge (X20).** `ViaductDresser` adds 56 brick spandrel slices under the Lune Viaduct deck, so each span reads as a segmental arch, and turns the piers to brick. `StationDresser.footbridge` adds a brick stair tower on the platform, a navy covered span over the line and a tower beyond it. Reference `RivermereStation.png` / `RivermereRiverside.png`. Differences: the arch undersides are stepped, not smooth; the end spans are long and flat.
+- **Merged the four agent branches, synced each to Studio and playtested:**
+  - **Pedestrians (F3.1):** 30 walkers on high street pavements with a walk cycle, 180 parts. They drop to 12 on Low.
+  - **Quality toggle (C3.2):** a "Quality: High/Low" button under Music. On the first test Low hid nothing: the controller kept parts in weak Instance-keyed tables, which Luau collects. Rewrote it to rescan the roots on a toggle. Now Low hides 1,407 decor parts and 3,391 filler textures, High restores them, and cars go 24→8 and walkers 30→12. Phone fps not measured (X28).
+  - **Forecourts (X17/X22/X23, reference `RivermereCenter.png`):** 69 shop forecourts, 57 semi front paths, 51 square-zone slabs, 8 planter trees, 12 café sets, 40 A-boards, 76 baskets, 505 parts. The Riverside Arms and Daily Bean frontage reads very close to the reference. Differences: oversized basket balls at row corners (X26), block chairs (X27), no gate gaps in garden walls (X29).
+  - **Riverside Park (E6.2, reference `RivermereAImap.png`; no park close-up exists):** loop and cross paths to a bandstand plaza, pond with rim and lilies, fenced playground (swings, slide, climbing frame, see-saw), 70 trees, benches, lamps, name board; 429 parts. One test tolerance was too tight for float32 Vector3s; loosened.
+- **Town part totals:** streets 8,371, shops 695, estates 1,284, forecourts 505, riverside 813, park 429, square+church 499, station 111, viaduct 56. Client-side extras: 24 cars, 30 walkers, up to 60 banners.
+- RunAll 232/232.
