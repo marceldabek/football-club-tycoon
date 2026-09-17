@@ -255,6 +255,10 @@ local summaryContinue = summary.continueButton
 
 local seasonCard = Theme.card(gui, "SeasonOver", "SEASON OVER", UDim2.fromOffset(480, 330))
 local seasonContinue = seasonCard.addButton("Next season", "primary")
+-- depth of field behind the full-screen cards
+local Focus = require(script.Parent.Focus)
+Focus.watch(summary.frame)
+Focus.watch(seasonCard.frame)
 seasonContinue.Activated:Connect(function()
 	seasonCard.frame.Visible = false
 	Sky.fastForward("season") -- the long night between seasons

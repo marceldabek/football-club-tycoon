@@ -15,6 +15,7 @@ local Presenter = require(script.Parent.MatchPresenter)
 local MatchAudio = require(script.Parent.MatchAudio)
 local Sky = require(script.Parent.Sky)
 local ClubRef = require(script.Parent.ClubRef)
+local Focus = require(script.Parent.Focus)
 
 local state = require(script.Parent.ClubRef).waitState()
 local camera = workspace.CurrentCamera
@@ -36,6 +37,8 @@ end
 -- Slow pan from the stand while the teams walk out. Ends early at kickoff.
 local function cameraWalkout(seconds: number)
 	camera.CameraType = Enum.CameraType.Scriptable
+	-- intro close-up: keep the walkout sharp, soften the far stands
+	Focus.push("walkout", { focusDistance = 45, inFocusRadius = 35, farIntensity = 0.3, nearIntensity = 0 })
 	-- start low beside the tunnel looking down the line of players, rise to a
 	-- stand-side view of the centre circle as they take their positions
 	local plot = ClubRef.frame()
@@ -46,6 +49,7 @@ local function cameraWalkout(seconds: number)
 		camera.CFrame = from:Lerp(to, (os.clock() - t0) / seconds)
 		RunService.RenderStepped:Wait()
 	end
+	Focus.pop("walkout")
 	camera.CameraType = Enum.CameraType.Custom
 end
 

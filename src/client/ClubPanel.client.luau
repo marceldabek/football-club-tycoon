@@ -112,6 +112,7 @@ local panel = Theme.panel(gui, "Panel", {
 local sizeLimit = Instance.new("UISizeConstraint")
 sizeLimit.MaxSize = Vector2.new(1040, 800)
 sizeLimit.Parent = panel
+require(script.Parent.Focus).watch(panel) -- the town softens behind the office menu
 
 -- club crest: the player's own club, so it wears the home kit
 local crest = Crest.draw(panel, Config.ClubName, 44, { isPlayer = true, position = UDim2.fromOffset(18, 10) })
