@@ -212,8 +212,10 @@ function T.groundYIsPavementOrFootway()
 	local off = PedestrianMath.groundY(Vector3.new(200, 0, 50), "main", BRIDGES)
 	assert(math.abs(off - PedestrianMath.PAVEMENT_TOP) < EPS, "pavement top off the bridge")
 	local on = PedestrianMath.groundY(Vector3.new(17, 0, 50), "main", BRIDGES)
-	assert(math.abs(on - (0.21 + 0.75)) < EPS, "footway top on the bridge")
+	assert(math.abs(on - (0.21 + 0.75 + TownLayout.BRIDGE_RISE)) < EPS, "footway top on the level middle of the bridge")
 	assert(on > off, "the footway is above the street pavement")
+	local ramp = PedestrianMath.groundY(Vector3.new(17, 0, TownLayout.BRIDGE_RAMP / 2), "main", BRIDGES)
+	assert(math.abs(ramp - (0.21 + 0.75 + TownLayout.BRIDGE_RISE / 2)) < EPS, "half way up the ramp")
 end
 
 function T.riverBlocksOnlyOffTheBridges()

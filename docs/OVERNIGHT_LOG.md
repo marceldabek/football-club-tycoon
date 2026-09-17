@@ -255,3 +255,11 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Theme fix:** card footers sorted buttons by name, so Close ended up between the other two. `Theme.card` now keeps buttons in the order they were added. Only the new multi-button cards were affected.
 - The real Accept that swaps players between two owners is I4.1d, which needs Players = 2.
 - RunAll 324/324.
+
+### 2026-09-17 03:49 — Humped road bridges (X31)
+- **Reference:** `RivermereRiverside.png` shows a stone bridge whose arches stand well clear of the river. Ours had about 2 studs of arch, because the decks sat 2.7 above the water.
+- **Change:** road bridge decks now climb. `TownLayout.bridgeRise` and `bridgeSections` (TEMP BRIDGE_RISE 6, BRIDGE_RAMP 40) give each bridge a 40-stud straight ramp from each end up 6 studs, and it stays level over the water. A test checks that every real road bridge keeps the water under the level part (the water starts 45 in). TownBuilder builds each bridge as up-ramp "DeckRamp", level "Deck" and down-ramp "DeckRamp", with parapets and footways per piece and the piers raised. BridgeDresser follows the humped soffit: tall arches under the level deck, low ones under the ramps, a string course on every piece, and 10 slices per arch (6 read as flat-topped openings). Traffic cars and pedestrians follow the ramps (`bridgeRise` in Traffic and `PedestrianMath.groundY`).
+- **Screenshots:** LuneBridge_after_4 from the waterline shows stepped stone vaults about 6 studs above the water, cutwaters, and the next bridge seen through the arches. LuneBridge_road_1 shows the ramp from the south end, with pedestrians and a car on the crest.
+- **Parts:** bridges went from 198 to 330 (max 110 per bridge). No console errors.
+- **Biggest differences from the reference:** the arches are stepped slices rather than smooth curves (new X41), the stone is paler and more uniform than the reference's warm sandstone, and there are no street lamps on the bridge. New X42 checks lamps and banners on the humped decks.
+- RunAll 326/326.

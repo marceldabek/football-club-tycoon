@@ -4,14 +4,16 @@
 -- segmental arches, pointed cutwaters on the piers, a string course under a
 -- plain stone parapet with coping.
 --
--- TownBuilder builds each road bridge (workspace.Town.Bridges[name]: Deck,
--- Parapet x2, Footway x2, Pier x2) from TownLayout.BRIDGES. The deck soffit
--- is only ~2.7 studs above the water (Y.WATER_TOP), so one arch per pier gap
--- would read as a flat beam. Each clear span is split into a few narrower
--- arches (<= MAX_ARCH wide) whose feet stand just above the water; each arch
--- is SLICES vertical stone slices whose bottoms follow the arch curve, as in
--- ViaductDresser. Piers are widened to the spandrel face and re-skinned,
--- parapets re-skinned to stone. ~66 parts per bridge (budget 80).
+-- TownBuilder builds each road bridge (workspace.Town.Bridges[name]: level
+-- Deck, DeckRamp x2, Parapet and Footway per piece, Pier x2) from
+-- TownLayout.BRIDGES. The deck is humped (X31, TownLayout.bridgeRise): its
+-- soffit is ~8.7 studs above the water (Y.WATER_TOP) over the level middle and
+-- drops to ~2.7 at the ends. Each clear span is split into a few narrower
+-- arches (<= MAX_ARCH wide) whose feet stand just above the water, tall under
+-- the level deck and low under the ramps; each arch is SLICES vertical stone
+-- slices whose bottoms follow the arch curve, as in ViaductDresser. Piers are
+-- widened to the spandrel face and re-skinned, parapets re-skinned to stone.
+-- ~115 parts per bridge (budget 130).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
@@ -25,7 +27,7 @@ local STONE_DARK = Color3.fromRGB(170, 156, 132)
 local COPING = Color3.fromRGB(214, 204, 184)
 
 local MAX_ARCH = 24 -- TEMP: widest single arch, studs
-local SLICES = 6 -- slices per arch
+local SLICES = 10 -- slices per arch (6 read as flat-topped openings once the arches got taller, X31)
 local SPRING_ABOVE_WATER = 0.15 -- arch feet sit this far above the water surface
 local CROWN_GAP = 0.4 -- stone left above the crown before the deck soffit
 local SPANDREL_INSET = 0.2 -- spandrel/pier face sits this far inside the deck edge
@@ -107,8 +109,11 @@ local function dressBridge(bridge: TownLayout.Bridge, m: Instance): number
 	dir = dir.Unit
 	local rotation = CFrame.lookAt(Vector3.zero, dir)
 	local deckWidth = deck.Size.X
-	local soffit = deck.Position.Y - deck.Size.Y / 2
-	local deckTop = deck.Position.Y + deck.Size.Y / 2
+	-- the level Deck's underside; ramps drop it back towards street level
+	local levelSoffit = deck.Position.Y - deck.Size.Y / 2
+	local function soffitAt(along: number): number
+		return levelSoffit - TownLayout.BRIDGE_RISE + TownLayout.bridgeRise(bridge, along)
+	end
 	local faceWidth = deckWidth - 2 * SPANDREL_INSET
 	local springing = TownBuilder.Y.WATER_TOP + SPRING_ABOVE_WATER
 
@@ -124,11 +129,12 @@ local function dressBridge(bridge: TownLayout.Bridge, m: Instance): number
 		c.Material = Enum.Material.Sandstone
 		pierDepth = c.Size.Z
 		local rel = c.Position - bridge.from
-		table.insert(piers, Vector3.new(rel.X, 0, rel.Z):Dot(dir))
+		local pierAlong = Vector3.new(rel.X, 0, rel.Z):Dot(dir)
+		table.insert(piers, pierAlong)
 
 		-- from just above the pier foot to below the string course (no shared planes)
 		local bottom = c.Position.Y - c.Size.Y / 2 + 0.5
-		local top = soffit - STRING_BELOW_SOFFIT - 0.15
+		local top = soffitAt(pierAlong) - STRING_BELOW_SOFFIT - 0.15
 		local height = top - bottom
 		if height > 0.5 then
 			local mid = CFrame.new(0, (top + bottom) / 2 - c.Position.Y, 0)
@@ -143,9 +149,11 @@ local function dressBridge(bridge: TownLayout.Bridge, m: Instance): number
 	end
 
 	-- arch spandrels: the slices' side faces are flush with the widened piers
-	local rise = math.max(0.5, soffit - CROWN_GAP - springing)
 	for _, span in ViaductDresser.spans(length, piers, pierDepth) do
 		for _, arch in BridgeDresser.arches(span, MAX_ARCH) do
+			-- the deck profile is piecewise straight, so its lowest point over
+			-- an arch is at one of the arch's ends
+			local rise = math.max(0.5, math.min(soffitAt(arch.s0), soffitAt(arch.s1)) - CROWN_GAP - springing)
 			local w = arch.s1 - arch.s0
 			local slice = w / SLICES
 			local centreOfArch = (arch.s0 + arch.s1) / 2
@@ -154,7 +162,8 @@ local function dressBridge(bridge: TownLayout.Bridge, m: Instance): number
 				-- lower edge of the slice so neighbours overlap the curve
 				local edge = math.abs(centre - centreOfArch) + slice / 2
 				local bottom = ViaductDresser.archHeight(edge, w, springing, rise)
-				local h = soffit - bottom
+				-- up to the higher side of a sloping soffit: no sliver of daylight
+				local h = math.max(soffitAt(centre - slice / 2), soffitAt(centre + slice / 2)) - bottom
 				if h > 0.2 then
 					local pos = bridge.from + dir * centre
 					stone(dressing, "Spandrel", Vector3.new(faceWidth, h, slice), CFrame.new(pos.X, bottom + h / 2, pos.Z) * rotation, STONE)
@@ -164,14 +173,19 @@ local function dressBridge(bridge: TownLayout.Bridge, m: Instance): number
 		end
 	end
 
-	-- string course: a projecting band along each deck edge, covering the
-	-- asphalt deck side and the foot of the parapet
-	local bandBottom = soffit - STRING_BELOW_SOFFIT
-	local bandTop = deckTop + STRING_ABOVE_DECK
-	for _, side in { -1, 1 } do
-		local cf = deck.CFrame * CFrame.new(side * (deckWidth / 2 + STRING_PROJECTION / 2), (bandTop + bandBottom) / 2 - deck.Position.Y, 0)
-		stone(dressing, "StringCourse", Vector3.new(STRING_PROJECTION, bandTop - bandBottom, deck.Size.Z + 0.4), cf, COPING)
-		parts += 1
+	-- string course: a projecting band along each deck edge of every deck
+	-- piece (level and ramps), covering the asphalt side and the parapet foot
+	for _, piece in m:GetChildren() do
+		if not (piece:IsA("BasePart") and (piece.Name == "Deck" or piece.Name == "DeckRamp")) then
+			continue
+		end
+		local bandBottom = -piece.Size.Y / 2 - STRING_BELOW_SOFFIT
+		local bandTop = piece.Size.Y / 2 + STRING_ABOVE_DECK
+		for _, side in { -1, 1 } do
+			local cf = piece.CFrame * CFrame.new(side * (deckWidth / 2 + STRING_PROJECTION / 2), (bandTop + bandBottom) / 2, 0)
+			stone(dressing, "StringCourse", Vector3.new(STRING_PROJECTION, bandTop - bandBottom, piece.Size.Z + 0.4), cf, COPING)
+			parts += 1
+		end
 	end
 
 	-- parapets: stone, with a coping that overhangs both faces and the ends

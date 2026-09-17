@@ -27,7 +27,8 @@
 --   0.450       pavement (kerb) top
 --   0.596/0.600/0.604 rail joint / ballast bed tops (odd/even segments), rails +0.5
 --   0.800       roundabout island top
---   road top + 0.5  road / foot bridge deck top (deck 2 thick), footways +0.25, parapets +3.5
+--   road top + 0.5  road / foot bridge deck top at the ends (deck 2 thick), footways +0.25,
+--               parapets +3.5; road bridges climb TownLayout.BRIDGE_RISE (6) over their ramps
 --   3           station platform top; canopy 11..11.6
 --   22          viaduct deck top (19..22), rails 22..22.5, parapets +3
 --   h-1 .. h    district building body / roof cap (h from the layout box)
@@ -541,41 +542,60 @@ local function buildBridge(parent: Instance, bridge: TownLayout.Bridge)
 	local roadTop = if isRoad then roadTopNear(bridge.from:Lerp(bridge.to, 0.5)) else Y.ROAD.lane
 	local deckTop = roadTop + Y.DECK_ABOVE_ROAD
 	local deckWidth = if isRoad then bridge.width + 2 * (PAVEMENT_WIDTH + PARAPET_THICK) else bridge.width + 2 * PARAPET_THICK
-	local cf, length = TownBuilder.segmentCFrame(bridge.from, bridge.to, deckTop - DECK_THICK / 2)
+	local length = TownLayout.bridgeLength(bridge)
 	if length <= 0 then
 		return
 	end
-	part({
-		Name = "Deck",
-		Size = Vector3.new(deckWidth, DECK_THICK, length),
-		CFrame = cf,
-		Color = if isRoad then COLOURS.asphalt else COLOURS.concrete,
-		Material = if isRoad then Enum.Material.Asphalt else Enum.Material.Concrete,
-		CastShadow = false,
-		Parent = m,
-	})
-	for _, side in { -1, 1 } do
+	local dir = Vector3.new(bridge.to.X - bridge.from.X, 0, bridge.to.Z - bridge.from.Z) / length
+	-- one straight piece per section (X31): up-ramp "DeckRamp", level "Deck",
+	-- down-ramp "DeckRamp". `top` is the deck's top surface line; everything
+	-- sits on it in the piece's own (pitched) frame.
+	for _, section in TownLayout.bridgeSections(bridge) do
+		local a = bridge.from + dir * section.s0 + Vector3.new(0, deckTop + section.rise0, 0)
+		local b = bridge.from + dir * section.s1 + Vector3.new(0, deckTop + section.rise1, 0)
+		local pieceLength = (b - a).Magnitude
+		if pieceLength <= 0.01 then
+			continue
+		end
+		local level = section.rise0 == section.rise1
+		-- ramps overlap the level piece a little so the kink shows no gap
+		local overlap = if level then 0 else 0.3
+		local top = CFrame.lookAt((a + b) / 2, b)
+		local size = pieceLength + overlap
 		part({
-			Name = "Parapet",
-			Size = Vector3.new(PARAPET_THICK, PARAPET_HEIGHT, length),
-			CFrame = cf * CFrame.new(side * (deckWidth / 2 - PARAPET_THICK / 2), DECK_THICK / 2 + PARAPET_HEIGHT / 2, 0),
-			Color = if isRoad then COLOURS.brick else COLOURS.concrete,
-			Material = if isRoad then Enum.Material.Brick else Enum.Material.Concrete,
+			Name = if level then "Deck" else "DeckRamp",
+			Size = Vector3.new(deckWidth, DECK_THICK, size),
+			CFrame = top * CFrame.new(0, -DECK_THICK / 2, 0),
+			Color = if isRoad then COLOURS.asphalt else COLOURS.concrete,
+			Material = if isRoad then Enum.Material.Asphalt else Enum.Material.Concrete,
+			CastShadow = false,
 			Parent = m,
 		})
-		if isRoad then
+		for _, side in { -1, 1 } do
 			part({
-				Name = "Footway",
-				Size = Vector3.new(PAVEMENT_WIDTH, FOOTWAY_HEIGHT, length),
-				CFrame = cf * CFrame.new(side * (deckWidth / 2 - PARAPET_THICK - PAVEMENT_WIDTH / 2), DECK_THICK / 2 + FOOTWAY_HEIGHT / 2, 0),
-				Color = COLOURS.pavement,
-				Material = Enum.Material.Concrete,
-				CastShadow = false,
+				Name = "Parapet",
+				Size = Vector3.new(PARAPET_THICK, PARAPET_HEIGHT, size),
+				CFrame = top * CFrame.new(side * (deckWidth / 2 - PARAPET_THICK / 2), PARAPET_HEIGHT / 2, 0),
+				Color = if isRoad then COLOURS.brick else COLOURS.concrete,
+				Material = if isRoad then Enum.Material.Brick else Enum.Material.Concrete,
 				Parent = m,
 			})
+			if isRoad then
+				part({
+					Name = "Footway",
+					Size = Vector3.new(PAVEMENT_WIDTH, FOOTWAY_HEIGHT, size),
+					CFrame = top * CFrame.new(side * (deckWidth / 2 - PARAPET_THICK - PAVEMENT_WIDTH / 2), FOOTWAY_HEIGHT / 2, 0),
+					Color = COLOURS.pavement,
+					Material = Enum.Material.Concrete,
+					CastShadow = false,
+					Parent = m,
+				})
+			end
 		end
 	end
-	buildPiers(m, bridge.from, bridge.to, 2, deckTop - DECK_THICK, deckWidth - 4, 8, Enum.Material.Slate, COLOURS.stone)
+	-- the piers stand under the level middle (at 1/3 and 2/3 of the length)
+	local pierRise = TownLayout.bridgeRise(bridge, length / 3)
+	buildPiers(m, bridge.from, bridge.to, 2, deckTop + pierRise - DECK_THICK, deckWidth - 4, 8, Enum.Material.Slate, COLOURS.stone)
 end
 
 -- -------------------------------------------------------------------- rail

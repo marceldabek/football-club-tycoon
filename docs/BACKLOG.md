@@ -136,7 +136,7 @@
 - [ ] X28 Quality Low hides decor via LocalTransparencyModifier; measure real phone fps Low vs High and consider streaming radius per level `[studio]` M
 - [x] X29 Semis garden walls/hedges have no gate gap where the new front paths cross them `[studio]` S
 - [x] X30 Semis: pairs abut into a continuous terrace and the garden hedge stands on the pavement; leave a side gap between pairs (driveway) and pull the front garden inside the block `[studio]` M
-- [ ] X31 Road bridges: raise the decks (ramps on the approaches) or lower the water so the stone arches read; currently ~2 studs of arch `[studio]` M
+- [x] X31 (humped decks: 40-stud ramps climb 6 over the ends, level over the water; arches now ~6 above the water, 10 slices each) Road bridges: raise the decks (ramps on the approaches) or lower the water so the stone arches read; currently ~2 studs of arch `[studio]` M
 - [x] X32 Marina boats: the white bow wedges look detached/rotated at the moorings; check RiverDresser.buildBoat bow orientation `[studio]` S
 - [ ] X33 (not done: the kit hatchback is 9.8 x 19.4 studs, too big for 10-stud drives; needs a smaller car model) Semis driveway cars are plain blocks; use the kit hatchback (KitPlacer) with the block as fallback `[studio]` S
 - [ ] X34 Syncing merged branches into Studio by pasting source is the night's bottleneck; get Rojo reconnected (X4) before the next big batch `[studio]` S
@@ -146,4 +146,6 @@
 - [x] X38 (pill under PLAY MATCH: "Watching  A 2 - 1 B  ·  60'"; crowd audio level still own-club based) Spectators (I2.1) get no scoreboard, club names or crowd audio level of the watched club; show a small "Watching: A 1–0 B, 63'" pill from the watched folder `[studio]` S
 - [ ] X39 Spectating needs a real two-player check (B2.1d): the solo test faked a live match by cloning the club folder onto the Plot2 lot `[studio]` S
 - [x] X40 (hint hides while the summary or season card is open) The bottom hint pill (e.g. "Fans were turned away...") sits on top of the match summary's Back to Club button (seen on the friendly summary, also true for league matches); hide hints while the summary or season card is open, or raise the card's DisplayOrder `[studio]` S
+- [ ] X41 Bridge arches are stepped slices; replace each slice bottom with a pair of wedges (or a curved mesh) so the arch reads as a smooth curve from a distance like RivermereRiverside.png `[studio]` S
+- [ ] X42 Street lamps / banners on road bridges: check none stand on the old flat deck height now that the decks are humped (none seen on the Lune Bridge) `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

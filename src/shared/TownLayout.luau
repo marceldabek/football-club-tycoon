@@ -537,6 +537,65 @@ TownLayout.BRIDGES = {
 	{ name = "Lune Viaduct", kind = "rail", from = Vector3.new(-530, 0, 260), to = Vector3.new(-570, 0, 540), width = 16 },
 } :: { Bridge }
 
+-- Road bridges are humped (X31, RivermereRiverside.png): straight ramps of
+-- BRIDGE_RAMP studs from each end climb BRIDGE_RISE above the street, and the
+-- middle stays level over the water (every road bridge's water starts ~45 in).
+TownLayout.BRIDGE_RISE = 6 -- TEMP
+TownLayout.BRIDGE_RAMP = 40 -- TEMP
+
+export type BridgeSection = { s0: number, s1: number, rise0: number, rise1: number }
+
+-- Horizontal length of a bridge.
+function TownLayout.bridgeLength(bridge: Bridge): number
+	return Vector3.new(bridge.to.X - bridge.from.X, 0, bridge.to.Z - bridge.from.Z).Magnitude
+end
+
+-- Height of the deck above its flat level `along` studs from bridge.from.
+-- Rail bridges (and anything off the ends) are 0.
+function TownLayout.bridgeRise(bridge: Bridge, along: number): number
+	if bridge.kind ~= "road" then
+		return 0
+	end
+	local length = TownLayout.bridgeLength(bridge)
+	if along <= 0 or along >= length then
+		return 0
+	end
+	local ramp = math.min(TownLayout.BRIDGE_RAMP, length / 2)
+	local fromEnd = math.min(along, length - along)
+	return TownLayout.BRIDGE_RISE * math.min(1, fromEnd / ramp)
+end
+
+-- The straight pieces a deck is built from: up-ramp, level middle, down-ramp.
+function TownLayout.bridgeSections(bridge: Bridge): { BridgeSection }
+	local length = TownLayout.bridgeLength(bridge)
+	if bridge.kind ~= "road" then
+		return { { s0 = 0, s1 = length, rise0 = 0, rise1 = 0 } }
+	end
+	local ramp = math.min(TownLayout.BRIDGE_RAMP, length / 2)
+	local rise = TownLayout.BRIDGE_RISE
+	local sections = { { s0 = 0, s1 = ramp, rise0 = 0, rise1 = rise } }
+	if length - 2 * ramp > 1e-3 then
+		table.insert(sections, { s0 = ramp, s1 = length - ramp, rise0 = rise, rise1 = rise })
+	end
+	table.insert(sections, { s0 = length - ramp, s1 = length, rise0 = rise, rise1 = 0 })
+	return sections
+end
+
+-- How far along a bridge `p` is (from bridge.from, horizontal), and how far
+-- off its centreline.
+function TownLayout.bridgeAlong(bridge: Bridge, p: Vector3): (number, number)
+	local seg = Vector3.new(bridge.to.X - bridge.from.X, 0, bridge.to.Z - bridge.from.Z)
+	local length = seg.Magnitude
+	if length < 1e-6 then
+		return 0, Vector3.new(p.X - bridge.from.X, 0, p.Z - bridge.from.Z).Magnitude
+	end
+	local u = seg / length
+	local ap = Vector3.new(p.X - bridge.from.X, 0, p.Z - bridge.from.Z)
+	local along = ap:Dot(u)
+	local across = math.abs(ap.X * -u.Z + ap.Z * u.X)
+	return along, across
+end
+
 TownLayout.RAIL = {
 	width = 16,
 	points = {

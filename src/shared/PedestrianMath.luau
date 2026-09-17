@@ -271,9 +271,12 @@ end
 
 -- Top of whatever a walker on a `kind` road's pavement stands on at `p`.
 function PedestrianMath.groundY(p: Vector3, kind: string, bridges: { TownLayout.Bridge }): number
-	if PedestrianMath.roadBridgeAt(p, bridges, 0) then
+	local bridge = PedestrianMath.roadBridgeAt(p, bridges, 0)
+	if bridge then
 		local roadTop = PedestrianMath.ROAD_TOP[kind] or PedestrianMath.ROAD_TOP.lane
-		return roadTop + PedestrianMath.FOOTWAY_ABOVE_ROAD
+		-- humped decks (X31): ramps up from each end, level over the water
+		local along = TownLayout.bridgeAlong(bridge, p)
+		return roadTop + PedestrianMath.FOOTWAY_ABOVE_ROAD + TownLayout.bridgeRise(bridge, along)
 	end
 	return PedestrianMath.PAVEMENT_TOP
 end

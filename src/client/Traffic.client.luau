@@ -174,7 +174,8 @@ local function bridgeDeckY(point: Vector3, kind: TownLayout.RoadKind): number?
 		end
 		local closest = a:Lerp(b, t)
 		if flatDistance(point, closest) <= bridge.width / 2 then
-			return roadTopFor(kind) + DECK_ABOVE_ROAD
+			-- humped decks (X31): ramps up from each end, level over the water
+			return roadTopFor(kind) + DECK_ABOVE_ROAD + TownLayout.bridgeRise(bridge, t * segLen)
 		end
 	end
 	return nil

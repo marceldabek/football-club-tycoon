@@ -415,6 +415,48 @@ function T.roadBridgesCrossTheRiver()
 	assert(roadBridges == 3, "expected 3 road bridges, got " .. roadBridges)
 end
 
+function T.bridgeRiseRampsUpThenStaysLevel()
+	local b: TownLayout.Bridge = { name = "T", kind = "road", from = Vector3.new(0, 0, 0), to = Vector3.new(0, 0, 180), width = 26 }
+	local rise, ramp = TownLayout.BRIDGE_RISE, TownLayout.BRIDGE_RAMP
+	assert(TownLayout.bridgeRise(b, 0) == 0 and TownLayout.bridgeRise(b, 180) == 0, "ends at street level")
+	assert(math.abs(TownLayout.bridgeRise(b, ramp / 2) - rise / 2) < 1e-6, "half way up the ramp")
+	assert(TownLayout.bridgeRise(b, 90) == rise, "level in the middle")
+	assert(math.abs(TownLayout.bridgeRise(b, 180 - ramp / 4) - rise / 4) < 1e-6, "down-ramp mirrors")
+	assert(TownLayout.bridgeRise(b, -5) == 0 and TownLayout.bridgeRise(b, 200) == 0, "off the ends")
+	local rail = table.clone(b)
+	rail.kind = "rail"
+	assert(TownLayout.bridgeRise(rail, 90) == 0, "rail bridges stay flat")
+
+	local sections = TownLayout.bridgeSections(b)
+	assert(#sections == 3, "ramp, level, ramp")
+	assert(sections[1].s0 == 0 and sections[1].s1 == ramp and sections[1].rise1 == rise, "up-ramp")
+	assert(sections[2].rise0 == rise and sections[2].rise1 == rise, "level")
+	assert(sections[3].s1 == 180 and sections[3].rise1 == 0, "down-ramp")
+	local short = table.clone(b)
+	short.to = Vector3.new(0, 0, 60)
+	local shortSections = TownLayout.bridgeSections(short)
+	assert(#shortSections == 2 and shortSections[1].s1 == 30, "a short bridge is two ramps meeting in the middle")
+
+	local along, across = TownLayout.bridgeAlong(b, Vector3.new(5, 3, 40))
+	assert(math.abs(along - 40) < 1e-6 and math.abs(across - 5) < 1e-6, "along/across")
+end
+
+function T.realRoadBridgesKeepTheWaterUnderTheLevelPart()
+	local half = TownLayout.RIVER.width / 2
+	for _, bridge in TownLayout.BRIDGES do
+		if bridge.kind ~= "road" then
+			continue
+		end
+		local length = TownLayout.bridgeLength(bridge)
+		for s = 0, length, 1 do
+			local p = bridge.from:Lerp(bridge.to, s / length)
+			if TownLayout.distanceToPolyline(p, TownLayout.RIVER.points) <= half then
+				assert(TownLayout.bridgeRise(bridge, s) == TownLayout.BRIDGE_RISE, bridge.name .. " ramps over water at " .. s)
+			end
+		end
+	end
+end
+
 function T.railViaductCrossesTheRiver()
 	local found = false
 	for _, bridge in TownLayout.BRIDGES do
