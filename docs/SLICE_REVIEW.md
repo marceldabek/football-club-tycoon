@@ -69,10 +69,10 @@ shutter, a club crest sign, a bus, licence-clean cars.
 
 ## Known defects to fix next session
 
-- Only the galvanised chain-link mask (image 79074325843312) renders; the rusted and medium-rust
-  masks were uploaded four times (Decal type, Image type, re-polarised, re-uploaded with a
-  propagation wait) and still show as solid sheets, so every panel currently uses the galvanised
-  wire. Cause unknown; retry after a Studio restart before spending more time on it.
+- Chain-link panels: the fence UVs tile the wire texture about thirty times per panel, so a
+  full-size mask reads as a solid sheet. All panels now use a coarse 3-diamond mask (Image asset
+  137368280345960, `texcache/1k/FencingNew_D_coarse.png`) and read as galvanised chain-link close up;
+  beyond ~60 studs they mip-average into a dark mesh sheet. Rusted variants are not used yet.
 - Roller-shutter door mesh is placed but hidden inside the kiosk wall.
 - The concourse bin lid floats slightly; the queue-barrier row is straight rather than a lane.
 - Interior linings meet the window openings with visible seams.
