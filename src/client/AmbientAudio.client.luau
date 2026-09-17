@@ -7,6 +7,9 @@
 --   industry  the industrial estate
 --   crowd     a muffled crowd from any ground with a live match, heard across
 --             town (G2.2); silent inside the ground, where MatchAudio plays
+-- X322 adds three 3D beds pinned to places rather than to the camera: the pubs,
+-- the cafes and the market square (WORLD_VISION s8). Those were the busiest
+-- places in town and the only silent ones.
 -- All clips are Pro Sound Effects (the Roblox licensed library). Weights are
 -- recomputed four times a second; volumes glide towards them every frame.
 -- Match audio (MatchAudio) plays on top and is not touched.
@@ -144,6 +147,74 @@ local function indoors(p: Vector3): boolean
 	return false
 end
 
+-- X322: the pubs, the cafes and the market ring were silent, though they are
+-- where the town's noise actually comes from. One 3D emitter per place, from
+-- the layout's own `use` labels, so they stay put as the town is re-dressed.
+-- All three clips are from Roblox's licensed library (Pro Sound Effects except
+-- the market), and nobody has heard them yet - see Questions for Marcel.
+type Spot = { sound: Sound, position: Vector3, far: number }
+local SPOT_SOUNDS: { [string]: { id: string, volume: number, near: number, far: number } } = {
+	-- "Bar Walla, Clinking of Glasses and Silverware, Dense, Loop"
+	pub = { id = "rbxassetid://9112746245", volume = 0.3, near = 26, far = 200 },
+	-- "Cafe Crowd, Patio Exterior Walla, Busy, Loop"
+	cafe = { id = "rbxassetid://9112754728", volume = 0.26, near = 20, far = 160 },
+	-- "Outdoor Lobby (Ambience)", a loopable outdoor murmur
+	market = { id = "rbxassetid://9111863300", volume = 0.24, near = 70, far = 340 },
+}
+local spots: { Spot } = {}
+
+local function spotEmitter(kind: string, position: Vector3)
+	local def = SPOT_SOUNDS[kind]
+	local part = Instance.new("Part")
+	part.Name = "Ambience" .. kind
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.Transparency = 1
+	part.Size = Vector3.one
+	part.Position = position
+	local sound = Instance.new("Sound")
+	sound.SoundId = def.id
+	sound.Looped = true
+	sound.Volume = def.volume
+	sound.RollOffMode = Enum.RollOffMode.InverseTapered
+	sound.RollOffMinDistance = def.near
+	sound.RollOffMaxDistance = def.far
+	sound.Parent = part
+	part.Parent = workspace
+	sound:Play()
+	table.insert(spots, { sound = sound, position = position, far = def.far })
+end
+
+do
+	for _, district in TownLayout.DISTRICTS do
+		for _, block in district.blocks do
+			local use = block.use
+			if use == "pub" or use == "pub and cafes" then
+				spotEmitter("pub", block.centre + Vector3.new(0, 4, 0))
+			end
+			if use == "pub and cafes" or use == "park cafe" then
+				spotEmitter("cafe", block.centre + Vector3.new(0, 3, 0))
+			end
+		end
+	end
+	-- the stall ring in the middle of the square
+	spotEmitter("market", TownLayout.SQUARE.centre + Vector3.new(0, 4, 0))
+end
+
+-- Only the emitters you could possibly hear are left running, so walking the
+-- town does not keep a dozen loops decoding at once on a phone.
+local function updateSpots(p: Vector3)
+	for _, spot in spots do
+		local d = Vector3.new(p.X - spot.position.X, 0, p.Z - spot.position.Z).Magnitude
+		local want = d < spot.far * 1.15
+		if spot.sound.Playing ~= want then
+			spot.sound.Playing = want
+		end
+	end
+end
+
 local function retarget()
 	local p = workspace.CurrentCamera.CFrame.Position
 	roomsAge += 0.25
@@ -170,6 +241,7 @@ local function retarget()
 	-- only silenced within 220 studs while a plot is 760 across, so standing in
 	-- your own car park or by the training pitches layered a second copy on top.
 	-- MatchAudio owns the crowd whenever it is playing.
+	updateSpots(p) -- X322
 	BEDS.crowd.target = if MatchAudio.isCrowdPlaying()
 		then 0
 		else TownLifeMath.distantCrowdWeight(nearestLiveGround(p)) * height
