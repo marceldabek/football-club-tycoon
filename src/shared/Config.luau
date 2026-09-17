@@ -265,6 +265,11 @@ Config.SeatColor = Color3.fromRGB(200, 40, 50) -- TEMP: seat colour customisatio
 -- revenue CLAUDE.md s11 lists (sponsorship) did not exist and the FINANCE tab
 -- had one real income line. A sponsor pays per match, more in a higher
 -- division and more for a better-known club. TEMP numbers.
+-- X316: the forecourt bronze. A grassroots club has no statue; it appears with
+-- the brick and the seats, and only for a servant with real service. TEMP.
+Config.StatueFromTier = 3
+Config.StatueMinApps = 20
+
 Config.SponsorBase = 250
 Config.SponsorPerTier = 220
 Config.SponsorPopularityShare = 0.6 -- at 100 popularity the fee is 1.6x

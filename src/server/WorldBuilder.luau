@@ -1474,6 +1474,140 @@ function WorldBuilder.buildHonours(promotions: number, servant: any?)
 	PlotContext.place(model)
 end
 
+-- X316: the record appearance holder (X288) was commemorated by a framed shirt
+-- in the office, where nobody but the owner ever sees it, and the forecourt was
+-- paving, a planter and a lamp post. A bronze on a plinth by the gates, named
+-- and dated, so the walk in passes the club's own history. Not at grassroots:
+-- a Sunday Parks side does not cast bronze, so it appears with the brick and
+-- the seats from StatueFromTier up, and only for a servant with real service.
+-- The reference RivermereTurnstileEntrance.png has no statue (it puts wall
+-- plaques and a lamp banner there, both already built) - this is from the
+-- backlog and E9/X288, not from the image.
+local STATUE_X, STATUE_Z = -(SIDE_EDGE + 13), TURNSTILE_Z - 15
+local BRONZE = Color3.fromRGB(122, 96, 58)
+local STATUE_STONE = Color3.fromRGB(206, 198, 180)
+local lastServant: any? = nil
+
+function WorldBuilder.buildStatue(servant: any?)
+	lastServant = servant
+	local club = PlotContext.clubModel()
+	local yard = club and club:FindFirstChild("Forecourt")
+	if not yard then
+		return
+	end
+	local old = yard:FindFirstChild("Statue")
+	if old then
+		old:Destroy()
+	end
+	local state = PlotContext.stateFolder()
+	local tier = (state and state:GetAttribute("Tier") :: number?) or 1
+	local apps = math.floor((servant and servant.apps) or 0)
+	if not servant or tier < Config.StatueFromTier or apps < Config.StatueMinApps then
+		return
+	end
+
+	local model = Instance.new("Model")
+	model.Name = "Statue"
+	model.Parent = yard
+
+	-- plinth, facing the walk up from the path (west)
+	box("Base", Vector3.new(7, 0.6, 7), Vector3.new(STATUE_X, DECK_Y + 0.3, STATUE_Z),
+		Color3.fromRGB(150, 148, 142), Enum.Material.Concrete, model)
+	box("Plinth", Vector3.new(5, 6, 5), Vector3.new(STATUE_X, DECK_Y + 3.6, STATUE_Z),
+		STATUE_STONE, Enum.Material.Limestone, model)
+	box("PlinthCap", Vector3.new(5.6, 0.5, 5.6), Vector3.new(STATUE_X, DECK_Y + 6.85, STATUE_Z),
+		STATUE_STONE, Enum.Material.Limestone, model)
+
+	-- the brass plaque: who he was and what he did
+	local plaque = box("Plaque", Vector3.new(0.14, 2.6, 3.6), Vector3.new(STATUE_X - 2.57, DECK_Y + 3.9, STATUE_Z),
+		Color3.fromRGB(150, 116, 52), Enum.Material.Metal, model)
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "Plaque"
+	gui.Face = Enum.NormalId.Left
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 42
+	gui.LightInfluence = 0.4
+	gui.MaxDistance = 120
+	gui.Parent = plaque
+	local who = Instance.new("TextLabel")
+	who.Name = "Name"
+	who.BackgroundTransparency = 1
+	who.Size = UDim2.fromScale(0.9, 0.34)
+	who.Position = UDim2.fromScale(0.05, 0.08)
+	who.Font = Enum.Font.GothamBlack
+	who.TextScaled = true
+	who.TextColor3 = Color3.fromRGB(48, 36, 14)
+	who.Text = string.upper(tostring(servant.name or "CLUB SERVANT"))
+	who.Parent = gui
+	local line = Instance.new("TextLabel")
+	line.Name = "Record"
+	line.BackgroundTransparency = 1
+	line.Size = UDim2.fromScale(0.9, 0.22)
+	line.Position = UDim2.fromScale(0.05, 0.44)
+	line.Font = Enum.Font.GothamBold
+	line.TextScaled = true
+	line.TextColor3 = Color3.fromRGB(48, 36, 14)
+	line.Text = ("%d APPEARANCES"):format(apps)
+	line.Parent = gui
+	local under = Instance.new("TextLabel")
+	under.Name = "Goals"
+	under.BackgroundTransparency = 1
+	under.Size = UDim2.fromScale(0.9, 0.2)
+	under.Position = UDim2.fromScale(0.05, 0.68)
+	under.Font = Enum.Font.Gotham
+	under.TextScaled = true
+	under.TextColor3 = Color3.fromRGB(62, 48, 20)
+	local goals = math.floor(servant.goals or 0)
+	local season = math.floor(servant.season or 0)
+	local scored = if goals == 1 then "1 goal" else ("%d goals"):format(goals)
+	under.Text = if season > 0 then ("%s  ·  to season %d"):format(scored, season) else scored
+	under.Parent = gui
+
+	-- the man himself: stood on the cap, one arm up to the crowd, ball at his
+	-- feet. Blocks, like every rig in the game (the match uses R15 blocks too).
+	local y0 = DECK_Y + 7.1
+	local metal = Enum.Material.Metal
+	box("LegL", Vector3.new(1, 3.4, 1.2), Vector3.new(STATUE_X - 0.75, y0 + 1.7, STATUE_Z - 0.2), BRONZE, metal, model)
+	box("LegR", Vector3.new(1, 3.4, 1.2), Vector3.new(STATUE_X + 0.75, y0 + 1.7, STATUE_Z + 0.5), BRONZE, metal, model)
+	box("Torso", Vector3.new(2.6, 2.9, 1.5), Vector3.new(STATUE_X, y0 + 4.85, STATUE_Z + 0.1), BRONZE, metal, model)
+	-- both arms hang off a shoulder rather than floating beside it: pivot at the
+	-- shoulder, then out along the arm's own length (the first version put the
+	-- raised arm's centre where its shoulder should be, and it looked thrown)
+	local function arm(name: string, side: number, len: number, tilt: number, up: boolean)
+		local shoulder = Vector3.new(STATUE_X + side * 1.5, y0 + 6.1, STATUE_Z + 0.1)
+		local rot = CFrame.Angles(0, 0, math.rad(tilt))
+		local along = if up then rot.UpVector else -rot.UpVector
+		local a = box(name, Vector3.new(0.75, len, 0.75), shoulder, BRONZE, metal, model)
+		a.CFrame = CFrame.new(shoulder + along * (len / 2)) * rot
+		a.CanCollide = false
+		return a
+	end
+	arm("ArmL", 1, 2.7, 12, false) -- hanging, a little out from the body
+	arm("ArmR", -1, 3, 30, true) -- raised to the crowd
+	local head = part({
+		Name = "Head",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.new(1.35, 1.35, 1.35),
+		CFrame = CFrame.new(STATUE_X, y0 + 6.95, STATUE_Z + 0.1),
+		Color = BRONZE,
+		Material = metal,
+		Parent = model,
+	})
+	head.CanCollide = false
+	local ball = part({
+		Name = "Ball",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.new(1.5, 1.5, 1.5),
+		CFrame = CFrame.new(STATUE_X - 1.5, y0 + 0.75, STATUE_Z - 1.4),
+		Color = BRONZE,
+		Material = metal,
+		Parent = model,
+	})
+	ball.CanCollide = false
+
+	PlotContext.place(model)
+end
+
 -- X296: a Premier Division pitch was identical to a Sunday Parks pitch - the
 -- same fourteen even stripes and the same crisp white lines - so the one
 -- surface the player stares at for ninety seconds never grew with the club.
@@ -1752,6 +1886,7 @@ local function bindOffice()
 	end
 	local function refresh()
 		WorldBuilder.dressOffice((state:GetAttribute("Tier") :: number?) or 1)
+		WorldBuilder.buildStatue(lastServant) -- X316: bronze from StatueFromTier up
 	end
 	-- Review: the guard used to cover the refresh as well, so a reload (which
 	-- rebuilds the club model and its bare office) left the fittings missing

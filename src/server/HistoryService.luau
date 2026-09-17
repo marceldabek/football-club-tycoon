@@ -120,7 +120,9 @@ function HistoryService.rebuildTrophies()
 	WorldBuilder.buildTrophies(honours.titles)
 	-- X291: the shelf only counted titles, so a club promoted four times with no
 	-- division win had a bare office and nothing for the players who got it there
-	WorldBuilder.buildHonours(honours.promotions, History.topServant(history))
+	local servant = History.topServant(history)
+	WorldBuilder.buildHonours(honours.promotions, servant)
+	WorldBuilder.buildStatue(servant) -- X316: and outside, where the fans walk in
 end
 
 return HistoryService
