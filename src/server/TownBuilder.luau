@@ -883,6 +883,13 @@ end
 
 -- --------------------------------------------------------------- bus stops
 
+-- Bus shelter adverts (X47), picked per stop so neighbours tend to differ.
+local ADVERTS = {
+	{ text = "A CLEANER GREENER RIVERMERE", colour = Color3.fromRGB(46, 120, 72) },
+	{ text = "RIVERMERE MARKET\nEVERY SATURDAY", colour = Color3.fromRGB(34, 58, 110) },
+	{ text = "SUPPORT YOUR LOCAL CLUB", colour = Color3.fromRGB(150, 36, 44) },
+}
+
 local function buildBusStop(parent: Instance, stop: TownLayout.BusStop)
 	local m = model(stop.name, parent)
 	m:SetAttribute("BusStop", stop.name)
@@ -941,6 +948,33 @@ local function buildBusStop(parent: Instance, stop: TownLayout.BusStop)
 	label.Font = Enum.Font.GothamBold
 	label.Text = "BUS\n" .. stop.name
 	label.Parent = gui
+
+	-- X47: an advert panel across the shelter's open end, like the poster in
+	-- RivermereCenter.png; clear of the back panel (z 1.6) and the post (z -1.6)
+	local advert = ADVERTS[(#stop.name % #ADVERTS) + 1]
+	local panel = part({
+		Name = "Advert",
+		Size = Vector3.new(0.3, 5, 2.8),
+		CFrame = base * CFrame.new(4, 0.9 + 2.5, 0.1),
+		Color = advert.colour,
+		Parent = m,
+	})
+	for _, face in { Enum.NormalId.Left, Enum.NormalId.Right } do
+		local adGui = Instance.new("SurfaceGui")
+		adGui.Face = face
+		adGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		adGui.PixelsPerStud = 30
+		adGui.Parent = panel
+		local adText = Instance.new("TextLabel")
+		adText.Size = UDim2.fromScale(0.86, 0.8)
+		adText.Position = UDim2.fromScale(0.07, 0.1)
+		adText.BackgroundTransparency = 1
+		adText.TextScaled = true
+		adText.TextColor3 = Color3.new(1, 1, 1)
+		adText.Font = Enum.Font.GothamBlack
+		adText.Text = advert.text
+		adText.Parent = adGui
+	end
 end
 
 -- ---------------------------------------------------------------------- API

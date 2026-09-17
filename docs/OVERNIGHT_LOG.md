@@ -306,3 +306,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 ### 2026-09-17 04:09 — Flowers in the town-centre planters (X47, part)
 - ForecourtDresser's planter trees round the square zone were bare stone boxes. Each now has soil and a bed of flowers round the trunk, taking the colours in turn (pink, purple, coral, white). That adds 2 parts per planter, 8 planters. The first try used a Ball part, which came out as a tiny sphere because a ball's diameter is its smallest axis, so it's a low bedding block now.
 - **Screenshot** Planter_flowers_3: a pink bed in the stone planter outside the Daily Bean. It's blockier than the reference's overflowing planters but reads the same way.
+
+### 2026-09-17 04:10 — Bus shelter adverts (X47, part)
+- Every bus shelter (TownBuilder) now has an advert panel across its open end, readable from both sides, like the poster in `RivermereCenter.png`. The three designs take turns by stop: "A CLEANER GREENER RIVERMERE" (green), "RIVERMERE MARKET EVERY SATURDAY" (navy) and "SUPPORT YOUR LOCAL CLUB" (red). 1 part per stop, 11 stops.
+- **Screenshot** Shelter_advert_1: the Town Centre shelter with the red club advert, the finger post and a planter's flowers in the same view.
+- X47 still has hanging baskets on lamp posts and the lollipop trees to do.
+- RunAll 330/330.
