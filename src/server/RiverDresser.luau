@@ -14,6 +14,10 @@
 --   Furniture   benches, planters, lamps every FURNITURE_SPACING
 --   Moorings    wooden pontoons out on the water + simple boats (the marina reach)
 -- Budget: roughly 6 parts per 10 studs of promenade + 8 parts a boat.
+--
+-- The TownLayout "marina" block interrupts the promenade (isClear treats it
+-- like any other block); MarinaDresser builds the marina quay in that gap
+-- (RiverDresser.marinaSpan) and the river moorings here stay clear of it.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
@@ -28,6 +32,7 @@ local QUAY_W = 2.5
 local PROM_W = 12
 local QUAY_TOP = 0.6
 local PROM_TOP = 0.35
+local RUN_STEP = 10
 local RAIL_H = 3.4
 local POST_STEP = 8
 local FURNITURE_SPACING = 64
@@ -41,6 +46,24 @@ local TIMBER = Color3.fromRGB(120, 92, 64)
 local BOAT_HULLS = { Color3.fromRGB(245, 245, 245), Color3.fromRGB(30, 50, 100), Color3.fromRGB(180, 40, 40) }
 
 local MARINA_X0, MARINA_X1 = 780, 1120 -- moorings along this reach of the north bank
+local MARINA_USE = "marina"
+local MOORING_MARINA_CLEAR = 30 -- no river moorings this close (along x) to the marina quay
+
+-- shared with MarinaDresser
+RiverDresser.PROMENADE_X0 = PROMENADE_X0
+RiverDresser.PROMENADE_X1 = PROMENADE_X1
+RiverDresser.EDGE = EDGE
+RiverDresser.QUAY_W = QUAY_W
+RiverDresser.PROM_W = PROM_W
+RiverDresser.QUAY_TOP = QUAY_TOP
+RiverDresser.PROM_TOP = PROM_TOP
+RiverDresser.RAIL_H = RAIL_H
+RiverDresser.RUN_STEP = RUN_STEP
+RiverDresser.MARINA_USE = MARINA_USE
+RiverDresser.STONE = STONE
+RiverDresser.PAVING = PAVING
+RiverDresser.IRON = IRON
+RiverDresser.TIMBER = TIMBER
 
 local function part(props: { [string]: any }, className: string?): BasePart
 	local p = (Instance.new :: any)(className or "Part") :: BasePart
@@ -92,26 +115,67 @@ function RiverDresser.bankRuns(x0: number, x1: number, step: number): { Run }
 end
 
 -- Pure: is a point on the promenade clear of bridges, roads and buildings?
-function RiverDresser.isClear(p: Vector3): boolean
+-- `radius` (default 0) widens every clearance, for things with a footprint
+-- (a tree crown); blocks whose use is `skipUse` are ignored.
+function RiverDresser.isClear(p: Vector3, radius: number?, skipUse: string?): boolean
+	local r = radius or 0
 	for _, bridge in TownLayout.BRIDGES do
-		if TownLayout.segmentDistance(p, bridge.from, bridge.to) < bridge.width / 2 + BRIDGE_CLEAR then
+		if TownLayout.segmentDistance(p, bridge.from, bridge.to) < bridge.width / 2 + BRIDGE_CLEAR + r then
 			return false
 		end
 	end
 	for _, road in TownLayout.ROADS do
-		if TownLayout.distanceToPolyline(p, road.points) < road.width / 2 + TownLayout.PAVEMENT_WIDTH + BLOCK_CLEAR then
+		if TownLayout.distanceToPolyline(p, road.points) < road.width / 2 + TownLayout.PAVEMENT_WIDTH + BLOCK_CLEAR + r then
 			return false
 		end
 	end
 	for _, district in TownLayout.DISTRICTS do
 		for _, block in district.blocks do
+			if skipUse ~= nil and block.use == skipUse then
+				continue
+			end
 			local c, s = block.centre, block.size
-			if math.abs(p.X - c.X) < s.X / 2 + BLOCK_CLEAR and math.abs(p.Z - c.Z) < s.Z / 2 + BLOCK_CLEAR then
+			if math.abs(p.X - c.X) < s.X / 2 + BLOCK_CLEAR + r and math.abs(p.Z - c.Z) < s.Z / 2 + BLOCK_CLEAR + r then
 				return false
 			end
 		end
 	end
 	return true
+end
+
+-- The point RiverDresser.build tests to decide whether a run gets promenade.
+function RiverDresser.promenadeProbe(run: Run): Vector3
+	return (run.a + run.b) / 2 + run.normal * (QUAY_W + PROM_W / 2)
+end
+
+-- Pure: the stretch of north bank where the promenade stops only because of
+-- the marina block, merged into one straight run (a -> b along the bank,
+-- normal towards the land). nil when the layout has no marina on the bank.
+-- Only the first contiguous group of such runs on one straight river segment
+-- is used.
+function RiverDresser.marinaSpan(): Run?
+	local first: Run? = nil
+	local last: Run? = nil
+	for _, run in RiverDresser.bankRuns(PROMENADE_X0, PROMENADE_X1, RUN_STEP) do
+		local probe = RiverDresser.promenadeProbe(run)
+		local marinaOnly = not RiverDresser.isClear(probe) and RiverDresser.isClear(probe, 0, MARINA_USE)
+		if marinaOnly then
+			if first == nil then
+				first = run
+				last = run
+			elseif last ~= nil and (last.b - run.a).Magnitude < 0.01 and (last.normal - run.normal).Magnitude < 1e-4 then
+				last = run
+			else
+				break
+			end
+		elseif first ~= nil then
+			break
+		end
+	end
+	if first == nil or last == nil then
+		return nil
+	end
+	return { a = first.a, b = last.b, normal = first.normal }
 end
 
 -- A straight piece of `width` x `height` running a -> b, offset `lateral`
@@ -132,7 +196,9 @@ local function strip(parent: Instance, name: string, run: Run, lateral: number, 
 	})
 end
 
-local function buildBoat(parent: Instance, cf: CFrame, rng: Random)
+-- A simple moored boat, 5 parts, centred on `cf` with the bow towards its -Z
+-- (LookVector). Hull length 16..24 plus a 5-stud bow; width 6.
+function RiverDresser.buildBoat(parent: Instance, cf: CFrame, rng: Random)
 	local m = Instance.new("Model")
 	m.Name = "Boat"
 	m.Parent = parent
@@ -177,11 +243,10 @@ function RiverDresser.build(): string
 	local travelled = 0
 	local nextPost = 0
 	local nextFurniture = FURNITURE_SPACING / 2
-	local runs = RiverDresser.bankRuns(PROMENADE_X0, PROMENADE_X1, 10)
+	local runs = RiverDresser.bankRuns(PROMENADE_X0, PROMENADE_X1, RUN_STEP)
 	for _, run in runs do
-		local mid = (run.a + run.b) / 2
 		local length = (run.b - run.a).Magnitude
-		if not RiverDresser.isClear(mid + run.normal * (QUAY_W + PROM_W / 2)) then
+		if not RiverDresser.isClear(RiverDresser.promenadeProbe(run)) then
 			travelled += length
 			nextPost = travelled
 			continue
@@ -235,10 +300,18 @@ function RiverDresser.build(): string
 	end
 
 	-- moorings: pontoons parallel to the bank a little way out, boats alongside
+	-- (MarinaDresser has the finger pontoons off the marina quay itself)
+	local span = RiverDresser.marinaSpan()
 	for _, run in RiverDresser.bankRuns(MARINA_X0, MARINA_X1, 30) do
 		local mid = (run.a + run.b) / 2
 		if rng:NextNumber() < 0.25 then
 			continue
+		end
+		if span ~= nil then
+			local x0, x1 = math.min(span.a.X, span.b.X), math.max(span.a.X, span.b.X)
+			if mid.X > x0 - MOORING_MARINA_CLEAR and mid.X < x1 + MOORING_MARINA_CLEAR then
+				continue
+			end
 		end
 		local dir = (run.b - run.a).Unit
 		local deck = mid - run.normal * 7
@@ -251,7 +324,7 @@ function RiverDresser.build(): string
 			Parent = moorings,
 		})
 		local boat = mid - run.normal * 14
-		buildBoat(moorings, CFrame.lookAt(Vector3.new(boat.X, -2.2, boat.Z), Vector3.new(boat.X, -2.2, boat.Z) + dir * (if rng:NextNumber() < 0.5 then 1 else -1)), rng)
+		RiverDresser.buildBoat(moorings, CFrame.lookAt(Vector3.new(boat.X, -2.2, boat.Z), Vector3.new(boat.X, -2.2, boat.Z) + dir * (if rng:NextNumber() < 0.5 then 1 else -1)), rng)
 	end
 
 	root.Parent = town
