@@ -25,12 +25,12 @@ local TerraceBuilder = {}
 -- The lead fills these in after uploading assets/kit/_export/textures/*.png
 -- (ids land in assets/kit/_export/asset_ids_textures.json).
 TerraceBuilder.TEXTURES = {
-	front_a = "rbxassetid://0", -- terrace_front_a.png  red brick, navy door
-	front_b = "rbxassetid://0", -- terrace_front_b.png  orange-red brick, bottle-green door
-	front_c = "rbxassetid://0", -- terrace_front_c.png  brown brick, burgundy door, bay window
-	back = "rbxassetid://0", -- terrace_back.png
-	slate = "rbxassetid://0", -- slate_roof.png
-	brick = "rbxassetid://0", -- brick_plain.png
+	front_a = "rbxassetid://93573179046252", -- terrace_front_a.png  red brick, navy door
+	front_b = "rbxassetid://96266284494631", -- terrace_front_b.png  orange-red brick, bottle-green door
+	front_c = "rbxassetid://79862245695312", -- terrace_front_c.png  brown brick, burgundy door, bay window
+	back = "rbxassetid://77764095380617", -- terrace_back.png
+	slate = "rbxassetid://77485834711521", -- slate_roof.png
+	brick = "rbxassetid://74174126209346", -- brick_plain.png
 } :: { [string]: string }
 
 TerraceBuilder.HOUSE_WIDTH = 16 -- studs per house bay (one facade tile)

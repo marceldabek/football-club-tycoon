@@ -8,7 +8,8 @@
 --     KitPlacer's grey blocks, so a place without ServerStorage.Kit still works.
 --     Only the showpiece Mill Street block uses this.
 --
---   LIGHT (LIGHT, backlog X12 / X13) -- town-wide mode for mobile: every
+--   LIGHT (every other district, and the kit district's rows away from its
+--     kit streets; backlog X12 / X13) -- town-wide mode for mobile: every
 --     "terraced row" volume becomes a TerraceBuilder.row (6-12 parts, textured
 --     facades) turned so its front door faces the nearest road, and every
 --     residential street whose midpoint is within LIGHT_STREET_RADIUS of one
@@ -35,15 +36,16 @@ local StreetDresser = {}
 -- TEMP: districts and streets that get the heavy kit dressing (showpiece only;
 -- kit terraces are ~166 parts a row).
 local DRESSED = {
-	["Mill Street Terraces"] = { streets = { "Mill Street", "Weaver Street" } },
+	-- xRange: only this stretch gets the kit (the streets were extended to x 900)
+	["Mill Street Terraces"] = { streets = { "Mill Street", "Weaver Street" }, xRange = { 0, 400 } },
 }
 
--- TEMP: districts dressed with the low-part TerraceBuilder row and lamp.
-local LIGHT = {
-	["Northfields"] = true,
-	["Westdale"] = true,
-}
+-- Every other district gets the low-part TerraceBuilder row and lamp; the
+-- kit district's rows away from its kit streets do too. The densified layout
+-- has ~300 terraced rows, far too many for kit rows.
+local KIT_ROW_RADIUS = 30 -- a kit district's row gets the kit only this close to a kit street
 local LIGHT_STREET_RADIUS = 60
+local LIGHT_LAMP_SPACING = 80 -- light streets are many; the kit streets keep 50
 
 local ROW_KIT = "TerraceRowVictorian"
 local ROW_LENGTH = 128 -- kit row length along its local Z
@@ -208,15 +210,41 @@ local function lampSpot(road: TownLayout.Road, i: number, st: { position: Vector
 	return CFrame.lookAt(pos, pos - right * side), pos, right, side
 end
 
-local function dressRows(districtName: string, greybox: Instance?, parent: Instance): number
+-- True when a block fronts one of the named streets (kit showpiece rows).
+local function nearStreets(block: TownLayout.Box, streets: { string }): boolean
+	for _, name in streets do
+		local road = roadNamed(name)
+		if road then
+			local centre = Vector3.new(block.centre.X, 0, block.centre.Z)
+			local reach = road.width / 2 + TownLayout.PAVEMENT_WIDTH + math.min(block.size.X, block.size.Z) / 2 + KIT_ROW_RADIUS
+			if TownLayout.distanceToPolyline(centre, road.points) <= reach then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+local function inRange(x: number, range: { number }?): boolean
+	return range == nil or (x >= range[1] and x <= range[2])
+end
+
+local function dressRows(districtName: string, streets: { string }, xRange: { number }?, greybox: Instance?, parent: Instance, rng: Random): (number, number)
 	local district = districtNamed(districtName)
 	if not district then
-		return 0
+		return 0, 0
 	end
 	removeGreyboxRows(greybox)
-	local placed = 0
+	local placed, light = 0, 0
 	for _, block in district.blocks do
 		if block.use ~= "terraced row" then
+			continue
+		end
+		if not (inRange(block.centre.X, xRange) and nearStreets(block, streets)) then
+			local length = math.max(block.size.X, block.size.Z)
+			local depth = math.min(block.size.X, block.size.Z)
+			TerraceBuilder.row(StreetDresser.lightRowPlacement(block), length, depth, block.size.Y, parent, rng)
+			light += 1
 			continue
 		end
 		local cf, scale = StreetDresser.rowPlacement(block)
@@ -228,15 +256,23 @@ local function dressRows(districtName: string, greybox: Instance?, parent: Insta
 		})
 		placed += 1
 	end
-	return placed
+	return placed, light
 end
 
-local function dressStreet(road: TownLayout.Road, parent: Instance, rng: Random): number
+local function dressStreet(road: TownLayout.Road, xRange: { number }?, parent: Instance, rng: Random): number
 	local count = 0
 	local half = road.width / 2
 	for i, st in StreetDresser.stations(road.points, LAMP_SPACING) do
 		-- lamp heads lean over the road
 		local facing, pos, right, side = lampSpot(road, i, st)
+		if not inRange(st.position.X, xRange) then
+			-- beyond the showpiece stretch: the light lamp, at about the light spacing
+			if i % 2 == 0 then
+				TerraceBuilder.lamp(facing, parent)
+				count += 1
+			end
+			continue
+		end
 		KitPlacer.place(LAMP_KIT, facing, parent, { fallbackSize = Vector3.new(0.8, 16, 0.8), fallbackColor = Color3.fromRGB(25, 25, 28) })
 		count += 1
 		if i % BIN_EVERY == 0 or i % BIN_EVERY == 1 then
@@ -250,7 +286,7 @@ local function dressStreet(road: TownLayout.Road, parent: Instance, rng: Random)
 	end
 	-- parked cars along one kerb, not every slot filled
 	for _, st in StreetDresser.stations(road.points, CAR_GAP) do
-		if rng:NextNumber() < 0.45 then
+		if rng:NextNumber() < 0.45 or not inRange(st.position.X, xRange) then
 			continue
 		end
 		local right = Vector3.new(-st.direction.Z, 0, st.direction.X)
@@ -288,7 +324,7 @@ end
 
 local function dressLightStreet(road: TownLayout.Road, parent: Instance): number
 	local count = 0
-	for i, st in StreetDresser.stations(road.points, LAMP_SPACING) do
+	for i, st in StreetDresser.stations(road.points, LIGHT_LAMP_SPACING) do
 		local facing = lampSpot(road, i, st)
 		TerraceBuilder.lamp(facing, parent)
 		count += 1
@@ -310,33 +346,48 @@ function StreetDresser.build(): string
 	dressing.Name = "Dressing"
 	local districts = town:FindFirstChild("Districts")
 	local rng = Random.new(1884)
-	local rows, props = 0, 0
+	local lightRng = Random.new(1885)
+	local rows, lightRows, props = 0, 0, 0
 	for districtName, spec in DRESSED do
 		local m = Instance.new("Model")
 		m.Name = districtName
 		m.Parent = dressing
-		rows += dressRows(districtName, districts and districts:FindFirstChild(districtName), m)
+		local kit, light = dressRows(districtName, spec.streets, spec.xRange, districts and districts:FindFirstChild(districtName), m, lightRng)
+		rows += kit
+		lightRows += light
 		for _, streetName in spec.streets do
 			local road = roadNamed(streetName)
 			if road then
-				props += dressStreet(road, m, rng)
+				props += dressStreet(road, spec.xRange, m, rng)
 			end
 		end
 	end
-	-- sorted so the seeded facade choices don't depend on table iteration order
-	local lightNames: { string } = {}
-	for districtName in LIGHT do
-		table.insert(lightNames, districtName)
-	end
-	table.sort(lightNames)
-	local lightRng = Random.new(1885)
-	for _, districtName in lightNames do
+	-- every other district, in layout order so the seeded facades are stable;
+	-- a street near two districts only gets lamps once
+	local litStreets: { [string]: boolean } = {}
+	for _, district in TownLayout.DISTRICTS do
+		if DRESSED[district.name] then
+			continue
+		end
 		local m = Instance.new("Model")
-		m.Name = districtName
+		m.Name = district.name
 		m.Parent = dressing
-		rows += dressLightRows(districtName, districts and districts:FindFirstChild(districtName), m, lightRng)
+		lightRows += dressLightRows(district.name, districts and districts:FindFirstChild(district.name), m, lightRng)
+		for _, road in StreetDresser.lightStreets(district.name) do
+			if not litStreets[road.name] then
+				litStreets[road.name] = true
+				props += dressLightStreet(road, m)
+			end
+		end
+	end
+	-- the kit district's own residential streets beyond the kit ones
+	for districtName in DRESSED do
+		local m = dressing:FindFirstChild(districtName)
 		for _, road in StreetDresser.lightStreets(districtName) do
-			props += dressLightStreet(road, m)
+			if m and not litStreets[road.name] then
+				litStreets[road.name] = true
+				props += dressLightStreet(road, m)
+			end
 		end
 	end
 	dressing.Parent = town
@@ -346,7 +397,7 @@ function StreetDresser.build(): string
 			parts += 1
 		end
 	end
-	return ("dressed: %d rows, %d props, %d parts"):format(rows, props, parts)
+	return ("dressed: %d kit rows, %d light rows, %d props, %d parts"):format(rows, lightRows, props, parts)
 end
 
 return StreetDresser
