@@ -22,6 +22,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
+local CrestBadge = require(ReplicatedStorage.Shared.CrestBadge)
 local Assets = require(script.Parent.Assets)
 local PlotContext = require(script.Parent.PlotContext)
 
@@ -909,50 +910,8 @@ local function buildTurnstiles(parent: Instance)
 	pad.Parent = label
 	-- the badges are GUI frames on the same SurfaceGui: no extra parts
 	for _, anchorX in { 0, 1 } do
-		local badge = Instance.new("Frame")
-		badge.Name = "CrestBadge"
-		badge.AnchorPoint = Vector2.new(anchorX, 0.5)
-		badge.Position = UDim2.new(anchorX, if anchorX == 0 then 18 else -18, 0.5, 0)
-		badge.Size = UDim2.fromOffset(42, 52)
-		badge.BackgroundColor3 = SIGN_DARK
-		badge.BorderSizePixel = 0
-		badge.Parent = gui
-		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0, 8)
-		corner.Parent = badge
-		local stroke = Instance.new("UIStroke")
-		stroke.Color = Color3.new(1, 1, 1)
-		stroke.Thickness = 2
-		stroke.Parent = badge
-		-- a battlemented wall over river waves, the Rivermere crest shorthand
-		local wall = Instance.new("Frame")
-		wall.Name = "Wall"
-		wall.AnchorPoint = Vector2.new(0.5, 0)
-		wall.Position = UDim2.new(0.5, 0, 0, 14)
-		wall.Size = UDim2.fromOffset(24, 8)
-		wall.BackgroundColor3 = Color3.new(1, 1, 1)
-		wall.BorderSizePixel = 0
-		wall.Parent = badge
-		for m = -1, 1 do
-			local merlon = Instance.new("Frame")
-			merlon.Name = "Merlon"
-			merlon.AnchorPoint = Vector2.new(0.5, 0)
-			merlon.Position = UDim2.new(0.5, m * 9, 0, 9)
-			merlon.Size = UDim2.fromOffset(6, 6)
-			merlon.BackgroundColor3 = Color3.new(1, 1, 1)
-			merlon.BorderSizePixel = 0
-			merlon.Parent = badge
-		end
-		for wv = 1, 2 do
-			local wave = Instance.new("Frame")
-			wave.Name = "Wave"
-			wave.AnchorPoint = Vector2.new(0.5, 0)
-			wave.Position = UDim2.new(0.5, 0, 0, 28 + (wv - 1) * 7)
-			wave.Size = UDim2.fromOffset(24, 2)
-			wave.BackgroundColor3 = Color3.new(1, 1, 1)
-			wave.BorderSizePixel = 0
-			wave.Parent = badge
-		end
+		CrestBadge.draw(gui, SIGN_DARK, UDim2.fromOffset(42, 52),
+			UDim2.new(anchorX, if anchorX == 0 then 18 else -18, 0.5, 0), Vector2.new(anchorX, 0.5))
 	end
 
 	-- X84: navy slogan plaques on the outer side faces of the end piers (the
@@ -1033,6 +992,8 @@ local function buildTurnstiles(parent: Instance)
 		motto.TextColor3 = Color3.new(1, 1, 1)
 		motto.Text = "OUR TOWN\nOUR GAME"
 		motto.Parent = bannerGui
+		-- X243: the crest between the name and the motto, as on the reference banner
+		CrestBadge.draw(bannerGui, Config.HomeKit:Lerp(Color3.new(0, 0, 0), 0.45), UDim2.fromScale(0.5, 0.21), UDim2.fromScale(0.5, 0.49))
 	end
 end
 

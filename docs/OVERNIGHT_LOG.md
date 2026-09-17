@@ -1357,3 +1357,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - X237 `Sky`: turning floodlights off for your own sky (dawn after an evening match, a fast-forward) skips heads under any plot whose club is in an evening PreMatch/Match. The server lit those for everyone and won't send them again, so a neighbour's live evening match no longer goes dark on your screen. Needs two players to see.
 - Tested: RunAll 437 passed; a 30 s match with a Sub ran and saved (#401) with no console errors.
 
+### 2026-09-17 14:04 — Crests on the lamp banner and the club shop fascia (X243, X244 done)
+- The X236 crest drawing moved into a shared module, `Shared/CrestBadge` (`CrestBadge.draw(parent, fill, size, position, anchor?)`). Its insides are in scale units with a 42:52 aspect constraint, so one drawing works at any size. The turnstile fascia now uses it (it looks the same as before).
+- X243: the lamp-post banner at the pedestrian gate has the crest between the club name and "OUR TOWN / OUR GAME" on both faces, as on `RivermereTurnstileEntrance.png`.
+- X244: the club shop fascia reads "<CLUB>  CLUB SHOP" with a crest at the right end. Both labels were narrowed a little to make room.
+- 0 parts (GUI frames on existing SurfaceGuis). Screenshots checked for the banner, the turnstile fascia and the shop fascia. RunAll 437 passed. `CrestBadge` was created in Studio with multi_edit, because the MCP sandbox can't parent new instances into Shared.
+

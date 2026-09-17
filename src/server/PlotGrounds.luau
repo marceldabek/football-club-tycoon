@@ -42,6 +42,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
+local CrestBadge = require(ReplicatedStorage.Shared.CrestBadge)
 local PlotContext = require(script.Parent.PlotContext)
 
 local PlotGrounds = {}
@@ -584,16 +585,18 @@ local function buildShop(parent: Instance)
 	addSign(fascia, "", { Enum.NormalId.Right })
 	local shopGui = fascia:FindFirstChild("Sign") :: SurfaceGui
 	local shopText = shopGui:FindFirstChild("Text") :: TextLabel
-	shopText.Size = UDim2.fromScale(0.36, 1)
-	shopText.Position = UDim2.fromScale(0.62, 0)
+	shopText.Size = UDim2.fromScale(0.3, 1)
+	shopText.Position = UDim2.fromScale(0.6, 0)
 	shopText.Text = "CLUB SHOP"
 	local nameText = shopText:Clone()
 	nameText.Name = "ClubName"
-	nameText.Size = UDim2.fromScale(0.58, 1)
+	nameText.Size = UDim2.fromScale(0.56, 1)
 	nameText.Position = UDim2.fromScale(0.02, 0)
 	local stateName = PlotContext.stateFolder():GetAttribute("ClubName")
 	nameText.Text = string.upper(if type(stateName) == "string" and stateName ~= "" then stateName else Config.ClubName)
 	nameText.Parent = shopGui
+	-- X244: a crest after "CLUB SHOP", as on the reference fascia
+	CrestBadge.draw(shopGui, Config.HomeKit:Lerp(Color3.new(0, 0, 0), 0.45), UDim2.fromScale(0.08, 0.72), UDim2.fromScale(0.95, 0.5))
 	extents("RoofCap", x0 - 0.5, x1 + FASCIA_PROUD + 0.5, top, top + 1, z0 - 0.5, z1 + 0.5,
 		Color3.fromRGB(70, 70, 74), Enum.Material.Concrete, shop)
 
