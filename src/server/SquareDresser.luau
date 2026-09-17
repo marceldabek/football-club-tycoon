@@ -17,6 +17,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local KitPlacer = require(script.Parent.KitPlacer)
+local Planting = require(script.Parent.Planting)
 
 local SquareDresser = {}
 
@@ -372,15 +373,8 @@ local function buildPlanter(parent: Instance, cf: CFrame, rng: Random)
 	slab(m, f, "Soil", -4.4, 4.4, 2.6, 2.8, -1.9, 1.9, SOIL, Enum.Material.Ground)
 	-- X69: a planted bed over the soil (a Ball's diameter is its smallest axis,
 	-- so the old 8.4 x 2.6 x 3.8 ball rendered as one 2.6 ball in bare soil)
-	part({
-		Name = "Flowers",
-		Size = Vector3.new(8.6, 1.2, 3.6),
-		CFrame = f * CFrame.new(0, 3.3, 0),
-		Color = FLOWERS[rng:NextInteger(1, #FLOWERS)],
-		Material = Enum.Material.LeafyGrass,
-		CastShadow = false,
-		Parent = m,
-	})
+	-- X130: a leafy bed with round flower heads (RivermereStation.png planters)
+	Planting.bloom(m, f * CFrame.new(0, 3.3, 0), 8.6, 3.6, FLOWERS[rng:NextInteger(1, #FLOWERS)], rng)
 end
 
 local function buildStall(parent: Instance, cf: CFrame, colour: Color3)

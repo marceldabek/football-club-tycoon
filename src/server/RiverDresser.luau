@@ -22,6 +22,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local KitPlacer = require(script.Parent.KitPlacer)
+local Planting = require(script.Parent.Planting)
 local ForecourtDresser = require(script.Parent.ForecourtDresser)
 
 local RiverDresser = {}
@@ -422,15 +423,8 @@ function RiverDresser.build(): string
 			local planter = along + run.normal * (QUAY_W + 2.5) + dir * 7
 			part({ Name = "Planter", Size = Vector3.new(4, 2.4, 4), CFrame = CFrame.new(planter.X, PROM_TOP + 1.2, planter.Z), Color = STONE, Material = Enum.Material.Limestone, Parent = furniture })
 			-- X65: a planted top sunk 0.2 into the planter (a ball read as a pink rock)
-			part({
-				Name = "Flowers",
-				Size = Vector3.new(3.6, 1.1, 3.6),
-				CFrame = CFrame.new(planter.X, PROM_TOP + 2.4 - 0.2 + 0.55, planter.Z),
-				Color = Color3.fromRGB(214, 70, 110):Lerp(Color3.fromRGB(240, 190, 60), rng:NextNumber()),
-				Material = Enum.Material.LeafyGrass,
-				CastShadow = false,
-				Parent = furniture,
-			})
+			-- X130: a leafy bed with round flower heads, sunk 0.3 into the planter
+			Planting.bloom(furniture, CFrame.new(planter.X, PROM_TOP + 2.4 + 0.4, planter.Z), 3.6, 3.6, Color3.fromRGB(214, 70, 110):Lerp(Color3.fromRGB(240, 190, 60), rng:NextNumber()), rng)
 			local lamp = along + run.normal * (QUAY_W + 1.2) - dir * 8
 			lampCount += 1
 			RiverDresser.heritageLamp(CFrame.lookAt(Vector3.new(lamp.X, PROM_TOP, lamp.Z), Vector3.new(lamp.X, PROM_TOP, lamp.Z) + run.normal), furniture, lampCount % 2 == 1, lampRng)
