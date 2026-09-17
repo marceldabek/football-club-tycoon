@@ -23,6 +23,7 @@ local SaveService = require(script.Parent.SaveService)
 local SaveLock = require(script.Parent.SaveLock)
 local Scenery = require(script.Parent.Scenery)
 local PlotContext = require(script.Parent.PlotContext)
+local PlotGrounds = require(script.Parent.PlotGrounds)
 
 local Session = {}
 
@@ -151,6 +152,7 @@ function Session.restoreAll(p: Profile.Profile)
 	world = w
 	if PlotContext.index then
 		Scenery.buildClubFloodlights(w.model)
+		PlotGrounds.build(w.model)
 	end
 	UpgradeService.init({ stands = w.standPrompts, amenity = w.amenityPrompt })
 	wireWorld(w)
