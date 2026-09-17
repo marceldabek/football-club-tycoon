@@ -342,3 +342,6 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - The station drop-off lane has a yellow edge line and "TAXIS" painted on the free bay: a clear plate 0.02 above the tarmac with a Top-face SurfaceGui. The line is sunk 0.02 into the lane so no top faces share a plane. The reference's newsagent kiosk was already there, green, at the west end of the frontage.
 - **Screenshot** Station_taxis_1: the markings read clearly beside the two taxis.
 - **Found:** the drop-off lane stands in the grass with no road reaching it, because Station Road ends east of the entrance (new X51).
+
+### 2026-09-17 04:24 — Taxi lane towards Station Road (X51, part)
+- I extended the drop-off lane 10 studs east, but a grass gap remains between it and Station Road's diagonal end (Station_lane_1). The real fix is a layout change: give Station Road an extra point so it turns along the station forecourt. That touches traffic routes and TownLayoutTest, so it's left on the backlog rather than rushed.

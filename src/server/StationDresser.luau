@@ -375,7 +375,7 @@ function StationDresser.build(): string
 	-- grass verge (RivermereStation.png is paved to the kerb); strips run 1 stud
 	-- under the pavement edge (its top is 0.45, ours 0.3) and skip the drop-off lane
 	for x = -halfLen, halfLen - 8, 8 do
-		local dropOff = x + 8 > -90 and x < -14
+		local dropOff = x + 8 > -90 and x < -4
 		local z0 = if dropOff then 38 else 22
 		local reach = StationDresser.forecourtReach(f, x + 4, z0, FORECOURT_MAX, 1)
 		if reach < FORECOURT_MAX and reach > z0 + 0.5 then
@@ -443,7 +443,9 @@ function StationDresser.build(): string
 	end
 
 	-- drop-off lane and taxi rank at the kerb beyond the forecourt
-	slab(m, f, "DropOff", -90, -14, 0, 0.25, 22, 38, Color3.fromRGB(70, 72, 76), Enum.Material.Asphalt)
+	-- X51: runs on to x -4, towards the end of Station Road; a grass gap to the
+	-- road's diagonal end remains until the road itself is extended (see backlog)
+	slab(m, f, "DropOff", -90, -4, 0, 0.25, 22, 38, Color3.fromRGB(70, 72, 76), Enum.Material.Asphalt)
 	for _, x in { -60, -44 } do
 		buildTaxi(m, f * CFrame.new(x, 0.25, 30) * CFrame.Angles(0, math.pi / 2, 0))
 	end
