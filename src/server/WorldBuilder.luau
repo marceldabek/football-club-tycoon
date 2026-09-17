@@ -1092,7 +1092,10 @@ local function buildOffice(parent: Instance)
 	noticeText.Font = Enum.Font.PatrickHand
 	noticeText.TextScaled = true
 	noticeText.TextColor3 = Color3.fromRGB(40, 40, 46)
-	noticeText.Text = "FIXTURES\nSat 3pm\nSat 3pm\nTue 7:45\nSat 3pm"
+	noticeText.Name = "Lines"
+	-- X301: filled from the real fixture list by SeasonService; this is only
+	-- what the notice says before a season exists
+	noticeText.Text = "FIXTURES\n(none yet)"
 	noticeText.Parent = notice
 	box("WallS", Vector3.new(w, h, 1), Vector3.new(cx, wy, cz + d / 2), wallColor, wallMat, office)
 	-- east wall has a doorway facing the ground
@@ -1853,6 +1856,19 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 	end
 	club:SetAttribute("CrowdSlots", slots)
 	club:SetAttribute("CrowdCount", placed)
+end
+
+-- X301: the notice pinned up behind the desk (X170) read the same four fake
+-- kickoffs in every season of every division - the only piece of club
+-- paperwork in the world, and it was made up. SeasonService calls this with
+-- the real remaining fixtures.
+function WorldBuilder.setFixtureNotice(lines: { string })
+	local club = PlotContext.clubModel()
+	local office = club and club:FindFirstChild("Office")
+	local label = office and office:FindFirstChild("Lines", true)
+	if label and label:IsA("TextLabel") then
+		label.Text = if #lines > 0 then ("FIXTURES\n%s"):format(table.concat(lines, "\n")) else "FIXTURES\n(season over)"
+	end
 end
 
 -- Fans go home at full time; the stands are empty between matches.

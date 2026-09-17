@@ -10,7 +10,9 @@ local HttpService = game:GetService("HttpService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local League = require(ReplicatedStorage.Shared.League)
 local Economy = require(ReplicatedStorage.Shared.Economy)
+local DayCycle = require(ReplicatedStorage.Shared.DayCycle) -- X301: evening kickoffs on the notice
 local ClubState = require(script.Parent.ClubState)
+local WorldBuilder = require(script.Parent.WorldBuilder)
 local ClubService = require(script.Parent.ClubService)
 local HistoryService = require(script.Parent.HistoryService)
 
@@ -79,6 +81,23 @@ local function publish()
 	-- on screen. TEMP: the match is still played and paid for at this ground.
 	ClubState.set("NextAtHome", if nextF then nextF.home == season.playerIndex else true)
 	publishTable()
+	-- X301: the office notice, from the fixtures that are actually left
+	local notice = {}
+	local played = (ClubState.get("MatchesPlayed") :: number?) or 0
+	for ahead = 1, 4 do
+		local f, opp = League.playerFixture(season, round + ahead)
+		if f and opp then
+			local name = season.teams[opp].name
+			local short = string.match(name, "^(%S+)") or name
+			local evening = DayCycle.isEveningFixture(played + ahead)
+			table.insert(notice, ("%s %s %s"):format(
+				if f.home == season.playerIndex then "H" else "A",
+				string.sub(short, 1, 9),
+				if evening then "7:45" else "3pm"
+			))
+		end
+	end
+	WorldBuilder.setFixtureNotice(notice)
 	ClubState.markDirty()
 end
 

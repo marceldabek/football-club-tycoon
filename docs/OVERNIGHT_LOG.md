@@ -1631,3 +1631,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Also from the review: the stand prompt now says "+£X a match **while seats are short**", because two plots can each advertise the same queue and the figures are not additive; and two comments that no longer matched their code (the keeper top-up cannot help a squad already at `SquadMax`, and ClubState's History payload now carries servants).
 - RunAll 457 passed, 0 failed, including a new ProfileTest that normalize keeps a servant and drops a malformed row.
 
+### 2026-09-17 17:43 — The office paperwork is real now (X301)
+- The notice pinned up behind the desk (X170) read "FIXTURES / Sat 3pm / Sat 3pm / Tue 7:45 / Sat 3pm" in every season of every division - the only piece of club paperwork in the world and it was invented.
+- `SeasonService.publish` now fills it from the fixtures that are actually left: the next four, each with H or A, the opponent's first name (the scrap of paper is 3 studs wide) and 7:45 for the ones `DayCycle.isEveningFixture` will actually play under the floodlights, counted on the club's real match number rather than the round.
+- Verified in play on the debug save: with 134 matches played and round 4 of 10 gone, the live label read "FIXTURES / A Millpond 7:45 / A Ashby 3pm / H Fenmoor 3pm / H Oakhollow 3pm", which matches the fixture list and the evening rule.
+- **Not photographed:** I could not frame the notice from the scripted camera (the office is small and the desk and cladding kept getting in the way), so this is verified from the label's text, not on camera. Worth a look in the morning: spawn in the office and turn to the wall behind the desk.
+- RunAll 457 passed.
+
