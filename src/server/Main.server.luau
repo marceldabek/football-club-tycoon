@@ -105,6 +105,7 @@ end
 Scenery.setupTown()
 TownBuilder.build()
 print("[FCT] " .. require(script.Parent.StreetDresser).build())
+print("[FCT] " .. require(script.Parent.SquareDresser).build())
 PlotService.start()
 require(script.Parent.BusService).start()
 
