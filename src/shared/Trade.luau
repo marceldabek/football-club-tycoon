@@ -216,4 +216,51 @@ function Trade.newBook(): Book
 	return book
 end
 
+-- Cash typed into the trade screen: "£1,500" / "1500" / "" -> 1500 / 1500 / 0.
+-- Anything that isn't a whole non-negative amount is nil.
+function Trade.parseCash(text: string): number?
+	local cleaned = (string.gsub(text, "[£,%s]", ""))
+	if cleaned == "" then
+		return 0
+	end
+	if not string.match(cleaned, "^%d+$") or #cleaned > 9 then
+		return nil
+	end
+	return tonumber(cleaned)
+end
+
+local function money(n: number): string
+	local s = tostring(math.floor(n))
+	local withCommas = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
+	return "£" .. (withCommas:gsub("^,", ""))
+end
+
+local function playerLine(p: { [string]: any }): string
+	local injured = if type(p.injured) == "number" and p.injured > 0 then ", injured" else ""
+	return ("%s (%s %d, age %d%s)"):format(tostring(p.name), tostring(p.role), p.overall or 0, p.age or 0, injured)
+end
+
+-- The lines the receiving owner reads on the offer card. `give`/`take` are the
+-- proposer's point of view, as TradeService sends them.
+function Trade.offerLines(data: { [string]: any }): { string }
+	local lines = {}
+	local function list(label: string, players: { any }?)
+		if players and #players > 0 then
+			local names = {}
+			for _, p in players do
+				table.insert(names, playerLine(p))
+			end
+			table.insert(lines, label .. table.concat(names, "; "))
+		end
+	end
+	list("You get: ", data.give)
+	list("You give: ", data.take)
+	if type(data.giveCash) == "number" and data.giveCash > 0 then
+		table.insert(lines, "They pay you " .. money(data.giveCash))
+	elseif type(data.takeCash) == "number" and data.takeCash > 0 then
+		table.insert(lines, "You pay them " .. money(data.takeCash))
+	end
+	return lines
+end
+
 return Trade

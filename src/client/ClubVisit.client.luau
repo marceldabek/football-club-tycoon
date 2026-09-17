@@ -2,7 +2,8 @@
 -- Visiting another club (I1.1): its office computer gets a local "View club"
 -- prompt that opens a read-only card (standing, record, ground, best players).
 -- Everything comes from ReplicatedStorage.Clubs.PlotN, which every client
--- already receives. The only request it sends is a friendly challenge (I3.1).
+-- already receives. From the card an owner can challenge the club to a
+-- friendly (I3.1) or open the trade screen (I4.1, TradePanel).
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -14,6 +15,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local ClubCard = require(Shared:WaitForChild("ClubCard"))
 local PlotVisit = require(Shared:WaitForChild("PlotVisit"))
 local Theme = require(script.Parent:WaitForChild("Theme"))
+local TradePanel = require(script.Parent:WaitForChild("TradePanel"))
 
 local player = Players.LocalPlayer
 local plots = workspace:WaitForChild("Plots", math.huge) :: Instance
@@ -26,13 +28,21 @@ local card = Theme.card(gui, "Card", "VISITING", UDim2.fromOffset(460, 390), UDi
 local closeButton = card.addButton("Close", "secondary")
 local challengeButton = card.addButton("Challenge", "primary")
 challengeButton.Text = "Play a friendly"
+local tradeButton = card.addButton("Trade", "info")
+tradeButton.Text = "Trade players"
 challengeButton.LayoutOrder = 1
-closeButton.LayoutOrder = 2
+tradeButton.LayoutOrder = 2
+closeButton.LayoutOrder = 3
+for _, b in { challengeButton, tradeButton, closeButton } do
+	b.Size = UDim2.fromOffset(134, 44)
+	b.TextSize = 15
+end
 gui.Parent = player:WaitForChild("PlayerGui")
 local challengeEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("FriendlyChallenge") :: RemoteEvent
 
 local openAt: BasePart? = nil
 local openPlot: number? = nil
+local openName = ""
 
 local function close()
 	card.frame.Visible = false
@@ -74,8 +84,11 @@ local function open(plot: number, at: BasePart)
 		table.insert(lines, ("<b>%d</b>  %s  <font transparency=\"0.4\">%s · %d goals</font>"):format(p.overall, p.name, p.role, p.goals))
 	end
 	card.body.Text = table.concat(lines, "\n")
-	-- friendlies (I3.1): you need your own club, and they need an owner
-	challengeButton.Visible = type(player:GetAttribute("ClubPlot")) == "number" and type(attrs.OwnerUserId) == "number"
+	-- friendlies (I3.1) and trades (I4.1): you need your own club, and they need an owner
+	local canDeal = type(player:GetAttribute("ClubPlot")) == "number" and type(attrs.OwnerUserId) == "number"
+	challengeButton.Visible = canDeal
+	tradeButton.Visible = canDeal
+	openName = s.clubName
 	card.frame.Visible = true
 	openAt = at
 	openPlot = plot
@@ -122,6 +135,14 @@ challengeButton.Activated:Connect(function()
 	if plot then
 		challengeEvent:FireServer(plot)
 		close()
+	end
+end)
+tradeButton.Activated:Connect(function()
+	local plot = openPlot
+	if plot then
+		local name = openName
+		close()
+		TradePanel.open(plot, name)
 	end
 end)
 UserInputService.InputBegan:Connect(function(input)

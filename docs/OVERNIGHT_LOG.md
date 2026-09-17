@@ -246,3 +246,12 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **ClubService:** `squadCopy`, `tradeAway(ids)`, `tradeIn(players)` (fresh ids via `Trade.move`, then the lineup is recomputed and published). **PlotService:** `modulesFor(userId)` (ClubService, ClubState, Session, MatchService copies for that club).
 - **Playtest (solo):** DebugRun `tradeRoundTrip|16` traded bench player Callum Skyward (#16, id16) out and straight back in. He returned as #16 id17, and the squad stayed at 16. A league match afterwards still counted (32 played). Save, then reload from the snapshot, kept him as id17. No errors.
 - RunAll 322/322.
+
+### 2026-09-17 03:40 — Trades part 3: client (I4.1c)
+- **Visitor club card:** now has three buttons: Play a friendly, Trade players, Close (VisitButtons_2).
+- **TradePanel (module):** "TRADE WITH <CLUB>". YOU GIVE and YOU GET list both squads (shirt number, name, role, rating, age, injured). You tap up to 3 on each side; picks are highlighted gold. There's a cash box with a You pay / They pay toggle and a live status line, plus Send offer and Cancel (TradePanel_1). Sending with the one-player setup came back "You can't trade with yourself." from the server, so the propose remote path works.
+- **TradeOffer card:** "TRADE OFFER" from <club> (<manager>), with You get / You give lines (rating, age, injured), the cash line, a 60 s countdown, and Accept / Decline (TradeOffer_1). Decline on the debug offer came back "That trade offer has expired.", so the respond remote path works. New Studio-only DebugRun `tradeOffer`.
+- `Trade.parseCash` and `Trade.offerLines` are pure, with 2 new tests.
+- **Theme fix:** card footers sorted buttons by name, so Close ended up between the other two. `Theme.card` now keeps buttons in the order they were added. Only the new multi-button cards were affected.
+- The real Accept that swaps players between two owners is I4.1d, which needs Players = 2.
+- RunAll 324/324.

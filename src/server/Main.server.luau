@@ -49,6 +49,25 @@ if game:GetService("RunService"):IsStudio() then
 				return false, "no player"
 			end
 			return require(script.Parent.TradeService).debugRoundTrip(owner.UserId, { a1 })
+		elseif command == "tradeOffer" then
+			-- shows the trade offer card to the first player without a second club
+			local target = game:GetService("Players"):GetPlayers()[1]
+			local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+			local offer = remotes and remotes:FindFirstChild("TradeOffer") :: RemoteEvent?
+			if not (target and offer) then
+				return false, "no player or remote"
+			end
+			offer:FireClient(target, {
+				from = -1,
+				fromName = "Debug",
+				fromClub = "Lune Albion",
+				give = { { name = "Kit Lomax", role = "MID", overall = 56, age = 23, injured = 0 } },
+				take = { { name = "Ezra Ings", role = "DEF", overall = 54, age = 21, injured = 0 } },
+				giveCash = 2500,
+				takeCash = 0,
+				seconds = 60,
+			})
+			return true
 		elseif command == "invite" then
 			-- shows the friendly invite card to the first player without a second club
 			local target = game:GetService("Players"):GetPlayers()[1]

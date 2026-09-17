@@ -98,4 +98,29 @@ function T.bookOneOutgoingAndExpiry()
 	assert(#book:dropUser(2) == 1 and #book.offers == 0, "dropped on leave")
 end
 
+function T.parseCash()
+	assert(Trade.parseCash("") == 0, "empty is zero")
+	assert(Trade.parseCash("1500") == 1500, "plain")
+	assert(Trade.parseCash("£1,500") == 1500, "pound and comma")
+	assert(Trade.parseCash(" 20 ") == 20, "spaces")
+	assert(Trade.parseCash("-5") == nil, "negative")
+	assert(Trade.parseCash("1.5") == nil, "fraction")
+	assert(Trade.parseCash("abc") == nil, "text")
+	assert(Trade.parseCash("9999999999") == nil, "too big")
+end
+
+function T.offerLinesFromReceiverView()
+	local lines = Trade.offerLines({
+		give = { { name = "Kit Lomax", role = "MID", overall = 54, age = 23, injured = 0 } },
+		take = { { name = "Ezra Ings", role = "DEF", overall = 53, age = 21, injured = 2 } },
+		giveCash = 2500,
+		takeCash = 0,
+	})
+	assert(lines[1] == "You get: Kit Lomax (MID 54, age 23)", lines[1])
+	assert(lines[2] == "You give: Ezra Ings (DEF 53, age 21, injured)", lines[2])
+	assert(lines[3] == "They pay you £2,500", lines[3])
+	local buy = Trade.offerLines({ give = {}, take = { { name = "A", role = "GK", overall = 40, age = 30 } }, giveCash = 0, takeCash = 900 })
+	assert(#buy == 2 and buy[1]:sub(1, 9) == "You give:" and buy[2] == "You pay them £900", table.concat(buy, " / "))
+end
+
 return T

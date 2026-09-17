@@ -279,12 +279,16 @@ function Theme.card(parent: Instance, name: string, title: string, size: UDim2, 
 	layout.FillDirection = Enum.FillDirection.Horizontal
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Right
 	layout.Padding = UDim.new(0, 10)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder -- buttons sit in the order they were added
 	layout.Parent = footer
+	local added = 0
 	local function addButton(text: string, variant: ButtonVariant?): TextButton
+		added += 1
 		return Theme.button(footer, text, variant or "primary", {
 			Name = text:gsub("%s", ""),
 			Size = UDim2.fromOffset(190, 44),
 			TextSize = 18,
+			LayoutOrder = added,
 		})
 	end
 	return { frame = frame, title = titleLabel, body = body, addButton = addButton }
