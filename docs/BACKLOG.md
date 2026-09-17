@@ -223,4 +223,5 @@
 - [x] X108 (09:09 cream parasols over the 3 pub-front table sets, 3 parts each) RivermereCenter.png: parasols over the tables outside the Riverside Arms; ours had bare tables `[studio]` S
 - [x] X109 (09:13 27 canvas awnings with valances over café, deli, bakery and butcher fronts, 2 parts each) RivermereCenter.png / RivermereRiverside.png: canvas awnings over shopfronts; ours had none `[studio]` S
 - [x] X110 (09:16 CentreTreeDresser: 43 light trees on High Street, Riverside Road, North Road and Bridge Street within 420 of the square, 4 spots skipped as occupied; 129 parts) RivermereCenter.png: street trees along the high street pavements; the main roads through the centre had none `[studio]` S
+- [x] X111 (09:19 two pairs of swans gliding slow ellipses near the Lune Bridge and the promenade, 4 parts each, client-only, within 500 of the camera, off on Low) RivermereRiverside.png has swans on the river; roadmap F4 small motion `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

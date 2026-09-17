@@ -402,4 +402,25 @@ function TownLifeMath.seatedFigureCFrames(seat: CFrame): { CFrame }
 	}
 end
 
+-- X111: swans on the Lune (RivermereRiverside.png). A swan glides round a
+-- slow ellipse on the water: `along` (unit, XZ) is the ellipse's long axis,
+-- `a` / `b` its half-lengths, `period` seconds a lap, `phase` 0..1 where on
+-- the lap it starts. Returns a CFrame at the water surface facing the way the
+-- swan is swimming (anticlockwise seen from above).
+TownLifeMath.SWAN_SPOTS = {
+	{ centre = Vector3.new(250, 0, 418), along = Vector3.new(1, 0, 0), a = 20, b = 9, period = 70 },
+	{ centre = Vector3.new(-120, 0, 414), along = Vector3.new(1, 0, 0.08).Unit, a = 16, b = 8, period = 60 },
+}
+TownLifeMath.SWAN_WATER_Y = -4 -- TownBuilder.Y.WATER_TOP
+
+function TownLifeMath.swanPose(centre: Vector3, along: Vector3, a: number, b: number, period: number, phase: number, t: number): CFrame
+	local angle = ((t / period) + phase) * math.pi * 2
+	local side = Vector3.new(-along.Z, 0, along.X)
+	local offset = along * (a * math.cos(angle)) + side * (b * math.sin(angle))
+	local velocity = along * (-a * math.sin(angle)) + side * (b * math.cos(angle))
+	local pos = Vector3.new(centre.X, TownLifeMath.SWAN_WATER_Y, centre.Z) + offset
+	local dir = if velocity.Magnitude > 1e-6 then velocity.Unit else along
+	return CFrame.lookAt(pos, pos + dir)
+end
+
 return TownLifeMath

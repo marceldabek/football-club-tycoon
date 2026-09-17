@@ -1,6 +1,7 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLifeMath = require(ReplicatedStorage.Shared.TownLifeMath)
+local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 
 local T = {}
 
@@ -305,6 +306,33 @@ function T.deliveryVanParksHalfOnTheShopKerbFacingWithTraffic()
 	local left = Vector3.new(-cf.LookVector.Z, 0, cf.LookVector.X) * -1
 	assert(left:Dot(Vector3.new(0, 0, 1)) > 0.99, "the kerb is on the van's left")
 	assert(TownLifeMath.kerbsideSpot(Vector3.new(10, 0, 500), roads) == nil, "too far from any road")
+end
+
+-- X111: a swan stays on its ellipse over the river, at the water surface,
+-- facing along its path, and swims all the way round.
+function T.swanGlidesRoundItsEllipseOnTheRiver()
+	for _, spot in TownLifeMath.SWAN_SPOTS do
+		local river = TownLayout.distanceToPolyline(spot.centre, TownLayout.RIVER.points)
+		assert(river + spot.a < TownLayout.RIVER.width / 2 - 4, "ellipse stays inside the river banks")
+		local prev: CFrame? = nil
+		for k = 0, 40 do
+			local t = k / 40 * spot.period
+			local cf = TownLifeMath.swanPose(spot.centre, spot.along, spot.a, spot.b, spot.period, 0.25, t)
+			assert(math.abs(cf.Position.Y - TownLifeMath.SWAN_WATER_Y) < 1e-4, "on the water")
+			local rel = Vector3.new(cf.Position.X - spot.centre.X, 0, cf.Position.Z - spot.centre.Z)
+			assert(rel.Magnitude <= spot.a + 1e-3, "inside the ellipse's long radius")
+			if prev then
+				local step = cf.Position - prev.Position
+				if step.Magnitude > 1e-3 then
+					assert(step.Unit:Dot(prev.LookVector) > 0.8, "faces the way it swims")
+				end
+			end
+			prev = cf
+		end
+		local start = TownLifeMath.swanPose(spot.centre, spot.along, spot.a, spot.b, spot.period, 0, 0)
+		local lap = TownLifeMath.swanPose(spot.centre, spot.along, spot.a, spot.b, spot.period, 0, spot.period)
+		assert((start.Position - lap.Position).Magnitude < 1e-3, "one period is one lap")
+	end
 end
 
 return T
