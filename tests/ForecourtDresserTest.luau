@@ -2,6 +2,7 @@
 local ServerScriptService = game:GetService("ServerScriptService")
 local ForecourtDresser = require(ServerScriptService.Server.ForecourtDresser)
 local TownBuilder = require(ServerScriptService.Server.TownBuilder)
+local ShopBuilder = require(ServerScriptService.Server.ShopBuilder)
 
 local T = {}
 
@@ -95,6 +96,34 @@ function T.zoneSpansAvoidCarriagewaysAndTheSquareMiddle()
 	end
 	-- 80 x 80 minus the road strip (z 28..32 rounds out to 24..36 in cells) minus the middle
 	assert(area > 3000 and area < 6400, "zone area " .. area)
+end
+
+function T.basketsHangOnShopfrontJoinsClearOfTheRowEnds()
+	-- three 20-wide bays on a 60 row, given out of order: joins at -10 and +10
+	local bays: { ForecourtDresser.Bay } = {
+		{ z = 20, width = 20, key = nil },
+		{ z = -20, width = 20, key = nil },
+		{ z = 0, width = 20, key = nil },
+	}
+	local zs = ForecourtDresser.basketZs(bays, 60)
+	assert(#zs == 2, "baskets " .. #zs)
+	assert(math.abs(zs[1] + 10) < 1e-6 and math.abs(zs[2] - 10) < 1e-6, ("at %.2f, %.2f"):format(zs[1], zs[2]))
+	-- a single shopfront has no join, so no basket
+	assert(#ForecourtDresser.basketZs({ { z = 0, width = 20, key = nil } }, 20) == 0, "single bay")
+	-- a join within 2 studs of the row end is skipped (a 1.5-wide sliver bay at the end)
+	local sliver: { ForecourtDresser.Bay } = { { z = -0.75, width = 18.5, key = nil }, { z = 9.25, width = 1.5, key = nil } }
+	assert(#ForecourtDresser.basketZs(sliver, 20) == 0, "join 1.5 from the end")
+	-- every basket stays at least 2 from either end on real bay layouts
+	for _, length in { 20, 35, 60, 97, 140 } do
+		local built: { ForecourtDresser.Bay } = {}
+		for _, bay in ShopBuilder.bays(length, if length == 140 then "supermarket" else "shops") do
+			table.insert(built, { z = bay.centre, width = bay.width, key = nil })
+		end
+		for _, z in ForecourtDresser.basketZs(built, length) do
+			assert(math.abs(z) <= length / 2 - 2 + 1e-6, ("length %d basket at %.2f"):format(length, z))
+		end
+		assert(#ForecourtDresser.basketZs(built, length) == #built - 1, "one per join at length " .. length)
+	end
 end
 
 return T
