@@ -430,3 +430,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Bug found and fixed:** the first try placed nothing. Streamed rows can arrive before their Body, and until then the model pivot is the origin, so the "nearest" rows had no wall. The ranking now uses the Body and re-runs when a Body streams in.
 - **Screenshot** Mural_2: the "MDINO24 FC" mural on the gable beside The Little Deli.
 - RunAll 340/340.
+
+### 2026-09-17 05:07 — Matchday cars in the club car park (G1.2)
+- **Roadmap G1 ("… parked cars, extra traffic"):** MatchdayLife now parks supporters' cars (a body plus a dark cabin, 2 parts each) in the club car park while a plot's match is in PreMatch or Match. Like the fans and stewards, anyone near the ground sees them. The 36 bay centres come from new `MatchdayRoutes.carParkBays()`, matching PlotGrounds' bay lines. `parkedCars(attendance, bays)` fills 10% for a tiny crowd and all bays from TEMP 1,500 attendance; which bays fill is seeded per plot. 2 new tests (bays inside the kerbs, clear of the road mouth and not overlapping; the count scales).
+- **Playtest:** attendance 150 gave 4 cars alongside 48 fans. The top-down Matchday_cars_2 shows each car sitting inside its bay lines, and Matchday_cars_1 shows the car park with fans walking to the turnstiles.
+- RunAll 342/342.

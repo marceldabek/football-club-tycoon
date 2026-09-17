@@ -107,4 +107,41 @@ function MatchdayRoutes.fanCount(attendance: number, capacity: number): number
 	return math.clamp(math.round(n), 0, 48)
 end
 
+-- Matchday cars in the club car park (backlog G1.2). Bay centres match
+-- PlotGrounds' bay lines (pitch-local): a west row past the road mouth and a
+-- back-to-back double row. Kept here so the client can place cars without
+-- requiring a server module. yaw 0 = the car's length along local X.
+local BAY_W, BAY_D = 9, 18
+local PARK_AX0, PARK_AZ0, PARK_AZ1 = -349, 41, 189 -- asphalt inside the kerb
+local ENTRY_CLEAR_Z = 104
+local MID_ROW_X = PARK_AX0 + BAY_D + 24
+
+local function bayRow(out: { Vector3 }, x0: number, z0: number, z1: number)
+	local z = z0
+	while z + BAY_W <= z1 + 1e-6 do
+		table.insert(out, Vector3.new(x0 + BAY_D / 2, 0, z + BAY_W / 2))
+		z += BAY_W
+	end
+end
+
+function MatchdayRoutes.carParkBays(): { Vector3 }
+	local out = {}
+	bayRow(out, PARK_AX0, ENTRY_CLEAR_Z, PARK_AZ1 - 6)
+	bayRow(out, MID_ROW_X, PARK_AZ0 + 8, PARK_AZ1 - 6)
+	bayRow(out, MID_ROW_X + BAY_D, PARK_AZ0 + 8, PARK_AZ1 - 6)
+	return out
+end
+
+-- How many bays fill on matchday: a trickle for a tiny crowd, full at a
+-- TEMP 1,500 attendance (bigger crowds come by bus and on foot).
+MatchdayRoutes.CARS_FULL_AT = 1500 -- TEMP
+
+function MatchdayRoutes.parkedCars(attendance: number, bays: number): number
+	if bays <= 0 or attendance <= 0 then
+		return 0
+	end
+	local share = math.clamp(attendance / MatchdayRoutes.CARS_FULL_AT, 0.1, 1)
+	return math.clamp(math.round(bays * share), 1, bays)
+end
+
 return MatchdayRoutes

@@ -73,4 +73,30 @@ function T.fanCountNeverExceedsBounds()
 	end
 end
 
+function T.carParkBaysSitOnTheAsphaltClearOfTheRoadMouth()
+	local bays = MatchdayRoutes.carParkBays()
+	assert(#bays == 8 + 14 + 14, "bay count " .. #bays)
+	for _, b in bays do
+		assert(b.X > -349 and b.X < -251, "inside the kerbs across")
+		assert(b.Z - 4.5 >= 41 - 1e-6 and b.Z + 4.5 <= 189 + 1e-6, "inside the kerbs along")
+		if b.X < -330 then
+			assert(b.Z - 4.5 >= 104 - 1e-6, "west row starts past the road mouth")
+		end
+	end
+	for i = 1, #bays do
+		for j = i + 1, #bays do
+			local d = bays[i] - bays[j]
+			assert(math.abs(d.X) >= 18 - 1e-6 or math.abs(d.Z) >= 9 - 1e-6, "bays don't overlap")
+		end
+	end
+end
+
+function T.parkedCarsScaleWithAttendance()
+	assert(MatchdayRoutes.parkedCars(0, 36) == 0, "empty ground")
+	assert(MatchdayRoutes.parkedCars(150, 36) == 4, "small crowd trickle (10% floor)")
+	assert(MatchdayRoutes.parkedCars(750, 36) == 18, "half full")
+	assert(MatchdayRoutes.parkedCars(30000, 36) == 36, "full")
+	assert(MatchdayRoutes.parkedCars(500, 0) == 0, "no bays")
+end
+
 return T

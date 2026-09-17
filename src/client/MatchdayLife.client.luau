@@ -63,6 +63,7 @@ type PlotCrowd = {
 	model: Folder,
 	fans: { Fan },
 	stewards: { Model },
+	cars: { Model },
 	near: boolean,
 	alive: boolean,
 	plotCFrame: CFrame,
@@ -214,6 +215,47 @@ local function buildStewards(crowd: PlotCrowd)
 	end
 end
 
+-- ------------------------------------------------------------------ parked cars
+
+-- G1.2: the club car park fills with supporters' cars on matchday. Bays come
+-- from MatchdayRoutes (they match PlotGrounds' bay lines); which bays fill is
+-- seeded by the plot so a ground looks the same every matchday.
+local BAYS = MatchdayRoutes.carParkBays()
+local CAR_COLOURS = {
+	Color3.fromRGB(40, 48, 62),
+	Color3.fromRGB(150, 152, 156),
+	Color3.fromRGB(128, 28, 30),
+	Color3.fromRGB(236, 236, 232),
+	Color3.fromRGB(26, 26, 28),
+	Color3.fromRGB(60, 90, 70),
+}
+local ASPHALT_TOP = 0.2 -- PlotGrounds car park asphalt
+
+local function buildCars(crowd: PlotCrowd)
+	local count = MatchdayRoutes.parkedCars(numberAttribute(crowd.folder, "Attendance"), #BAYS)
+	local plotIndex = crowd.folder:GetAttribute("PlotIndex")
+	local rng = Random.new(if type(plotIndex) == "number" then plotIndex * 131 else 7)
+	local order = {}
+	for i = 1, #BAYS do
+		table.insert(order, i)
+	end
+	for i = #order, 2, -1 do
+		local j = rng:NextInteger(1, i)
+		order[i], order[j] = order[j], order[i]
+	end
+	for k = 1, count do
+		local bay = BAYS[order[k]]
+		local model = Instance.new("Model")
+		model.Name = "ParkedCar"
+		local base = crowd.plotCFrame * CFrame.new(bay.X + rng:NextNumber(-0.6, 0.6), ASPHALT_TOP + 0.02, bay.Z)
+		local colour = CAR_COLOURS[rng:NextInteger(1, #CAR_COLOURS)]
+		part("Body", Vector3.new(8.4, 1.9, 4.2), colour, model).CFrame = base * CFrame.new(0, 0.95 + 0.35, 0)
+		part("Cabin", Vector3.new(4.6, 1.5, 3.8), Color3.fromRGB(34, 40, 48), model).CFrame = base * CFrame.new(-0.4, 1.9 + 0.35 + 0.7, 0)
+		model.Parent = crowd.model
+		table.insert(crowd.cars, model)
+	end
+end
+
 -- ------------------------------------------------------------------ spawn / despawn
 
 local function adjustFanCount(crowd: PlotCrowd)
@@ -234,6 +276,7 @@ end
 local function spawnCrowd(crowd: PlotCrowd)
 	crowd.plotCFrame = plotCFrameOf(crowd.folder)
 	buildStewards(crowd)
+	buildCars(crowd)
 	adjustFanCount(crowd)
 end
 
@@ -245,6 +288,10 @@ local function despawnCrowd(crowd: PlotCrowd)
 		steward:Destroy()
 	end
 	table.clear(crowd.stewards)
+	for _, car in crowd.cars do
+		car:Destroy()
+	end
+	table.clear(crowd.cars)
 end
 
 local function recheckCrowd(crowd: PlotCrowd, camPos: Vector3)
@@ -302,6 +349,7 @@ local function trackPlot(folder: Folder)
 		model = model,
 		fans = {},
 		stewards = {},
+		cars = {},
 		near = false,
 		alive = false,
 		plotCFrame = CFrame.identity,
