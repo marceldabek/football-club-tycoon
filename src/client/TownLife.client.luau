@@ -821,6 +821,72 @@ task.spawn(watchTown)
 
 -- ------------------------------------------------------- club-driven watcher
 
+-- ============================================================ evening lamps
+
+-- X37: street lamps glow (Neon glass) but light nothing, so evening fixtures
+-- leave the streets black. When this player's sky is dark, the nearest lamps
+-- get a PointLight on an Attachment in Terrain (cheap to add/remove, no parts).
+local LAMP_LIGHT_MAX = 16
+local LAMP_LIGHT_MAX_LOW = 6 -- TEMP, Quality "Low"
+local LAMP_LIGHT_RADIUS = 260
+local LAMP_LIGHT_RESCAN_SECONDS = 2
+local lampLights: { [Model]: Attachment } = {}
+
+local function skyIsDark(): boolean
+	local t = game:GetService("Lighting").ClockTime
+	return t >= 17.8 or t <= 6.2
+end
+
+local function newLampLight(lamp: LampEntry): Attachment
+	local a = Instance.new("Attachment")
+	a.Name = "TownLifeLampLight"
+	a.Position = lamp.ground + Vector3.new(0, 13.5, 0) + lamp.roadDir * 2.3
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(255, 214, 160)
+	light.Brightness = 1.6
+	light.Range = 32
+	light.Shadows = false
+	light.Parent = a
+	a.Parent = workspace.Terrain
+	return a
+end
+
+local function rescanLampLights()
+	local wanted: { [Model]: LampEntry } = {}
+	if skyIsDark() then
+		local camPos = currentCameraPosition()
+		local points: { Vector3 } = {}
+		for _, lamp in allLamps do
+			table.insert(points, lamp.ground)
+		end
+		local max = if isLowQuality() then LAMP_LIGHT_MAX_LOW else LAMP_LIGHT_MAX
+		for _, i in TownLifeMath.nearestIndices(points, camPos, max, LAMP_LIGHT_RADIUS) do
+			local lamp = allLamps[i]
+			if lamp.model.Parent then
+				wanted[lamp.model] = lamp
+			end
+		end
+	end
+	for model, a in lampLights do
+		if not wanted[model] then
+			a:Destroy()
+			lampLights[model] = nil
+		end
+	end
+	for model, lamp in wanted do
+		if not lampLights[model] then
+			lampLights[model] = newLampLight(lamp)
+		end
+	end
+end
+
+task.spawn(function()
+	while true do
+		rescanLampLights()
+		task.wait(LAMP_LIGHT_RESCAN_SECONDS)
+	end
+end)
+
 local function checkPhase(folder: Folder)
 	local phase = folder:GetAttribute("Phase")
 	if phase == "PreMatch" or phase == "Match" then
