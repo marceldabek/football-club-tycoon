@@ -28,6 +28,8 @@ export type Profile = {
 	club: any?, -- ClubService.serialize() shape, nil = generate fresh
 	season: any?, -- SeasonService.serialize() shape, nil = new season at tier 1
 	history: { seasons: { any } },
+	-- X223: the owner's music switch and quality level ("" = pick by device)
+	settings: { music: boolean, quality: string },
 	createdAt: number,
 	updatedAt: number,
 	saveCount: number,
@@ -73,6 +75,7 @@ function Profile.new(clubName: string, now: number?): Profile
 		club = nil,
 		season = nil,
 		history = { seasons = {} },
+		settings = { music = true, quality = "" },
 		createdAt = t,
 		updatedAt = t,
 		saveCount = 0,
@@ -215,6 +218,13 @@ function Profile.normalize(raw: any, now: number?): (Profile, boolean)
 			changed = true
 		end
 	end
+
+	-- settings are optional: saves from before X223 simply get the defaults
+	local rawSettings = if type(raw.settings) == "table" then raw.settings else {}
+	out.settings = {
+		music = if type(rawSettings.music) == "boolean" then rawSettings.music else true,
+		quality = if rawSettings.quality == "High" or rawSettings.quality == "Low" then rawSettings.quality else "",
+	}
 
 	local seasons = {}
 	if type(raw.history) == "table" and type(raw.history.seasons) == "table" then

@@ -87,6 +87,10 @@ function Session.snapshot(): Profile.Profile
 		club = ClubService.serialize(),
 		season = SeasonService.serialize(),
 		history = HistoryService.serialize(),
+		settings = {
+			music = ClubState.get("SettingMusic") ~= false,
+			quality = ClubState.get("SettingQuality") or "",
+		},
 		createdAt = createdAt,
 		updatedAt = updatedAt,
 		saveCount = saveCount,
@@ -295,6 +299,18 @@ function Session.start(owner: Player): boolean
 	HistoryService.init()
 	SeasonService.init()
 	PlotContext.onRemote(remote("ClubName"), applyName)
+	-- X223: the owner's music and quality choices, saved with the club
+	PlotContext.onRemote(remote("SaveSettings"), function(player: Player, rawMusic: unknown, rawQuality: unknown)
+		if not loaded or not ClubState.isOwner(player) then
+			return
+		end
+		if type(rawMusic) == "boolean" then
+			ClubState.set("SettingMusic", rawMusic)
+		end
+		if rawQuality == "High" or rawQuality == "Low" then
+			ClubState.set("SettingQuality", rawQuality)
+		end
+	end)
 	PlotContext.onRemote(remote("PlayMatch"), function(player: Player)
 		if loaded then
 			requestMatch(player)

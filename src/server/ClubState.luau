@@ -26,6 +26,8 @@ local PERSISTED: { [string]: boolean } = {
 	Draws = true,
 	Losses = true,
 	ClubName = true,
+	SettingMusic = true,
+	SettingQuality = true,
 }
 -- one persisted key per stand plot: Stand_East, Stand_West, ...
 for _, plot in Config.StandPlots do
@@ -162,6 +164,8 @@ function ClubState.restore(p: Profile.Profile)
 	ClubState.set("AmenityLevel", p.amenityLevel)
 	ClubState.set("MatchesPlayed", p.matchesPlayed)
 	ClubState.set("Wins", p.wins)
+	ClubState.set("SettingMusic", p.settings.music)
+	ClubState.set("SettingQuality", p.settings.quality)
 	ClubState.set("Draws", p.draws)
 	ClubState.set("Losses", p.losses)
 end

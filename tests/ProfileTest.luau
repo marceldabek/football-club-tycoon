@@ -138,4 +138,18 @@ function T.longAccentedNameTrimsByLetters()
 	assert(utf8.len(p.clubName) == Config.ClubNameMaxLength, "trimmed to the letter limit, got " .. tostring(utf8.len(p.clubName)))
 end
 
+function T.settingsDefaultAndValidate()
+	local p = Profile.new("Set FC", 1)
+	assert(p.settings.music == true and p.settings.quality == "", "settings defaults")
+	local raw: any = Profile.new("Set FC", 1)
+	raw.settings = nil
+	local out, changed = Profile.normalize(raw, 1)
+	assert(out.settings.music == true and out.settings.quality == "", "missing settings get defaults")
+	assert(not changed, "an older save without settings is not a repair")
+	raw.settings = { music = false, quality = "Ultra" }
+	out = Profile.normalize(raw, 1)
+	assert(out.settings.music == false, "music choice kept")
+	assert(out.settings.quality == "", "unknown quality dropped")
+end
+
 return T

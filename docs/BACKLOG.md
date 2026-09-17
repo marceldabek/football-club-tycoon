@@ -336,7 +336,7 @@
 - [x] X220 (13:30 done) With fewer than 11 fit players the match squad shifts position, and with 10 or fewer the presenter errors on a nil slot: fill empty XI slots from the fit reserves or keep the gap safely, 0 parts `[disk]` S
 - [x] X221 (13:34 done, needs a five-player check) A player who joined a full server can never claim a ground that frees up later: reopen the picker when a plot frees, 0 parts `[studio]` S
 - [x] X222 (13:32 done) Bus travel fades out and in even when the server refuses (not at a stop / cooldown), and the bus card stays open after walking away: close the card when far from the stop, fade only on success, 0 parts `[disk]` S
-- [ ] X223 Music and quality settings reset every session: save both in the profile and apply them on load, 0 parts `[disk]` S
+- [x] X223 (13:39 done) Music and quality settings reset every session: save both in the profile and apply them on load, 0 parts `[disk]` S
 - [x] X224 (13:32 done) The music playlist stops for good if a track fails to load (Ended never fires): add a fallback timer to skip on, 0 parts `[disk]` S
 - [x] X225 (13:27 done) The friendly summary shows a full gate × £8 next to a 25% gate share labelled "Tickets", and Back to Club plays the week fast-forward though friendlies don't advance: label it "Gate share" and skip the fast-forward, 0 parts `[disk]` S
 - [x] X226 (13:32 done) The match summary's scorer list under each crest shows only two lines, so a third goal (e.g. 78') is cut off: shrink the text or show "+1 more", 0 parts `[disk]` S

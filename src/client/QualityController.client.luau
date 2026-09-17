@@ -11,7 +11,8 @@
 -- now and later, goes through a queue that is worked through a few hundred
 -- instances per frame, so neither streaming nor a toggle causes a hitch.
 --
--- TEMP: nothing is saved; the default is picked again every session.
+-- X223: the choice is saved with the player's club (SettingQuality on the club
+-- state) and applied once the club loads; "" means pick by device.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -154,9 +155,28 @@ task.spawn(function()
 		button.Text = "Quality: " .. level
 		button.TextColor3 = if level == "High" then Theme.colors.text else Theme.colors.muted
 	end
+	local state = require(script.Parent.ClubRef).waitState()
+	local savedApplied = false
+	local function applySaved()
+		local saved = state:GetAttribute("SettingQuality")
+		if savedApplied or saved == nil then
+			return
+		end
+		savedApplied = true
+		if state:GetAttribute("OwnerUserId") == player.UserId and (saved == "High" or saved == "Low") then
+			setLevel(saved)
+			refresh()
+		end
+	end
+	state:GetAttributeChangedSignal("SettingQuality"):Connect(applySaved)
+	applySaved()
 	button.Activated:Connect(function()
 		setLevel(Quality.other(level))
 		refresh()
+		local saveSettings = ReplicatedStorage:WaitForChild("Remotes"):FindFirstChild("SaveSettings")
+		if saveSettings and saveSettings:IsA("RemoteEvent") and player:GetAttribute("ClubPlot") ~= nil then
+			saveSettings:FireServer(nil, level)
+		end
 	end)
 	refresh()
 end)
