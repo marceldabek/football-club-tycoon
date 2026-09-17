@@ -86,6 +86,7 @@ local FASCIA: { [string]: Color3 } = {
 	shop_front_corner = Color3.fromRGB(24, 64, 50),
 	shop_front_corner2 = Color3.fromRGB(24, 64, 50),
 	shop_front_supermarket = Color3.fromRGB(206, 208, 206),
+	shop_front_chippy = Color3.fromRGB(22, 86, 138), -- X101: no texture, drawn with a SurfaceGui
 }
 
 type Brick = { upper: string, side: string, body: Color3, tint: Color3? }
@@ -132,6 +133,81 @@ ShopBuilder.CORNICE_TOP = 1.2 -- the coping's top above the wall top
 ShopBuilder.TALL_ROOF_H = 6
 function ShopBuilder.roofAboveCornice(floors: number): number
 	return if floors >= 2 then ShopBuilder.TALL_ROOF_H else 0
+end
+
+-- X101 (WORLD_ROADMAP E2 lists a takeaway): about one "shops" row in
+-- TAKEAWAY_EVERY swaps its last ordinary front for a chippy. There is no
+-- uploaded texture for it (no new uploads overnight, question 12), so the
+-- front is drawn with a SurfaceGui: a fascia band, a lit window and a door.
+-- Picked from the row's position so the choice is the same every build.
+ShopBuilder.TAKEAWAY_EVERY = 5
+ShopBuilder.TAKEAWAY_KEY = "shop_front_chippy"
+function ShopBuilder.hasTakeaway(kind: string, position: Vector3): boolean
+	if kind ~= "shops" then
+		return false
+	end
+	local h = math.floor(math.abs(position.X) * 7 + math.abs(position.Z) * 13 + 0.5)
+	return h % ShopBuilder.TAKEAWAY_EVERY == 0
+end
+
+local TAKEAWAY_NAMES = { "LUNE CHIPPY", "THE GOLDEN FRY", "RIVERMERE KEBAB HOUSE", "OFFSIDE CHIPPY", "THE PLAICE" }
+local takeawayCount = 0
+
+local function drawChippy(p: BasePart, width: number, height: number)
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "Chippy"
+	gui.Face = Enum.NormalId.Left
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 20
+	gui.LightInfluence = 0.6
+	gui.Parent = p
+	local band = Instance.new("TextLabel")
+	band.BackgroundColor3 = Color3.fromRGB(245, 204, 40)
+	band.BorderSizePixel = 0
+	band.Size = UDim2.fromScale(1, 0.22)
+	band.Position = UDim2.fromScale(0, 0.04)
+	band.Font = Enum.Font.GothamBlack
+	band.TextScaled = true
+	band.TextColor3 = Color3.fromRGB(22, 86, 138)
+	-- a different name for each chippy, in build order (the same every build)
+	takeawayCount += 1
+	band.Text = TAKEAWAY_NAMES[(takeawayCount - 1) % #TAKEAWAY_NAMES + 1]
+	band.Parent = gui
+	local sub = Instance.new("TextLabel")
+	sub.BackgroundTransparency = 1
+	sub.Size = UDim2.fromScale(1, 0.08)
+	sub.Position = UDim2.fromScale(0, 0.27)
+	sub.Font = Enum.Font.GothamBold
+	sub.TextScaled = true
+	sub.TextColor3 = Color3.new(1, 1, 1)
+	sub.Text = "FISH & CHIPS · KEBABS · PIES"
+	sub.Parent = gui
+	local window = Instance.new("Frame")
+	window.BackgroundColor3 = Color3.fromRGB(252, 226, 170)
+	window.BorderSizePixel = 0
+	window.Size = UDim2.fromScale(0.56, 0.48)
+	window.Position = UDim2.fromScale(0.06, 0.42)
+	window.Parent = gui
+	for _, x in { 0.33, 0.66 } do
+		local bar = Instance.new("Frame")
+		bar.BackgroundColor3 = Color3.fromRGB(22, 60, 100)
+		bar.BorderSizePixel = 0
+		bar.Size = UDim2.fromScale(0.02, 0.78)
+		bar.Position = UDim2.fromScale(x - 0.01, 0)
+		bar.Parent = window
+	end
+	local counter = Instance.new("Frame")
+	counter.BackgroundColor3 = Color3.fromRGB(190, 196, 200)
+	counter.BorderSizePixel = 0
+	counter.Size = UDim2.fromScale(1, 0.22)
+	counter.Position = UDim2.fromScale(0, 0.78)
+	counter.Parent = window
+	local door = Instance.new("Frame")
+	door.BackgroundColor3 = Color3.fromRGB(40, 50, 60)
+	door.BorderSizePixel = 0
+	door.Size = UDim2.fromScale(0.22, 0.58)
+	door.Position = UDim2.fromScale(0.7, 0.42)
+	door.Parent = gui
 end
 
 -- Pure: ground-floor bays along local Z (centre offsets from the middle of the
@@ -294,6 +370,9 @@ function ShopBuilder.shopRow(cframe: CFrame, length: number, depth: number, heig
 		end
 	end
 	local fronts = ShopBuilder.frontsFor(k, ordinary, r, district)
+	if ordinary >= 2 and ShopBuilder.hasTakeaway(k, cframe.Position) then
+		fronts[ordinary] = ShopBuilder.TAKEAWAY_KEY
+	end
 	local used: { string } = {}
 	local nextFront = 1
 	for i, bay in bays do
@@ -308,6 +387,9 @@ function ShopBuilder.shopRow(cframe: CFrame, length: number, depth: number, heig
 		local p = block("Part", "Shopfront" .. i, Vector3.new(FACADE_T, g, bay.width), cframe * CFrame.new(frontX, g / 2, bay.centre), FASCIA[key], Enum.Material.SmoothPlastic, model, true)
 		p:SetAttribute("Front", key)
 		texture(p, Enum.NormalId.Left, key, bay.width, g)
+		if key == ShopBuilder.TAKEAWAY_KEY then
+			drawChippy(p, bay.width, g)
+		end
 	end
 	model:SetAttribute("Fronts", table.concat(used, ","))
 

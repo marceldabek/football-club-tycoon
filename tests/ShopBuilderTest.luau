@@ -149,4 +149,35 @@ function T.roofGablesAreBrick()
 	holder:Destroy()
 end
 
+-- X101: a handful of high-street rows get the chippy front, and only "shops" rows.
+function T.aFewShopRowsGetTheChippy()
+	local TownLayout = require(game:GetService("ReplicatedStorage").Shared.TownLayout)
+	local rows = 0
+	for _, district in TownLayout.DISTRICTS do
+		for _, block in district.blocks do
+			if block.use == "shops" then
+				local cf, length = ShopDresser.placement(block, TownLayout.ROADS)
+				if ShopBuilder.bayCount(length) >= 2 and ShopBuilder.hasTakeaway(block.use, cf.Position) then
+					rows += 1
+				end
+			end
+		end
+	end
+	assert(rows >= 1 and rows <= 6, "chippy rows: " .. rows)
+	assert(not ShopBuilder.hasTakeaway("pub", Vector3.new(0, 0, 0)), "only shops rows")
+	local holder = Instance.new("Folder")
+	local found = false
+	for x = 0, 40 do
+		local p = Vector3.new(x * 10, 0, 0)
+		if ShopBuilder.hasTakeaway("shops", p) then
+			local row = ShopBuilder.shopRow(CFrame.new(p), 80, 24, 24, holder, Random.new(1), "shops")
+			assert(string.find(row:GetAttribute("Fronts") :: string, ShopBuilder.TAKEAWAY_KEY, 1, true), "the row lists the chippy front")
+			found = true
+			break
+		end
+	end
+	assert(found, "some position picks the chippy")
+	holder:Destroy()
+end
+
 return T

@@ -90,6 +90,7 @@ ForecourtDresser.BOARD_TEXT = {
 	shop_front_corner = "OPEN",
 	shop_front_corner2 = "OPEN",
 	shop_front_supermarket = "OFFERS",
+	shop_front_chippy = "FISH & CHIPS",
 } :: { [string]: string }
 
 -- fronts that always get a board (the rest roll BOARD_CHANCE) and cafe seating
