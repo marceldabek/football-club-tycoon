@@ -526,6 +526,35 @@ function ForecourtDresser.postOfficeSignZ(length: number): number
 	return -(length / 2 - ForecourtDresser.POST_SIGN_END)
 end
 
+-- X109: canvas awnings over some shopfronts (RivermereCenter.png /
+-- RivermereRiverside.png): a WedgePart falling from just under the fascia to
+-- AWNING_OUT off the facade, and a valance along its low edge. Inset
+-- from each bay end so the hanging baskets on the party walls stay clear.
+-- { canvas, valance }: the canvas contrasts with the shopfront it shades
+local CREAM = Color3.fromRGB(230, 220, 194)
+ForecourtDresser.AWNINGS = {
+	shop_front_cafe = { CREAM, Color3.fromRGB(30, 44, 74) }, -- navy front
+	shop_front_deli = { Color3.fromRGB(40, 84, 60), CREAM }, -- cream front
+	shop_front_bakery = { CREAM, Color3.fromRGB(110, 30, 42) }, -- burgundy front
+	shop_front_butcher = { Color3.fromRGB(150, 32, 36), CREAM }, -- black front
+} :: { [string]: { Color3 } }
+ForecourtDresser.AWNING_OUT = 2.6
+ForecourtDresser.AWNING_TOP = 8.6
+ForecourtDresser.AWNING_DROP = 1.4
+ForecourtDresser.AWNING_END_INSET = 1.2
+local AWNING_PARTS = 2
+
+local function awning(parent: Instance, frame: CFrame, frontX: number, bay: Bay, colours: { Color3 })
+	local x = frontX - FACADE_T -- the facade parts' outer face
+	local out, drop = ForecourtDresser.AWNING_OUT, ForecourtDresser.AWNING_DROP
+	local w = bay.width - 2 * ForecourtDresser.AWNING_END_INSET
+	local y = ForecourtDresser.AWNING_TOP - drop / 2
+	-- tall face at local +Z, turned to face the facade (frame +X)
+	local canvas = part(parent, "Awning", Vector3.new(w, drop, out), frame * CFrame.new(x - out / 2, y, bay.z) * CFrame.Angles(0, math.pi / 2, 0), colours[1], Enum.Material.Fabric, false)
+	canvas.CastShadow = true
+	part(parent, "AwningValance", Vector3.new(0.1, 0.5, w), frame * CFrame.new(x - out - 0.05, ForecourtDresser.AWNING_TOP - drop - 0.2, bay.z), colours[2], Enum.Material.Fabric, false).CastShadow = false
+end
+
 local function postOfficeSign(parent: Instance, frame: CFrame, frontX: number, z: number)
 	local x = frontX - FACADE_T
 	local reach, w, h = 0.6, 2.6, 1.8
@@ -783,7 +812,7 @@ function ForecourtDresser.build(): string
 
 	-- X23: cafe seating, A-boards, hanging baskets
 	local rows = modelsByName(town:FindFirstChild("Shops"), "ShopRow")
-	local sets, boards, baskets, postBoxes = 0, 0, 0, 0
+	local sets, boards, baskets, postBoxes, awnings = 0, 0, 0, 0, 0
 	for _, rec in shops do
 		local row = modelAt(rows, rec.frame.Position)
 		local bays = baysFor(row, rec.frame, rec.length, rec.block.use)
@@ -826,6 +855,15 @@ function ForecourtDresser.build(): string
 				end
 			end
 		end
+		if g >= ForecourtDresser.AWNING_OUT then
+			for _, bay in bays do
+				local colours = bay.key and ForecourtDresser.AWNINGS[bay.key]
+				if colours and bay.width >= 8 and room(AWNING_PARTS) then
+					awning(shopsModel, rec.frame, frontX, bay, colours)
+					awnings += 1
+				end
+			end
+		end
 		if g >= 2 then
 			for _, z in ForecourtDresser.basketZs(bays, rec.length) do
 				if not room(2) then
@@ -838,7 +876,7 @@ function ForecourtDresser.build(): string
 	end
 
 	folder.Parent = town
-	return ("forecourts: %d shop forecourts, %d semi paths, %d zone slabs, %d planters, %d cafe sets, %d A-boards, %d baskets, %d parts"):format(
+	return ("forecourts: %d shop forecourts, %d semi paths, %d zone slabs, %d planters, %d cafe sets, %d A-boards, %d baskets, %d awnings, %d parts"):format(
 		#shops,
 		paths,
 		#spans,
@@ -846,6 +884,7 @@ function ForecourtDresser.build(): string
 		sets,
 		boards,
 		baskets,
+		awnings,
 		partCount
 	)
 end

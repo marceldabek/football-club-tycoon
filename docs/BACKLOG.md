@@ -221,4 +221,5 @@
 - [x] X106 (09:06 75 of 76 shop rows now have a slate roof and a ridge chimney above the stone cornice; about +150 parts) RivermereCenter.png: town-centre blocks of 3+ storeys were flat-topped behind a coping; the reference has slate roofs and chimneys throughout `[studio]` S
 - [x] X107 (09:07 both gable faces of every shop roof wedge wear the row's side brick) X106 follow-up: the gable triangles of shop roofs are slate-coloured (TerraceBuilder textures its gables with brick; ShopBuilder.pitchedRoof only textures the slope) `[studio]` S
 - [x] X108 (09:09 cream parasols over the 3 pub-front table sets, 3 parts each) RivermereCenter.png: parasols over the tables outside the Riverside Arms; ours had bare tables `[studio]` S
+- [x] X109 (09:13 27 canvas awnings with valances over café, deli, bakery and butcher fronts, 2 parts each) RivermereCenter.png / RivermereRiverside.png: canvas awnings over shopfronts; ours had none `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

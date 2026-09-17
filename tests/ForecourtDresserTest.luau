@@ -159,4 +159,18 @@ function T.pubParasolClearsTheFacadeAndChairs()
 	holder:Destroy()
 end
 
+-- X109: awnings clear heads and the party-wall hanging baskets, and pubs (which
+-- get parasols) have none.
+function T.awningsClearHeadsBasketsAndPubParasols()
+	assert(ForecourtDresser.AWNING_TOP - ForecourtDresser.AWNING_DROP >= 6.5, "low edge above head height")
+	assert(ForecourtDresser.AWNING_END_INSET >= 0.7 + 0.3, "inset past a 1.4-wide basket on the party wall")
+	assert(ForecourtDresser.AWNINGS["shop_front_pub"] == nil, "pub tables have parasols instead")
+	assert(ForecourtDresser.AWNING_OUT <= 2.6, "stays over the narrowest forecourt that gets one")
+	local n = 0
+	for _ in ForecourtDresser.AWNINGS do
+		n += 1
+	end
+	assert(n >= 3, "a few shop kinds get awnings")
+end
+
 return T
