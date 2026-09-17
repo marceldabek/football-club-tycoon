@@ -39,3 +39,18 @@ Small Hatchback Cars (toy look), Sport Stadium Seats (924 red blocks), Lada hatc
 ## Provenance notes
 - The white "Ford Transit" and "Fiesta 2017" meshes look like conversions of third-party car models. Fine for the review slice; replace with licensed or generated cars before release.
 - The Letaij oak pack's creator re-uploads Sketchfab models in other listings; treat the oaks the same way.
+
+## Town kit (overnight 2026-09-17) — `ServerStorage.Kit.Town`
+
+Free Creator Store models, scripts/sounds/click detectors removed on insert. Checked against
+`RiveremereWestdale.png` / `RivermereCenter.png`.
+
+| Name in kit | Asset id | Creator | Parts | Size (studs) | Notes |
+|---|---|---|---|---|---|
+| TerraceRowVictorian | 2974339114 | RiverBL0X | 166 | 23 × 25 × 128 | Victorian two-up two-down red-brick row, slate roof, chimneys, navy doors; row runs along its Z, doors face its −X. Fits the 130-long terrace blocks in TownLayout. Older Roblox brick texture, no bay windows. |
+| ChurchSpire | 7976643711 | esthergriffiths ("St. P#ter's Church - Hereford") | 238 | 163 × 202 × 77 | Brick church with a tall broach spire and pinnacles; 1 script removed. White porch/gate parts look unfinished. Landmark spire (TownLayout height 130: scale ~0.65 or keep). |
+| LampVictorian | 8408243710 | visionpsyche7 | 36 | 4 × 20 × 2 | Black Victorian gas lamp post, no lights inside. |
+
+Rejected: UK Block of 3 Houses 11953059993 (yellow-brick new-build, 1,443 parts), British/UK Mesh House
+9768805544 / 9763582693 (a box with photo decals), Church model 12932669640 (2,661 parts, 39 lights),
+Victorian Street Lamp Post Decor Pack 123430227900506 (2 scripts, tiny).
