@@ -105,7 +105,12 @@ def strip(source: str) -> str:
         if not c.isspace():
             out.append(c)
         i += 1
-    return "".join(out)
+    code = "".join(out)
+    # A trailing comma before a closing brace or bracket is a formatting choice
+    # (Studio's copies are condensed), not a difference in the code.
+    for _ in range(3):
+        code = code.replace(",}", "}").replace(",)", ")")
+    return code
 
 
 def fnv1a(text: str) -> int:
@@ -232,7 +237,12 @@ local function strip(source)
 		end
 		i += 1
 	end
-	return table.concat(out)
+	local code = table.concat(out)
+	for _ = 1, 3 do
+		code = string.gsub(code, ",}", "}")
+		code = string.gsub(code, ",%)", ")")
+	end
+	return code
 end
 
 -- 16-bit halves: h * 16777619 overflows a double's 53 bits of integer, which
