@@ -130,4 +130,23 @@ function T.tallRowsGetARoofAboveTheCornice()
 	holder:Destroy()
 end
 
+-- X107: roof gables wear the walls' brick, not bare slate.
+function T.roofGablesAreBrick()
+	local holder = Instance.new("Folder")
+	local row = ShopBuilder.shopRow(CFrame.new(), 60, 24, 36, holder, Random.new(5), "shops")
+	local wedge = row:FindFirstChild("RoofBack") :: BasePart
+	local faces = {}
+	for _, t in wedge:GetChildren() do
+		if t:IsA("Texture") then
+			faces[t.Face] = t.Name
+		end
+	end
+	assert(faces[Enum.NormalId.Top] == "slate", "slate slope")
+	for _, face in { Enum.NormalId.Left, Enum.NormalId.Right } do
+		local name = faces[face]
+		assert(name == "brick" or name == "brick_buff", tostring(face) .. " gable is " .. tostring(name))
+	end
+	holder:Destroy()
+end
+
 return T

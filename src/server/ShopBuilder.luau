@@ -257,13 +257,16 @@ local function stack(cframe: CFrame, x: number, y0: number, h: number, z: number
 end
 
 -- Two slate wedges meeting over the middle of the body (as TerraceBuilder.row).
-local function pitchedRoof(cframe: CFrame, depth: number, wallH: number, roofH: number, length: number, model: Model)
+local function pitchedRoof(cframe: CFrame, depth: number, wallH: number, roofH: number, length: number, model: Model, brick: Brick)
 	local half = depth / 2 + EAVE + FACADE_T
 	for _, side in { -1, 1 } do
 		local yaw = if side < 0 then math.pi / 2 else -math.pi / 2
 		local cf = cframe * CFrame.new(side * half / 2, wallH + roofH / 2, 0) * CFrame.Angles(0, yaw, 0)
 		local w = block("WedgePart", if side < 0 then "RoofFront" else "RoofBack", Vector3.new(length + 2 * EAVE, roofH, half), cf, SLATE, Enum.Material.Slate, model, true)
 		texture(w, Enum.NormalId.Top, "slate", 12, 12)
+		-- X107: the triangular Left/Right faces are the gables; brick like the walls
+		texture(w, Enum.NormalId.Left, brick.side, BRICK_TILE, BRICK_TILE, brick.tint)
+		texture(w, Enum.NormalId.Right, brick.side, BRICK_TILE, BRICK_TILE, brick.tint)
 	end
 end
 
@@ -324,14 +327,14 @@ function ShopBuilder.shopRow(cframe: CFrame, length: number, depth: number, heig
 	local n = #bays
 	local stackZ = if n >= 2 then bays[math.floor(n / 2)].centre + bays[math.floor(n / 2)].width / 2 else 0
 	if roofH > 0 then
-		pitchedRoof(cframe, depth, wallH, roofH, length, model)
+		pitchedRoof(cframe, depth, wallH, roofH, length, model, brick)
 		stack(cframe, 0, wallH + roofH - 2.5, 5.5, stackZ, stackColor, model)
 	else
 		coping(cframe, depth, wallH, length, COPING, model)
 		local above = ShopBuilder.roofAboveCornice(floors)
 		if above > 0 then
 			local base = wallH + ShopBuilder.CORNICE_TOP
-			pitchedRoof(cframe, depth, base, above, length, model)
+			pitchedRoof(cframe, depth, base, above, length, model, brick)
 			stack(cframe, 0, base + above - 2.5, 5.5, stackZ, stackColor, model)
 		elseif floors >= 1 then
 			stack(cframe, depth / 4, wallH + 1, 4.5, stackZ, stackColor, model)
