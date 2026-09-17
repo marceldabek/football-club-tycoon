@@ -291,6 +291,14 @@ function T.driveCarFitShrinksTheKitCarOntoTheDrive()
 	assert(EstateDresser.driveCarFit(kit, 10, 12) == nil, "too short: block car")
 end
 
+function T.narrowDrivesGetNoBlockCar()
+	assert(EstateDresser.wantsBlockCar(true, nil, 5.1) == false, "5.1 wide: empty drive")
+	assert(EstateDresser.wantsBlockCar(true, nil, 3) == false, "3 wide: empty drive")
+	assert(EstateDresser.wantsBlockCar(true, nil, 8) == true, "8 wide, kit car too big: block car")
+	assert(EstateDresser.wantsBlockCar(true, 0.9, 10) == false, "kit car fitted: no block car")
+	assert(EstateDresser.wantsBlockCar(false, nil, 10) == false, "not picked for a car")
+end
+
 function T.totemSpotIsOnTheVergeNotTheRoadOrABlock()
 	local roads: { TownLayout.Road } = {
 		{ name = "Test Road", kind = "main", width = 20, points = { Vector3.new(-200, 0, 0), Vector3.new(200, 0, 0) } },

@@ -45,7 +45,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 4. Walking from the market square to a club takes about 2–3 minutes (70–100 s sprinting); the buses cover it in seconds. Is that the scale you want? *Rec: keep it for now, because the buses and the "Go to my club" button carry most trips. Shrink the plot ring by ~25% only if playtesters walk rather than bus.*
 5. Friendlies (I3.1), all TEMP in `src/shared/Friendly.luau`: (a) the challenged club is the home side, (b) an invite lasts 45 s, and you can have one outgoing at a time, (c) the home club gets 25% of a full league gate, and the away club gets nothing, (d) no injuries, no player development, and friendlies don't count in W/D/L or matches played. *Rec: keep all four. A friendly is a social extra, so it shouldn't be a better money route than league matches.*
 6. Trades (I4.1), TEMP in `src/shared/Trade.luau`: up to 3 players each way; cash moves one way and only alongside a player; both squads stay within 14–20 and keep a goalkeeper; an offer lasts 60 s; traded players keep their age, ratings, injuries, apps and goals. There are no value checks, so a lopsided trade is allowed (s27: no anti-abuse limits for now). *Rec: keep these. Add a "fair value" warning, not a block, once transfer values are tuned.*
-7. Semis driveways are mostly 5.1 studs wide (76 of 119) or about 3 wide (30). A car sized for the characters is about 9–10 studs wide (the street kit cars are 9.8), so narrow drives can only hold toy-sized cars (DriveCar_small_1). *Rec: drop cars from drives under 8 studs now (no layout change), and widen the gap between pairs to 11 studs when the estates are next reworked, accepting roughly one pair fewer per long row.*
+7. Semis driveways are mostly 5.1 studs wide (76 of 119) or about 3 wide (30). A car sized for the characters is about 9–10 studs wide (the street kit cars are 9.8), so narrow drives can only hold toy-sized cars (DriveCar_small_1). *Done as TEMP at 05:43: drives under 8 studs now stay empty (`EstateDresser.DRIVE_CAR_MIN_WIDTH`). Rec: keep that, and widen the gap between pairs to 11 studs when the estates are next reworked, accepting roughly one pair fewer per long row.*
 8. Club murals (H1.2) are TEMP: one mural once a club has played 3 matches, a second from tier 2, on the terrace gable nearest the market square, shown only on that player's screen. *Rec: keep it client-side, but tie later murals to real milestones (first promotion, first title) so they read as achievements.*
 
 **Buy list for Marcel**
@@ -482,3 +482,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshot** LampBanner_1: MDINO24 FC banner beside the brick turnstiles.
 - Boundary wall still open: the corner gap either side of the block holds the walkway and the fans' routes, so I left it rather than risk blocking walkers.
 - RunAll 350/350.
+
+### 2026-09-17 05:43 — No toy cars on narrow driveways (X44)
+- Question 7's recommendation, done as TEMP: `EstateDresser.wantsBlockCar` (pure, 1 new test) only gives a drive the primitive block car when it is at least `DRIVE_CAR_MIN_WIDTH` (8) across. Before, the 5.1- and 3-wide drives held undersized cars. The town now has 2 kit cars on the 10.2-wide drives and 117 empty drives. Widening the gap between pairs is left for the estate rework, because it changes the layout.
+- **Screenshot** SemisNoToyCars_1: a Northfields semis street with clear drives and pink flower borders.
+- RunAll 351/351.

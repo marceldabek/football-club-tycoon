@@ -88,6 +88,7 @@ end
 -- the block car stays.
 local DRIVE_CAR_KIT = "HatchbackOrange"
 local DRIVE_CAR_MIN_SCALE = 0.7 -- TEMP
+EstateDresser.DRIVE_CAR_MIN_WIDTH = 8 -- TEMP (X44): narrower drives get no car at all
 local DRIVE_TOP = 0.35 -- EstateBuilder's driveway slab top; tyres sit 0.02 above it (no shared plane)
 
 -- Pure: scale and yaw for a kit car of `footprint` on a drive `width` across
@@ -101,6 +102,14 @@ function EstateDresser.driveCarFit(footprint: Vector3, width: number, length: nu
 		return nil, yaw
 	end
 	return scale, yaw
+end
+
+-- Pure (X44, question 7, TEMP): whether a drive gets the primitive block car.
+-- Only when it was picked for a car, the kit car didn't fit, and the drive is
+-- at least DRIVE_CAR_MIN_WIDTH across; a narrower drive stays empty rather
+-- than holding a toy-sized car.
+function EstateDresser.wantsBlockCar(withCar: boolean, kitScale: number?, width: number): boolean
+	return withCar and kitScale == nil and width >= EstateDresser.DRIVE_CAR_MIN_WIDTH
 end
 
 -- X54: an estate entrance totem ("INDUSTRIAL ESTATE / Units / Deliveries /
@@ -567,7 +576,8 @@ function EstateDresser.build(): string
 					if footprint then
 						scale, yaw = EstateDresser.driveCarFit(footprint, driveWidth, driveLength)
 					end
-					local drivewayModel = EstateBuilder.driveway(cf * centre, driveWidth, driveLength, m, withCar and scale == nil, driveRng)
+					local blockCar = EstateDresser.wantsBlockCar(withCar, scale, driveWidth)
+					local drivewayModel = EstateBuilder.driveway(cf * centre, driveWidth, driveLength, m, blockCar, driveRng)
 					if footprint and scale then
 						-- nose 1 stud inside the road end, like the block car
 						local carLength = math.max(footprint.X, footprint.Z) * scale
