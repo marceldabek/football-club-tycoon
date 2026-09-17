@@ -405,8 +405,12 @@ function Squad.afterMatch(players: { Player }, xi: { number }, scorerIds: { numb
 			end
 		end
 
-		if p.age < 24 and p.overall < p.potential then
-			local chance = Config.DevelopChance * developMul * (if played[p.id] then 1 else 0.5)
+		-- X292: under-24s come on quickly, players in their prime slowly (and
+		-- only with a coach worth the name), 28-30 plateau, 31+ decline.
+		local growing = p.overall < p.potential and p.age <= Config.PeakTo
+		if growing then
+			local base = if p.age < Config.PeakFrom then Config.DevelopChance else Config.DevelopChancePeak
+			local chance = base * developMul * (if played[p.id] then 1 else 0.5)
 			if rng:NextNumber() < chance then
 				p.overall += 1
 				table.insert(news, ("%s improved to %d OVR"):format(p.name, p.overall))

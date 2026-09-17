@@ -175,6 +175,12 @@ Config.SquadMin = 14
 Config.BenchSize = 5
 Config.InjuryChance = 0.04 -- per starter per match
 Config.DevelopChance = 0.2 -- per eligible player per match, scaled by coach
+-- X292: a £10,000 Pro Coach used to stop paying the day the youngsters turned
+-- 24, because only under-24s could improve. Players in their prime still get
+-- better, just slowly, and it is the coach that makes the difference. TEMP.
+Config.DevelopChancePeak = 0.06 -- per player aged PeakFrom..PeakTo per match
+Config.PeakFrom = 24
+Config.PeakTo = 27
 Config.DeclineChance = 0.06 -- per player aged 31+ per match
 
 -- Level 0 = no coach. Index = level + 1.

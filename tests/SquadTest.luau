@@ -498,4 +498,29 @@ function T.milestonesAreAnnouncedOnTheMatchTheyFall()
 	assert(not string.find(quiet, "appearance", 1, true), "a milestone should only be announced once")
 end
 
+-- X292: a coach has to keep paying past a player's 24th birthday.
+function T.peakAgePlayersStillImproveWithACoach()
+	local function seasonsOfDevelopment(coachLevel: number, age: number): number
+		local players = Squad.generate(41, 45)
+		local lineup = Squad.autoLineup(players)
+		local watched = Squad.byId(players)[lineup.xi[8]]
+		watched.age = age
+		watched.overall = 50
+		watched.potential = 70
+		local rng = Random.new(42)
+		for _ = 1, 40 do
+			Squad.afterMatch(players, lineup.xi, {}, coachLevel, rng)
+			watched.injured = 0 -- injuries are not what this test is about
+		end
+		return watched.overall - 50
+	end
+	local withCoach = seasonsOfDevelopment(3, 25)
+	local without = seasonsOfDevelopment(0, 25)
+	assert(withCoach > 0, "a player in his prime never improved even with a Pro Coach")
+	assert(withCoach > without, "the coach should make the difference in the peak years")
+	local young = seasonsOfDevelopment(3, 19)
+	assert(young > withCoach, "a 19-year-old should still come on faster than a 25-year-old")
+	assert(seasonsOfDevelopment(3, 29) == 0, "28-30 is a plateau, not a growth window")
+end
+
 return T

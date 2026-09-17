@@ -1616,3 +1616,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Verified in play: a 4-2 win gave "MAN OF THE MATCH   Theo Zelinski  ·  2 goals" above the ELSEWHERE THIS WEEK block (screenshot). Both Rafa Kettering and Theo Zelinski scored twice, so the tie went to the higher-rated of the two, as the rule says.
 - RunAll 455 passed, 0 failed (four new Squad tests: the scorer takes it, a goalless clean sheet is the keeper's, a 0-3 still names the best player, and a milestone is announced on the match it falls and not again the week after).
 
+### 2026-09-17 17:32 — A coach that keeps paying (X292)
+- `Squad.afterMatch` only developed players under 24, so a £10,000 Pro Coach stopped earning its money the moment the youngsters had a birthday: a squad aged 24-30 could never improve, whatever the club spent, and buying prospects was the only route up.
+- Players now improve in their prime too, slowly: `Config.DevelopChancePeak` 0.06 a match for ages 24-27 (TEMP) against 0.2 for under-24s, both scaled by the coach's multiplier and halved for anyone who did not play. 28-30 is a plateau and 31+ still declines, so age still matters and the shape of a career is unchanged.
+- With a Pro Coach (x3) that is about 1.8 OVR a season for a 25-year-old who plays every match, against 0.6 with no coach - the coach is now the difference in the years a squad actually spends at its peak.
+- RunAll 456 passed, including a new test that runs 40 matches at each age and asserts the ordering: a 25-year-old improves, improves more with a coach than without, still less than a 19-year-old, and a 29-year-old not at all.
+
