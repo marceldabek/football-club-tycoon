@@ -30,26 +30,26 @@ local ShopBuilder = {}
 
 -- The lead fills these in after uploading (ids land in assets/kit/_export/asset_ids_textures.json).
 ShopBuilder.TEXTURES = {
-	shop_front_cafe = "rbxassetid://0", -- The Daily Bean, navy
-	shop_front_deli = "rbxassetid://0", -- The Little Deli, cream
-	shop_front_estate = "rbxassetid://0", -- Hollis & Co., bottle green
-	shop_front_pharmacy = "rbxassetid://0", -- Lune Pharmacy, teal
-	shop_front_bakery = "rbxassetid://0", -- Rivermere Bakery, burgundy
-	shop_front_butcher = "rbxassetid://0", -- Fletcher's Butchers, black
-	shop_front_barber = "rbxassetid://0", -- Sharp Cuts, charcoal
-	shop_front_charity = "rbxassetid://0", -- Rivermere Hospice Shop, plum
-	shop_front_newsagent = "rbxassetid://0", -- Corner News, red
-	shop_front_pub = "rbxassetid://0", -- The Riverside Arms
-	shop_front_corner = "rbxassetid://0", -- Westdale Stores
-	shop_front_corner2 = "rbxassetid://0", -- Northfields Stores
-	shop_front_supermarket = "rbxassetid://0", -- Lune Fresh (1024x512)
-	upper_floors_a = "rbxassetid://0", -- red brick, one storey repeated twice
-	upper_floors_b = "rbxassetid://0", -- buff brick
-	flats_facade = "rbxassetid://0",
-	civic_facade = "rbxassetid://0",
-	brick = "rbxassetid://0", -- orange-red brick_plain.png from make_facades.py (same image as TerraceBuilder.TEXTURES.brick)
-	brick_buff = "rbxassetid://0", -- brick_buff.png
-	slate = "rbxassetid://0", -- slate_roof.png from make_facades.py (same image as TerraceBuilder.TEXTURES.slate)
+	shop_front_cafe = "rbxassetid://75968871689910", -- The Daily Bean, navy
+	shop_front_deli = "rbxassetid://125966450676584", -- The Little Deli, cream
+	shop_front_estate = "rbxassetid://101430233032563", -- Hollis & Co., bottle green
+	shop_front_pharmacy = "rbxassetid://133121386497645", -- Lune Pharmacy, teal
+	shop_front_bakery = "rbxassetid://89445022795879", -- Rivermere Bakery, burgundy
+	shop_front_butcher = "rbxassetid://134088458651083", -- Fletcher's Butchers, black
+	shop_front_barber = "rbxassetid://139108695670061", -- Sharp Cuts, charcoal
+	shop_front_charity = "rbxassetid://81242761458871", -- Rivermere Hospice Shop, plum
+	shop_front_newsagent = "rbxassetid://94752055262529", -- Corner News, red
+	shop_front_pub = "rbxassetid://139146694406866", -- The Riverside Arms
+	shop_front_corner = "rbxassetid://109483842768923", -- Westdale Stores
+	shop_front_corner2 = "rbxassetid://100205814389853", -- Northfields Stores
+	shop_front_supermarket = "rbxassetid://102441765549781", -- Lune Fresh (1024x512)
+	upper_floors_a = "rbxassetid://74293391117844", -- red brick, one storey repeated twice
+	upper_floors_b = "rbxassetid://99346607268832", -- buff brick
+	flats_facade = "rbxassetid://131820910991808",
+	civic_facade = "rbxassetid://111823681530486",
+	brick = "rbxassetid://74174126209346", -- orange-red brick_plain.png from make_facades.py (same image as TerraceBuilder.TEXTURES.brick)
+	brick_buff = "rbxassetid://74530769815937", -- brick_buff.png
+	slate = "rbxassetid://77485834711521", -- slate_roof.png from make_facades.py (same image as TerraceBuilder.TEXTURES.slate)
 } :: { [string]: string }
 
 ShopBuilder.GROUND_FLOOR = 12
