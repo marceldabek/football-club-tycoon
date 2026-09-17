@@ -18,3 +18,6 @@ Thumbs.db
 assets/kit/*
 !assets/kit/MANIFEST.md
 !assets/kit/README.md
+
+# Open Cloud key for tools/upload_kit.py (never commit)
+.roblox_api_key
