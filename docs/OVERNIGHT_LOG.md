@@ -31,7 +31,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 **Reverted:** none.
 
 **Known bugs**
-1. Up to 02:20 Studio playtests used your real DataStore club. Agent tests added matches, cash and one North-stand level to Dino FC (it went from 7 to 8 matches tonight). Since 02:20 Studio uses a separate store (see question 1).
+1. Up to 02:20 Studio playtests used your real DataStore club. Agent tests added matches, cash and one North-stand level to Dino FC (it went from 7 to 8 matches tonight). Since 02:20 Studio uses a separate store (see question 1). The Studio-store test club (MDino24 FC) had matches played and, at 07:27, the West bleachers built by agent tests; wipe it with DebugRun `wipe` if you want a clean Studio club.
 2. Studio holds condensed copies of the new modules (comments trimmed). Reconnect Rojo to overwrite them from disk.
 3. Season-end fast-forward: the server rollover is verified; the client 10 s sweep has not been watched.
 4. Studio holds hand-pasted copies of every module merged tonight (comments stripped). Disk is the source of truth; reconnect Rojo before editing in Studio (X4/X34). Since 05:20, each change was written to disk and pasted into Studio separately, and the tests ran against the Studio copies. No Luau compiler is installed locally, so the disk copies were only checked by scanning for broken string literals and escapes, which were clean at 06:45. **After reconnecting Rojo, run RunAll once** to confirm the disk code compiles.
