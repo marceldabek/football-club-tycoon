@@ -1124,6 +1124,7 @@ end
 
 local STEP_DEPTH = 3 -- one row of seats, ~1.1 m at 2.75 studs/m
 local STAND_X0 = 0.6 -- stands start just behind the perimeter wall, which is their front
+local STAND_BRICK = Color3.fromRGB(150, 84, 62) -- X134: the turnstiles' brick
 
 -- One entry per Config.StandLevels level. `lengthFrac` is of the plot's max.
 local STAND_SPECS = {
@@ -1367,8 +1368,9 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 			wedge.Anchored = true
 			wedge.Size = Vector3.new(0.8, wallH, wedgeD)
 			wedge.CFrame = frame * CFrame.new(STAND_X0 + wedgeD / 2, DECK_Y + wallH / 2, zEnd) * CFrame.Angles(0, math.pi / 2, 0)
-			wedge.Color = Color3.fromRGB(200, 200, 200)
-			wedge.Material = Enum.Material.Concrete
+			-- X134: brick like the turnstiles and the town (Q25: the kit sets the style)
+			wedge.Color = STAND_BRICK
+			wedge.Material = Enum.Material.Brick
 			wedge.Parent = stand
 		end
 	end
@@ -1377,19 +1379,26 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 		local length = geo.length
 		local wallH = stepHeight * rows + 3
 		local backX = STAND_X0 + depth + 0.5
-		local pale = Color3.fromRGB(200, 200, 200)
+		-- X134: brick back walls with a stone coping and a club-colour band on
+		-- the outside, like the town's brick (was pale concrete)
+		local brick = STAND_BRICK
 		-- The back wall parts either side of the tunnel corridor, which runs
 		-- out through here, and carries on as a lintel above it.
 		local wallRuns = { { -length / 2, length / 2 } }
 		if #geo.spans == 2 then
 			wallRuns = { { -length / 2, -TUNNEL_OUT }, { TUNNEL_OUT, length / 2 } }
 			lbox("BackWall", Vector3.new(1, DECK_Y + wallH - geo.crossY, TUNNEL_OUT * 2),
-				Vector3.new(backX, (geo.crossY + DECK_Y + wallH) / 2, 0), pale, Enum.Material.Concrete)
+				Vector3.new(backX, (geo.crossY + DECK_Y + wallH) / 2, 0), brick, Enum.Material.Brick)
 		end
 		for _, run in wallRuns do
 			lbox("BackWall", Vector3.new(1, wallH, run[2] - run[1]), Vector3.new(backX, DECK_Y + wallH / 2, (run[1] + run[2]) / 2),
-				pale, Enum.Material.Concrete)
+				brick, Enum.Material.Brick)
+			lbox("BackBand", Vector3.new(0.1, 1, run[2] - run[1] - 0.2), Vector3.new(backX + 0.55, DECK_Y + wallH - 2, (run[1] + run[2]) / 2),
+				Config.HomeKit, Enum.Material.SmoothPlastic)
 		end
+		-- coping sunk 0.1 into the wall top, overhanging both faces by 0.2
+		lbox("BackCoping", Vector3.new(1.4, 0.5, length + 0.4), Vector3.new(backX, DECK_Y + wallH + 0.15, 0),
+			Color3.fromRGB(206, 196, 176), Enum.Material.Concrete)
 
 		if spec.roof then
 			-- cantilever roof over the seats, held by pillars along the back wall
