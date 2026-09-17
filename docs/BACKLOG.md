@@ -30,34 +30,34 @@
 
 ## Phase B — Clubs become plots
 - [x] B1.1 `PlotRegistry` pure module: 4 plots, `claim(userId, plot)`, `release(userId)`, `freePlots()`, `plotOf(userId)`, picker cycling `next/prev` over free plots, with tests `[disk]` S
-- [ ] B1.2 Plot-relative club: `WorldBuilder` builds the club into `workspace.Plots.PlotN.Club` then pivots it to the plot CFrame; everything that used world coordinates (presenter, crowd, cameras, spawn, scoreboard) goes through the plot CFrame; test at an offset **and** rotated plot; loop still works `[studio]` L → split:
-  - [ ] B1.2a Server builds the club at plot 1's CFrame (offset, no rotation); spawn, prompts, crowd OK `[studio]` M
-  - [ ] B1.2b Client presenter/camera/footballers read the plot CFrame attribute and transform Pitch coords `[studio]` M
-  - [ ] B1.2c Rotated plot (90°) passes a full match visually `[studio]` S
-- [ ] B2.1 Per-club services: each owner gets their own ClubState folder (`ReplicatedStorage.Clubs.<userId>`), match, upgrades, season, history, save; server remotes route by player; clients read `player:GetAttribute("ClubFolder")` `[studio]` L → split:
-  - [ ] B2.1a Design note `docs/PLOTS.md`: how services become per-club (module instancing vs context tables), remotes routing, what stays global `[disk]` S
-  - [ ] B2.1b Server: per-club service instances, save per player, loop works for one player `[studio]` M
+- [x] B1.2 Plot-relative club: `WorldBuilder` builds the club into `workspace.Plots.PlotN.Club` then pivots it to the plot CFrame; everything that used world coordinates (presenter, crowd, cameras, spawn, scoreboard) goes through the plot CFrame; test at an offset **and** rotated plot; loop still works `[studio]` L → split:
+  - [x] B1.2a Server builds the club at plot 1's CFrame (offset, no rotation); spawn, prompts, crowd OK `[studio]` M
+  - [x] B1.2b Client presenter/camera/footballers read the plot CFrame attribute and transform Pitch coords `[studio]` M
+  - [x] B1.2c Rotated plot (90°) passes a full match visually `[studio]` S
+- [~] B2.1 Per-club services: each owner gets their own ClubState folder (`ReplicatedStorage.Clubs.<userId>`), match, upgrades, season, history, save; server remotes route by player; clients read `player:GetAttribute("ClubFolder")` `[studio]` L → split:
+  - [x] B2.1a Design note `docs/PLOTS.md`: how services become per-club (module instancing vs context tables), remotes routing, what stays global `[disk]` S
+  - [x] B2.1b Server: per-club service instances, save per player, loop works for one player `[studio]` M
   - [ ] B2.1c Clients bind to their own club folder; visitors see other clubs read-only `[studio]` M
   - [ ] B2.1d Two-client Studio test (Players = 2): both play a match at the same time `[studio]` M
 - [ ] B2.2 Plot picker on load: camera flies between free plots (for-sale lots), Prev / Next / Choose buttons; choosing claims the plot, builds the club, spawns the player in their office `[studio]` M dep: B1.1, B2.1b
-- [ ] B2.3 Despawn on leave: flush save, destroy the club model, release the plot, rebuild the for-sale lot `[studio]` S dep: B2.1b
+- [x] B2.3 Despawn on leave: flush save, destroy the club model, release the plot, rebuild the for-sale lot `[studio]` S dep: B2.1b
 - [x] B3.1 Save lock: session lock record (`lockedBy jobId`, `lockedAt`), new server waits (bounded, TEMP 30 s) then steals a stale lock; old server closes on a newer lock; pure lock logic tested against the memory backend `[disk]` M
 - [ ] B3.2 Wire the lock into load/flush/leave; Studio memory-backend test `[studio]` S dep: B3.1, B2.1b
-- [ ] B4.1 For-sale lot: grass pad, "FOR SALE — Rivermere Borough Council" sign, a few trees and rocks, low fence posts; built from code per free plot `[studio]` S
+- [x] B4.1 For-sale lot: grass pad, "FOR SALE — Rivermere Borough Council" sign, a few trees and rocks, low fence posts; built from code per free plot `[studio]` S
 - [ ] B4.2 "Go to my club" HUD button: teleports the character to their office spawn (cooldown TEMP 5 s, blocked mid-match? no — allowed) `[studio]` S dep: B2.1c
 
 ## Phase C — Town greybox
-- [ ] C1.1 `docs/TOWN_PLAN.md`: master plan from `RivermereAImap.png` scaled down (TEMP numbers): ring road + roundabouts, River Lune W→E with 3 road bridges, railway NW with station + viaduct over the river, town centre market square, Northfields (N), Westdale (SW), Riverside + Riverside Park (E), industrial estate (W), community sports centre (S), 4 plot sites, walking times `[disk]` M
-- [ ] C1.2 `src/shared/TownLayout.luau` layout data (roads as polylines with widths, river polyline, bridges, rail line, district blocks, plot CFrames, bus stops, landmarks) + `TownLayoutTest` (plots don't overlap roads/river/each other, every plot touches the ring road, bridges cross the river) `[disk]` M dep: C1.1
+- [x] C1.1 `docs/TOWN_PLAN.md`: master plan from `RivermereAImap.png` scaled down (TEMP numbers): ring road + roundabouts, River Lune W→E with 3 road bridges, railway NW with station + viaduct over the river, town centre market square, Northfields (N), Westdale (SW), Riverside + Riverside Park (E), industrial estate (W), community sports centre (S), 4 plot sites, walking times `[disk]` M
+- [x] C1.2 `src/shared/TownLayout.luau` layout data (roads as polylines with widths, river polyline, bridges, rail line, district blocks, plot CFrames, bus stops, landmarks) + `TownLayoutTest` (plots don't overlap roads/river/each other, every plot touches the ring road, bridges cross the river) `[disk]` M dep: C1.1
 - [ ] C2.1 `src/server/TownBuilder.luau` greybox: terrain ground, river carved with water, roads (asphalt parts per segment), pavements, bridges, rail line + embankment, district building volumes (grey blocks), plot pads `[studio]` M dep: C1.2
 - [ ] C2.2 Walk test: spawn → centre → each plot, timings logged; sightlines to spire/viaduct screenshot `[studio]` S dep: C2.1
 - [ ] C3.1 StreamingEnabled on (place setting via code check + note), models grouped per district with `ModelStreamingMode`, part/triangle counts per district logged `[studio]` S dep: C2.1
 - [ ] C3.2 Quality setting (Low/High) client toggle: hides decorative props and far detail on Low `[studio]` M dep: C3.1
 
 ## Phase D — Kit
-- [ ] D1.1 Free-model hunt (Creator Store via lead, CC0 via subagent): terraced houses, shopfronts, lamp posts, bus shelter, benches, bins, planters, railings, trees, cars, station and industrial pieces; shortlist with ids/links/licence in `docs/FREE_ASSETS.md` `[disk]` M
+- [x] D1.1 Free-model hunt (Creator Store via lead, CC0 via subagent): terraced houses, shopfronts, lamp posts, bus shelter, benches, bins, planters, railings, trees, cars, station and industrial pieces; shortlist with ids/links/licence in `docs/FREE_ASSETS.md` `[disk]` M
 - [ ] D1.2 Insert + strip + log keepers into `ServerStorage.Kit` and `assets/kit/MANIFEST.md` `[studio]` M dep: D1.1
-- [ ] D4.1 `src/server/KitPlacer.luau`: place a kit model by name at a CFrame with ground snap, random yaw/colour variant within rules, primitive fallback when the kit model is missing (fresh clone of repo still builds) `[disk]` S
+- [x] D4.1 `src/server/KitPlacer.luau`: place a kit model by name at a CFrame with ground snap, random yaw/colour variant within rules, primitive fallback when the kit model is missing (fresh clone of repo still builds) `[disk]` S
 
 ## Phase E — Districts (terraced streets first, per Q4)
 - [ ] E3.1 Terraced street 1 beside the town centre: 12 houses (MEH kit), front walls, pavements, lamp posts, bins, parked cars; layout data + builder; reference `RiveremereWestdale.png`/`RivermereNorthfields.png` `[studio]` M dep: C2.1, D4.1
@@ -99,3 +99,7 @@
 
 ## Bugs / follow-ups found while working
 (append here)
+- [ ] X1 Test matches in Studio write to Marcel's real DataStore save (place is published): prefer a Studio-only save key prefix (e.g. `studio_u<id>`) so agent playtests never touch the live club `[disk]` S
+- [ ] X2 `Sky.setFloodHeads` scans all of workspace; tag floodlight heads with CollectionService instead once the town is big `[disk]` S
+- [ ] X3 A player who leaves mid-match: the old club copy finishes the match loop before the plot frees (up to 180 s); check no errors in that path `[studio]` S
+- [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
