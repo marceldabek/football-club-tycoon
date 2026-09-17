@@ -459,4 +459,15 @@ function T.shedYardsGetAForkliftClearOfPalletsAndSandUnlessALorryIsThere()
 	holder:Destroy()
 end
 
+function T.shedFitKeepsTheYardInsideTheBlock()
+	for _, blockDepth in { 50, 90, 100, 140 } do
+		local bodyDepth, bodyX = EstateBuilder.shedFit(blockDepth)
+		local yardFront = bodyX - bodyDepth / 2 - EstateBuilder.YARD_DEPTH
+		assert(near(yardFront, -blockDepth / 2 + EstateBuilder.PLOT_MARGIN), ("depth %d: yard front %.2f"):format(blockDepth, yardFront))
+		assert(near(bodyX + bodyDepth / 2, blockDepth / 2), ("depth %d: back on the block edge"):format(blockDepth))
+	end
+	local bodyDepth = EstateBuilder.shedFit(20)
+	assert(bodyDepth == 10, "a tiny block still gets a 10-deep body")
+end
+
 return T

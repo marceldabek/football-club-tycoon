@@ -77,6 +77,7 @@ local EAVE = 0.6 -- roof overhang past the front and back walls
 local CLAD_TILE = 8 -- shed_cladding.png tile size in studs
 local SHED_DOOR_TILE = 30 -- one shed_door.png image per this many studs of frontage
 local YARD_DEPTH = 20
+EstateBuilder.YARD_DEPTH = YARD_DEPTH
 local MIN_SEGMENT = 1 -- garden wall / hedge stubs shorter than this are left out
 local HEDGE_GAP_EXTRA = 0.4
 local GARDEN_WALL_T = 1
@@ -500,6 +501,16 @@ end
 -- along local X), matching EstateDresser's placement.
 local PLINTH_BRICK = Color3.fromRGB(146, 82, 60)
 local UNIT_NAVY = Color3.fromRGB(28, 42, 74)
+
+-- Pure (X64): body depth and body-centre offset along local X (+ = away from
+-- the road) for a shed on a block `blockDepth` deep framed at the block centre,
+-- so the yard in front of it ends PLOT_MARGIN inside the block's road-facing
+-- edge instead of running onto the pavement. The body keeps at least 10.
+function EstateBuilder.shedFit(blockDepth: number): (number, number)
+	local bodyDepth = math.max(10, blockDepth - YARD_DEPTH - EstateBuilder.PLOT_MARGIN)
+	local front = -blockDepth / 2 + EstateBuilder.PLOT_MARGIN + YARD_DEPTH
+	return bodyDepth, front + bodyDepth / 2
+end
 
 function EstateBuilder.shed(cframe: CFrame, size: Vector3, parent: Instance, rng: Random?, kind: string?, unit: number?): Model
 	local r = rng or Random.new()

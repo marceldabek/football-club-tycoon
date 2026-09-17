@@ -589,7 +589,9 @@ function EstateDresser.build(): string
 				end
 			else
 				shedCount += 1
-				EstateBuilder.shed(cf, Vector3.new(width, block.size.Y, depth), m, rng, block.use, shedCount)
+				-- X64: the body moves back so its yard stays inside the block
+				local bodyDepth, bodyX = EstateBuilder.shedFit(depth)
+				EstateBuilder.shed(cf * CFrame.new(bodyX, 0, 0), Vector3.new(width, block.size.Y, bodyDepth), m, rng, block.use, shedCount)
 			end
 		end
 	end

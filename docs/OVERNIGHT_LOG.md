@@ -494,3 +494,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshot** Forklift_1: a forklift at Mill Lane Motors. The same shot shows a pre-existing bug: that yard's slab and fence run onto the pavement, with a corner post in the carriageway. Logged as X64.
 - Not done on X55: palisade fencing (no pale texture, and pales as parts cost too much), and the mini roundabout (client traffic would drive through a planted island).
 - RunAll 352/352.
+
+### 2026-09-17 05:48 — Shed yards kept off the road (X64)
+- Every shed body used the whole block depth, and its 20-deep yard was built in front of that, so on the 50-deep Estate Road blocks the yard and fence ran over the pavement into the carriageway. New pure `EstateBuilder.shedFit(blockDepth)` (1 test) shortens the body and moves it back, so the yard ends `PLOT_MARGIN` inside the block's road edge while the back stays on the block's back edge. A 50-deep block now gets a 29.5-deep shed.
+- Server check: none of the 43 sheds' yards, fences or posts overlap anything under `Town.Roads`.
+- **Screenshot** ShedYardFit_1: Mill Lane Motors (unit 8), with its yard behind the pavement.
+- RunAll 353/353.
