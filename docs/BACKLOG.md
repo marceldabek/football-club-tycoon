@@ -296,6 +296,6 @@
 - [ ] X181 Sports Centre pitches never used: a client kickabout of 6 figures and a ball on a pitch within 300, off on Low. RivermereAImap.png `[studio]` S
 - [ ] X182 Walkers never cross the market square: 4-6 client strollers on loops across the paved square within 200, off on Low. RivermereCenter.png `[studio]` S
 - [x] X183 (12:25 MatchAudio.nearMiss: goalCheer at 0.28 volume, 0.72 speed, faded; TEMP until a licensed ooh clip) Home saves and misses get no crowd reaction: a short "ooh" (quieter goalCheer or a PSE crowd clip) in MatchPresenter's SAVE/miss branches, 0 parts `[studio]` S
-- [ ] X184 The Riverside Park pond is empty: 3 client ducks paddling loops on the Pond water within 250, off on Low. RivermereRiverside.png `[studio]` S
+- [x] X184 (12:27 PondDucks client: 3 ducks, 2 parts each, loops on the Pond Water disc) The Riverside Park pond is empty: 3 client ducks paddling loops on the Pond water within 250, off on Low. RivermereRiverside.png `[studio]` S
 - [ ] X185 Nobody sits on Riverside Park benches: 3 client seated figures on the nearest park benches within 220, off on Low. RivermereRiverside.png `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
