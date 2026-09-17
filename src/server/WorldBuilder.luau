@@ -1178,6 +1178,80 @@ local function buildOffice(parent: Instance)
 	spawn.Parent = office
 end
 
+-- X296: a Premier Division pitch was identical to a Sunday Parks pitch - the
+-- same fourteen even stripes and the same crisp white lines - so the one
+-- surface the player stares at for ninety seconds never grew with the club.
+-- Low down the grass is worn where a grassroots pitch wears (both goalmouths
+-- and the centre circle) and the paint has faded; higher up the patches go and
+-- the lines and the nets are repainted. TEMP thresholds.
+local PITCH_TIER_CLEAN = 3 -- from here the groundsman keeps up with it
+
+function WorldBuilder.dressPitch(tier: number)
+	local club = PlotContext.clubModel()
+	local pitch = club and club:FindFirstChild("Pitch")
+	if not pitch then
+		return
+	end
+	local level = math.max(math.floor(tier), 1)
+	local worn = level < PITCH_TIER_CLEAN
+
+	local old = pitch:FindFirstChild("Wear")
+	if old then
+		old:Destroy()
+	end
+
+	-- the paint: grubby and a little grey at the bottom, white once the club
+	-- can pay somebody to re-mark it every week
+	local lineColour = if worn then Color3.fromRGB(226, 226, 214) else Color3.new(1, 1, 1)
+	for _, p in pitch:GetDescendants() do
+		if p:IsA("BasePart") and (string.find(p.Name, "Line", 1, true) or p.Name == "Halfway" or string.find(p.Name, "Box", 1, true) or string.find(p.Name, "Circle", 1, true) or string.find(p.Name, "Spot", 1, true) or string.find(p.Name, "Arc", 1, true)) then
+			p.Color = lineColour
+		end
+	end
+	-- the nets and the frame: greyed at the bottom, white higher up
+	local frame = if worn then Color3.fromRGB(232, 232, 226) else Color3.new(1, 1, 1)
+	for _, goal in (club :: Instance):GetDescendants() do
+		if goal:IsA("BasePart") and (goal.Name == "Crossbar" or goal.Name == "Post" or string.find(goal.Name, "Net", 1, true)) then
+			goal.Color = frame
+		end
+	end
+
+	if not worn then
+		return
+	end
+
+	local wear = Instance.new("Model")
+	wear.Name = "Wear"
+	wear.Parent = pitch
+
+	-- bare earth showing through, a shade under the line paint so nothing
+	-- z-fights with the markings
+	local bare = Color3.fromRGB(126, 116, 84)
+	local y = GROUND_Y + 1.02
+	for _, zSign in { -1, 1 } do
+		local mouthZ = zSign * (PITCH_L / 2 - 12)
+		box("Goalmouth", Vector3.new(44, 0.08, 20), Vector3.new(0, y, mouthZ), bare, Enum.Material.Ground, wear)
+		box("GoalmouthEdge", Vector3.new(26, 0.08, 30), Vector3.new(0, y, zSign * (PITCH_L / 2 - 22)), bare, Enum.Material.Ground, wear)
+	end
+	box("CentreWear", Vector3.new(26, 0.08, 26), Vector3.new(0, y, 0), bare, Enum.Material.Ground, wear)
+	PlotContext.place(wear)
+end
+
+local pitchBound = false
+
+local function bindPitch()
+	local state = PlotContext.stateFolder()
+	if pitchBound or not state then
+		return
+	end
+	pitchBound = true
+	local function refresh()
+		WorldBuilder.dressPitch((state:GetAttribute("Tier") :: number?) or 1)
+	end
+	state:GetAttributeChangedSignal("Tier"):Connect(refresh)
+	task.defer(refresh)
+end
+
 -- X290: the office was the same damp-walled room with the green-screen
 -- computer after five promotions and three titles, though CLAUDE.md s5 promises
 -- repainting, a better desk, computer, chairs, branding and lighting. The
@@ -2267,6 +2341,7 @@ function WorldBuilder.build(standLevels: { [string]: number }, amenityLevel: num
 	end
 	bindScoreboard()
 	bindOffice() -- X290
+	bindPitch() -- X296
 
 	return {
 		model = club,

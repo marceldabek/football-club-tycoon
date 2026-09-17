@@ -1674,3 +1674,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - `manOfTheMatch` now takes the matchday squad as well, so whoever the card names can win it, and `afterMatch` adds a line for goals it cannot credit: "A trialist scored 2 (no contract, no record)" - which is the honest version, since there is no player record to put them on.
 - RunAll 464 passed, including a new test that builds a ten-man squad, finds the trialist the board hands the eleventh slot to, and checks both.
 
+### 2026-09-17 18:13 — A grassroots pitch looks like one (X296)
+- A Premier Division pitch was identical to a Sunday Parks pitch: the same fourteen stripes and the same crisp white lines. The one surface the player stares at for ninety seconds never grew with the club.
+- Below tier 3 the grass is now worn where a grassroots pitch actually wears - both goalmouths and the centre circle, five patches of bare earth just under the paint so nothing z-fights with the markings - and the lines, posts and nets are a grubby off-white. From tier 3 the patches go and everything is repainted white. Rebuilt from the same `Tier` watcher as the office fittings.
+- Verified in play: tier 4 = no wear, lines and crossbar pure white; tier 1 = 5 wear parts with lines at 0.886 grey and the crossbar at 0.91; back to tier 3 = clean again. Screenshot from behind the goal at tier 1 shows the bare centre circle and both goalmouths.
+- RunAll 464 passed.
+
