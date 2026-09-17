@@ -740,3 +740,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Following the 06:31 dead end, a server probe of the promenade's back edge looked for clear land and found a spot at (55, 351), just west of the Lune Bridge in front of the riverside flats. New `RiverDresser.cafePavilion` builds a single-storey brick café facing the river: slate roof, glazed shopfront with a mullion, a navy fascia reading THE LUNE CAFÉ, and a navy canopy. It also puts two café sets and a "Coffee / Cake / River Views" A-board on the promenade (ForecourtDresser's `cafeSet` and `aBoard` are now exported). That's about 30 parts. A test checks the site passes the promenade clearance rules, faces the river and sits on land. An overlap audit found no clashes.
 - **Screenshot** LuneCafe_2, closest to RivermereRiverside.png so far. The CafeSitters client seated people at the new tables automatically.
 - RunAll 372/372.
+
+### 2026-09-17 07:49 — Church bell (X87), new roadmap follow-ups X87–X90
+- I extended the backlog from roadmap items that had no ticket: X87 church bell (F1), X88 traffic giving way at junctions (F2), X89 delivery vans (F4) and X90 club scarves in town windows (H1).
+- **X87:** AmbientAudio now puts an invisible client-only emitter at 80% of the Church Spire landmark height and plays Pro Sound Effects "Church Bell Tolling 1" (licensed library, 18 s). It starts at 45 s and repeats every TEMP 300 s, because normal play holds one afternoon with no real hour to ring. Roll-off is 120 to 1,400 studs. **Client check:** loaded, and started playing 38 s after the check began.
+- RunAll 372/372.

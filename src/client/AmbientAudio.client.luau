@@ -110,6 +110,46 @@ local function retarget()
 	BEDS.crowd.target = TownLifeMath.distantCrowdWeight(nearestLiveGround(p)) * height
 end
 
+-- X87: the church bell tolls from the spire every BELL_EVERY seconds (TEMP:
+-- normal play holds one afternoon, so there is no real hour to ring). A 3D
+-- sound on an invisible client-only part, fading out across town.
+local BELL_ID = "rbxassetid://9113804436" -- Church Bell Tolling 1 (Pro Sound Effects)
+local BELL_EVERY = 300
+local BELL_FIRST = 45
+do
+	local spire = Vector3.new(0, 0, 0)
+	local height = 100
+	for _, landmark in TownLayout.LANDMARKS do
+		if landmark.name == "Church Spire" then
+			spire = landmark.position
+			height = landmark.height * 0.8
+		end
+	end
+	local emitter = Instance.new("Part")
+	emitter.Name = "ChurchBell"
+	emitter.Anchored = true
+	emitter.CanCollide = false
+	emitter.CanQuery = false
+	emitter.CanTouch = false
+	emitter.Transparency = 1
+	emitter.Size = Vector3.one
+	emitter.Position = spire + Vector3.new(0, height, 0)
+	emitter.Parent = workspace
+	local bell = Instance.new("Sound")
+	bell.SoundId = BELL_ID
+	bell.Volume = 0.9
+	bell.RollOffMode = Enum.RollOffMode.InverseTapered
+	bell.RollOffMinDistance = 120
+	bell.RollOffMaxDistance = 1400
+	bell.Parent = emitter
+	task.delay(BELL_FIRST, function()
+		while emitter.Parent do
+			bell:Play()
+			task.wait(BELL_EVERY)
+		end
+	end)
+end
+
 local elapsed = 0
 RunService.Heartbeat:Connect(function(dt: number)
 	elapsed += dt
