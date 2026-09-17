@@ -386,13 +386,13 @@ end
 
 -- Scout shortlist. Better scouts find more and higher-ceiling players.
 -- Ids are negative and unique per seed so they never clash with squad ids.
-function Squad.prospects(seed: number, avgOverall: number, scoutLevel: number): { Prospect }
+function Squad.prospects(seed: number, avgOverall: number, scoutLevel: number, avoidNames: { [string]: boolean }?): { Prospect }
 	local level = Config.ScoutLevels[scoutLevel]
 	if not level then
 		return {}
 	end
 	local rng = Random.new(seed)
-	local names = TeamGen.generateNames(rng, level.prospects)
+	local names = TeamGen.generateNames(rng, level.prospects, avoidNames)
 	local list: { Prospect } = {}
 	for i = 1, level.prospects do
 		local role: Pitch.Role = GENERATE_ROLES[rng:NextInteger(3, #GENERATE_ROLES)]

@@ -244,6 +244,16 @@ local function applyName(player: Player, requested: unknown)
 		toast(player, "Letters, numbers, spaces, ' - . only")
 		return
 	end
+	-- X213: not the name of a league club (duplicate table rows and crests)
+	local lower = string.lower(name)
+	for _, division in Config.Clubs do
+		for _, club in division do
+			if string.lower(club.name) == lower then
+				toast(player, "There's already a club called that in the league. Try another name.")
+				return
+			end
+		end
+	end
 	local ok, filtered = pcall(function()
 		local result = TextService:FilterStringAsync(name, player.UserId, Enum.TextFilterContext.PublicChat)
 		return result:GetNonChatStringForBroadcastAsync()

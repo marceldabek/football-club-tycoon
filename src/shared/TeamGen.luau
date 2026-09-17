@@ -27,10 +27,11 @@ local LAST = {
 	"Underhill", "Voss", "Wickham", "Xu", "Yarrow", "Zelinski", "Bloxham", "Noobington", "Skyward", "Fairbanks",
 }
 
--- `count` distinct names drawn from the shared rng.
-function TeamGen.generateNames(rng: Random, count: number): { string }
+-- `count` distinct names drawn from the shared rng, never one in `avoid`
+-- (X214: scouted prospects must not share a name with the current squad).
+function TeamGen.generateNames(rng: Random, count: number, avoid: { [string]: boolean }?): { string }
 	local names: { string } = {}
-	local used: { [string]: boolean } = {}
+	local used: { [string]: boolean } = if avoid then table.clone(avoid) else {}
 	while #names < count do
 		local name = FIRST[rng:NextInteger(1, #FIRST)] .. " " .. LAST[rng:NextInteger(1, #LAST)]
 		if not used[name] then

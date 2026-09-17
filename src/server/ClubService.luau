@@ -93,7 +93,12 @@ local function refreshShortlist()
 		shortlist = {}
 		return
 	end
-	shortlist = Squad.prospects(rng:NextInteger(1, 1000000), Squad.average(players), scoutLevel)
+	-- X214: no prospect shares a name with a current player
+	local taken: { [string]: boolean } = {}
+	for _, p in players do
+		taken[p.name] = true
+	end
+	shortlist = Squad.prospects(rng:NextInteger(1, 1000000), Squad.average(players), scoutLevel, taken)
 end
 
 -- Manual lineups can rot (injuries, releases). Fill or repair without

@@ -324,8 +324,8 @@
 - [ ] X209 Friendly invite and trade offer cards stay open after the other club leaves: send a cancel so the card hides with a reason, 0 parts `[disk]` S
 - [ ] X210 A second trade offer / friendly invite silently replaces the first card while the first stays live on the server: decline the replaced one server-side (or queue), 0 parts `[disk]` S
 - [ ] X211 Challenges and trade offers target a plot number, so an offer can reach a new owner who claimed the plot meanwhile: send the expected OwnerUserId and refuse if changed, 0 parts `[disk]` S
-- [ ] X212 ClubVisit leaks a ClubPlot attribute connection for every club office prompt it ever sees: disconnect when the prompt goes, 0 parts `[disk]` S
-- [ ] X213 A club can take the same name as an AI club in its division (duplicate table rows and crests): reject names matching Config.Clubs, case-insensitive, 0 parts `[disk]` S
-- [ ] X214 Scouted prospects can share a name with a current squad player: seed the prospect name generator's used set with squad names, 0 parts `[disk]` S
-- [ ] X215 The concourse prompt shows cumulative amenity totals as the gain ("+£4 per fan, +20%") when the step is smaller: show the difference from the current level, 0 parts `[disk]` S
+- [x] X212 (13:13 done) ClubVisit leaks a ClubPlot attribute connection for every club office prompt it ever sees: disconnect when the prompt goes, 0 parts `[disk]` S
+- [x] X213 (13:13 done) A club can take the same name as an AI club in its division (duplicate table rows and crests): reject names matching Config.Clubs, case-insensitive, 0 parts `[disk]` S
+- [x] X214 (13:13 done) Scouted prospects can share a name with a current squad player: seed the prospect name generator's used set with squad names, 0 parts `[disk]` S
+- [x] X215 (13:13 done) The concourse prompt shows cumulative amenity totals as the gain ("+£4 per fan, +20%") when the step is smaller: show the difference from the current level, 0 parts `[disk]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

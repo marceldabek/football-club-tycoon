@@ -45,8 +45,12 @@ function UpgradeService.refreshPrompt()
 	local amenity = (ClubState.get("AmenityLevel") :: number?) or 0
 	local nextAmenity = Config.AmenityLevels[amenity + 2]
 	if nextAmenity then
+		-- X215: the levels are cumulative, so show the step from the current one
+		local current = Config.AmenityLevels[amenity + 1]
+		local perFanGain = nextAmenity.perFan - (if current then current.perFan else 0)
+		local demandGain = nextAmenity.demandBonus - (if current then current.demandBonus else 0)
 		amenityPrompt.ActionText = ("Build %s (+%s per fan, +%d%% demand) — %s"):format(
-			nextAmenity.name, money(nextAmenity.perFan), math.floor(nextAmenity.demandBonus * 100 + 0.5), money(nextAmenity.cost))
+			nextAmenity.name, money(perFanGain), math.floor(demandGain * 100 + 0.5), money(nextAmenity.cost))
 		amenityPrompt.Enabled = managing
 	else
 		amenityPrompt.ActionText = "Fully built"

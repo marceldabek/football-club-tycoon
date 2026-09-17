@@ -248,4 +248,17 @@ function T.afterMatchReportsRatingChanges()
 	assert(seen > 0, "20 matches with a pro coach should develop somebody")
 end
 
+-- X214: prospects avoid the names passed in (the current squad)
+function T.prospectsAvoidSquadNames()
+	local first = Squad.prospects(77, 45, 3)
+	local avoid: { [string]: boolean } = {}
+	for _, p in first do
+		avoid[p.name] = true
+	end
+	local again = Squad.prospects(77, 45, 3, avoid)
+	for _, p in again do
+		assert(not avoid[p.name], "prospect reuses a squad name: " .. p.name)
+	end
+end
+
 return T

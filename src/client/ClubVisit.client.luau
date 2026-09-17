@@ -111,7 +111,13 @@ local function attach(clubPrompt: ProximityPrompt)
 		visit.Enabled = PlotVisit.hidePrompt(plot, player:GetAttribute("ClubPlot"))
 	end
 	refresh()
-	player:GetAttributeChangedSignal("ClubPlot"):Connect(refresh)
+	-- X212: one connection per office prompt; drop it when the club despawns
+	local conn = player:GetAttributeChangedSignal("ClubPlot"):Connect(refresh)
+	visit.AncestryChanged:Connect(function()
+		if not visit:IsDescendantOf(game) then
+			conn:Disconnect()
+		end
+	end)
 	visit.Triggered:Connect(function()
 		open(plot :: number, part :: BasePart)
 	end)
