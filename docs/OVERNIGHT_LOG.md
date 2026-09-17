@@ -476,3 +476,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - 1 new test covers wall gap, hedge, own house front, door path and Decor tag across 6 seeds.
 - **Screenshots** FlowerBeds_1 (0.6 tall, hidden) and FlowerBeds_3 (final: lavender and pink borders over the hedges).
 - RunAll 350/350.
+
+### 2026-09-17 05:41 — Club banner on a lamp post at the turnstiles (X53 part)
+- `WorldBuilder.buildTurnstiles` now adds a black lamp post on the walk-up side beside the entrance. It has a base, post, lantern and cap, with an arm holding a club-colour fabric banner: the club name (label "ClubName", so `setClubName` repaints it) over "OUR TOWN / OUR GAME", like RivermereTurnstileEntrance.png. That's 6 parts per club; the banner and arm don't collide.
+- **Screenshot** LampBanner_1: MDINO24 FC banner beside the brick turnstiles.
+- Boundary wall still open: the corner gap either side of the block holds the walkway and the fans' routes, so I left it rather than risk blocking walkers.
+- RunAll 350/350.

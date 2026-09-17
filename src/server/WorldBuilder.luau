@@ -861,6 +861,48 @@ local function buildTurnstiles(parent: Instance)
 	pad.PaddingTop = UDim.new(0.18, 0)
 	pad.PaddingBottom = UDim.new(0.18, 0)
 	pad.Parent = label
+
+	-- X53: a black lamp post outside, beside the entrance, flying a club banner
+	-- (RivermereTurnstileEntrance.png: "OUR TOWN / OUR GAME")
+	local lx, lz = x - 7, TURNSTILE_Z - total / 2 - 4
+	local lampBlack = Color3.fromRGB(24, 26, 30)
+	box("LampBase", Vector3.new(1.2, 1.2, 1.2), Vector3.new(lx, DECK_Y + 0.6, lz), lampBlack, Enum.Material.Metal, gate)
+	box("LampPost", Vector3.new(0.5, 15.4, 0.5), Vector3.new(lx, DECK_Y + 1 + 7.7, lz), lampBlack, Enum.Material.Metal, gate)
+	box("Lantern", Vector3.new(1, 1.6, 1), Vector3.new(lx, DECK_Y + 17, lz), Color3.fromRGB(250, 236, 196), Enum.Material.Glass, gate)
+	box("LanternCap", Vector3.new(1.4, 0.4, 1.4), Vector3.new(lx, DECK_Y + 17.9, lz), lampBlack, Enum.Material.Metal, gate)
+	-- the arm reaches away from the entrance so the banner hangs clear of the post
+	box("BannerArm", Vector3.new(0.25, 0.25, 3.6), Vector3.new(lx, DECK_Y + 14.4, lz - 2.05), lampBlack, Enum.Material.Metal, gate).CanCollide = false
+	local banner = box("LampBanner", Vector3.new(0.15, 7, 3), Vector3.new(lx, DECK_Y + 10.8, lz - 2.3), Config.HomeKit, Enum.Material.Fabric, gate)
+	banner.CanCollide = false
+	banner.CastShadow = false
+	for _, face in { Enum.NormalId.Left, Enum.NormalId.Right } do
+		local bannerGui = Instance.new("SurfaceGui")
+		bannerGui.Face = face
+		bannerGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		bannerGui.PixelsPerStud = 40
+		bannerGui.LightInfluence = 0.85
+		bannerGui.Parent = banner
+		local bannerName = Instance.new("TextLabel")
+		bannerName.Name = "ClubName" -- WorldBuilder.setClubName repaints it
+		bannerName.Size = UDim2.fromScale(0.86, 0.3)
+		bannerName.Position = UDim2.fromScale(0.07, 0.06)
+		bannerName.BackgroundTransparency = 1
+		bannerName.Font = Enum.Font.GothamBlack
+		bannerName.TextScaled = true
+		bannerName.TextColor3 = Color3.new(1, 1, 1)
+		bannerName.Text = "CLUB"
+		bannerName.Parent = bannerGui
+		local motto = Instance.new("TextLabel")
+		motto.Name = "Motto"
+		motto.Size = UDim2.fromScale(0.8, 0.26)
+		motto.Position = UDim2.fromScale(0.1, 0.62)
+		motto.BackgroundTransparency = 1
+		motto.Font = Enum.Font.GothamBold
+		motto.TextScaled = true
+		motto.TextColor3 = Color3.new(1, 1, 1)
+		motto.Text = "OUR TOWN\nOUR GAME"
+		motto.Parent = bannerGui
+	end
 end
 
 -- Paved forecourt outside the corner, with the car park. Everything the club
