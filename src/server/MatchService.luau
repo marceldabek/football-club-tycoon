@@ -246,6 +246,13 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		lossBonus = Config.LossBonus,
 	})
 
+	local news, development = ClubService.finishMatch(played.scorerSlots, homeSquad)
+	local scorers = scorerLines(result)
+	-- league bookkeeping after the squad: at season end this ages the squad and rolls the division
+	local roundResult = SeasonService.recordPlayerResult(result.homeGoals, result.awayGoals, settlement.outcome)
+
+	-- review of X200: pay last, so an error above that repeats every match can't
+	-- pay out again and again for a fixture that never moves on
 	ClubState.addCash(settlement.total)
 	bump("MatchesPlayed", 1)
 	if settlement.outcome == "Win" then
@@ -255,11 +262,6 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 	else
 		bump("Losses", 1)
 	end
-
-	local news, development = ClubService.finishMatch(played.scorerSlots, homeSquad)
-	local scorers = scorerLines(result)
-	-- league bookkeeping last: at season end this ages the squad and rolls the division
-	local roundResult = SeasonService.recordPlayerResult(result.homeGoals, result.awayGoals, settlement.outcome)
 
 	finishCore()
 

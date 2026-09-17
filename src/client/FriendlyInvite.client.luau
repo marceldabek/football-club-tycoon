@@ -60,7 +60,7 @@ inviteEvent.OnClientEvent:Connect(function(data: any)
 	-- X210: a newer challenge replaces the card, so decline the old one rather
 	-- than leaving it live on the server with no way to answer
 	if current and current.from ~= data.from then
-		respondEvent:FireServer(current.from, false)
+		respondEvent:FireServer(current.from, false, true)
 	end
 	local invite = {
 		from = data.from,

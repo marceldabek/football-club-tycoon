@@ -319,7 +319,10 @@ function Session.start(owner: Player): boolean
 	local lockBackend = if backendKind == "datastore"
 		then SaveLock.dataStoreBackend(storeName)
 		else SaveLock.memoryBackend()
-	local jobId = if game.JobId ~= "" then game.JobId else ("studio-" .. tostring(os.clock()))
+	-- one id per session, not per server: a stopped session on this server must not
+	-- release a lock that a newer session for the same owner now holds
+	local sessionGuid = game:GetService("HttpService"):GenerateGUID(false)
+	local jobId = (if game.JobId ~= "" then game.JobId else "studio") .. ":" .. sessionGuid
 	locker = SaveLock.new(lockBackend, {
 		jobId = jobId,
 		now = os.time,
@@ -392,8 +395,9 @@ function Session.start(owner: Player): boolean
 		Session.saveNow()
 	end
 	task.spawn(function()
+		local lastAutosave = os.clock()
 		while not stopped do
-			task.wait(Config.Save.autosaveSeconds)
+			task.wait(Config.Save.heartbeatSeconds)
 			if stopped then
 				break
 			end
@@ -422,7 +426,8 @@ function Session.start(owner: Player): boolean
 					break
 				end
 			end
-			if not stopped and saver:isDirty() then
+			if not stopped and saver:isDirty() and os.clock() - lastAutosave >= Config.Save.autosaveSeconds then
+				lastAutosave = os.clock()
 				flush(false)
 			end
 		end

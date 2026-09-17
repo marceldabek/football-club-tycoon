@@ -7,7 +7,7 @@
 --
 -- Remotes:
 --   TradePropose  client -> server  (targetPlot, give {ids}, take {ids}, giveCash, takeCash)
---   TradeRespond  client -> server  (fromUserId, accept)
+--   TradeRespond  client -> server  (fromUserId, accept, replaced?)
 --   TradeOffer    server -> client  { from, fromName, fromClub, give, take, giveCash, takeCash, seconds }
 
 local Players = game:GetService("Players")
@@ -157,19 +157,24 @@ local function onPropose(player: Player, rawPlot: unknown, rawGive: unknown, raw
 	toast(player, ("Trade offer sent to %s."):format(clubName(to)), true)
 end
 
-local function onRespond(player: Player, rawFrom: unknown, rawAccept: unknown)
+local function onRespond(player: Player, rawFrom: unknown, rawAccept: unknown, rawReplaced: unknown)
 	if type(rawFrom) ~= "number" or type(rawAccept) ~= "boolean" then
 		return
 	end
+	-- the card was replaced by a newer offer before the player answered
+	local replaced = rawReplaced == true and not rawAccept
 	local proposer = Players:GetPlayerByUserId(rawFrom)
 	local offer = book:take(player.UserId, rawFrom, os.clock())
 	local to = PlotService.modulesFor(player.UserId)
 	if not offer then
-		toast(player, "That trade offer has expired.")
+		if not replaced then
+			toast(player, "That trade offer has expired.")
+		end
 		return
 	end
 	if not rawAccept then
-		toast(proposer, ("%s turned down your trade."):format(if to then clubName(to) else player.DisplayName))
+		local who = if to then clubName(to) else player.DisplayName
+		toast(proposer, (if replaced then "%s is looking at another offer. Try again later." else "%s turned down your trade."):format(who))
 		return
 	end
 	local from = PlotService.modulesFor(rawFrom)

@@ -561,7 +561,8 @@ function PlotService.start()
 	Players.PlayerRemoving:Connect(PlotService.release)
 	game:BindToClose(function()
 		for _, runtime in runtimes do
-			runtime.session.stop()
+			-- one club failing to save must not skip the others
+			pcall(runtime.session.stop)
 		end
 		for runtime in finishing do
 			pcall(runtime.session.stop)

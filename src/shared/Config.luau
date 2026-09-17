@@ -222,6 +222,9 @@ Config.Save = {
 	-- Set to "" to load your real club in Studio again.
 	studioStoreSuffix = "_Studio",
 	autosaveSeconds = 30, -- save this often while something changed
+	-- TEMP: refresh the save lock this often; must stay well under lockMaxWaitSeconds
+	-- so a waiting server sees this one's final save before it gives up waiting
+	heartbeatSeconds = 10,
 	loadRetries = 3,
 	retryBackoffSeconds = 1,
 	-- TEMP: save-lock timing (backlog B3.2, CLAUDE.md s27 "Save lock"). Tune once

@@ -7,7 +7,7 @@
 --
 -- Remotes:
 --   FriendlyChallenge  client -> server  (targetPlot: number)
---   FriendlyRespond    client -> server  (fromUserId: number, accept: boolean)
+--   FriendlyRespond    client -> server  (fromUserId: number, accept: boolean, replaced: boolean?)
 --   FriendlyInvite     server -> client  { from, fromName, fromClub, seconds }
 
 local Players = game:GetService("Players")
@@ -99,16 +99,22 @@ local function onChallenge(player: Player, rawPlot: unknown, rawOwner: unknown)
 	toast(player, ("Challenge sent to %s. Waiting for an answer…"):format(clubName(targetPlot)), true)
 end
 
-local function onRespond(player: Player, rawFrom: unknown, rawAccept: unknown)
+local function onRespond(player: Player, rawFrom: unknown, rawAccept: unknown, rawReplaced: unknown)
 	if type(rawFrom) ~= "number" or type(rawAccept) ~= "boolean" then
 		return
 	end
+	-- the card was replaced by a newer challenge before the player answered
+	local replaced = rawReplaced == true and not rawAccept
 	local challenger = Players:GetPlayerByUserId(rawFrom)
 	local invite, reason = book:respond(player.UserId, rawFrom, rawAccept, os.clock())
 	local homePlot, _, homeMatch = PlotService.clubOf(player.UserId)
 	if not invite then
-		if reason == "declined" then
+		if reason == "declined" and replaced then
+			toast(challenger, ("%s is answering another challenge. Try again later."):format(if homePlot then clubName(homePlot) else player.DisplayName))
+		elseif reason == "declined" then
 			toast(challenger, ("%s turned down your friendly."):format(if homePlot then clubName(homePlot) else player.DisplayName))
+		elseif replaced then
+			return
 		else
 			toast(player, reason or "That challenge has expired.")
 		end

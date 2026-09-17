@@ -59,7 +59,7 @@ offerEvent.OnClientEvent:Connect(function(data: any)
 	end
 	-- X210: decline an offer the new one replaces, so it doesn't hang unanswerable
 	if current and current.from ~= data.from then
-		respondEvent:FireServer(current.from, false)
+		respondEvent:FireServer(current.from, false, true)
 	end
 	current = data
 	token += 1
