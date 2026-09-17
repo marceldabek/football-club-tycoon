@@ -72,6 +72,15 @@ function EstateDresser.placement(block: TownLayout.Box, roads: { TownLayout.Road
 	end
 end
 
+local DRIVE_INSET = 0.05 -- driveways stop this far inside the block's front and back edges
+
+-- Pure: (house depth, house-centre offset along the placement frame's local
+-- X) for a semis block `depth` deep. Shared with ForecourtDresser so the front
+-- paths start at the pushed-back front doors.
+function EstateDresser.pairFit(depth: number): (number, number)
+	return EstateBuilder.fitPair(depth, EstateBuilder.GARDEN_REACH, EstateBuilder.MIN_HOUSE_DEPTH)
+end
+
 -- Removes the greybox body + roof for this exact block (matched by name and
 -- XZ position, since a district's greybox has many same-named siblings).
 local function removeGreyboxFor(greybox: Instance?, block: TownLayout.Box)
@@ -101,7 +110,8 @@ function EstateDresser.build(): string
 	estates.Name = "Estates"
 	local districts = town:FindFirstChild("Districts")
 	local rng = Random.new(2026)
-	local pairCount, shedCount = 0, 0
+	local driveRng = Random.new(3030) -- separate stream so the pairs' front picks are unchanged
+	local pairCount, shedCount, driveCount = 0, 0, 0
 
 	for _, district in TownLayout.DISTRICTS do
 		local hasBlocks = false
@@ -128,12 +138,23 @@ function EstateDresser.build(): string
 			local cf, width, depth = EstateDresser.placement(block, TownLayout.ROADS)
 
 			if block.use == "semis" then
-				local n = EstateBuilder.pairCount(width)
-				local step = width / n
-				for i = 1, n do
-					local z = -width / 2 + (i - 0.5) * step
-					EstateBuilder.semiPair(cf * CFrame.new(0, 0, z), step, depth, block.size.Y, m, rng)
+				-- X30: pairs centred in their slots with driveways between, and
+				-- pushed back so the front garden stays inside the block
+				local slots, drives = EstateBuilder.rowLayout(width, EstateBuilder.SIDE_GAP)
+				local houseDepth, houseX = EstateDresser.pairFit(depth)
+				for _, slot in slots do
+					EstateBuilder.semiPair(cf * CFrame.new(houseX, 0, slot.z), slot.width, houseDepth, block.size.Y, m, rng)
 					pairCount += 1
+				end
+				-- driveways run from the road edge back to the house backs (the block's
+				-- back edge on a normal block), DRIVE_INSET short of both
+				local driveFront = -depth / 2 + DRIVE_INSET
+				local driveBack = math.min(depth / 2, houseX + houseDepth / 2) - DRIVE_INSET
+				for _, drive in drives do
+					local withCar = driveRng:NextInteger(1, 3) == 1
+					local centre = CFrame.new((driveFront + driveBack) / 2, 0, (drive.z0 + drive.z1) / 2)
+					EstateBuilder.driveway(cf * centre, drive.z1 - drive.z0, driveBack - driveFront, m, withCar, driveRng)
+					driveCount += 1
 				end
 			else
 				EstateBuilder.shed(cf, Vector3.new(width, block.size.Y, depth), m, rng, block.use)
@@ -149,7 +170,7 @@ function EstateDresser.build(): string
 			parts += 1
 		end
 	end
-	return ("estates: %d semis pairs, %d sheds, %d parts"):format(pairCount, shedCount, parts)
+	return ("estates: %d semis pairs, %d driveways, %d sheds, %d parts"):format(pairCount, driveCount, shedCount, parts)
 end
 
 return EstateDresser

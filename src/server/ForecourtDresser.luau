@@ -625,17 +625,19 @@ function ForecourtDresser.build(): string
 				continue
 			end
 			local cf, width, depth = EstateDresser.placement(block, roads)
-			local n = EstateBuilder.pairCount(width)
-			local step = width / n
-			for i = 1, n do
-				local pairFrame = cf * CFrame.new(0, 0, -width / 2 + (i - 0.5) * step)
+			-- X30: same slots and pushed-back house frame as EstateDresser.build
+			local slots = EstateBuilder.rowLayout(width, EstateBuilder.SIDE_GAP)
+			local houseDepth, houseX = EstateDresser.pairFit(depth)
+			for _, slot in slots do
+				local pairFrame = cf * CFrame.new(houseX, 0, slot.z)
 				local pairModel = modelAt(semiModels, pairFrame.Position)
 				local front = if pairModel then pairModel:GetAttribute("Front") else nil
 				local frontName: string? = if type(front) == "string" then front else nil
 				for house = 0, 1 do
-					-- same door positions as the gate gaps EstateBuilder cuts in the garden wall
-					local doorZ = EstateBuilder.doorZ(step, frontName, house)
-					local fc = ForecourtDresser.forecourt(pairFrame * CFrame.new(0, 0, doorZ), PATH_WIDTH, depth, roads)
+					-- same door positions as the gate gaps EstateBuilder cuts in the garden wall;
+					-- the path runs from the house front through the gate to the pavement
+					local doorZ = EstateBuilder.doorZ(slot.width, frontName, house)
+					local fc = ForecourtDresser.forecourt(pairFrame * CFrame.new(0, 0, doorZ), PATH_WIDTH, houseDepth, roads)
 					if not fc then
 						continue
 					end
