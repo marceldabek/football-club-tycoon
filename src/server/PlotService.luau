@@ -234,13 +234,20 @@ local function buildLot(plot: number)
 	local rough = Random.new(plot * 131)
 	lotPart(lot, "Footpath", Vector3.new(PLOT_SIZE - 120, 0.26, 5), frame * CFrame.new(-half + 60 + (PLOT_SIZE - 120) / 2, 0.13, 8) * CFrame.Angles(0, 0.08, 0),
 		Color3.fromRGB(128, 112, 86), Enum.Material.Ground).CastShadow = false
+	-- each patch is two overlapping discs (X86: rectangles read as hard-edged),
+	-- the second 0.02 higher so their tops never share a plane
 	for _ = 1, 6 do
-		local w, d = rough:NextNumber(60, 140), rough:NextNumber(40, 110)
-		local patch = lotPart(lot, "RoughGrass", Vector3.new(w, 0.32, d),
-			frame * CFrame.new(rough:NextNumber(-half + 90, half - 90), 0.16, rough:NextNumber(-half + 80, half - 80)) * CFrame.Angles(0, rough:NextNumber(0, math.pi), 0),
-			Color3.fromRGB(84, 104, 46), Enum.Material.LeafyGrass)
-		patch.CastShadow = false
-		patch.CanCollide = false
+		local cx, cz = rough:NextNumber(-half + 90, half - 90), rough:NextNumber(-half + 80, half - 80)
+		for k = 0, 1 do
+			local d = rough:NextNumber(50, 100)
+			local top = 0.32 + k * 0.02
+			local patch = lotPart(lot, "RoughGrass", Vector3.new(top, d, d),
+				frame * CFrame.new(cx + k * rough:NextNumber(-35, 35), top / 2, cz + k * rough:NextNumber(-35, 35)) * CFrame.Angles(0, 0, math.pi / 2),
+				Color3.fromRGB(84, 104, 46), Enum.Material.LeafyGrass)
+			patch.Shape = Enum.PartType.Cylinder
+			patch.CastShadow = false
+			patch.CanCollide = false
+		end
 	end
 	for _ = 1, 12 do
 		local r = rough:NextNumber(9, 16)

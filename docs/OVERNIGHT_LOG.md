@@ -684,3 +684,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - A new player's first view is the plot picker looking at a for-sale lot, and it read as a flat mown lawn (PickerView_1). `PlotService.buildLot` now adds a worn footpath from the FOR SALE board across the lot, 6 darker patches of long rough grass, and 12 bramble clumps. Tops are stepped 0.2 / 0.26 / 0.32 so no faces share a plane, and they use their own random stream so the trees and rocks don't move. That's 19 parts per free lot; lots are Persistent-streamed.
 - After tuning, the patches are darker and the brambles 9–16 across so they read from the picker height. **Screenshots** PickerView_1 (before) and PickerView_3.
 - RunAll 371/371.
+
+### 2026-09-17 07:19 — Lot grass patches made irregular (X86 part)
+- Each of the 6 rough-grass patches on a for-sale lot is now two overlapping flat discs (the second 0.02 higher) instead of a rectangle. That's 12 parts in place of 6. **Screenshot** PickerView_plot2b.
+- The bare horizon on the plot 2 picker is a streaming effect: the first visit showed hills and the river, the second a flat edge. It's left open on X86, with the options noted.
+- RunAll 371/371.
