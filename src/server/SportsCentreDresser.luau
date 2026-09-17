@@ -220,6 +220,16 @@ local function buildCarPark(parent: Instance, cf: CFrame, r: Rect)
 		local z = r.z0 + 2 + k * BAY_W
 		rectPart(m, "BayLine", cf, { x0 = backX - BAY_D, x1 = backX, z0 = z - 0.2, z1 = z + 0.2 }, 0.27, 0.3, WHITE, Enum.Material.SmoothPlastic).CastShadow = false
 	end
+	-- a few cars parked nose-in (towards the back), half repainted (X45, question 10)
+	local rng = Random.new(1300)
+	local tints = { Color3.fromRGB(34, 52, 96), Color3.fromRGB(118, 30, 34), Color3.fromRGB(64, 68, 74) }
+	for k = 0, count - 1 do
+		if k % 2 == 0 and rng:NextNumber() < 0.8 then -- every other bay: 9-wide bays, 9.8-wide car
+			local at = (cf * CFrame.new(backX - BAY_D / 2, 0.3, r.z0 + 2 + (k + 0.5) * BAY_W)).Position
+			local tint = if rng:NextNumber() < 0.5 then tints[rng:NextInteger(1, #tints)] else nil
+			KitPlacer.place("HatchbackOrange", CFrame.lookAt(at, at + cf.XVector), m, { fallbackSize = Vector3.new(6, 4, 12), fallbackColor = Color3.fromRGB(150, 152, 156), tint = tint })
+		end
+	end
 	return count
 end
 
