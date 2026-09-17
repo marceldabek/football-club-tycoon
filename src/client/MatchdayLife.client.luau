@@ -218,6 +218,10 @@ end
 
 local function adjustFanCount(crowd: PlotCrowd)
 	local target = math.min(targetFanCount(crowd.folder), MAX_FANS_PER_PLOT)
+	if crowd.folder:GetAttribute("Phase") == "Match" then
+		-- once the game is on most fans are inside; don't top the queue back up
+		target = math.min(target, #crowd.fans, math.ceil(target / 2))
+	end
 	while #crowd.fans > target do
 		removeFan(crowd, #crowd.fans)
 	end
@@ -322,9 +326,11 @@ local function untrackPlot(folder: Folder)
 end
 
 local function watchClubs()
-	local clubs = ReplicatedStorage:WaitForChild("Clubs", 30)
-	if not clubs then
-		return
+	-- Clubs appears when the first plot on the server is claimed, which may be long after join
+	local clubs = ReplicatedStorage:FindFirstChild("Clubs")
+	while not clubs do
+		task.wait(2)
+		clubs = ReplicatedStorage:FindFirstChild("Clubs")
 	end
 	for _, child in clubs:GetChildren() do
 		if child:IsA("Folder") then
@@ -343,7 +349,7 @@ local function watchClubs()
 	end)
 end
 
-watchClubs()
+task.spawn(watchClubs)
 
 -- ------------------------------------------------------------------ main loop
 
