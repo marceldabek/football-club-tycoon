@@ -568,3 +568,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - RivermereNorthfields.png has a low brick wall with a HAYFIELD CLOSE plate beside the NORTHFIELDS stone. New pure `EstateDresser.nameWallSpot` (1 test: 11 along the verge from the stone, on grass, flips side when a block is in the way) returns the spot and the nearest road's name. `buildNameWall` builds a brick wall, coping and a black-bordered white plate with the road name and district (3 parts), square to the road like the stone. The town now has ELM GROVE / Northfields, LUNE STREET / Riverside and WEIR ROAD / Westdale.
 - **Screenshot** NameWall_1: the ELM GROVE wall beside the NORTHFIELDS stone. The first try faced the stone's road point and stood at a slant, so it now takes the stone's direction.
 - RunAll 360/360.
+
+### 2026-09-17 06:27 — Loop check after the dressing batch
+- After tonight's X44–X75 dressing and layout work, I played one match on Plot 1 (DebugRun `playMatch|15|0`). It finished and saved: HUD cash went from £51,200 to £52,800, and the summary showed +£1,600 (tickets £1,200 and a £400 bonus).
+- All seven Plot 1 prompts are present and enabled: Club Office, Play Match, East Stand "Expand to Main Stand (400 seats) — £1,500", the West, North and South stands, and the Snack Bar.
+- Server boot summary: estates 2,373 parts (66 semis pairs, 52 street trees, 43 sheds); terrace streets 1,445; riverside 848; station 203.
