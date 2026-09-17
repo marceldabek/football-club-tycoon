@@ -154,6 +154,63 @@ local function buildPitch(parent: Instance, block: TownLayout.Box, is3G: boolean
 	end
 end
 
+-- X77: a car park beside the hall, opening onto the road it faces.
+local PARK_GAP = 8 -- from the hall's side wall
+local PARK_WIDTH = 84 -- along the hall's frontage axis
+local BAY_W = 9
+local BAY_D = 18
+
+-- Pure: the car park rectangle in the hall's placement frame (local -X toward
+-- the road; x from the road-side boundary back, z across). Tries the +Z side,
+-- then -Z, keeping every corner and edge midpoint clear of blocks (by 2) and
+-- of road carriageways; its road edge stops `roadGap` short of the frame's
+-- road-side edge at x = -depth / 2 - roadGap. nil when neither side is clear.
+function SportsCentreDresser.carParkRect(cf: CFrame, width: number, depth: number, roadGap: number, roads: { TownLayout.Road }, blocks: { TownLayout.Box }): Rect?
+	local x0 = -depth / 2 - roadGap
+	local x1 = depth / 2
+	for _, side in { 1, -1 } do
+		local zNear = side * (width / 2 + PARK_GAP)
+		local zFar = side * (width / 2 + PARK_GAP + PARK_WIDTH)
+		local r: Rect = { x0 = x0, x1 = x1, z0 = math.min(zNear, zFar), z1 = math.max(zNear, zFar) }
+		local clear = true
+		for _, fx in { 0, 0.5, 1 } do
+			for _, fz in { 0, 0.5, 1 } do
+				local p = cf * Vector3.new(r.x0 + (r.x1 - r.x0) * fx, 0, r.z0 + (r.z1 - r.z0) * fz)
+				for _, road in roads do
+					if TownLayout.distanceToPolyline(p, road.points) < road.width / 2 + 1 then
+						clear = false
+					end
+				end
+				for _, box in blocks do
+					local lp = (CFrame.new(box.centre) * CFrame.Angles(0, math.rad(box.yaw), 0)):PointToObjectSpace(Vector3.new(p.X, box.centre.Y, p.Z))
+					if math.abs(lp.X) <= box.size.X / 2 + 2 and math.abs(lp.Z) <= box.size.Z / 2 + 2 then
+						clear = false
+					end
+				end
+			end
+		end
+		if clear then
+			return r
+		end
+	end
+	return nil
+end
+
+local function buildCarPark(parent: Instance, cf: CFrame, r: Rect)
+	local m = Instance.new("Model")
+	m.Name = "CarPark"
+	m.Parent = parent
+	rectPart(m, "Tarmac", cf, r, 0.02, 0.28, Color3.fromRGB(64, 64, 68), Enum.Material.Asphalt).CastShadow = false
+	-- a row of bays along the back, white lines between them
+	local backX = r.x1 - 4
+	local count = math.floor((r.z1 - r.z0 - 4) / BAY_W)
+	for k = 0, count do
+		local z = r.z0 + 2 + k * BAY_W
+		rectPart(m, "BayLine", cf, { x0 = backX - BAY_D, x1 = backX, z0 = z - 0.2, z1 = z + 0.2 }, 0.27, 0.3, WHITE, Enum.Material.SmoothPlastic).CastShadow = false
+	end
+	return count
+end
+
 local function buildHall(parent: Instance, block: TownLayout.Box)
 	local m = Instance.new("Model")
 	m.Name = "SportsHall"
@@ -161,6 +218,25 @@ local function buildHall(parent: Instance, block: TownLayout.Box)
 	-- local -X faces the nearest road (EstateBuilder's convention)
 	local cf, width, depth = EstateDresser.placement(block, TownLayout.ROADS)
 	local h = block.size.Y
+	local allBlocks: { TownLayout.Box } = {}
+	for _, district in TownLayout.DISTRICTS do
+		for _, b in district.blocks do
+			table.insert(allBlocks, b)
+		end
+	end
+	-- how far the front wall stands back from the nearest pavement edge (+0.5 under it)
+	local front = cf * Vector3.new(-depth / 2, 0, 0)
+	local roadGap = math.huge
+	for _, road in TownLayout.ROADS do
+		roadGap = math.min(roadGap, TownLayout.distanceToPolyline(front, road.points) - road.width / 2 - TownLayout.PAVEMENT_WIDTH + 0.5)
+	end
+	roadGap = math.clamp(roadGap, 0, 60)
+	local park = SportsCentreDresser.carParkRect(cf, width, depth, roadGap, TownLayout.ROADS, allBlocks)
+	if park then
+		buildCarPark(m, cf, park)
+	end
+	-- a paved path from the road to the entrance
+	rectPart(m, "EntrancePath", cf, { x0 = -depth / 2 - roadGap, x1 = -depth / 2, z0 = -6, z1 = 6 }, 0.02, 0.32, Color3.fromRGB(180, 176, 168), Enum.Material.Pavement).CastShadow = false
 	part(m, "Body", Vector3.new(depth, h, width), cf * CFrame.new(0, h / 2, 0), CLAD, Enum.Material.Metal, true)
 	part(m, "Roof", Vector3.new(depth + 1.2, 0.8, width + 1.2), cf * CFrame.new(0, h + 0.4, 0), ROOF_GREY, Enum.Material.Metal, true)
 	-- fascia band along the top of the road face, 0.4 proud of the wall

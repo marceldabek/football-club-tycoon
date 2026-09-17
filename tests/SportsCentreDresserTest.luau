@@ -44,4 +44,18 @@ function T.theSportsCentreHasPitchesAndAHall()
 	assert(pitches >= 2 and halls >= 1, "layout still has the sports centre blocks")
 end
 
+function T.carParkRectPicksAClearSideBesideTheHall()
+	local o = CFrame.new(5000, 0, 5000)
+	local r = SportsCentreDresser.carParkRect(o, 80, 120, 40, {}, {})
+	assert(r, "open ground: a car park")
+	assert(r.z0 >= 40 + 8 - 1e-3, "beside the +Z wall with a gap")
+	assert(math.abs(r.x0 - (-60 - 40)) < 1e-3 and math.abs(r.x1 - 60) < 1e-3, "from the road edge back to the hall's back")
+	-- a block on the +Z side sends it to -Z
+	local block: TownLayout.Box = { centre = (o * Vector3.new(0, 0, 90)), size = Vector3.new(40, 10, 40), yaw = 0, use = "semis" }
+	local other = SportsCentreDresser.carParkRect(o, 80, 120, 40, {}, { block })
+	assert(other and other.z1 <= -48 + 1e-3, "moves to the -Z side")
+	local both: TownLayout.Box = { centre = (o * Vector3.new(0, 0, -90)), size = Vector3.new(40, 10, 40), yaw = 0, use = "semis" }
+	assert(SportsCentreDresser.carParkRect(o, 80, 120, 40, {}, { block, both }) == nil, "no clear side: nil")
+end
+
 return T
