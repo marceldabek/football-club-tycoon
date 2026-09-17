@@ -24,6 +24,13 @@ local TrafficMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChil
 -- ------------------------------------------------------------------ tuning
 
 local MAX_CARS = 24 -- mobile budget; raise/lower this alone to retune the pool
+local MAX_CARS_LOW = 8 -- TEMP, Quality "Low" (mirrors Shared.Quality.BUDGETS.Low.maxCars)
+
+-- C3.2: QualityController publishes "High" | "Low" on the LocalPlayer.
+local function maxCars(): number
+	local player = game:GetService("Players").LocalPlayer
+	return if player and player:GetAttribute("Quality") == "Low" then MAX_CARS_LOW else MAX_CARS
+end
 local BUS_EVERY = 8 -- 1 in 8 spawns is a bus
 local SPAWN_MIN_DIST = 150
 local SPAWN_MAX_DIST = 700
@@ -289,7 +296,7 @@ end
 
 local function recheckSpawns(camPos: Vector3)
 	local spawned = 0
-	while #cars < MAX_CARS and spawned < MAX_SPAWNS_PER_RECHECK do
+	while #cars < maxCars() and spawned < MAX_SPAWNS_PER_RECHECK do
 		local roadIndex, distance, direction = randomSpawnCandidate(camPos)
 		if not roadIndex then
 			break
@@ -305,6 +312,11 @@ local function recheckDespawns(camPos: Vector3)
 		if flatDistance(car.lastPos, camPos) > DESPAWN_DIST then
 			despawnCarAt(i)
 		end
+	end
+	-- quality dropped to Low: shed the newest cars over the budget
+	local limit = maxCars()
+	while #cars > limit do
+		despawnCarAt(#cars)
 	end
 end
 
