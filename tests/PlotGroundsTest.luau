@@ -64,6 +64,36 @@ function T.footprintsDoNotOverlapEachOther()
 	end
 end
 
+-- X9: the car park used to be 100 x 300 and ran most of the way down the
+-- entrance (-X) side. It must now stay compact (no more than 160 along the
+-- entrance side, TEMP limit) and still take the road from the vehicle gate:
+-- the gate's z range (60..100, TownLayout.PLOT_LANE_END sits outside it) must
+-- land on the car park's west edge, which must be near the wall.
+local VEHICLE_GATE_Z0, VEHICLE_GATE_Z1 = 60, 100
+
+local function carPark(): Rect
+	for _, r in PlotGrounds.footprints() do
+		if r.name == "CarPark" then
+			return r
+		end
+	end
+	error("missing footprint CarPark")
+end
+
+function T.carParkIsCompactAlongTheEntranceSide()
+	local r = carPark()
+	local alongEntrance = r.max.Y - r.min.Y
+	assert(alongEntrance <= 160, ("car park runs %g along the entrance side (limit 160): %s"):format(alongEntrance, describe(r)))
+	assert((r.max.X - r.min.X) * alongEntrance <= 100 * 160, "car park area grew: " .. describe(r))
+end
+
+function T.carParkReachableFromVehicleGate()
+	local r = carPark()
+	assert(r.min.Y <= VEHICLE_GATE_Z0 and r.max.Y >= VEHICLE_GATE_Z1,
+		"vehicle gate z 60..100 does not face the car park: " .. describe(r))
+	assert(r.min.X >= -HALF and r.min.X <= -HALF + 40, "car park west edge too far from the gate: " .. describe(r))
+end
+
 function T.footprintsClearTheStadiumAndWestBlock()
 	for _, r in PlotGrounds.footprints() do
 		for _, k in KEEP_OUT do

@@ -22,10 +22,20 @@ local travelEvent = remotes:WaitForChild("BusTravel") :: RemoteEvent
 local gui = Theme.screenGui("BusMenu", 7)
 gui.Parent = player:WaitForChild("PlayerGui")
 
+-- Card sizing (X15). The card grows to fit every destination, up to 70% of
+-- the screen height; past that the list scrolls. Rows are 44 tall (phone tap
+-- size) with an 8 gap, the list starts 84 below the card top.
+local CARD_W = 360
+local HEADER_H = 84 -- title + "From:" line, where the list starts
+local FOOTER_H = 16 -- space under the list
+local ROW_H, ROW_GAP = 44, 8
+local SCREEN_MARGIN = 12 -- never closer than this to a screen edge
+local MAX_SCREEN_FRACTION = 0.7
+
 -- One card, reused for every stop: showMenu just clears and rebuilds the list,
 -- so there is never more than one on screen at once.
 local card = Theme.panel(gui, "Card", {
-	Size = UDim2.fromOffset(360, 460),
+	Size = UDim2.fromOffset(CARD_W, 460),
 	Position = UDim2.fromScale(0.5, 0.5),
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Visible = false,
@@ -52,17 +62,51 @@ local list = Instance.new("ScrollingFrame")
 list.Name = "Destinations"
 list.BackgroundTransparency = 1
 list.BorderSizePixel = 0
-list.Position = UDim2.fromOffset(14, 84)
-list.Size = UDim2.new(1, -28, 1, -100)
-list.ScrollBarThickness = 5
+list.Position = UDim2.fromOffset(14, HEADER_H)
+list.Size = UDim2.new(1, -28, 1, -(HEADER_H + FOOTER_H))
+list.ScrollingDirection = Enum.ScrollingDirection.Y
+list.ScrollBarThickness = 6
 list.ScrollBarImageTransparency = 0.4
-list.AutomaticCanvasSize = Enum.AutomaticSize.Y
+-- keep the bar beside the rows, not on top of their right edge
+list.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
+-- Canvas height is set by hand from the layout below instead of
+-- AutomaticCanvasSize, so it is always exactly the rows' height and the last
+-- destinations can be scrolled fully into view (and so clicked: a button
+-- clipped by the ScrollingFrame gets no input).
+list.AutomaticCanvasSize = Enum.AutomaticSize.None
 list.CanvasSize = UDim2.new()
 list.Parent = card
 local listLayout = Instance.new("UIListLayout")
-listLayout.Padding = UDim.new(0, 8)
+listLayout.Padding = UDim.new(0, ROW_GAP)
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Parent = list
+
+local function syncCanvas()
+	list.CanvasSize = UDim2.fromOffset(0, listLayout.AbsoluteContentSize.Y)
+end
+listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(syncCanvas)
+
+-- Fit the card to `rows` destinations and to the screen. Pure maths is in
+-- cardHeight so the numbers are easy to check by hand:
+--   1080p desktop: cap 756, 10 rows want 84 + 440 + 72 + 16 = 612 -> no scroll
+--   720p window:   cap 504 -> list 404, ~7.5 rows visible, rest scroll
+--   phone landscape (~390 tall): cap 273 -> list 173, ~3 rows, rest scroll
+local function cardHeight(rows: number, viewportH: number): number
+	local wanted = HEADER_H + rows * ROW_H + math.max(rows - 1, 0) * ROW_GAP + FOOTER_H
+	local cap = math.floor(viewportH * MAX_SCREEN_FRACTION)
+	-- always leave room for about two rows, unless the screen itself is shorter
+	local floorH = math.min(HEADER_H + 2 * ROW_H + ROW_GAP + FOOTER_H, viewportH - 2 * SCREEN_MARGIN)
+	return math.min(wanted, math.max(cap, floorH))
+end
+
+local rowCount = 0
+
+local function layoutCard()
+	local camera = workspace.CurrentCamera
+	local viewport = if camera then camera.ViewportSize else Vector2.new(1280, 720)
+	local width = math.min(CARD_W, math.floor(viewport.X) - 2 * SCREEN_MARGIN)
+	card.Size = UDim2.fromOffset(width, cardHeight(rowCount, viewport.Y))
+end
 
 -- ------------------------------------------------------------------- state
 
@@ -74,6 +118,7 @@ local function clearButtons()
 		b:Destroy()
 	end
 	table.clear(buttons)
+	rowCount = 0
 end
 
 local function setInteractive(enabled: boolean)
@@ -110,7 +155,7 @@ local function addDestinationButton(order: number, dest: Destination)
 	local variant: Theme.ButtonVariant = if dest.kind == "club" then "info" else "secondary"
 	local button = Theme.button(list, dest.label, variant, {
 		Name = ("Dest%d"):format(order),
-		Size = UDim2.new(1, 0, 0, 44),
+		Size = UDim2.new(1, 0, 0, ROW_H),
 		LayoutOrder = order,
 		TextSize = 16,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -120,6 +165,7 @@ local function addDestinationButton(order: number, dest: Destination)
 		travelTo(dest.name)
 	end)
 	table.insert(buttons, button)
+	rowCount += 1
 end
 
 local function showMenu(payload: any)
@@ -136,11 +182,33 @@ local function showMenu(payload: any)
 			end
 		end
 	end
+	layoutCard()
+	syncCanvas()
+	list.CanvasPosition = Vector2.zero -- every new stop starts at the top
 	setInteractive(true)
 	card.Visible = true
 end
 
 menuEvent.OnClientEvent:Connect(showMenu)
+
+-- Refit when the window is resized or the phone rotates while the card is up.
+local viewportConn: RBXScriptConnection? = nil
+local function watchCamera()
+	if viewportConn then
+		viewportConn:Disconnect()
+		viewportConn = nil
+	end
+	local camera = workspace.CurrentCamera
+	if camera then
+		viewportConn = camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+			if card.Visible then
+				layoutCard()
+			end
+		end)
+	end
+end
+watchCamera()
+workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(watchCamera)
 closeButton.Activated:Connect(closeCard)
 
 UserInputService.InputBegan:Connect(function(input, processed)

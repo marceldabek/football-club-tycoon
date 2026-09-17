@@ -18,7 +18,7 @@
 --   vehicle gate       x = -380           60..100          40-wide gap, road behind it
 --   pedestrian gate    x = -380           -20..-4          16-wide gap, footpath behind it
 --   access road        -379..-349         68..92           ends on the car park asphalt
---   car park           -350..-250         40..340          kerb included
+--   car park           -350..-250         40..190          kerb included (TEMP: halved, X9)
 --   club shop          -313..-287         -165..-135       front (door, window) faces +X;
 --                      (-313.5..-286)     (-165.5..-134.5) with fascia and roof overhang
 --   footpath           -379..-261 / -269..-261 / -261..-190  along z -12, north, then east
@@ -63,15 +63,18 @@ local ROAD_Z = (VEHICLE_GATE[1] + VEHICLE_GATE[2]) / 2 -- 80
 local ROAD_TOP = 0.2
 
 -- car park (kerb included in the rectangle)
+-- TEMP (X9): was z 40..340 (100 x 300), which ran most of the way down the
+-- entrance side. Halved to 100 x 150: the road mouth (z 68..92) still lands on
+-- its west kerb, and the south half of the entrance side is left open.
 local PARK_X0, PARK_X1 = -350, -250
-local PARK_Z0, PARK_Z1 = 40, 340
+local PARK_Z0, PARK_Z1 = 40, 190
 local KERB_T, KERB_TOP = 1, 0.5
 local ASPHALT_TOP = 0.2
 local BAY_W, BAY_D = 9, 18 -- along Z, along X
 local BAY_LINE_W = 0.4
 local ENTRY_CLEAR_Z = 104 -- the west bay row starts past the road mouth
 local LAMP_H = 20
-local LAMP_SPOTS = { { -319, 130 }, { -319, 270 }, { -261, 130 }, { -261, 270 } }
+local LAMP_SPOTS = { { -319, 110 }, { -319, 165 }, { -261, 110 }, { -261, 165 } } -- in the two aisles
 
 -- club shop
 local SHOP_CX, SHOP_CZ = -300, -150
@@ -467,8 +470,8 @@ end
 -- ---------------------------------------------------------------------- build
 
 -- Builds `Grounds` under the club model. Rebuilding replaces the old one.
--- Part count: wall ~10, road 1, car park ~112 (93 bay lines), shop 15,
--- training pitches 2 x 24 + fence ~5 panels + ~48 posts, footpath 3: ~240.
+-- Part count: wall ~10, road 1, car park ~63 (40 bay lines), shop 15,
+-- training pitches 2 x 24 + fence ~5 panels + ~48 posts, footpath 3: ~190.
 function PlotGrounds.build(club: Model): Model
 	local old = club:FindFirstChild("Grounds")
 	if old then
