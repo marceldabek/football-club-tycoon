@@ -1072,5 +1072,5 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 
 ### 2026-09-17 11:36 — Health check and part counts
 - Played a match with `playMatch|8|1` after X140–X151: returned true, club saved, no errors in the console.
-- Part counts: town 21,216 BaseParts (19,449 at 09:20), server workspace 27,021 with one club. At the market square a client shows 19,862 parts on High and 13,364 on Low (Low hides 6,182, pressing the HUD toggle). 60 fps in Studio. The phone check (X28/X61) is more pressing now; the handoff start-here list is updated.
+- Part counts: town 21,216 BaseParts (19,449 at 09:20), server workspace 27,021 with one club. At the market square a client shows 19,862 parts on High and 13,364 on Low (Low hides 6,182, pressing the HUD toggle); fps not measured this time. The phone check (X28/X61) is more pressing now; the handoff start-here list is updated.
 - A background review of the X140–X151 diff is running.
