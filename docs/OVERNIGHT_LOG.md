@@ -708,3 +708,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Foundry Way Roundabout: nothing but road parts stands on its disc; no imperfection dashes, give-ways or shed yards.
 - Weir Road dressing (X59): nothing in it overlaps any part outside the terrace dressing, roads and street dressing.
 - Moved Station bus stop (X71): its pad overlaps the station forecourt slab (tops 0.40 vs 0.30, not coplanar) and its back panel carries the imperfection poster, both by design.
+
+### 2026-09-17 07:27 — Loop check, upgrade half
+- The 06:27 check covered play and earn; this covers upgrade. On Plot 1 (Studio save store) DebugRun `expandStand|West` returned "West Stand: Bleachers built, 300 seats". The West stand went from 0 to 26 parts, and its sign's prompt moved from "Build Bleachers (150 seats) — £0" to "Expand to Main Stand (400 seats) — £1,500". **Screenshot** WestBleachers_1 shows the benches behind the tunnel.
+- Server boot summary now: riverside 893 parts, station 284, sports centre 165, shops 701 (128 blocks, including the waterfront flats).
