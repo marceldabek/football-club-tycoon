@@ -142,6 +142,8 @@ local function follow(folder: Folder)
 	stateConnections = {}
 	state = folder
 	ClubRef.setPresented(if folder == own then nil else folder)
+	-- local-only attribute for the spectator score pill (SpectatorPill)
+	Players.LocalPlayer:SetAttribute("WatchingPlot", if folder == own then nil else folder:GetAttribute("PlotIndex"))
 	table.insert(stateConnections, folder:GetAttributeChangedSignal("Phase"):Connect(onPhase))
 	table.insert(stateConnections, folder:GetAttributeChangedSignal("Tactic"):Connect(function()
 		if presenter then

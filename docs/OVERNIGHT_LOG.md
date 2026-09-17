@@ -208,3 +208,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Side effect in the Studio store:** the test club finished season 3 and was relegated (5th in the County League), then started season 4 in the Sunday Parks League.
 - Follow-ups X38 (spectator score pill) and X39 (real two-player check).
 - RunAll 306/306.
+
+### 2026-09-17 03:20 — Spectator score pill (X38)
+- While you watch another club's match, a pill under PLAY MATCH shows "Watching  Lune Albion 2 - 1 Brindle Heath  ·  60'". It uses the same football minute as the owner's scoreboard. Match.client sets a local-only player attribute `WatchingPlot`; SpectatorPill reads that club's folder. The text comes from `ClubCard.watchingLine`, which has a test.
+- Checked with a faked live Plot2 match (SpectatorPill_1).
+- RunAll 307/307.

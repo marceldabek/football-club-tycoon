@@ -60,4 +60,20 @@ function T.ordinalTeens()
 	assert(s.standing:sub(1, 3) == "3rd", s.standing)
 end
 
+function T.watchingLineShowsScoreAndMinute()
+	local line = ClubCard.watchingLine({
+		ClubName = "Lune Albion",
+		Opponent = "Brindle Heath",
+		HomeGoals = 1,
+		AwayGoals = 0,
+		MatchDuration = 90,
+		TimeLeft = 30,
+	})
+	assert(line == "Watching  Lune Albion 1 - 0 Brindle Heath  ·  60'", line)
+	local kickoff = ClubCard.watchingLine({ MatchDuration = 60, TimeLeft = 60 })
+	assert(kickoff == "Watching  Home 0 - 0 Away  ·  0'", kickoff)
+	local over = ClubCard.watchingLine({ MatchDuration = 60, TimeLeft = -5 })
+	assert(over:sub(-3) == "90'", over)
+end
+
 return T

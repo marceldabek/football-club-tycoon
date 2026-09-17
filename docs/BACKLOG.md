@@ -135,6 +135,6 @@
 - [ ] X35 TerraceStreetDresser: Mill/Weaver showpiece uses 1,013 of its 1,200 parts, so only 1 light street got dressed (26 skipped); thin the railing bars or raise the budget after a phone perf check `[studio]` S
 - [x] X36 (TerraceStreets ParkedStreets attribute; Mill Street, Weaver Street, Church Lane) Traffic drives through kerb-parked cars on streets with cars on both kerbs (single shared lane or skip those streets) `[disk]` S
 - [x] X37 (16 nearest lamps get a PointLight when ClockTime is dark; 6 on Low) Evening fixtures: town streets away from the ground are nearly black during an evening match (street lamps don't light); either brighten the evening look's ambient or make lamp heads Neon/PointLight in the evening for the local player `[studio]` S
-- [ ] X38 Spectators (I2.1) get no scoreboard, club names or crowd audio level of the watched club; show a small "Watching: A 1–0 B, 63'" pill from the watched folder `[studio]` S
+- [x] X38 (pill under PLAY MATCH: "Watching  A 2 - 1 B  ·  60'"; crowd audio level still own-club based) Spectators (I2.1) get no scoreboard, club names or crowd audio level of the watched club; show a small "Watching: A 1–0 B, 63'" pill from the watched folder `[studio]` S
 - [ ] X39 Spectating needs a real two-player check (B2.1d): the solo test faked a live match by cloning the club folder onto the Plot2 lot `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

@@ -97,4 +97,20 @@ function ClubCard.summary(attrs: { [string]: any }, club: any): Summary
 	}
 end
 
+-- One line for a spectator watching this club's live match (X38), e.g.
+-- "Watching  Lune Albion 1 - 0 Brindle Heath  ·  63'". Same football minute
+-- as the owner's scoreboard: elapsed share of MatchDuration mapped to 90.
+function ClubCard.watchingLine(attrs: { [string]: any }): string
+	local duration = math.max(num(attrs.MatchDuration, 90), 1)
+	local elapsed = 1 - num(attrs.TimeLeft, duration) / duration
+	local minute = math.clamp(math.floor(elapsed * 90), 0, 90)
+	return ("Watching  %s %d - %d %s  ·  %d'"):format(
+		str(attrs.ClubName, "Home"),
+		num(attrs.HomeGoals, 0),
+		num(attrs.AwayGoals, 0),
+		str(attrs.Opponent, "Away"),
+		minute
+	)
+end
+
 return ClubCard
