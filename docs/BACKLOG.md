@@ -116,15 +116,17 @@
 - [ ] X16 Backdrop fields read as flat plastic slabs: use Grass/Ground materials with a texture, hedges on all four sides and taller, more tree clumps along hedges `[studio]` S
 - [x] X17 Market square is an island in grass: pave the gap to the shop blocks, add a pedestrian zone and café seating (RivermereCenter.png) `[studio]` M
 - [ ] X18 Marina block is a flat light-blue plastic slab on the grass; make it a water basin (carve terrain) or a paved quay with the boats; fill the grass between the riverside flats and the promenade (gardens, trees, paths) `[studio]` S
-- [ ] X19 Road bridges are plain decks; add stone arch spandrels/cutwaters so the Lune Bridge reads like RivermereRiverside.png `[studio]` M
+- [x] X19 (stone arches, cutwaters, string course; arches only ~2 high because decks sit 2.7 above water, X31) Road bridges are plain decks; add stone arch spandrels/cutwaters so the Lune Bridge reads like RivermereRiverside.png `[studio]` M
 - [x] X20 (platform, footbridge, viaduct arches; no path from the car park yet) Station: platform-side dressing (yellow edge, benches, railings, name boards), footbridge, viaduct over the Lune, path from the car park `[studio]` M
-- [ ] X21 Station roofline is a flat box; the reference has a pitched slate roof with a gable/clock over the entrance `[studio]` S
+- [x] X21 Station roofline is a flat box; the reference has a pitched slate roof with a gable/clock over the entrance `[studio]` S
 - [x] X22 (shops paved; semis get front paths, 56 back onto the pavement) Grass strip between the pavement and shop/semi fronts; pave the forecourt up to the building line `[studio]` S
 - [x] X23 High street A-boards and hanging baskets in front of ShopBuilder rows (RivermereCenter.png) `[studio]` S
 - [x] X24 (bunting seen in a match 01:58, turbines spin after streaming fix) Watch bunting during a real match and turbines spinning; TownLife is only verified for banners so far `[studio]` S
-- [ ] X25 Semis hip-end roof wedges look tall from some angles; check against RivermereNorthfields.png and consider a plain gable `[studio]` S
-- [ ] X26 Hanging baskets are oversized balls placed at row corners, some on side walls; smaller bracket baskets centred over bays `[studio]` S
-- [ ] X27 Café chairs are solid blocks; thin seat + back + legs, or a kit chair `[studio]` S
+- [x] X25 (gable roof) Semis hip-end roof wedges look tall from some angles; check against RivermereNorthfields.png and consider a plain gable `[studio]` S
+- [x] X26 Hanging baskets are oversized balls placed at row corners, some on side walls; smaller bracket baskets centred over bays `[studio]` S
+- [x] X27 Café chairs are solid blocks; thin seat + back + legs, or a kit chair `[studio]` S
 - [ ] X28 Quality Low hides decor via LocalTransparencyModifier; measure real phone fps Low vs High and consider streaming radius per level `[studio]` M
-- [ ] X29 Semis garden walls/hedges have no gate gap where the new front paths cross them `[studio]` S
+- [x] X29 Semis garden walls/hedges have no gate gap where the new front paths cross them `[studio]` S
+- [ ] X30 Semis: pairs abut into a continuous terrace and the garden hedge stands on the pavement; leave a side gap between pairs (driveway) and pull the front garden inside the block `[studio]` M
+- [ ] X31 Road bridges: raise the decks (ramps on the approaches) or lower the water so the stone arches read; currently ~2 studs of arch `[studio]` M
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

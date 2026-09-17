@@ -21,7 +21,9 @@ ambient audio (F1.1), matchday fans (G1.1), 10-part team coach (X14), church (E9
 promenade (E6.1), station frontage and platform (E7.1 part), textured shops/flats/civic buildings (E2.1),
 Northfields semis and industrial sheds (E4.1/E5.1), client traffic (F2.1), club banners on lamp posts (H1.1),
 station platform + footbridge + brick viaduct (E7.1/X20), pedestrians (F3.1), Low/High quality toggle (C3.2),
-shop forecourts with A-boards and café tables + paved square (X17/X22/X23), Riverside Park (E6.2).
+shop forecourts with A-boards and café tables + paved square (X17/X22/X23), Riverside Park (E6.2),
+station pitched roof + gable clock (X21), stone road bridges (X19), semis gable roofs + gate gaps + basket/chair polish
+(X25–X29), floodlight tag lookup (X2), separate Studio save store (X1, TEMP), season end verified (A2.2).
 **Half-done:** F4.1 has spinning turbines but no flags/smoke; G2.1 has matchday bunting but no busy pub.
 Nothing is sitting unmerged.
 **Reverted:** none.
@@ -144,3 +146,11 @@ Nothing is sitting unmerged.
 ### 2026-09-17 02:23 — Season end played through (A2.2)
 - On the new Studio store, looped DebugRun `playMatch` for 23 matches. Season 1 ended 3rd, "Stayed", £1,200 prize. Season 2 ended 1st, "Promoted", £3,000 prize, honours 1 title / 1 promotion. Season 3 started in the County League (tier 2) with every save succeeding. No server errors. The client long fast-forward was not watched.
 - Note for testing: `playMatch` returns false while a match is still running, so drive it by waiting for `Phase == "Manage"`.
+
+### 2026-09-17 02:30 — Bridges, station roof, semis roofs merged; floodlight tags (X2)
+- **Floodlight tags (X2).** `Scenery` tags every floodlight head `FloodHead`, and `Sky` uses `CollectionService` and lights late-streamed heads. It only lights them, so another club's lit evening match is never switched off. Verified: all 72 heads were Neon during an evening fixture.
+- **Merged polish (X25–X27, X29).** Semis now have a plain gable roof: brick attic wedges with tiled slabs 0.05 above, which matches `RivermereNorthfields.png`. The old hip-end wedges were the tall triangles. Garden walls and hedges have gate gaps at each door; baskets are small bracket baskets at shopfront joins; café chairs have a seat, back and legs. Estates are now 1,473 parts and forecourts 563. Screenshot from (215, 9, -425).
+- **Merged bridges and station (X19/X21).** `BridgeDresser` gives each road bridge stone spandrel arches, pointed cutwaters, a string course and coping, 66 parts per bridge. The arches are only about 2 studs high because the decks sit about 2.7 above the water (X31). The station has a pitched slate roof, a brick front gable with coping and a clock (123 parts), which matches `RivermereStation.png` far better. Two agent test bugs fixed: a Studio multi_edit anchor clobbered the `export type` line, and the gable test expected z = 0 instead of mid-extrusion.
+- **New follow-ups:** semis pairs abut like a terrace and the hedges stand on the pavement (X30); bridge arches too shallow (X31).
+- Two agents still running: marina/backdrop (X18/X16) and the imperfection pass (E10.1).
+- RunAll 241/241.
