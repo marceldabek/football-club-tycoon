@@ -7,6 +7,12 @@ local Config = {}
 
 Config.MatchDurationSeconds = 90
 -- Time between pressing Play Match and kickoff: iris transition + walkout.
+-- X314: how full the ground is before kick-off, how much of it is left while
+-- the leavers walk home, and how long before the last of them go. TEMP.
+Config.CrowdEarlyShare = 0.35
+Config.CrowdLeavingShare = 0.3
+Config.CrowdEmptySeconds = 40
+
 Config.WalkoutSeconds = 10
 
 -- TEMP economy

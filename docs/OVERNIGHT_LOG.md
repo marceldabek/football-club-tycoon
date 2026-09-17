@@ -1726,3 +1726,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Verified in play: from the spawn point at the desk the green sign sits over the doorway with the corridor sign visible beyond it (screenshot).
 - RunAll 465 passed.
 
+### 2026-09-17 18:55 — The ground fills and empties (X314)
+- The stands went from empty to a full house one frame before the walkout - while X104's fans were still queueing outside - and stayed full through the 45 seconds X161 spends walking those same fans home.
+- The crowd is now built three times: a third of it in before kick-off, all of it as the whistle goes, and a thin crowd left at full time that clears 40 seconds later, by which time the leavers have walked out. TEMP shares in Config.
+- First attempt scaled the *attendance* and made no visible difference at a big ground, because the rendered crowd is capped well below a real gate and both shares were above the cap. It scales the rendered share now.
+- Verified in play by watching `CrowdCount`: 230 before kick-off, 644 during the match, 205 at full time, 0 forty seconds later.
+- RunAll 465 passed.
+

@@ -41,6 +41,8 @@ type Played = {
 
 local running = false
 local homeSquad: { Squad.MatchPlayer } = {}
+-- X314: rebuilds this match's crowd at a share of the gate; nil between matches
+local crowdFill: ((number) -> ())? = nil
 local matchMinute = 0 -- the scoreboard minute, stamped on substitutions (X218)
 local eventsShown = 0 -- timeline events already on the scoreboard, stamped on substitutions
 local subsMade: { Squad.Sub } = {}
@@ -150,11 +152,20 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	-- X310: away from home the stands wear the hosts' colour and our following
 	-- takes the away end
 	local theirKit = Config.pitchKit(jsonToColor(opponent.kit))
-	if playerIsAway then
-		WorldBuilder.buildCrowd(ClubState.plotLevels(), attendance, capacity, Config.HomeKit, theirKit)
-	else
-		WorldBuilder.buildCrowd(ClubState.plotLevels(), attendance, capacity, theirKit)
+	-- X314: the stands used to snap from empty to a full house one frame before
+	-- the walkout, while X104's fans were still queueing outside, and stayed
+	-- full through the 45s X161 spends walking them home. The ground fills in
+	-- three steps instead: a third of the gate in before kick-off, the rest by
+	-- the whistle, and a thin crowd left while the leavers walk out.
+	local function fill(share: number)
+		if playerIsAway then
+			WorldBuilder.buildCrowd(ClubState.plotLevels(), attendance, capacity, Config.HomeKit, theirKit, share)
+		else
+			WorldBuilder.buildCrowd(ClubState.plotLevels(), attendance, capacity, theirKit, nil, share)
+		end
 	end
+	crowdFill = fill
+	fill(Config.CrowdEarlyShare)
 
 	-- X310: the venue of the match actually being played (X261 published only
 	-- the next fixture's), so the scoreboard, the crowd and the card can dress
@@ -181,6 +192,7 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 
 	ClubState.set("KickoffAt", workspace:GetServerTimeNow())
 	ClubState.set("Phase", "Match")
+	fill(1) -- X314: the ground is full by the time the whistle goes
 
 	-- Presentation layer (scoreboard): replay goal events against the clock.
 	local startClock = os.clock()
@@ -231,7 +243,23 @@ end
 
 local function finishCore()
 	ClubState.set("Phase", "Manage")
-	WorldBuilder.clearCrowd()
+	-- X314: the ground empties while X161's leavers are walking home, rather
+	-- than staying full and then vanishing
+	local thin = crowdFill
+	crowdFill = nil
+	if thin then
+		local ok = pcall(thin, Config.CrowdLeavingShare)
+		if not ok then
+			WorldBuilder.clearCrowd()
+		end
+		task.delay(Config.CrowdEmptySeconds, function()
+			if not running then
+				WorldBuilder.clearCrowd()
+			end
+		end)
+	else
+		WorldBuilder.clearCrowd()
+	end
 	running = false
 
 	local settled = MatchService.onSettled

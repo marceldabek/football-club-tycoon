@@ -2221,7 +2221,10 @@ end
 -- is us and the visitors take the away end; away from home the two swap, so the
 -- stands round the player are full of the other club and their own following is
 -- the pocket in the corner.
-function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: number, capacity: number, awayKit: Color3?, hostKit: Color3?)
+-- `share` (X314) is how much of the crowd has taken its seat: the rendered
+-- crowd is capped well below a real gate, so scaling the attendance instead
+-- made no visible difference at a big ground.
+function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: number, capacity: number, awayKit: Color3?, hostKit: Color3?, share: number?)
 	local function palette(kit: Color3)
 		return { kit, kit, Color3.fromRGB(240, 240, 240), Color3.fromRGB(40, 40, 40), Color3.fromRGB(90, 90, 100) }
 	end
@@ -2250,7 +2253,7 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 	-- spacing put the same z in every row, which read as vertical columns of
 	-- people rather than a crowd.
 	local spacing = FAN_SPACING
-	local base = math.min(fill, MAX_FANS / math.max(totalSlots, 1))
+	local base = math.min(fill, MAX_FANS / math.max(totalSlots, 1)) * math.clamp(share or 1, 0, 1)
 
 	-- X239: the front-to-back swing, shrunk when the crowd is dense enough that
 	-- the front rows would pass 100%; capping them there used to lose ~13% of fans
