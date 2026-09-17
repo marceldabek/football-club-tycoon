@@ -102,4 +102,20 @@ function T.footprintsClearTheStadiumAndWestBlock()
 	end
 end
 
+function T.pathsideTreesAndLampsKeepOffThePathAndBuildings()
+	local trees, lamps = PlotGrounds.pathsideSpots()
+	assert(#trees >= 6 and #lamps >= 2, ("trees %d lamps %d"):format(#trees, #lamps))
+	local footprints = PlotGrounds.footprints()
+	for _, list in { trees, lamps } do
+		for _, p in list do
+			assert(math.abs(p.Z - -12) >= 5, "clear of the 8-wide footpath at z " .. p.Z)
+			assert(p.X > -370 and p.X < -265, "along the gate leg, inside the wall")
+			for _, fp in footprints do
+				local inside = p.X >= fp.min.X - 4 and p.X <= fp.max.X + 4 and p.Z >= fp.min.Y - 4 and p.Z <= fp.max.Y + 4
+				assert(not inside, "clear of " .. fp.name)
+			end
+		end
+	end
+end
+
 return T

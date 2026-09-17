@@ -199,6 +199,47 @@ function PlotGrounds.footprints(): { Footprint }
 	return out
 end
 
+-- X94: trees and lamp posts along the first leg of the footpath (from the
+-- pedestrian gate), so the walk in isn't bare lawn. Pure pitch-local ground
+-- points: trees PATH_TREE_SIDE off the path centre on both sides, lamps on the
+-- north side between them. Kept clear of the gate opening.
+local PATH_TREE_SIDE = 10
+local PATH_LAMP_SIDE = 6
+function PlotGrounds.pathsideSpots(): ({ Vector3 }, { Vector3 })
+	local trees, lamps = {}, {}
+	local x0, x1 = -HALF + 30, PATH_X - 18
+	local x = x0
+	local k = 0
+	while x <= x1 do
+		for _, side in { -1, 1 } do
+			table.insert(trees, Vector3.new(x, GROUND_Y, PATH_Z + side * PATH_TREE_SIDE))
+		end
+		if k % 2 == 0 and x + 12 <= x1 then
+			table.insert(lamps, Vector3.new(x + 12, GROUND_Y, PATH_Z - PATH_LAMP_SIDE))
+		end
+		x += 24
+		k += 1
+	end
+	return trees, lamps
+end
+
+local function buildPathside(parent: Instance)
+	local m = model("Pathside", parent)
+	local trees, lamps = PlotGrounds.pathsideSpots()
+	for i, p in trees do
+		local h = 9 + (i % 3)
+		extents("Trunk", p.X - 0.45, p.X + 0.45, p.Y, p.Y + h, p.Z - 0.45, p.Z + 0.45, Color3.fromRGB(92, 72, 54), Enum.Material.Wood, m)
+		local crown = box("Crown", Vector3.one * (7 + (i % 2)), CFrame.new(p.X, p.Y + h + 2.5, p.Z), Color3.fromRGB(80, 124, 56), Enum.Material.Grass, m)
+		crown.Shape = Enum.PartType.Ball
+		crown.CastShadow = false
+	end
+	for _, p in lamps do
+		extents("LampPost", p.X - 0.25, p.X + 0.25, p.Y, p.Y + 12, p.Z - 0.25, p.Z + 0.25, Color3.fromRGB(24, 26, 30), Enum.Material.Metal, m)
+		extents("Lantern", p.X - 0.6, p.X + 0.6, p.Y + 12, p.Y + 13.4, p.Z - 0.6, p.Z + 0.6, Color3.fromRGB(250, 236, 196), Enum.Material.Glass, m)
+		extents("LampCap", p.X - 0.8, p.X + 0.8, p.Y + 13.4, p.Y + 13.8, p.Z - 0.8, p.Z + 0.8, Color3.fromRGB(24, 26, 30), Enum.Material.Metal, m)
+	end
+end
+
 -- -------------------------------------------------------------- boundary wall
 
 local function buildBoundary(parent: Instance)
@@ -507,6 +548,7 @@ function PlotGrounds.build(club: Model): Model
 	end
 	buildTrainingFence(grounds)
 	buildFootpath(grounds)
+	buildPathside(grounds)
 
 	PlotContext.place(grounds)
 	return grounds

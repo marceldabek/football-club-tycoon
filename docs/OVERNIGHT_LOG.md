@@ -775,3 +775,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Roadmap H1 "media presence": `MatchdayLife` parks a white outside-broadcast van with a red livery band, a mast and a tilted satellite dish (7 parts) on the forecourt beside the team coach, as part of the matchday crowd. It shows only when `MatchdayRoutes.hasMedia(tier, attendance)` passes: TEMP tier 2+ or attendance 400+. A pure spot and threshold test checks it's clear of the barriers and the coach.
 - **Playtest:** the test club's real attendance is 300, so I temporarily lowered the threshold to 100 in Studio only, saw the van (MediaVan_1, an evening fixture), then restored 400. A server-side attendance override was tried first but got overwritten when the match started.
 - RunAll 377/377.
+
+### 2026-09-17 08:08 — Trees and lamps on the walk in to the ground (X94)
+- From above (PlotApproach_2), the walk from a plot's pedestrian gate crossed bare lawn. `PlotGrounds` adds 6 trees (trunk and crown) either side of the footpath's first leg and 2 black lamp posts beside it: 18 parts per club. Pure `pathsideSpots` has 1 test (off the path, inside the wall, clear of the shop, car park and training pitches). **Screenshot** Pathside_1.
+- Logged X95: the plot interior is still sparse compared with the reference's pub-by-the-gate street scene.
+- RunAll 378/378.
