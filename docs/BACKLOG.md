@@ -39,24 +39,24 @@
   - [x] B2.1b Server: per-club service instances, save per player, loop works for one player `[studio]` M
   - [ ] B2.1c Clients bind to their own club folder; visitors see other clubs read-only `[studio]` M
   - [ ] B2.1d Two-client Studio test (Players = 2): both play a match at the same time `[studio]` M
-- [ ] B2.2 Plot picker on load: camera flies between free plots (for-sale lots), Prev / Next / Choose buttons; choosing claims the plot, builds the club, spawns the player in their office `[studio]` M dep: B1.1, B2.1b
+- [x] B2.2 Plot picker on load: camera flies between free plots (for-sale lots), Prev / Next / Choose buttons; choosing claims the plot, builds the club, spawns the player in their office `[studio]` M dep: B1.1, B2.1b
 - [x] B2.3 Despawn on leave: flush save, destroy the club model, release the plot, rebuild the for-sale lot `[studio]` S dep: B2.1b
 - [x] B3.1 Save lock: session lock record (`lockedBy jobId`, `lockedAt`), new server waits (bounded, TEMP 30 s) then steals a stale lock; old server closes on a newer lock; pure lock logic tested against the memory backend `[disk]` M
 - [x] B3.2 Wire the lock into load/flush/leave; Studio memory-backend test `[studio]` S dep: B3.1, B2.1b
 - [x] B4.1 For-sale lot: grass pad, "FOR SALE — Rivermere Borough Council" sign, a few trees and rocks, low fence posts; built from code per free plot `[studio]` S
-- [ ] B4.2 "Go to my club" HUD button: teleports the character to their office spawn (cooldown TEMP 5 s, blocked mid-match? no — allowed) `[studio]` S dep: B2.1c
+- [x] B4.2 "Go to my club" HUD button: teleports the character to their office spawn (cooldown TEMP 5 s, blocked mid-match? no — allowed) `[studio]` S dep: B2.1c
 
 ## Phase C — Town greybox
 - [x] C1.1 `docs/TOWN_PLAN.md`: master plan from `RivermereAImap.png` scaled down (TEMP numbers): ring road + roundabouts, River Lune W→E with 3 road bridges, railway NW with station + viaduct over the river, town centre market square, Northfields (N), Westdale (SW), Riverside + Riverside Park (E), industrial estate (W), community sports centre (S), 4 plot sites, walking times `[disk]` M
 - [x] C1.2 `src/shared/TownLayout.luau` layout data (roads as polylines with widths, river polyline, bridges, rail line, district blocks, plot CFrames, bus stops, landmarks) + `TownLayoutTest` (plots don't overlap roads/river/each other, every plot touches the ring road, bridges cross the river) `[disk]` M dep: C1.1
-- [ ] C2.1 `src/server/TownBuilder.luau` greybox: terrain ground, river carved with water, roads (asphalt parts per segment), pavements, bridges, rail line + embankment, district building volumes (grey blocks), plot pads `[studio]` M dep: C1.2
+- [x] C2.1 `src/server/TownBuilder.luau` greybox: terrain ground, river carved with water, roads (asphalt parts per segment), pavements, bridges, rail line + embankment, district building volumes (grey blocks), plot pads `[studio]` M dep: C1.2
 - [ ] C2.2 Walk test: spawn → centre → each plot, timings logged; sightlines to spire/viaduct screenshot `[studio]` S dep: C2.1
 - [ ] C3.1 StreamingEnabled on (place setting via code check + note), models grouped per district with `ModelStreamingMode`, part/triangle counts per district logged `[studio]` S dep: C2.1
 - [ ] C3.2 Quality setting (Low/High) client toggle: hides decorative props and far detail on Low `[studio]` M dep: C3.1
 
 ## Phase D — Kit
 - [x] D1.1 Free-model hunt (Creator Store via lead, CC0 via subagent): terraced houses, shopfronts, lamp posts, bus shelter, benches, bins, planters, railings, trees, cars, station and industrial pieces; shortlist with ids/links/licence in `docs/FREE_ASSETS.md` `[disk]` M
-- [ ] D1.2 Insert + strip + log keepers into `ServerStorage.Kit` and `assets/kit/MANIFEST.md` `[studio]` M dep: D1.1
+- [x] D1.2 Insert + strip + log keepers into `ServerStorage.Kit` and `assets/kit/MANIFEST.md` `[studio]` M dep: D1.1
 - [x] D4.1 `src/server/KitPlacer.luau`: place a kit model by name at a CFrame with ground snap, random yaw/colour variant within rules, primitive fallback when the kit model is missing (fresh clone of repo still builds) `[disk]` S
 
 ## Phase E — Districts (terraced streets first, per Q4)
@@ -69,7 +69,7 @@
 - [ ] E7.2 Bus stops: shelter + flag at centre, station, each plot, park; bus-stop fast-travel UI (pick a destination → fade → teleport) `[studio]` M dep: C2.1
 - [ ] E9.1 Church with spire (landmark) near the centre, visible from every plot `[studio]` S dep: C2.1
 - [ ] E5.1 Industrial estate greybox → sheds, yards, fences, loading bays; reference `rivermer.industrialestate.png` `[studio]` M
-- [ ] E8.1 Plot surroundings: approach road, car park, club shop box, two training pitches per plot; reference `RivermereTurnstileEntrance.png` `[studio]` M dep: B1.2a, C2.1
+- [x] E8.1 Plot surroundings: approach road, car park, club shop box, two training pitches per plot; reference `RivermereTurnstileEntrance.png` `[studio]` M dep: B1.2a, C2.1
 - [ ] E6.2 Riverside Park: paths, pond, playground, trees, bandstand `[studio]` M
 - [ ] E4.1 Northfields semis and small flats `[studio]` M
 - [ ] E9.2 Backdrop: hills, wind turbines, distant floodlights, low detail `[studio]` S
@@ -85,8 +85,8 @@
 - [ ] G1.1 Matchday around a plot (all players): fans walking to the ground, stewards, barriers; fades after `[studio]` M dep: B2.1c
 - [ ] G2.1 Matchday town for the playing player only: banners on lamp posts, busy pub `[studio]` M
 - [ ] H1.1 Club identity banners in town (client-side, player's own club colours/name) `[studio]` S
-- [ ] H2.1 Club shop building on the plot (visual) `[studio]` S dep: E8.1
-- [ ] H3.1 Training pitches on the plot (visual) `[studio]` S dep: E8.1
+- [x] H2.1 Club shop building on the plot (visual) `[studio]` S dep: E8.1
+- [x] H3.1 Training pitches on the plot (visual) `[studio]` S dep: E8.1
 
 ## Phase I — Social (after B2)
 - [ ] I1.1 Visit a club: walk into another plot's office, read-only squad board + club card `[studio]` M
@@ -102,4 +102,10 @@
 - [ ] X1 Test matches in Studio write to Marcel's real DataStore save (place is published): prefer a Studio-only save key prefix (e.g. `studio_u<id>`) so agent playtests never touch the live club `[disk]` S
 - [ ] X2 `Sky.setFloodHeads` scans all of workspace; tag floodlight heads with CollectionService instead once the town is big `[disk]` S
 - [ ] X3 A player who leaves mid-match: the old club copy finishes the match loop before the plot frees (up to 180 s); check no errors in that path `[studio]` S
+- [ ] X5 Districts are far too sparse next to `RivermereAImap.png`: add many more terraced rows / semis / shops so every block between roads is built up `[disk]` M
+- [ ] X6 Plot access lanes in TownLayout end at local z≈0 but the PlotGrounds vehicle gate is at local z 60..100: align the lane end with the gate `[disk]` S
+- [ ] X7 Picker viewpoint is too high and hazy; lower/closer view onto the FOR SALE board; reduce Atmosphere density for town scale (HeroAfternoon 0.32 hides anything past ~600 studs) `[studio]` S
+- [ ] X8 Town edge: terrain stops dead at x ±2800 / z ±2200; needs a backdrop (hills, tree belt) `[studio]` M
+- [ ] X9 Car park (100 × 300) dominates the plot entrance; halve it or turn it `[disk]` S
+- [ ] X10 Roads z-fight risk: overlapping tops only 0.004–0.01 apart; check at distance on a mid phone `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
