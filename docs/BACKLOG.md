@@ -266,4 +266,15 @@
 - [x] X151 (11:14 8 crosses, +24 parts, forecourts 831/860) Green pharmacy cross sign sticking out over `shop_front_pharmacy` fronts in `ForecourtDresser` (3 parts each). RivermereCenter.png `[studio]` S
 - [x] X152 (11:38 GLASS/PAPER/CANS bottle banks in the station car park's westmost near-row bay, 6 parts) A recycling point in a town car park: roadmap E7 car parks and E10 clutter; UK car parks have bottle banks `[studio]` S
 - [x] X153 (11:41 barred gate leaves: 2 rails + 4 uprights, +24 parts a club) Turnstile gate leaves were solid dark panels that read as doorways; RivermereTurnstileEntrance.png has navy barred gates `[studio]` S
+- [x] X154 (11:46 PlotLamps client: nearest 10 plot Lantern/LampLens parts get a PointLight and glow after dark, 4 on Low, 0 parts) At an evening fixture the turnstile lamp and the plot's walk-in and car park lamps stayed dark while the town's lamps lit, so the way into the ground was black `[studio]` S
+- [ ] X155 Turnstile lane signs say "HOME FANS" where the reference says "HOME SUPPORTERS": change the text in `WorldBuilder` buildTurnstiles, 0 parts. RivermereTurnstileEntrance.png `[studio]` S
+- [ ] X156 Pitch-side sponsors are joke brands: swap 3 of the 6 `Config.Sponsors` for TEMP Rivermere businesses from the references (DALETEK ENGINEERING, PINNACLE BUILDING SUPPLIES, THE DAILY BEAN), 0 parts. rivermer.industrialestate.png / RivermereCenter.png `[disk]` S
+- [ ] X157 Evening floodlights only turn the heads Neon, so no light falls on the pitch: one SpotLight per flood head (no shadows, aimed at the centre spot) switched in `Scenery.setFloodlights`, 0 parts `[studio]` S
+- [ ] X158 After dark the train's windows stay dark glass: in `Train.client.luau` switch "Windows" to warm Neon while the sky is dark, 0 parts. RivermereStation.png `[studio]` S
+- [ ] X159 Shopfronts are dark at night: after dark give the 12 nearest "Shopfront*" parts within 300 a warm SurfaceLight (client, off on Low), 0 parts. RivermereCenter.png `[studio]` S
+- [ ] X160 Traffic has no headlights for evening fixtures: after dark give the 8 nearest cars and buses within 200 a forward SpotLight (no shadows), off on Low, 0 parts. RivermereStation.png `[studio]` S
+- [ ] X161 Fans vanish the moment a match ends: keep the MatchdayLife crowd for about 45 s after Match -> Manage and walk them back out along the MatchdayRoutes routes, then despawn, 0 new parts. RivermereTurnstileEntrance.png `[studio]` S
+- [ ] X162 Town walkers don't know it's matchday: while a ground within 600 is in PreMatch or Match, 1 in 3 walkers' tops are in the home kit colour (Pedestrians client), 0 parts `[studio]` S
+- [ ] X163 The bus-stop litter bins are plain black boxes: a gold "LITTER" band via SurfaceGui on each bus stop "Bin" (`TownBuilder` buildBusStop), 0 parts. RiveremereWestdale.png `[studio]` S
+- [ ] X164 Nothing on the footbridge says which platform is which: two navy "Platform 1 / Platform 2" boards on the footbridge railings (`StationDresser.footbridge`), 2 parts. RivermereStation.png `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
