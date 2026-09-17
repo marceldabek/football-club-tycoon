@@ -112,7 +112,7 @@
 - [x] X12 Low-part terrace row (≤ 25 parts: body, roof wedges, chimney stacks, door/window decals) so every terraced block in town can be dressed within the mobile budget `[disk]` M
 - [x] X13 Kit lamp is 36 parts: build a ≤ 6-part Victorian lamp for town-wide use `[disk]` S
 - [x] X14 TeamBus (Assets "Bus") is 587 parts per club; swap for a low-part coach or drop it `[studio]` S
-- [x] X15 (card sized to screen; not re-tested by clicking) Bus menu: clicking a destination scrolled out of view did nothing in the test; check ScrollingFrame input and make the card taller on desktop `[studio]` S
+- [x] X15 (card sized to screen; click-tested 03:06: Station button at the bottom of the list travels) Bus menu: clicking a destination scrolled out of view did nothing in the test; check ScrollingFrame input and make the card taller on desktop `[studio]` S
 - [x] X16 Backdrop fields read as flat plastic slabs: use Grass/Ground materials with a texture, hedges on all four sides and taller, more tree clumps along hedges `[studio]` S
 - [x] X17 Market square is an island in grass: pave the gap to the shop blocks, add a pedestrian zone and café seating (RivermereCenter.png) `[studio]` M
 - [x] X18 (paved quay + pontoons + boats + riverside gardens) Marina block is a flat light-blue plastic slab on the grass; make it a water basin (carve terrain) or a paved quay with the boats; fill the grass between the riverside flats and the promenade (gardens, trees, paths) `[studio]` S

@@ -27,7 +27,7 @@ station pitched roof + gable clock (X21), stone road bridges (X19), semis gable 
 marina quay + riverside gardens (X18), hedged backdrop fields (X16), road imperfections (E10.1), semis with driveways
 (X30), square flags + chimney smoke + matchday pub drinkers (F4.1/G2.1), smaller plot car park + bus menu sizing (X9/X15),
 Mill Street front gardens, railings, street trees, signs and parked cars (X11), visitors see other clubs read-only (B2.1c).
-**Half-done:** the new bus menu sizing is merged but not click-tested.
+**Half-done:** none.
 **Reverted:** none.
 
 **Known bugs**
@@ -188,3 +188,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Playtest: claimed Plot1, whose 7 prompts stayed on. A test prompt the server put in Plot2 stayed off on the client after the server set it false and then true. During a 30 s match the Plot1 prompts went 6 off, then 6 on in Manage. No errors.
 - Follow-up: B2.1d, the two-client test, still needs Studio's Players = 2 test server.
 - RunAll 300/300.
+
+### 2026-09-17 03:06 — Bus menu click test (X15), welcome and naming cards stacked
+- **Bus menu:** stood at the Town Centre stop, held E, and the card opened with 10 destinations (your club, 3 for-sale plots, 6 districts). Clicking Station, the 9th row near the bottom, moved the character to (-740, 3, -360) and closed the card. Screenshots BusMenu_1 and BusStation_1.
+- **Bug found and fixed:** a returning owner whose club still needs a name (the Studio test club) got "Welcome back" and "Name your club" on top of each other. HUD now skips the welcome card while NeedsName is set, because the naming card is already the greeting. Re-tested: only the naming card shows (NameOnly_1).
+- Follow-up: the bus menu can still open over the naming card. That's low priority, since you can only reach a bus stop after walking away from it.

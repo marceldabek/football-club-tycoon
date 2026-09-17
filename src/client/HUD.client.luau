@@ -324,7 +324,8 @@ local function maybeWelcome()
 		return
 	end
 	welcomeDecided = true
-	if (get("MatchesPlayed") or 0) == 0 or get("OwnerUserId") ~= player.UserId then
+	-- the naming card is the greeting when the club still needs a name; never stack both
+	if (get("MatchesPlayed") or 0) == 0 or get("OwnerUserId") ~= player.UserId or get("NeedsName") == true then
 		return
 	end
 	local round, rounds = get("Round") or 0, get("Rounds") or 10
