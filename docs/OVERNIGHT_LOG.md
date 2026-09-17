@@ -717,3 +717,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Each grass pitch at the Community Sports Centre gets two kit park benches just off one touchline, facing the pitch: 6 benches, one mesh each. An overlap check found nothing else in their bounding boxes.
 - I briefly thought the kit bench faced its back vector and flipped it. A side-on profile screenshot (BenchProfile_1) showed the flip had them facing away, so I reverted; BenchProfile_2 has them facing the pitch. The river benches use the same, correct convention.
 - RunAll 371/371.
+
+### 2026-09-17 07:32 — Sports hall clerestory windows (X76)
+- The sports hall's side walls now each carry a long band of high glazing, 0.2 off the cladding (2 parts), so the hall reads as a building rather than a blank box. **Screenshot** SportsHallWindows_1.
+- RunAll 371/371.

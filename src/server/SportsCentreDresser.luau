@@ -251,6 +251,11 @@ local function buildHall(parent: Instance, block: TownLayout.Box)
 	rectPart(m, "EntrancePath", cf, { x0 = -depth / 2 - roadGap, x1 = -depth / 2, z0 = -6, z1 = 6 }, 0.02, 0.32, Color3.fromRGB(180, 176, 168), Enum.Material.Pavement).CastShadow = false
 	part(m, "Body", Vector3.new(depth, h, width), cf * CFrame.new(0, h / 2, 0), CLAD, Enum.Material.Metal, true)
 	part(m, "Roof", Vector3.new(depth + 1.2, 0.8, width + 1.2), cf * CFrame.new(0, h + 0.4, 0), ROOF_GREY, Enum.Material.Metal, true)
+	-- a band of high clerestory glazing along both side walls, standing 0.2 off the cladding
+	for _, side in { -1, 1 } do
+		local glazing = part(m, "Clerestory", Vector3.new(depth - 8, 2.6, 0.2), cf * CFrame.new(0, h - 6, side * (width / 2 + 0.1)), Color3.fromRGB(60, 80, 100), Enum.Material.Glass, false)
+		glazing.CastShadow = false
+	end
 	-- fascia band along the top of the road face, 0.4 proud of the wall
 	local fascia = part(m, "Fascia", Vector3.new(0.4, 4, width * 0.8), cf * CFrame.new(-depth / 2 - 0.2, h - 3, 0), NAVY, Enum.Material.SmoothPlastic, false)
 	local gui = Instance.new("SurfaceGui")
