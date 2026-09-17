@@ -288,4 +288,14 @@
 - [x] X173 (12:18 PSE "Elevated New York City Subway 1" 9114300983 station bed, full within 40 of the station, fading over 160) F1.1 listed a station ambience zone but AmbientAudio has none: a `station` bed weighted by distance to the station, library audio, 0 parts `[studio]` S
 - [x] X174 (12:16 PSE "Park Playgrounds 1" 9112841549, rolloff 20..140, with the PlayAreaLife figures) The play areas are silent: a soft 3D children-playing loop on each area while PlayAreaLife figures are spawned (off on Low), library audio, 0 parts `[studio]` S
 - [x] X175 (12:18 outdoor beds x0.3 inside any plot Office/DressingRooms bounding box) Birds and town noise play at full volume inside the office and dressing rooms: duck outdoor beds to ~30% while the camera is inside them (fixed plot-local boxes), 0 parts `[studio]` S
+- [ ] X176 Crowd goal jump pulls fans apart: `MatchPresenter.crowdReact` delays each crowd BasePart independently (0-0.35 s) but a fan is 5-6 loose parts, so heads/arms/torsos hop at different times; one delay per fan, 0 parts. Stadium matchday `[studio]` S
+- [ ] X177 Nobody walks the riverside promenade: a few client walkers along RiverDresser's promenade runs within 300, off on Low, 0 server parts. RivermereRiverside.png `[studio]` S
+- [ ] X178 Market stalls have no stallholders: one client figure behind each MarketStall within 200, facing out, idle sway, off on Low. RivermereCenter.png `[studio]` S
+- [ ] X179 The club shop is empty inside: counter with till, a wall shelf with folded home-kit shirts, a scarf rail, ~9 parts per club. RivermereTurnstileEntrance.png `[studio]` S
+- [ ] X180 Training pitches are always empty: client home-kit figures jogging a cone loop plus a coach on the nearest TrainingPitch within 300, only in Manage, off on Low `[studio]` S
+- [ ] X181 Sports Centre pitches never used: a client kickabout of 6 figures and a ball on a pitch within 300, off on Low. RivermereAImap.png `[studio]` S
+- [ ] X182 Walkers never cross the market square: 4-6 client strollers on loops across the paved square within 200, off on Low. RivermereCenter.png `[studio]` S
+- [ ] X183 Home saves and misses get no crowd reaction: a short "ooh" (quieter goalCheer or a PSE crowd clip) in MatchPresenter's SAVE/miss branches, 0 parts `[studio]` S
+- [ ] X184 The Riverside Park pond is empty: 3 client ducks paddling loops on the Pond water within 250, off on Low. RivermereRiverside.png `[studio]` S
+- [ ] X185 Nobody sits on Riverside Park benches: 3 client seated figures on the nearest park benches within 220, off on Low. RivermereRiverside.png `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
