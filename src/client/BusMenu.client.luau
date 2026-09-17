@@ -112,6 +112,18 @@ end
 
 local buttons: { TextButton } = {}
 local traveling = false
+-- X222: the server refuses travel away from a stop (20 studs) or within its 3 s
+-- cooldown; mirror both so a refused trip never plays the fade
+local WALK_AWAY_STUDS = 14 -- from where the card opened
+local TRAVEL_COOLDOWN = 3.2
+local openedAt: Vector3? = nil
+local lastTravel = -math.huge
+
+local function rootPosition(): Vector3?
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	return if root and root:IsA("BasePart") then root.Position else nil
+end
 
 local function clearButtons()
 	for _, b in buttons do
@@ -132,6 +144,7 @@ end
 
 local function closeCard()
 	card.Visible = false
+	openedAt = nil
 	clearButtons()
 end
 
@@ -139,6 +152,12 @@ local function travelTo(destinationName: string)
 	if traveling then
 		return
 	end
+	if os.clock() - lastTravel < TRAVEL_COOLDOWN then
+		-- let the server say "Wait a moment." without fading the screen
+		travelEvent:FireServer(destinationName)
+		return
+	end
+	lastTravel = os.clock()
 	traveling = true
 	setInteractive(false)
 	Iris.close(0.35)
@@ -187,7 +206,21 @@ local function showMenu(payload: any)
 	list.CanvasPosition = Vector2.zero -- every new stop starts at the top
 	setInteractive(true)
 	card.Visible = true
+	openedAt = rootPosition()
 end
+
+-- close the card once the player walks away from the stop
+task.spawn(function()
+	while true do
+		task.wait(0.5)
+		if card.Visible and not traveling and openedAt then
+			local at = rootPosition()
+			if at and (at - (openedAt :: Vector3)).Magnitude > WALK_AWAY_STUDS then
+				closeCard()
+			end
+		end
+	end
+end)
 
 menuEvent.OnClientEvent:Connect(showMenu)
 

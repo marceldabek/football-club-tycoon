@@ -155,6 +155,39 @@ local function crest(parent: Instance, name: string, size: number): (Frame, Text
 	return shield, letters, label, sub
 end
 
+-- X226: the line under the crest fits two rows. Group a player's goals on one
+-- row ("22', 78' Teddy Dunmore") and fold anything past two rows into "+N more".
+local function scorerText(lines: { string }?): string
+	if not lines or #lines == 0 then
+		return ""
+	end
+	local order: { string } = {}
+	local minutes: { [string]: { string } } = {}
+	for _, line in lines do
+		local minute, name = line:match("^(%d+')%s+(.+)$")
+		if not minute then
+			minute, name = "", line
+		end
+		local key = name :: string
+		if not minutes[key] then
+			minutes[key] = {}
+			table.insert(order, key)
+		end
+		if minute ~= "" then
+			table.insert(minutes[key], minute :: string)
+		end
+	end
+	local rows: { string } = {}
+	for _, name in order do
+		local m = table.concat(minutes[name], ", ")
+		table.insert(rows, if m ~= "" then m .. " " .. name else name)
+	end
+	if #rows <= 2 then
+		return table.concat(rows, "\n")
+	end
+	return rows[1] .. "\n" .. ("+%d more"):format(#rows - 1)
+end
+
 function MatchSummary.new(gui: ScreenGui): Summary
 	local frame = Theme.panel(gui, "Summary", {
 		Size = UDim2.new(0, CARD_W, 0.94, 0),
@@ -519,7 +552,7 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		homeShield.BackgroundColor3 = homeKit
 		tintStroke(homeShield, homeAccent)
 		homeName.Text = clubName
-		homeSub.Text = if data.scorers and #data.scorers > 0 then table.concat(data.scorers, "\n") else ""
+		homeSub.Text = scorerText(data.scorers)
 		local opponent = data.opponent or "Away"
 		local awayKit, awayAccent = Config.clubCrest(opponent)
 		awayInitials.Text = initials(opponent)

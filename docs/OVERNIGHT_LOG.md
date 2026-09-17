@@ -1301,3 +1301,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Tests: `matchSquadKeepsSlotsWhenShort`, `creditScorersFollowsSubs`, `afterMatchCountsSubstitutes`. RunAll 434 passed.
 - Play: a 40 s match with a Sub pressed from the HUD recorded `{"in":16,"minute":41,"out":5}`, settled (0–1) and saved with no console errors. No home goal came after the sub, so the credit path was only checked by the test.
 
+### 2026-09-17 13:32 — Music that can't stall, bus card fixes, scorer rows (X222, X224, X226 done)
+- X224 `MatchAudio`: 10 s after a track starts, if it hasn't loaded and started playing (a removed or unavailable asset never fires `Ended`), it is destroyed and the playlist moves on, instead of going silent while the button still says "Music on".
+- X222 `BusMenu`: the card closes once the player walks more than 14 studs from where it opened (the server refuses beyond 20 from a stop). A second trip inside 3.2 s skips the iris fade and just lets the server answer "Wait a moment.", so a refused trip no longer fades the screen out and back.
+- X226 `MatchSummary`: the two-row scorer line under the home crest groups a player's goals ("22', 78' Teddy Dunmore"). Past two rows it shows the first row and "+N more", so a third scorer is no longer cut off silently.
+- **Not verified in play:** the Studio MCP input tools don't trigger ProximityPrompts (key E, a held E and `InputHoldBegin` from the client all did nothing), and the sandbox can't fire the BusMenu remote, so the bus card couldn't be opened. In play every edited client script loaded with no console errors. The music fallback was checked by reading the code only (it needs a bad asset id in `Config.Music`). RunAll 434 passed.
+

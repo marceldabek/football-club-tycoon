@@ -92,6 +92,15 @@ local function nextTrack(token: number, lastId: string?)
 	end)
 	sound:Play()
 	fadeTo(targetVolume(), 2)
+	-- X224: a track that never loads (removed or unavailable asset) never fires
+	-- Ended, which silenced the playlist for good; skip on after a while
+	task.delay(10, function()
+		if token == playlistToken and music == sound and sound.Parent and not (sound.IsLoaded and sound.IsPlaying) then
+			sound:Destroy()
+			music = nil
+			nextTrack(token, id)
+		end
+	end)
 end
 
 function MatchAudio.startMusic()
