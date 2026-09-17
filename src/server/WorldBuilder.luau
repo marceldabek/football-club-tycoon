@@ -1540,7 +1540,7 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 			local mottoH = nameH * 0.55
 			if runLength >= 20 and 3.2 + nameH + 0.3 + mottoH <= wallH - 0.6 then
 				local wallGui = Instance.new("SurfaceGui")
-				wallGui.Name = "StreetSign"
+				wallGui.Name = "StandStreetSign" -- the town's street name signs already use "StreetSign"
 				wallGui.Face = Enum.NormalId.Right -- +X local, away from the pitch
 				wallGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 				wallGui.PixelsPerStud = 20
@@ -1552,15 +1552,21 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 				-- the Right face from outside, the GUI's +x runs along local -Z.
 				local runMid = (run[1] + run[2]) / 2
 				local gapMid = runMid
-				local bestGap = math.huge
-				for k = 0, 5 do
-					local mid = -length / 2 + (length / 6) * (k + 0.5)
-					if mid > run[1] + 2 and mid < run[2] - 2 and math.abs(mid - runMid) < bestGap then
-						bestGap = math.abs(mid - runMid)
-						gapMid = mid
+				local boardW = math.min(runLength - 4, 60)
+				if spec.roof then
+					-- only a roofed stand has pillars (every length/6 along the
+					-- wall, see the roof below); otherwise the wall is bare and the
+					-- board belongs in the middle, as wide as it is allowed
+					local bestGap = math.huge
+					for k = 0, 5 do
+						local mid = -length / 2 + (length / 6) * (k + 0.5)
+						if mid > run[1] + 2 and mid < run[2] - 2 and math.abs(mid - runMid) < bestGap then
+							bestGap = math.abs(mid - runMid)
+							gapMid = mid
+						end
 					end
+					boardW = math.min(length / 6 - 3, boardW)
 				end
-				local boardW = math.min(length / 6 - 3, runLength - 4, 60)
 				local board = Instance.new("Frame")
 				board.Name = "Board"
 				board.AnchorPoint = Vector2.new(0.5, 0)

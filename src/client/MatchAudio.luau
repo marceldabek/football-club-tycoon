@@ -96,7 +96,7 @@ local function nextTrack(token: number, lastId: string?)
 	-- Ended, which silenced the playlist for good; skip on after a while. 30 s
 	-- and only when unloaded, so a slow phone still gets its valid track.
 	task.delay(30, function()
-		if token == playlistToken and music == sound and sound.Parent and not sound.IsLoaded then
+		if token == playlistToken and music == sound and sound.Parent and not (sound.IsLoaded and sound.IsPlaying) then
 			sound:Destroy()
 			music = nil
 			nextTrack(token, id)

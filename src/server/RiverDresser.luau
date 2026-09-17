@@ -484,7 +484,8 @@ function RiverDresser.build(): string
 		-- X246: tall timber mooring posts with pale caps at both ends of the
 		-- pontoon, on the boat side (RivermereRiverside.png), 4 parts a pontoon
 		for _, along in { -12, 12 } do
-			local at = deck + dir * along - run.normal * 2.9
+			-- 3.05 out: the post's inner face (0.9 wide) clears the 5-wide deck edge
+			local at = deck + dir * along - run.normal * 3.05
 			part({
 				Name = "MooringPost",
 				Size = Vector3.new(0.9, 7, 0.9),

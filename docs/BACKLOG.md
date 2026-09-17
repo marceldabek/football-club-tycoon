@@ -361,3 +361,15 @@
 - [x] X245 (14:09 done) Industrial estate sheds all use random sign textures; the reference shows PINNACLE BUILDING SUPPLIES and DALETEK ENGINEERING: SurfaceGui signs by shed kind, 0 parts `[studio]` S
 - [x] X246 (14:09 done) River pontoons have no mooring posts (the reference has tall timber posts): 2 posts with caps per pontoon, ~16 parts `[studio]` S
 - [x] X247 (13:58 done) The club visit card counts the East Stand's starting level as an upgrade ("1 stand upgrade" on a brand-new club): count levels above each plot's start, 0 parts `[disk]` S
+- [ ] X248 Five client scripts each poll `Lighting.ClockTime` for "dark", but a fast-forward sweeps the clock through night in about 2.5 s, so lamps, lit windows, headlights and train windows switch late or miss the night: have Sky publish the look's `streetLights` and make them refresh on change, 0 parts `[disk]` M
+- [ ] X249 The office computer prompt isn't phase-locked, so during matchday holding E does nothing while the CLUB OFFICE button is hidden: lock it with the other prompts, 0 parts `[disk]` S
+- [ ] X250 The matchday board can start match 1 before the club is named (the HUD button hides but the world prompt doesn't), and the naming card comes back afterwards: refuse while NeedsName, 0 parts `[disk]` S
+- [ ] X251 GO TO MY CLUB works during matchday: it teleports the owner into the office while the walkout camera pans the pitch: hide it outside Manage and refuse server-side, 0 parts `[disk]` S
+- [ ] X252 On a phone the NAME YOUR CLUB card sits under the on-screen keyboard, and the 480–560 px cards overflow a small viewport: lift the focused card by the keyboard height and add a viewport UIScale in Theme, 0 parts `[disk]` M
+- [ ] X253 The pitch is mown across the pitch; pitch-board.png stripes run goal to goal: swap the stripe axis, 14 parts unchanged `[studio]` S
+- [ ] X254 No town crest on the street furniture (lamp banners, estate/station banners, bin bands) though every reference image has one: add a Shared/TownCrest drawing beside CrestBadge, 0 parts `[studio]` S
+- [ ] X255 The plot boundary wall has no coping and the gate piers no caps (the reference has both): a coping strip per run and a cap per pier, ~10 parts `[studio]` S
+- [ ] X256 Shopfront glass has no window vinyl though three reference images letter the windows: a SurfaceGui with two or three lines per front, keyed by front type, 0 parts `[studio]` S
+- [ ] X257 The supporters' bar frontage has bare brick and plain windows while the reference pubs are covered in flowers: two bracket-and-basket pairs and window boxes, ~8 parts `[studio]` S
+- [ ] X258 A long club name wraps inside the League table's one-line row (the Team cell has no TextTruncate, unlike the prospect rows): truncate it, 0 parts `[disk]` S
+- [ ] X259 Iris has one shared frame and no ownership token, so a bus trip or picker close that overlaps the walkout cancels the other's tween and reports success: give each call a token like Sky's transitions, 0 parts `[disk]` S

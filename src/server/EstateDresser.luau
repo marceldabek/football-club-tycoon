@@ -811,6 +811,7 @@ local function lampBanners(town: Instance, parent: Instance): number
 end
 
 function EstateDresser.build(): string
+	EstateBuilder.beginEstate()
 	local town = workspace:FindFirstChild("Town")
 	if not town then
 		return "estates: no town"

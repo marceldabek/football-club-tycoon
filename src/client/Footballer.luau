@@ -383,6 +383,7 @@ function Footballer.update(self: Footballer, dt: number)
 		self.yaw = fallback.yaw
 		self.velocity = fallback.velocity
 		self.moving = fallback.moving
+		self.pose = fallback.pose -- the block rig owns the pose timer in this mode
 		return
 	end
 

@@ -1395,3 +1395,14 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
   - `EstateBuilder` (-45), `PlotGrounds` (-22), `PlotService` (-26), `RiverDresser` (+1): these Studio copies were condensed when they were first hand-pasted (known bug 4), so they carry fewer lines. **Not verified line by line** — reconnecting Rojo and pushing disk over Studio is still the thing to do (X4/X34).
 - Nothing here needs a fix: RunAll (437) and every play test run against the Studio copies, and disk stays the source of truth.
 
+### 2026-09-17 14:31 — Fixes from the review of X237–X247
+- **X242 was wrong on most grounds** (review): the street board dodged roof pillars that only exist on a level-4 stand, so at levels 2–3 it was pushed 11 studs off centre on a bare wall and narrowed to a third of the width it could have. The gap search and the narrow width now only apply when the stand has a roof.
+- **X246 posts overlapped the pontoon** by 0.05 studs (against the repo's no-interpenetration rule, and a z-fight on a phone). Moved out to 3.05; measured in play at 3.05 lateral, clear of the 2.5 deck edge.
+- **X245 named firms** could silently vanish: `firmsPlaced` was module state, so a second dress in one server (the overnight Studio workflow) named nothing. `EstateBuilder.beginEstate()` resets it and `EstateDresser.build` calls it. Checked in play: 2 firm boards.
+- X224: the music watchdog again covers a track that loads but never plays, not only one that fails to load.
+- X241: a press may wander 20 px (`TAP_SLOP`) and still count as a tap — 12 px was inside a real finger's wobble. A bench swipe that starts vertical now stays a scroll even if the finger curves sideways.
+- With a block rig in use, the wrapper's pose now follows the rig's, so it can't sit on "dive" for ever.
+- `Sky.inLiveEveningMatch` returns early when there is no `workspace.Plots` instead of walking to the DataModel.
+- Renamed the new stand sign GUI to `StandStreetSign`: the town's street-name signs already use `StreetSign` (14 of them), which made the count confusing.
+- Tested: RunAll 437 passed; in play the town dressed with 2 firm boards, 4 mooring posts and 5 stand signs on the claimed ground, no console errors.
+

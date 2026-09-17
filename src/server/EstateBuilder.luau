@@ -605,6 +605,12 @@ local NAMED_FIRMS: { [string]: { name: string, line: string } } = {
 	workshop = { name = "DALETEK ENGINEERING", line = "PRECISION ENGINEERING · FABRICATION" },
 }
 local firmsPlaced: { [string]: boolean } = {}
+
+-- EstateDresser calls this before it places any sheds, so a second dress in the
+-- same server (a Studio rebuild) names its firms again instead of none.
+function EstateBuilder.beginEstate()
+	firmsPlaced = {}
+end
 EstateBuilder.BOLLARD_OUT = 1.2 -- X148: yard bollards this far out from the shed front
 
 -- Pure (X64): body depth and body-centre offset along local X (+ = away from

@@ -50,6 +50,9 @@ end
 -- lit those heads for everyone; turning them off locally hides a live match.
 local function inLiveEveningMatch(d: Instance): boolean
 	local plots = workspace:FindFirstChild("Plots")
+	if not plots then
+		return false
+	end
 	local plot: Instance? = d
 	while plot and plot.Parent ~= plots do
 		plot = plot.Parent

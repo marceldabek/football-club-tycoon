@@ -56,6 +56,7 @@ local PITCH_FRACTION = 0.63
 local COLUMN_GAP = 12
 local DETAIL_H = 286 -- the player window under the bench
 local DRAG_THRESHOLD = 4 -- pixels before a press becomes a drag rather than a tap
+local TAP_SLOP = 20 -- pixels a press may wander and still count as a tap (a finger wobbles)
 
 local PANEL_BG = Color3.fromRGB(23, 30, 44)
 local CARD_BG = Color3.fromRGB(16, 24, 44)
@@ -740,6 +741,7 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 		local moved = false
 		local travelled = 0 -- furthest the pointer got from the press, in pixels
 		local onBench = frame:IsDescendantOf(benchScroll)
+		local swiping = false -- a vertical drag on the bench: scrolling, not dragging
 		local ghost: Frame? = nil
 		local target: Entry? = nil
 		local grab = start - frame.AbsolutePosition
@@ -769,7 +771,7 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 			local dropped = target
 			clearTarget()
 			benchScroll.ScrollingEnabled = true
-			if moved or travelled >= DRAG_THRESHOLD * 3 then
+			if moved or swiping or travelled >= TAP_SLOP then
 				-- X241: a press that wandered is never a tap (a scroll, or a drag
 				-- attempt with Auto Squad on)
 				if moved and dropped then
@@ -809,7 +811,11 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 				return
 			end
 			if not moved and onBench and math.abs(pos.Y - start.Y) > math.abs(pos.X - start.X) then
-				-- a mostly vertical swipe on the bench list scrolls it instead
+				-- a mostly vertical swipe on the bench list scrolls it instead, and
+				-- keeps scrolling even if the finger curves sideways later
+				swiping = true
+			end
+			if swiping then
 				return
 			end
 			if not moved then
