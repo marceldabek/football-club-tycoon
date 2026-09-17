@@ -234,4 +234,23 @@ function T.figureCFramesStackFromTheFeet()
 	assert(flatGap < 0.3, "glass sits over the hand, gap " .. flatGap)
 end
 
+function T.muralCountFollowsProgress()
+	local first = TownLifeMath.MURAL_FIRST_MATCH
+	assert(TownLifeMath.muralCount(0, 1) == 0, "brand new club")
+	assert(TownLifeMath.muralCount(first - 1, 3) == 0, "not enough matches even at a high tier")
+	assert(TownLifeMath.muralCount(first, 1) == 1, "one mural once established")
+	assert(TownLifeMath.muralCount(first + 10, 2) == 2, "second mural from tier 2")
+end
+
+function T.gableTowardPicksTheEndFacingTheTarget()
+	local body = CFrame.new(100, 10, -160) -- length along world Z
+	local s1, out1 = TownLifeMath.gableToward(body, Vector3.new(100, 0, 0))
+	assert(s1 == 1 and (out1 - Vector3.new(0, 0, 1)).Magnitude < 1e-6, "target to +Z")
+	local s2, out2 = TownLifeMath.gableToward(body, Vector3.new(100, 0, -400))
+	assert(s2 == -1 and (out2 - Vector3.new(0, 0, -1)).Magnitude < 1e-6, "target to -Z")
+	local turned = CFrame.new(0, 0, 0) * CFrame.Angles(0, math.rad(90), 0) -- local Z now along world +X
+	local s3, out3 = TownLifeMath.gableToward(turned, Vector3.new(-50, 0, 0))
+	assert(s3 == -1 and out3.X < -0.99, "turned body: the -Z end faces -X")
+end
+
 return T

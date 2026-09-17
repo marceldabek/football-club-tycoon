@@ -263,4 +263,25 @@ function TownLifeMath.figureCFrames(feet: CFrame, pint: boolean): { CFrame }
 	return out
 end
 
+-- H1.2: how many club murals this client paints in town. None until the club
+-- has played MURAL_FIRST_MATCH matches, one after that, a second from tier 2.
+TownLifeMath.MURAL_FIRST_MATCH = 3 -- TEMP
+
+function TownLifeMath.muralCount(matchesPlayed: number, tier: number): number
+	if matchesPlayed < TownLifeMath.MURAL_FIRST_MATCH then
+		return 0
+	end
+	return if tier >= 2 then 2 else 1
+end
+
+-- Pure: which gable end (+1 = the body's local +Z face, -1 = local -Z) of a
+-- terrace row faces `target` more, and the outward direction of that face.
+function TownLifeMath.gableToward(body: CFrame, target: Vector3): (number, Vector3)
+	local z = body.ZVector
+	local toTarget = Vector3.new(target.X - body.Position.X, 0, target.Z - body.Position.Z)
+	local sign = if toTarget:Dot(Vector3.new(z.X, 0, z.Z)) >= 0 then 1 else -1
+	local outward = Vector3.new(z.X, 0, z.Z).Unit * sign
+	return sign, outward
+end
+
 return TownLifeMath

@@ -46,6 +46,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 5. Friendlies (I3.1), all TEMP in `src/shared/Friendly.luau`: (a) the challenged club is the home side, (b) an invite lasts 45 s, and you can have one outgoing at a time, (c) the home club gets 25% of a full league gate, and the away club gets nothing, (d) no injuries, no player development, and friendlies don't count in W/D/L or matches played. *Rec: keep all four. A friendly is a social extra, so it shouldn't be a better money route than league matches.*
 6. Trades (I4.1), TEMP in `src/shared/Trade.luau`: up to 3 players each way; cash moves one way and only alongside a player; both squads stay within 14–20 and keep a goalkeeper; an offer lasts 60 s; traded players keep their age, ratings, injuries, apps and goals. There are no value checks, so a lopsided trade is allowed (s27: no anti-abuse limits for now). *Rec: keep these. Add a "fair value" warning, not a block, once transfer values are tuned.*
 7. Semis driveways are mostly 5.1 studs wide (76 of 119) or about 3 wide (30). A car sized for the characters is about 9–10 studs wide (the street kit cars are 9.8), so narrow drives can only hold toy-sized cars (DriveCar_small_1). *Rec: drop cars from drives under 8 studs now (no layout change), and widen the gap between pairs to 11 studs when the estates are next reworked, accepting roughly one pair fewer per long row.*
+8. Club murals (H1.2) are TEMP: one mural once a club has played 3 matches, a second from tier 2, on the terrace gable nearest the market square, shown only on that player's screen. *Rec: keep it client-side, but tie later murals to real milestones (first promotion, first title) so they read as achievements.*
 
 **Buy list for Marcel**
 - Nothing new yet. Free store terraces are a flat-fronted Victorian row. If you want bay windows like `RiveremereWestdale.png`, "UK Housing – Terraced Set 1" (Macwelshman, Fab, $39.99) is the best paid match (see docs/ASSET_KIT.md).
@@ -423,3 +424,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Playtest:** a canopy 23 studs away moved 0.47 studs in 1.1 s, and 30 bird parts were live. With Quality Low there were 0 bird parts and the canopy was still; toggling back restored both. No console errors.
 - **Screenshot** Birds_spire_1: five birds circling the spire above the terraces.
 - RunAll 338/338.
+
+### 2026-09-17 05:04 — Club murals in town (H1.2)
+- **Roadmap H1 ("club influence tiers: … murals"):** a new client script, ClubMurals, paints a mural in the player's own club colours: club name, an accent stripe and "OUR TOWN · OUR CLUB". It goes on the gable end, facing the square, of the terrace row nearest the market square (within TEMP 360 studs). One mural appears once the club has played 3 matches, and a second from tier 2 (`TownLifeMath.muralCount`, `gableToward`, 2 new tests; question 8). Only that player sees it. It updates when ClubName, MatchesPlayed or Tier changes, and comes and goes with streaming.
+- **Bug found and fixed:** the first try placed nothing. Streamed rows can arrive before their Body, and until then the model pivot is the origin, so the "nearest" rows had no wall. The ranking now uses the Body and re-runs when a Body streams in.
+- **Screenshot** Mural_2: the "MDINO24 FC" mural on the gable beside The Little Deli.
+- RunAll 340/340.

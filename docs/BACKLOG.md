@@ -86,6 +86,7 @@
 - [x] G1.1 Matchday around a plot (all players): fans walking to the ground, stewards, barriers; fades after `[studio]` M dep: B2.1c
 - [x] G2.1 (bunting and 10 pub drinkers verified in a match) Matchday town for the playing player only: banners on lamp posts, busy pub `[studio]` M
 - [x] H1.1 Club identity banners in town (client-side, player's own club colours/name) `[studio]` S
+- [x] H1.2 (TEMP: from 3 matches played, one mural; a second from tier 2) Club mural on a terrace gable near the market square, client-side in the player's club colours `[studio]` S
 - [x] H2.1 Club shop building on the plot (visual) `[studio]` S dep: E8.1
 - [x] H3.1 Training pitches on the plot (visual) `[studio]` S dep: E8.1
 
