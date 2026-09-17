@@ -350,3 +350,14 @@
 - [ ] X234 (13:47 blocked on question 19) The ground caps at 8,000 seats while demand reaches ~20k in the top divisions (WORLD_ROADMAP Q14 wants ~30k): more stand levels need Marcel's numbers (question 19), 0 parts now `[disk]` M
 - [x] X235 (13:53 done) No corner arcs on the pitch (pitch-board.png has them): four quarter arcs at the flags, ~12 parts per club `[studio]` S
 - [x] X236 (13:53 done) The turnstile fascia is a plain name strip; the reference has crest badges at each end: add two shield badges in the same SurfaceGui, 0 parts `[studio]` S
+- [ ] X237 An evening match or fast-forward on your screen switches floodlights at every club's ground, so a neighbour's live evening match can go dark for you (`Sky` paints every FloodHead): paint only your own ground and the sports centre, 0 parts `[disk]` S
+- [ ] X238 The goalkeeper's dive isn't tied to the shot: the keeper faces his last run direction and can fall forwards or backwards; the tilt sign may be reversed: face the shooter before the dive and check the sign, 0 parts `[disk]` S
+- [ ] X239 The crowd draws only about 87% of attendance: front-row weights are capped at the fill ratio, so the back rows look thin at a sellout: cap each chance at 1 with weights averaging the fill, 0 parts `[disk]` S
+- [ ] X240 Onboarding hints only look at the East Stand, so a player who builds the free West or North plot first is still told "Expand the East Stand" and never reaches the scout or Snack Bar hints: move on once any stand is above its start level, 0 parts `[disk]` S
+- [ ] X241 Lineup card drag on touch: a second finger moves or drops the card, a bench scroll turns into a drag, and off-screen bench cards can be hit: follow only the starting finger, let a vertical swipe scroll, check clipping, 0 parts `[disk]` S
+- [ ] X242 The outside of the stand back walls has no club name or slogan (the reference paints both facing the street): SurfaceGui ClubName plus a TEMP motto on the BackWall runs from level 2, 0 parts `[studio]` S
+- [ ] X243 The lamp-post banner has no crest between the name and "OUR TOWN OUR GAME": add the X236 shield in GUI frames, 0 parts `[studio]` S
+- [ ] X244 The club shop fascia has no crest after "CLUB SHOP": add one badge at the right end, 0 parts `[studio]` S
+- [ ] X245 Industrial estate sheds all use random sign textures; the reference shows PINNACLE BUILDING SUPPLIES and DALETEK ENGINEERING: SurfaceGui signs by shed kind, 0 parts `[studio]` S
+- [ ] X246 River pontoons have no mooring posts (the reference has tall timber posts): 2 posts with caps per pontoon, ~16 parts `[studio]` S
+- [ ] X247 The club visit card counts the East Stand's starting level as an upgrade ("1 stand upgrade" on a brand-new club): count levels above each plot's start, 0 parts `[disk]` S
