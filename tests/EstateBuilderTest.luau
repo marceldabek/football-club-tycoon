@@ -484,4 +484,18 @@ function T.ballPartsInShedsAreRound()
 	holder:Destroy()
 end
 
+function T.kerbTreeSpotSitsOnTheKerbSideOfTheFrontRoad()
+	-- synthetic streets well away from the town's bus stops and roundabouts
+	local o = Vector3.new(5000, 0, 5000)
+	local street: TownLayout.Road = { name = "Test Street", kind = "residential", width = 20, points = { o + Vector3.new(-200, 0, 0), o + Vector3.new(200, 0, 0) } }
+	local spot = EstateDresser.kerbTreeSpot(o + Vector3.new(0, 0, 30), { street }, {})
+	assert(spot, "a spot in front of the pair")
+	assert(math.abs(spot.X - o.X) < 1e-3 and math.abs(spot.Z - (o.Z + 10 + 2.2)) < 1e-3, "TREE_INSET in from the kerb on the pair's side, got " .. tostring(spot))
+	assert(EstateDresser.kerbTreeSpot(o + Vector3.new(0, 0, 30), { street }, { o + Vector3.new(3, 0, 12) }) == nil, "keeps clear of a lamp")
+	local crossing: TownLayout.Road = { name = "Cross Street", kind = "residential", width = 20, points = { o + Vector3.new(25, 0, -200), o + Vector3.new(25, 0, 5) } } -- ends 35 from the pair, 26 from the spot
+	assert(EstateDresser.kerbTreeSpot(o + Vector3.new(0, 0, 30), { street, crossing }, {}) == nil, "not in a junction mouth")
+	local lane: TownLayout.Road = { name = "Test Lane", kind = "lane", width = 12, points = street.points }
+	assert(EstateDresser.kerbTreeSpot(o + Vector3.new(0, 0, 30), { lane }, {}) == nil, "no trees on lanes")
+end
+
 return T

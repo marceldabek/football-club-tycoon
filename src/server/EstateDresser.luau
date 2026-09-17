@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local EstateBuilder = require(script.Parent.EstateBuilder)
 local KitPlacer = require(script.Parent.KitPlacer)
+local TerraceStreetDresser = require(script.Parent.TerraceStreetDresser)
 
 local EstateDresser = {}
 
@@ -309,6 +310,50 @@ local function closestOnPolyline(p: Vector3, points: { Vector3 }): Vector3
 	return bestPoint
 end
 
+-- Pure (X74): a street tree spot on the kerb side of the pavement in front of
+-- `p` (a semis pair's centre): on the nearest non-lane road, TREE_INSET in from
+-- its carriageway edge. nil near another road's pavement (a junction mouth) or a
+-- roundabout, near a bus stop, or within LAMP_CLEAR of an `avoid` point.
+function EstateDresser.kerbTreeSpot(p: Vector3, roads: { TownLayout.Road }, avoid: { Vector3 }): Vector3?
+	local best, road = math.huge, nil
+	for _, r in roads do
+		local d = TownLayout.distanceToPolyline(p, r.points)
+		if d < best then
+			best, road = d, r
+		end
+	end
+	if not road or road.kind == "lane" then
+		return nil
+	end
+	local q = closestOnPolyline(p, road.points)
+	local away = Vector3.new(p.X - q.X, 0, p.Z - q.Z)
+	if away.Magnitude < 1e-3 then
+		return nil
+	end
+	local spot = q + away.Unit * (road.width / 2 + TerraceStreetDresser.TREE_INSET)
+	for _, other in roads do
+		if other ~= road and TownLayout.distanceToPolyline(spot, other.points) < other.width / 2 + TownLayout.PAVEMENT_WIDTH + TerraceStreetDresser.JUNCTION_CLEAR then
+			return nil
+		end
+	end
+	for _, rb in TownLayout.ROUNDABOUTS do
+		if Vector3.new(spot.X - rb.centre.X, 0, spot.Z - rb.centre.Z).Magnitude < rb.radius + TownLayout.PAVEMENT_WIDTH + TerraceStreetDresser.JUNCTION_CLEAR then
+			return nil
+		end
+	end
+	for _, stop in TownLayout.BUS_STOPS do
+		if Vector3.new(spot.X - stop.position.X, 0, spot.Z - stop.position.Z).Magnitude < TerraceStreetDresser.BUS_STOP_CLEAR then
+			return nil
+		end
+	end
+	for _, a in avoid do
+		if Vector3.new(spot.X - a.X, 0, spot.Z - a.Z).Magnitude < TerraceStreetDresser.LAMP_CLEAR then
+			return nil
+		end
+	end
+	return Vector3.new(spot.X, 0, spot.Z)
+end
+
 -- Pure: the centre of an axis-aligned `side` square of grass near `near`
 -- whose sample points (about every 4 studs) are all 2+ studs clear of road
 -- and pavement and 3+ clear of every block, with an edge within 8 of a
@@ -526,6 +571,18 @@ function EstateDresser.build(): string
 	local rng = Random.new(2026)
 	local driveRng = Random.new(3030) -- separate stream so the pairs' front picks are unchanged
 	local bedRng = Random.new(4040) -- X57 flower beds, likewise
+	local treeRng = Random.new(5050) -- X74 street trees, likewise
+	-- X74: lamps and terrace street trees the semis street trees keep clear of
+	local treeAvoid: { Vector3 } = {}
+	for _, folderName in { "Dressing", "TerraceStreets" } do
+		local folder = town:FindFirstChild(folderName)
+		for _, d in if folder then folder:GetDescendants() else {} do
+			if d:IsA("Model") and (d.Name == "TerraceLamp" or d.Name == "StreetTree" or d:GetAttribute("Kit") == "LampVictorian") then
+				table.insert(treeAvoid, d:GetPivot().Position)
+			end
+		end
+	end
+	local treeCount = 0
 	local pairCount, shedCount, driveCount, kitCars = 0, 0, 0, 0
 
 	for _, district in TownLayout.DISTRICTS do
@@ -561,6 +618,13 @@ function EstateDresser.build(): string
 					local pair = EstateBuilder.semiPair(cf * CFrame.new(houseX, 0, slot.z), slot.width, houseDepth, block.size.Y, m, rng)
 					local front = pair:GetAttribute("Front")
 					EstateBuilder.flowerBeds(cf * CFrame.new(houseX, 0, slot.z), slot.width, houseDepth, if type(front) == "string" then front else nil, pair, bedRng)
+					-- X74: a street tree at the kerb in front of the pair (RivermereNorthfields.png is tree-lined)
+					local spot = EstateDresser.kerbTreeSpot((cf * CFrame.new(houseX, 0, slot.z)).Position, TownLayout.ROADS, treeAvoid)
+					if spot then
+						TerraceStreetDresser.lightTree(m, spot, treeRng)
+						table.insert(treeAvoid, spot)
+						treeCount += 1
+					end
 					pairCount += 1
 				end
 				-- driveways run from the road edge back to the house backs (the block's
@@ -654,7 +718,7 @@ function EstateDresser.build(): string
 			parts += 1
 		end
 	end
-	return ("estates: %d semis pairs, %d driveways (%d kit cars), %d sheds, %d parts"):format(pairCount, driveCount, kitCars, shedCount, parts)
+	return ("estates: %d semis pairs, %d street trees, %d driveways (%d kit cars), %d sheds, %d parts"):format(pairCount, treeCount, driveCount, kitCars, shedCount, parts)
 end
 
 return EstateDresser

@@ -491,7 +491,7 @@ local function countParts(root: Instance): number
 	return n
 end
 
-local function tree(parent: Instance, spot: Spot, full: boolean, rng: Random)
+local function tree(parent: Instance, spot: Spot, full: boolean, rng: Random): Model
 	local m = Instance.new("Model")
 	m.Name = "StreetTree"
 	m:SetAttribute("Decor", true)
@@ -519,6 +519,13 @@ local function tree(parent: Instance, spot: Spot, full: boolean, rng: Random)
 		side.Shape = Enum.PartType.Ball
 		side.CastShadow = false
 	end
+	return m
+end
+
+-- X74: a light street tree (pit, trunk, one crown; Decor) at a kerb spot, for
+-- other dressers (EstateDresser's semis streets).
+function TerraceStreetDresser.lightTree(parent: Instance, position: Vector3, rng: Random): Model
+	return tree(parent, { position = position, direction = Vector3.new(0, 0, -1), side = 1 }, false, rng)
 end
 
 local function surfaceText(parent: Instance, text: string, font: Enum.Font, pos: UDim2, size: UDim2)

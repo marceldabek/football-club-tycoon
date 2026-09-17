@@ -557,3 +557,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - New pure `StationDresser.yellowLineRuns(f, layby, bay)` (1 test: every line sits just inside a kerb, with no stubs, and station-side runs skip the bus bay and lay-by). It paints double yellow lines inside both kerbs of the straight past the station: one run on the far side, and three short ones on the station side around the bus bay and the lay-by mouth. That's 8 thin parts.
 - **Screenshot** StationYellowLines_1: looking west along Station Road with the lines on both kerbs, the taxi lay-by and the moved bus stop.
 - RunAll 358/358.
+
+### 2026-09-17 06:22 — Street trees on the semis streets (X74), Northfields follow-up (X75)
+- RivermereNorthfields.png is tree-lined, but the semis streets had none: TerraceStreetDresser only dresses streets that front terrace rows. New pure `EstateDresser.kerbTreeSpot` (1 test) finds a spot `TREE_INSET` in from the kerb on the nearest non-lane road in front of each semis pair. It skips junction mouths, roundabouts, bus stops, lamps, the terrace street trees and earlier semis trees. `TerraceStreetDresser.lightTree` (pit, trunk and one crown, Decor) builds it. The town has 52 trees (156 parts, hidden on Low), and none of the trunks touch a carriageway.
+- **Screenshot** SemisTrees_1.
+- Logged X75: a brick corner wall with a street name plate, and grass verges.
+- RunAll 359/359.
