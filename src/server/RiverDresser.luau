@@ -22,6 +22,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local KitPlacer = require(script.Parent.KitPlacer)
+local ForecourtDresser = require(script.Parent.ForecourtDresser)
 
 local RiverDresser = {}
 
@@ -294,6 +295,58 @@ function RiverDresser.buildBoat(parent: Instance, cf: CFrame, rng: Random)
 	part({ Name = "Cover", Size = Vector3.new(5.4, 0.4, length * 0.3), CFrame = cf * CFrame.new(0, 1.6, length * 0.3), Color = Color3.fromRGB(30, 40, 60), Material = Enum.Material.Fabric, Parent = m })
 end
 
+-- X67: a single-storey café pavilion facing the river from the grass behind the
+-- promenade, like the pub and deli frontages in RivermereRiverside.png. TEMP
+-- site found by probing the promenade's back edge for 30 x 16 of clear grass
+-- (07:43): just west of the Lune Bridge, in front of the riverside flats.
+RiverDresser.CAFE_SITE = Vector3.new(55, 0, 351)
+RiverDresser.CAFE_FACING = Vector3.new(0, 0, 1) -- towards the river
+local CAFE_W, CAFE_D, CAFE_H = 24, 11, 9
+local CAFE_BRICK = Color3.fromRGB(150, 76, 56)
+local CAFE_NAVY = Color3.fromRGB(24, 40, 78)
+
+function RiverDresser.cafePavilion(parent: Instance, site: Vector3, facing: Vector3): Model
+	local m = Instance.new("Model")
+	m.Name = "RiversideCafe"
+	-- local -Z is the glazed front, facing the river
+	local cf = CFrame.lookAt(site, site + facing)
+	local function box(name: string, size: Vector3, offset: CFrame, colour: Color3, material: Enum.Material): BasePart
+		return part({ Name = name, Size = size, CFrame = cf * offset, Color = colour, Material = material, Parent = m })
+	end
+	box("Body", Vector3.new(CAFE_W, CAFE_H, CAFE_D), CFrame.new(0, CAFE_H / 2, 0), CAFE_BRICK, Enum.Material.Brick)
+	box("Roof", Vector3.new(CAFE_W + 1.2, 0.6, CAFE_D + 1.2), CFrame.new(0, CAFE_H + 0.3, 0), Color3.fromRGB(70, 74, 82), Enum.Material.Slate)
+	-- glazed shopfront 0.1 proud of the brick, with a door gap line in the middle
+	local glass = box("Shopfront", Vector3.new(CAFE_W - 4, 5.2, 0.2), CFrame.new(0, 3.4, -CAFE_D / 2 - 0.1), Color3.fromRGB(58, 74, 90), Enum.Material.Glass)
+	glass.Reflectance = 0.1
+	box("Mullion", Vector3.new(0.3, 5.2, 0.3), CFrame.new(0, 3.4, -CAFE_D / 2 - 0.25), IRON, Enum.Material.Metal)
+	local fascia = box("Fascia", Vector3.new(CAFE_W, 1.8, 0.4), CFrame.new(0, 6.9, -CAFE_D / 2 - 0.2), CAFE_NAVY, Enum.Material.SmoothPlastic)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 30
+	gui.LightInfluence = 0.7
+	gui.Parent = fascia
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(0.9, 0.8)
+	label.Position = UDim2.fromScale(0.05, 0.1)
+	label.Font = Enum.Font.Merriweather
+	label.TextScaled = true
+	label.TextColor3 = Color3.fromRGB(236, 214, 150)
+	label.Text = "THE LUNE CAFÉ"
+	label.Parent = gui
+	-- a navy canopy over the front, standing off the fascia
+	box("Canopy", Vector3.new(CAFE_W - 2, 0.3, 3), CFrame.new(0, 5.95, -CAFE_D / 2 - 1.6) * CFrame.Angles(math.rad(-8), 0, 0), CAFE_NAVY, Enum.Material.Fabric).CastShadow = false
+	-- two café tables and an A-board on the promenade in front
+	for _, x in { -6, 6 } do
+		local at = cf * CFrame.new(x, PROM_TOP, -CAFE_D / 2 - 9)
+		ForecourtDresser.cafeSet(m, at * CFrame.Angles(0, math.pi / 2, 0))
+	end
+	ForecourtDresser.aBoard(m, cf * CFrame.new(CAFE_W / 2 - 1, PROM_TOP, -CAFE_D / 2 - 5), "Coffee\nCake\nRiver Views")
+	m.Parent = parent
+	return m
+end
+
 function RiverDresser.build(): string
 	local town = workspace:FindFirstChild("Town")
 	if not town then
@@ -412,6 +465,8 @@ function RiverDresser.build(): string
 		local boat = mid - run.normal * 14
 		RiverDresser.buildBoat(moorings, CFrame.lookAt(Vector3.new(boat.X, -2.2, boat.Z), Vector3.new(boat.X, -2.2, boat.Z) + dir * (if rng:NextNumber() < 0.5 then 1 else -1)), rng)
 	end
+
+	RiverDresser.cafePavilion(furniture, RiverDresser.CAFE_SITE, RiverDresser.CAFE_FACING)
 
 	root.Parent = town
 	local parts = 0

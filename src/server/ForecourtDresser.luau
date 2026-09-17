@@ -594,6 +594,10 @@ end
 type ShopRecord = { block: TownLayout.Box, frame: CFrame, length: number, depth: number, fc: Forecourt }
 
 -- Returns a summary line for the server log.
+-- X67: shared with RiverDresser's promenade café
+ForecourtDresser.cafeSet = cafeSet
+ForecourtDresser.aBoard = aBoard
+
 function ForecourtDresser.build(): string
 	local town = workspace:FindFirstChild("Town")
 	if not town then

@@ -27,6 +27,17 @@ function T.bridgesAndBuildingsAreNotClear()
 	assert(not RiverDresser.isClear(block.centre), "a building should block the promenade")
 end
 
+function T.cafeSiteIsClearGrassBesideThePromenade()
+	-- the site passes the promenade's own clearance rules (roads + pavement + 3,
+	-- blocks + 3, 30 past a bridge deck); the Lune Bridge is 45 away
+	assert(RiverDresser.isClear(RiverDresser.CAFE_SITE, 0), "café site clear of roads, blocks and bridges")
+	-- and it faces the river: a step towards the facing gets nearer the river line
+	local d0 = TownLayout.distanceToPolyline(RiverDresser.CAFE_SITE, TownLayout.RIVER.points)
+	local d1 = TownLayout.distanceToPolyline(RiverDresser.CAFE_SITE + RiverDresser.CAFE_FACING * 5, TownLayout.RIVER.points)
+	assert(d1 < d0, "faces the river")
+	assert(d0 > TownLayout.RIVER.width / 2 + 12, "on land behind the quay and promenade")
+end
+
 function T.heritageLampIsLightWithABasketOverThePromenadeSide()
 	for _, basket in { false, true } do
 		local holder = Instance.new("Folder")
