@@ -519,6 +519,16 @@ function Presenter.fillerPass(self: Presenter)
 	self:pass(holder.team, to)
 end
 
+-- WorldBuilder.buildFan's part offsets from the seat frame (keep in step)
+local FAN_PART_OFFSETS: { [string]: Vector3 } = {
+	Torso = Vector3.new(0, 2, 0),
+	ArmL = Vector3.new(-1.5, 2, 0),
+	ArmR = Vector3.new(1.5, 2, 0),
+	Legs = Vector3.new(0, 0.5, -1),
+	Head = Vector3.new(0, 3.6, 0),
+	Hair = Vector3.new(0, 4.375, 0),
+}
+
 local function crowdReact()
 	MatchAudio.goalCheer()
 	local club = ClubRef.presentModel()
@@ -535,9 +545,21 @@ local function crowdReact()
 			end
 		end
 	end
+	-- X176: a crowd fan is 5-6 loose parts (WorldBuilder.buildFan), so every
+	-- part of one fan must hop together: recover the seat from the part's known
+	-- offset and give each seat one delay
+	local seatDelay: { [Vector3]: number } = {}
 	for _, fan in fans do
 		if fan:IsA("BasePart") then
-			task.delay(math.random() * 0.35, function()
+			local offset = FAN_PART_OFFSETS[fan.Name] or Vector3.zero
+			local seat = (fan.CFrame * CFrame.new(-offset)).Position
+			local key = Vector3.new(math.round(seat.X * 2), math.round(seat.Y * 2), math.round(seat.Z * 2))
+			local delay = seatDelay[key]
+			if not delay then
+				delay = math.random() * 0.35
+				seatDelay[key] = delay
+			end
+			task.delay(delay, function()
 				TweenService:Create(fan, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 2, true),
 					{ Position = fan.Position + Vector3.new(0, 1.5, 0) }):Play()
 			end)
