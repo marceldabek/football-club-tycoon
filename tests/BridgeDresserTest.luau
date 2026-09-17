@@ -37,4 +37,20 @@ function T.cutwaterWedgesFormAPointedNose()
 	end
 end
 
+function T.sliceWedgeFillsAboveTheArchLine()
+	local base, dir = Vector3.new(100, 0, 330), Vector3.new(0, 0, 1)
+	for _, case in { { outer = 20, inner = 17 }, { outer = 40, inner = 43 } } do
+		local cf, size = BridgeDresser.sliceWedge(base, dir, case.outer, case.inner, -1, 2, 30)
+		assert(close(size, Vector3.new(30, 3, 3)), "size is (width, rise, slice)")
+		local h, l = size.Y, size.Z
+		local rightAngle = cf * Vector3.new(0, -h / 2, l / 2)
+		local innerTop = cf * Vector3.new(0, -h / 2, -l / 2)
+		local outerLow = cf * Vector3.new(0, h / 2, l / 2)
+		assert(close(rightAngle, base + dir * case.outer + Vector3.new(0, 2, 0)), "right angle at the top of the outer edge")
+		assert(close(innerTop, base + dir * case.inner + Vector3.new(0, 2, 0)), "top leg runs to the inner corner")
+		assert(close(outerLow, base + dir * case.outer + Vector3.new(0, -1, 0)), "vertical leg drops to the outer (lower) corner")
+		assert(cf.XVector:Cross(cf.YVector):Dot(cf.ZVector) > 0.99, "right-handed frame")
+	end
+end
+
 return T

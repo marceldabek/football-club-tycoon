@@ -263,3 +263,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Parts:** bridges went from 198 to 330 (max 110 per bridge). No console errors.
 - **Biggest differences from the reference:** the arches are stepped slices rather than smooth curves (new X41), the stone is paler and more uniform than the reference's warm sandstone, and there are no street lamps on the bridge. New X42 checks lamps and banners on the humped decks.
 - RunAll 326/326.
+
+### 2026-09-17 03:51 — Smooth bridge arches (X41)
+- Each arch slice's block now stops at its higher corner, and a WedgePart under it (`BridgeDresser.sliceWedge`, with a test for its corners) carries the curve down to the lower corner. With 6 slices, every arch is a smooth six-sided curve instead of steps.
+- **Screenshots:** LuneBridge_wedges_1 from the waterline shows rounded stone vaults with pointed piers between them. LuneBridge_wedges_2 from the east promenade shows a humped stone bridge with a row of arches over the Lune, close to the bridge in `RivermereRiverside.png`.
+- **Parts:** 128 per bridge (54 of them wedges), 384 for the three.
+- **Still different from the reference:** the stone is pale grey rather than warm honey sandstone, and there are no voussoirs (arch-ring stones) or lamp standards on the parapets.
+- RunAll 327/327.
