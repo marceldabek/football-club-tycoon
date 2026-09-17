@@ -91,7 +91,11 @@
 ## Phase I — Social (after B2)
 - [x] I1.1 (card, not a board: View club prompt on the office computer) Visit a club: walk into another plot's office, read-only squad board + club card `[studio]` M
 - [x] I2.1 (within TEMP 220 studs of their pitch centre; no scoreboard for spectators yet) Watch another club's match from their stands `[studio]` M
-- [ ] I3.1 Local friendly: challenge/accept, no injuries, small home payout, no league effect `[studio]` L
+- [~] I3.1 Local friendly: challenge/accept, no injuries, small home payout, no league effect `[studio]` L → split:
+  - [x] I3.1a Pure `Friendly` invite book (challenge/respond/expire/dropUser) + TEMP home payout, tests `[disk]` S
+  - [ ] I3.1b Server `FriendlyService` (remotes, invites, calls the home plot's `MatchService.playFriendly(away)`: away squad + strength from the away plot, no league/injuries/development/W-D-L, TEMP payout) `[studio]` M
+  - [ ] I3.1c Client: "Challenge to a friendly" on the visitor club card, invite card with Accept/Decline for the other owner, FRIENDLY banner `[studio]` M
+  - [ ] I3.1d Two-player friendly test (needs Players = 2) `[studio]` S
 - [ ] I4.1 Same-server player trades (cash only as part of a deal) `[studio]` L
 
 ## Phase J — Online

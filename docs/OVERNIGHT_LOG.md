@@ -42,6 +42,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 2. Plot size 760 and river width 90 are TEMP (docs/TOWN_PLAN.md end list has 8 TEMP choices). *Rec: accept for the greybox, revisit after walking it.*
 3. Evening fixtures are every 4th match starting at match 3 (TEMP). *Rec: fine until the fixture list gets real kick-off times.*
 4. Walking from the market square to a club takes about 2–3 minutes (70–100 s sprinting); the buses cover it in seconds. Is that the scale you want? *Rec: keep it for now, because the buses and the "Go to my club" button carry most trips. Shrink the plot ring by ~25% only if playtesters walk rather than bus.*
+5. Friendlies (I3.1), all TEMP in `src/shared/Friendly.luau`: (a) the challenged club is the home side, (b) an invite lasts 45 s, and you can have one outgoing at a time, (c) the home club gets 25% of a full league gate, and the away club gets nothing, (d) no injuries, no player development, and friendlies don't count in W/D/L or matches played. *Rec: keep all four. A friendly is a social extra, so it shouldn't be a better money route than league matches.*
 
 **Buy list for Marcel**
 - Nothing new yet. Free store terraces are a flat-fronted Victorian row. If you want bay windows like `RiveremereWestdale.png`, "UK Housing – Terraced Set 1" (Macwelshman, Fab, $39.99) is the best paid match (see docs/ASSET_KIT.md).
@@ -213,3 +214,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - While you watch another club's match, a pill under PLAY MATCH shows "Watching  Lune Albion 2 - 1 Brindle Heath  ·  60'". It uses the same football minute as the owner's scoreboard. Match.client sets a local-only player attribute `WatchingPlot`; SpectatorPill reads that club's folder. The text comes from `ClubCard.watchingLine`, which has a test.
 - Checked with a faked live Plot2 match (SpectatorPill_1).
 - RunAll 307/307.
+
+### 2026-09-17 03:20 — Friendlies part 1: invite book (I3.1a)
+- I3.1 was size L, so I split it into a/b/c/d. New pure `Friendly` module: challenge (refuses self, busy clubs, a second outgoing invite, and a challenge back to someone who already invited you), respond (accept/decline), 45 s expiry, dropUser on leave, and `homePayout` as a share of the gate. FriendlyTest has 7 tests. The TEMP rules are question 5.
+- RunAll 314/314.
