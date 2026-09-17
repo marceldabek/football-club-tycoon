@@ -1427,3 +1427,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - `WorldBuilder.buildPitch`: the 14 mowing bands are now stacked across the width (13.6 studs each, 290 long) instead of across the length, so they run goal to goal as in `pitch-board.png`. Same part count.
 - Checked in play from above the pitch (screenshot): bands run between the goals, and the markings, corner arcs and centre circle sit on top as before. RunAll 437 passed.
 
+### 2026-09-17 14:46 — Wall coping, pier caps and flowers on the bar (X255, X257 done)
+- X255 `PlotGrounds.buildBoundary`: a pale limestone coping strip along every boundary wall run (overhanging 0.2 both faces, like the stand coping) and a cap on each of the four gate piers, as on `RivermereTurnstileEntrance.png`. 6 coping runs + 4 caps = **10 parts per plot**. Screenshot checked along the west wall.
+- X257: the supporters' bar frontage gets a flower box on each of the three upper sills and two hanging baskets on brackets either side of the door. **10 parts.** The first placement hung the baskets in front of the red fascia; they now hang below it, beside the ground-floor windows (screenshot checked).
+- Both sit clear of existing geometry (boxes stand proud of the panes, baskets in front of the frontage, not through the door). RunAll 437 passed.
+
