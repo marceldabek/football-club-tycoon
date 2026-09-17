@@ -152,6 +152,8 @@ local BUS_OFFSETS: { Vector3 } = {
 	Vector3.new(BUS_TRACK_X, BUS_WHEEL_Y, BUS_AXLE_Z),
 	-- X118: destination board on the front, above the windscreen
 	Vector3.new(0, BUS_BODY_Y + BUS_BODY_SIZE.Y / 2 - 0.35, -BUS_BODY_SIZE.Z / 2 - 0.06),
+	-- windscreen under it (the side window band stops short of the front)
+	Vector3.new(0, BUS_WINDOW_Y - 0.2, -BUS_BODY_SIZE.Z / 2 - 0.05),
 }
 -- X118 (RivermereCenter.png's "2 Town Centre" bus): TEMP route boards
 local BUS_DESTINATIONS = { "21  TOWN CENTRE", "7  STATION", "12  RIVERSIDE", "23  NORTHFIELDS", "24  WESTDALE" }
@@ -293,7 +295,8 @@ local function buildBus(parent: Instance, color: Color3): { BasePart }
 	label.TextColor3 = Color3.fromRGB(255, 170, 30)
 	label.Text = BUS_DESTINATIONS[math.random(1, #BUS_DESTINATIONS)]
 	label.Parent = gui
-	return { body, windows, wheelF1, wheelF2, wheelR1, wheelR2, board }
+	local windscreen = part("Windscreen", Vector3.new(3.8, 1.1, 0.1), BUS_WINDOW_COLOR, false, parent)
+	return { body, windows, wheelF1, wheelF2, wheelR1, wheelR2, board, windscreen }
 end
 
 -- Bike rig: 2 wheels, frame, rider torso, head, 2 legs = 7 parts.
