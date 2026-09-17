@@ -345,4 +345,41 @@ function T.districtSignsHaveAGatewayAndAVerge()
 	end
 end
 
+function T.playAreaSpotIsClearGrassByARoadWithTheGateTowardIt()
+	local roads: { TownLayout.Road } = {
+		{ name = "Test Road", kind = "residential", width = 20, points = { Vector3.new(-300, 0, 0), Vector3.new(300, 0, 0) } },
+	}
+	local blocks: { TownLayout.Box } = {
+		{ centre = Vector3.new(0, 0, 60), size = Vector3.new(100, 10, 30), yaw = 0, use = "semis" },
+	}
+	local centre, facing = EstateDresser.playAreaSpot(Vector3.new(0, 0, 60), roads, blocks, 28, 160)
+	assert(centre and facing, "found a spot")
+	local reach = 10 + TownLayout.PAVEMENT_WIDTH
+	local nearEdge = math.abs(centre.Z) - 14
+	assert(nearEdge >= reach + 2 - 1e-3 and nearEdge <= reach + 8 + 1e-3, "near edge beside the pavement, got " .. nearEdge)
+	-- the block spans x -50..50, z 45..75; keep 3 clear of it
+	local clear = math.abs(centre.X) - 14 >= 53 - 1e-3 or centre.Z + 14 <= 42 + 1e-3 or centre.Z - 14 >= 78 - 1e-3
+	assert(clear, "clear of the block, got " .. tostring(centre))
+	assert(math.abs(facing.X) < 1e-6 and math.abs(math.abs(facing.Z) - 1) < 1e-6, "gate on a Z side")
+	assert(math.sign(facing.Z) == -math.sign(centre.Z), "gate faces the road")
+	local moved = EstateDresser.playAreaSpot(Vector3.new(0, 0, 60), roads, blocks, 28, 160, { centre })
+	assert(moved and (moved - centre).Magnitude >= 28 - 1e-3, "keeps clear of an avoid point")
+	assert(EstateDresser.playAreaSpot(Vector3.new(0, 0, 5000), roads, blocks, 28, 40) == nil, "no road nearby -> nil")
+end
+
+function T.northfieldsHasRoomForAPlayArea()
+	local blocks = {}
+	local gateway
+	for _, district in TownLayout.DISTRICTS do
+		for _, block in district.blocks do
+			table.insert(blocks, block)
+		end
+		if district.name == "Northfields" then
+			gateway = EstateDresser.gatewayBlock(district, TownLayout.SQUARE.centre)
+		end
+	end
+	assert(gateway, "Northfields has blocks")
+	assert(EstateDresser.playAreaSpot(gateway.centre, TownLayout.ROADS, blocks, 28, 200) ~= nil, "a play area fits near the Northfields gateway")
+end
+
 return T

@@ -462,3 +462,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - BusAtStop_1 showed the Riverside Park shelter, flag and bin standing on grass. `TownBuilder.buildBusStop` now lays an 18 x 9 paving pad under each stop, 0.4 thick.
 - **Screenshot** BusPad_1: the Riverside Park shelter, flag and bin sit on block paving beside the pavement.
 - RunAll 347/347.
+
+### 2026-09-17 05:35 — Northfields play area (X57 part)
+- RivermereNorthfields.png has a railed playground beside the NORTHFIELDS stone. `EstateDresser` now builds one on the empty corner lot by North Road, about 110 studs from the stone. It has a green safety surface, black railings with a gate facing the pavement and a paved path out to it, a wooden climbing tower with a red pitched roof and a steel slide, a red A-frame swing set with two seats, and a bench: 84 parts in one model.
+- `EstateDresser.playAreaSpot` is pure. It searches outward from the district's gateway block for a 28-stud square that is 2 studs clear of every road and pavement, 3 clear of every block, within 8 of a pavement and away from the stone. The gate faces the nearest road. There are 2 new tests: a synthetic street, and "Northfields has room". A server overlap check found no other parts inside the square.
+- **Screenshots** PlayArea_1 and PlayArea_2.
+- Still open on X57: flower borders in the front gardens.
+- RunAll 349/349.

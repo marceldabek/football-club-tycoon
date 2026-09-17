@@ -279,6 +279,213 @@ function EstateDresser.gatewayBlock(district: TownLayout.District, centre: Vecto
 	return best
 end
 
+-- X57: a railed play area (climbing tower with slide, swings, bench) on the
+-- grass near a district's gateway, like the one beside the NORTHFIELDS stone
+-- in RivermereNorthfields.png.
+local PLAY_AREA_DISTRICTS = { "Northfields" }
+local PLAY_AREA_SIDE = 28 -- TEMP studs, railings included
+
+local function closestOnPolyline(p: Vector3, points: { Vector3 }): Vector3
+	local best, bestPoint = math.huge, Vector3.new(points[1].X, 0, points[1].Z)
+	for i = 1, #points - 1 do
+		local a, b = points[i], points[i + 1]
+		local ab = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+		local t = if ab.Magnitude > 0 then math.clamp(Vector3.new(p.X - a.X, 0, p.Z - a.Z):Dot(ab) / ab.Magnitude ^ 2, 0, 1) else 0
+		local q = Vector3.new(a.X, 0, a.Z) + ab * t
+		local d = Vector3.new(p.X - q.X, 0, p.Z - q.Z).Magnitude
+		if d < best then
+			best, bestPoint = d, q
+		end
+	end
+	return bestPoint
+end
+
+-- Pure: the centre of an axis-aligned `side` square of grass near `near`
+-- whose sample points (about every 4 studs) are all 2+ studs clear of road
+-- and pavement and 3+ clear of every block, with an edge within 8 of a
+-- pavement, and `side` or more from every `avoid` point. Also returns the
+-- unit axis (+-X or +-Z) toward the nearest road, for the gate. nil if none.
+function EstateDresser.playAreaSpot(near: Vector3, roads: { TownLayout.Road }, blocks: { TownLayout.Box }, side: number, maxRadius: number, avoid: { Vector3 }?): (Vector3?, Vector3?)
+	local half = side / 2
+	local steps = math.ceil(side / 4)
+	local function sample(c: Vector3, i: number, j: number): Vector3
+		return c + Vector3.new(-half + side * i / steps, 0, -half + side * j / steps)
+	end
+	for radius = 0, maxRadius, 4 do
+		local count = if radius == 0 then 1 else 24
+		for k = 0, count - 1 do
+			local a = k / count * math.pi * 2
+			local c = Vector3.new(near.X + math.cos(a) * radius, 0, near.Z + math.sin(a) * radius)
+			local ok = true
+			for _, q in avoid or {} do
+				if Vector3.new(q.X - c.X, 0, q.Z - c.Z).Magnitude < side then
+					ok = false
+					break
+				end
+			end
+			local minGap, gapRoad = math.huge, nil
+			for _, road in roads do
+				if not ok then
+					break
+				end
+				local reach = road.width / 2 + TownLayout.PAVEMENT_WIDTH
+				if TownLayout.distanceToPolyline(c, road.points) - reach > half * 1.5 + 8 then
+					continue -- the whole square is well clear of this road
+				end
+				for i = 0, steps do
+					for j = 0, steps do
+						local gap = TownLayout.distanceToPolyline(sample(c, i, j), road.points) - reach
+						if gap < 2 then
+							ok = false
+							break
+						elseif gap < minGap then
+							minGap, gapRoad = gap, road
+						end
+					end
+					if not ok then
+						break
+					end
+				end
+			end
+			if not ok or not gapRoad or minGap > 8 then
+				continue
+			end
+			for _, box in blocks do
+				if not ok then
+					break
+				end
+				if Vector3.new(box.centre.X - c.X, 0, box.centre.Z - c.Z).Magnitude > half * 1.5 + box.size.Magnitude / 2 + 3 then
+					continue
+				end
+				for i = 0, steps do
+					for j = 0, steps do
+						if insideBox(sample(c, i, j), box, 3) then
+							ok = false
+							break
+						end
+					end
+					if not ok then
+						break
+					end
+				end
+			end
+			if ok and gapRoad then
+				local q = closestOnPolyline(c, gapRoad.points)
+				local dx, dz = q.X - c.X, q.Z - c.Z
+				local facing = if math.abs(dx) > math.abs(dz) then Vector3.new(math.sign(dx), 0, 0) else Vector3.new(0, 0, math.sign(dz))
+				return c, facing
+			end
+		end
+	end
+	return nil, nil
+end
+
+local PLAY_WOOD = Color3.fromRGB(150, 104, 62)
+local PLAY_RED = Color3.fromRGB(176, 52, 44)
+local PLAY_STEEL = Color3.fromRGB(196, 200, 204)
+local RAIL_BLACK = Color3.fromRGB(28, 30, 32)
+
+local function buildPlayArea(parent: Instance, centre: Vector3, facing: Vector3): Model
+	local m = Instance.new("Model")
+	m.Name = "PlayArea"
+	-- local -Z (the front, with the gate) faces the road
+	local cf = CFrame.lookAt(centre, centre + facing)
+	local function piece(name: string, size: Vector3, at: CFrame, colour: Color3, material: Enum.Material, class: string?): BasePart
+		local p = Instance.new(class or "Part") :: BasePart
+		p.Name = name
+		p.Anchored = true
+		p.Size = size
+		p.CFrame = at
+		p.Color = colour
+		p.Material = material
+		p.TopSurface = Enum.SurfaceType.Smooth
+		p.BottomSurface = Enum.SurfaceType.Smooth
+		p.Parent = m
+		return p
+	end
+	local half = PLAY_AREA_SIDE / 2
+
+	-- green wetpour just inside the railings
+	piece("Surface", Vector3.new(PLAY_AREA_SIDE - 0.4, 0.3, PLAY_AREA_SIDE - 0.4), cf * CFrame.new(0, 0.15, 0), Color3.fromRGB(64, 118, 74), Enum.Material.Concrete).CastShadow = false
+
+	-- a path from the gate out to the pavement (playAreaSpot keeps it within 8;
+	-- the far end tucks under the raised pavement)
+	piece("Path", Vector3.new(4, 0.3, 9), cf * CFrame.new(0, 0.15, -half - 4.6), Color3.fromRGB(170, 168, 160), Enum.Material.Pavement).CastShadow = false
+
+	-- black railings, with a gate gap in the middle of the front
+	local GATE = 2.4
+	local POSTS = 12
+	local sides = {
+		{ frame = CFrame.new(0, 0, -half), front = true },
+		{ frame = CFrame.new(0, 0, half), front = false },
+		{ frame = CFrame.new(-half, 0, 0) * CFrame.Angles(0, math.pi / 2, 0), front = false },
+		{ frame = CFrame.new(half, 0, 0) * CFrame.Angles(0, math.pi / 2, 0), front = false },
+	}
+	for _, info in sides do
+		local frame = cf * info.frame
+		for i = 0, POSTS - 1 do -- the corner post at the far end belongs to the next side
+			local x = -half + PLAY_AREA_SIDE * i / POSTS
+			if not (info.front and math.abs(x) < GATE) then
+				piece("Post", Vector3.new(0.25, 3.2, 0.25), frame * CFrame.new(x, 1.6, 0), RAIL_BLACK, Enum.Material.Metal).CastShadow = false
+			end
+		end
+		local spans = if info.front then { { -half, -GATE + 0.2 }, { GATE - 0.2, half } } else { { -half, half } }
+		for _, span in spans do
+			for _, y in { 0.6, 2.9 } do
+				piece("Rail", Vector3.new(span[2] - span[1], 0.18, 0.18), frame * CFrame.new((span[1] + span[2]) / 2, y, 0), RAIL_BLACK, Enum.Material.Metal).CastShadow = false
+			end
+		end
+	end
+
+	-- climbing tower (back left) with a pitched roof, and a slide down to the front
+	local tower = cf * CFrame.new(-7, 0, 6)
+	for _, sx in { -2.7, 2.7 } do
+		for _, sz in { -2.7, 2.7 } do
+			piece("TowerPost", Vector3.new(0.6, 8.9, 0.6), tower * CFrame.new(sx, 4.45, sz), PLAY_WOOD, Enum.Material.Wood)
+		end
+	end
+	piece("Deck", Vector3.new(6, 0.4, 6), tower * CFrame.new(0, 4.2, 0), PLAY_WOOD, Enum.Material.WoodPlanks)
+	piece("Board", Vector3.new(0.3, 1.4, 5.4), tower * CFrame.new(-3.2, 5.2, 0), PLAY_RED, Enum.Material.SmoothPlastic)
+	piece("Board", Vector3.new(5.4, 1.4, 0.3), tower * CFrame.new(0, 5.2, 3.2), PLAY_RED, Enum.Material.SmoothPlastic)
+	piece("Roof", Vector3.new(6.8, 1.8, 3.4), tower * CFrame.new(0, 9.8, -1.7), PLAY_RED, Enum.Material.SmoothPlastic, "WedgePart")
+	piece("Roof", Vector3.new(6.8, 1.8, 3.4), tower * CFrame.new(0, 9.8, 1.7) * CFrame.Angles(0, math.pi, 0), PLAY_RED, Enum.Material.SmoothPlastic, "WedgePart")
+	local slideTop = (tower * CFrame.new(0, 4.4, -3)).Position
+	local slideFoot = (tower * CFrame.new(0, 0.6, -10)).Position
+	local slide = CFrame.lookAt((slideTop + slideFoot) / 2, slideTop)
+	local slideLength = (slideTop - slideFoot).Magnitude
+	piece("Slide", Vector3.new(2.2, 0.2, slideLength), slide, PLAY_STEEL, Enum.Material.Metal)
+	for _, sx in { -1.15, 1.15 } do
+		piece("SlideLip", Vector3.new(0.15, 0.6, slideLength), slide * CFrame.new(sx, 0.3, 0), PLAY_STEEL, Enum.Material.Metal)
+	end
+
+	-- swings (back right): A-frame legs, top bar, two seats on chains
+	local swing = cf * CFrame.new(6, 0, 7)
+	piece("SwingBar", Vector3.new(11, 0.4, 0.4), swing * CFrame.new(0, 8, 0), PLAY_RED, Enum.Material.Metal)
+	for _, sx in { -5, 5 } do
+		for _, sz in { -2.5, 2.5 } do
+			local top, foot = (swing * CFrame.new(sx, 8, 0)).Position, (swing * CFrame.new(sx, 0, sz)).Position
+			piece("SwingLeg", Vector3.new(0.35, 0.35, (top - foot).Magnitude), CFrame.lookAt((top + foot) / 2, top), PLAY_RED, Enum.Material.Metal)
+		end
+	end
+	for _, sx in { -2.2, 2.2 } do
+		piece("SwingSeat", Vector3.new(1.8, 0.2, 0.8), swing * CFrame.new(sx, 1.8, 0), Color3.fromRGB(30, 30, 30), Enum.Material.Plastic)
+		for _, cx in { -0.75, 0.75 } do
+			piece("Chain", Vector3.new(0.08, 5.9, 0.08), swing * CFrame.new(sx + cx, 4.85, 0), Color3.fromRGB(150, 150, 150), Enum.Material.Metal).CastShadow = false
+		end
+	end
+
+	-- a bench for the grown-ups, facing the play kit
+	local bench = cf * CFrame.new(8, 0, -10)
+	piece("BenchSeat", Vector3.new(4, 0.25, 1.2), bench * CFrame.new(0, 1.5, 0), PLAY_WOOD, Enum.Material.WoodPlanks)
+	piece("BenchBack", Vector3.new(4, 1.2, 0.2), bench * CFrame.new(0, 2.3, -0.6), PLAY_WOOD, Enum.Material.WoodPlanks)
+	for _, sx in { -1.6, 1.6 } do
+		piece("BenchLeg", Vector3.new(0.3, 1.4, 1), bench * CFrame.new(sx, 0.7, 0), RAIL_BLACK, Enum.Material.Metal)
+	end
+
+	m.Parent = parent
+	return m
+end
+
 -- Removes the greybox body + roof for this exact block (matched by name and
 -- XZ position, since a district's greybox has many same-named siblings).
 local function removeGreyboxFor(greybox: Instance?, block: TownLayout.Box)
@@ -391,6 +598,7 @@ function EstateDresser.build(): string
 	end
 
 	-- X56: district name stones
+	local signSpots: { [string]: Vector3 } = {}
 	local allBlocks: { TownLayout.Box } = {}
 	for _, district in TownLayout.DISTRICTS do
 		for _, block in district.blocks do
@@ -404,6 +612,21 @@ function EstateDresser.build(): string
 				local spot, facing = EstateDresser.totemSpot(gateway.centre, TownLayout.ROADS, allBlocks, 120)
 				if spot and facing then
 					buildDistrictSign(estates, district.name, spot, facing)
+					signSpots[district.name] = spot
+				end
+			end
+		end
+	end
+
+	-- X57: a play area near the district stone
+	for _, district in TownLayout.DISTRICTS do
+		if table.find(PLAY_AREA_DISTRICTS, district.name) then
+			local gateway = EstateDresser.gatewayBlock(district, TownLayout.SQUARE.centre)
+			local avoid = { signSpots[district.name] }
+			if gateway then
+				local centre, facing = EstateDresser.playAreaSpot(gateway.centre, TownLayout.ROADS, allBlocks, PLAY_AREA_SIDE, 200, avoid)
+				if centre and facing then
+					buildPlayArea(estates, centre, facing)
 				end
 			end
 		end
