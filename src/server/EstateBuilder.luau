@@ -594,6 +594,7 @@ end
 -- along local X), matching EstateDresser's placement.
 local PLINTH_BRICK = Color3.fromRGB(146, 82, 60)
 local UNIT_NAVY = Color3.fromRGB(28, 42, 74)
+EstateBuilder.BOLLARD_OUT = 1.2 -- X148: yard bollards this far out from the shed front
 
 -- Pure (X64): body depth and body-centre offset along local X (+ = away from
 -- the road) for a shed on a block `blockDepth` deep framed at the block centre,
@@ -718,6 +719,34 @@ function EstateBuilder.shed(cframe: CFrame, size: Vector3, parent: Instance, rng
 		bottom.TextColor3 = Color3.fromRGB(20, 20, 22)
 		bottom.Text = "CCTV IN OPERATION"
 		bottom.Parent = gui
+	else
+		-- X148: the odd units get a GOODS IN board in the same spot instead
+		local board = block("Part", "GoodsInBoard", Vector3.new(0.1, 1.6, 3), cframe * CFrame.new(-depth / 2 - YARD_DEPTH - 0.3, 2.4, -hw / 2), UNIT_NAVY, Enum.Material.SmoothPlastic, model, false)
+		board.CastShadow = false
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = Enum.NormalId.Left -- local -X, toward the road
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.MaxDistance = 120
+		gui.Parent = board
+		local label = Instance.new("TextLabel")
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(0.9, 0.7)
+		label.Position = UDim2.fromScale(0.05, 0.15)
+		label.Font = Enum.Font.GothamBlack
+		label.TextScaled = true
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.Text = "GOODS IN →"
+		label.Parent = gui
+	end
+	-- X148: yellow bollards guarding both front corners of every shed (one
+	-- part each for the 30-part shed budget), in the yard strip the lorry,
+	-- forklift and pallets keep clear of
+	for _, side in { -1, 1 } do
+		local at = cframe * CFrame.new(-depth / 2 - EstateBuilder.BOLLARD_OUT, 0, side * (hw - 2.5))
+		-- a cylinder's axis is its local X: stand it up
+		local post = block("Part", "YardBollard", Vector3.new(2.4, 0.7, 0.7), at * CFrame.new(0, 0.2 + 1.2, 0) * CFrame.Angles(0, 0, math.pi / 2), Color3.fromRGB(240, 196, 30), Enum.Material.SmoothPlastic, model, false)
+		post.Shape = Enum.PartType.Cylinder
 	end
 	for _, spec in if palisaded then {} else {
 		{ name = "FenceLeft", size = Vector3.new(YARD_DEPTH, fenceY, 0.15), offset = Vector3.new(-depth / 2 - YARD_DEPTH / 2, fenceY / 2, -hw) },

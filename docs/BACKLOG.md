@@ -260,7 +260,7 @@
 - [ ] X145 Flower window boxes under the first-floor windows of pub, café and deli fronts on the square and promenade: a trough plus `Planting.bloom` (about 3 parts each, cap 40, Decor). RivermereRiverside.png `[studio]` S
 - [ ] X146 Balconies on the river face of the waterfront flats: in `ShopBuilder.flats`, a slab, glass panel and black rail on upper floors every other bay (about 72 parts). RivermereRiverside.png `[studio]` S
 - [ ] X147 Hi-vis yard workers: a client script like PlayAreaLife with 1–2 yellow-vest figures by forklifts or lorries in shed yards within 260 studs (max 6 figures, off on Low). rivermer.industrialestate.png `[studio]` S
-- [ ] X148 "GOODS IN" boards and yellow-and-black bollards at shed yard entrances in `EstateBuilder` shed, every other yard (about 66 parts, Decor). rivermer.industrialestate.png `[studio]` S
+- [x] X148 (11:21 22 boards on odd units, 86 bollards, +108 parts) "GOODS IN" boards and yellow-and-black bollards at shed yard entrances in `EstateBuilder` shed, every other yard (about 66 parts, Decor). rivermer.industrialestate.png `[studio]` S
 - [x] X149 (11:18 11 shelters, +1 part each, TEMP times) Timetable case in each bus shelter: a 1-part panel with the stop name and TEMP times on the shelter back wall beside the X47 advert (`TownBuilder` buildBusStop). RiveremereWestdale.png `[studio]` S
 - [ ] X150 A motor cruiser gliding on the Lune between the marina and the Lune Bridge: a client script like Swans (about 6 parts, within 600 studs, off on Low). RivermereRiverside.png `[studio]` S
 - [x] X151 (11:14 8 crosses, +24 parts, forecourts 831/860) Green pharmacy cross sign sticking out over `shop_front_pharmacy` fronts in `ForecourtDresser` (3 parts each). RivermereCenter.png `[studio]` S

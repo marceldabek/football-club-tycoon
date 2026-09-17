@@ -569,4 +569,22 @@ function T.plantedIslandShrubsStayOnTheIsland()
 	end
 end
 
+-- X148: every shed has two yard bollards; odd units a GOODS IN board, even units the CCTV notice
+function T.shedYardsHaveBollardsAndAGoodsInBoardOnOddUnits()
+	for unit = 1, 4 do
+		local holder = Instance.new("Folder")
+		local shed = EstateBuilder.shed(CFrame.new(), Vector3.new(30, 16, 30), holder, Random.new(unit), "workshop", unit)
+		local bollards = 0
+		for _, d in shed:GetChildren() do
+			if d.Name == "YardBollard" then
+				bollards += 1
+			end
+		end
+		assert(bollards == 2, ("unit %d: %d bollards"):format(unit, bollards))
+		assert((shed:FindFirstChild("GoodsInBoard") ~= nil) == (unit % 2 == 1), ("unit %d goods-in board"):format(unit))
+		assert((shed:FindFirstChild("YardNotice") ~= nil) == (unit % 2 == 0), ("unit %d notice"):format(unit))
+		holder:Destroy()
+	end
+end
+
 return T
