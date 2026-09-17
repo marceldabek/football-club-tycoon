@@ -14,7 +14,8 @@
 -- bottom of the walls is at the CFrame's Y.
 --
 -- Part budget: row = body 1 + roof wedges 2 + ridge 1 + stacks 2 each (max 4)
--- = 6..12 parts. Lamp = 6 parts.
+-- = 6..12 parts, + 2 for an aerial and 2 for a dish (X99, some rows only).
+-- Lamp = 6 parts.
 --
 -- Textures come from tools/kit/make_facades.py (512x512 PNGs, uploaded with
 -- tools/upload_kit.py --images). While an id is still rbxassetid://0 that
@@ -133,6 +134,31 @@ local function block(
 	return p
 end
 
+-- X99: TV aerials on some chimney stacks and satellite dishes on some fronts
+-- (the WORLD_ROADMAP E10 imperfection list). Seeded from the row's position,
+-- not the builder's rng, so every other random choice in town stays the same.
+-- TEMP shares; each is 2 parts and Quality Low hides them (Aerial*, Dish*).
+TerraceBuilder.AERIAL_SHARE = 0.3
+TerraceBuilder.DISH_SHARE = 0.3
+-- Clear brick right of the upper-right window on front_a / front_c (u across
+-- one house bay, v down from the wall top); front_b is the mirror image.
+local DISH_U, DISH_V = 0.84, 0.2
+
+-- Pure: which extras a row at this position gets. Returns the stack index
+-- for an aerial (or nil) and the house index 0..houses-1 for a dish (or nil).
+function TerraceBuilder.extras(position: Vector3, houses: number, stacks: number): (number?, number?)
+	local r = Random.new(math.floor(position.X * 3.1 + position.Z * 7.7) % 2147483647)
+	local aerial = if stacks > 0 and r:NextNumber() < TerraceBuilder.AERIAL_SHARE then r:NextInteger(1, stacks) else nil
+	local dish = if r:NextNumber() < TerraceBuilder.DISH_SHARE then r:NextInteger(0, houses - 1) else nil
+	return aerial, dish
+end
+
+-- Pure: row-local (z, y) of a dish centre on the front wall.
+function TerraceBuilder.dishSpot(facade: string, house: number, houseWidth: number, length: number, wallHeight: number): (number, number)
+	local u = if facade == "front_b" then 1 - DISH_U else DISH_U
+	return -length / 2 + (house + u) * houseWidth, wallHeight * (1 - DISH_V)
+end
+
 function TerraceBuilder.row(cframe: CFrame, length: number, depth: number, height: number, parent: Instance, rng: Random?): Model
 	local r = rng or Random.new()
 	local variant = VARIANTS[r:NextInteger(1, #VARIANTS)]
@@ -190,6 +216,28 @@ function TerraceBuilder.row(cframe: CFrame, length: number, depth: number, heigh
 			false
 		)
 		pots.CastShadow = false
+	end
+
+	local stacks = TerraceBuilder.stackPositions(length)
+	local aerialStack, dishHouse = TerraceBuilder.extras(cframe.Position, houses, #stacks)
+	if aerialStack then
+		-- a mast at the stack's end, clear of the pots, with a cross bar across the ridge
+		local z = stacks[aerialStack] + STACK_SIZE.Z / 2 - 0.35
+		local mastBottom = ridgeY + STACK_ABOVE_RIDGE - 0.3
+		local mast = block("Part", "AerialMast", Vector3.new(0.15, 3.4, 0.15), cframe * CFrame.new(0, mastBottom + 1.7, z), LAMP_BLACK, Enum.Material.Metal, model, false)
+		mast.CastShadow = false
+		local bar = block("Part", "AerialBar", Vector3.new(2.8, 0.12, 0.12), cframe * CFrame.new(0, mastBottom + 3.1, z), LAMP_BLACK, Enum.Material.Metal, model, false)
+		bar.CastShadow = false
+	end
+	if dishHouse then
+		local z, y = TerraceBuilder.dishSpot(variant.front, dishHouse, houseW, length, wallH)
+		local front = -depth / 2
+		-- bracket from the wall, then the dish turned a little along the street
+		local bracket = block("Part", "DishBracket", Vector3.new(0.5, 0.2, 0.2), cframe * CFrame.new(front - 0.25, y - 0.5, z), LAMP_BLACK, Enum.Material.Metal, model, false)
+		bracket.CastShadow = false
+		local dish = block("Part", "Dish", Vector3.new(0.3, 1.7, 1.7), cframe * CFrame.new(front - 0.75, y - 0.2, z) * CFrame.Angles(0, math.rad(20), math.rad(-10)), Color3.fromRGB(214, 214, 210), Enum.Material.SmoothPlastic, model, false)
+		;(dish :: Part).Shape = Enum.PartType.Cylinder
+		dish.CastShadow = false
 	end
 
 	model.Parent = parent

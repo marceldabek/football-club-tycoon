@@ -44,4 +44,53 @@ function T.stacksCapAtFourAndStayInsideTheRow()
 	assert(near(long[1], -200 + 16) and near(long[4], -200 + 23 * 16), "cap keeps both end stacks")
 end
 
+-- X99: aerials and dishes are seeded by position (same answer every build),
+-- land on roughly their TEMP share of rows, and a dish sits in the upper
+-- floor of its own house bay, clear of the front wall.
+function T.aerialsAndDishesAreSeededSparseAndOnTheFront()
+	local a1, d1 = TerraceBuilder.extras(Vector3.new(120, 0, -333), 6, 3)
+	local a2, d2 = TerraceBuilder.extras(Vector3.new(120, 0, -333), 6, 3)
+	assert(a1 == a2 and d1 == d2, "same position, same extras")
+	local aerials, dishes, n = 0, 0, 400
+	for i = 1, n do
+		local a, d = TerraceBuilder.extras(Vector3.new(i * 37.3, 0, i * -21.9), 5, 2)
+		if a then
+			aerials += 1
+			assert(a >= 1 and a <= 2, "aerial stack " .. a)
+		end
+		if d then
+			dishes += 1
+			assert(d >= 0 and d <= 4, "dish house " .. d)
+		end
+	end
+	for _, pair in { { aerials, TerraceBuilder.AERIAL_SHARE }, { dishes, TerraceBuilder.DISH_SHARE } } do
+		local share = pair[1] / n
+		assert(math.abs(share - pair[2]) < 0.1, ("share %.2f want about %.2f"):format(share, pair[2]))
+	end
+	local a0 = TerraceBuilder.extras(Vector3.new(5, 0, 5), 2, 0)
+	assert(a0 == nil, "no aerial without a stack")
+	for _, facade in { "front_a", "front_b", "front_c" } do
+		local z, y = TerraceBuilder.dishSpot(facade, 2, 16, 96, 16)
+		assert(z > -48 + 2 * 16 + 1 and z < -48 + 3 * 16 - 1, facade .. " dish outside its bay: " .. z)
+		assert(y > 16 / 2 and y < 16 - 1, facade .. " dish not on the upper floor: " .. y)
+	end
+	local holder = Instance.new("Folder")
+	for i = 1, 30 do
+		local row = TerraceBuilder.row(CFrame.new(i * 51.7, 0, i * 13.1), 96, 24, 24, holder, Random.new(i))
+		local parts = 0
+		for _, d in row:GetChildren() do
+			if d:IsA("BasePart") then
+				parts += 1
+			end
+		end
+		assert(parts <= 16, "row parts " .. parts)
+		local dish = row:FindFirstChild("Dish") :: BasePart?
+		if dish then
+			local lx = row.Body.CFrame:PointToObjectSpace(dish.Position).X
+			assert(lx < -12 - 0.4, "dish clear of the front wall: " .. lx)
+		end
+	end
+	holder:Destroy()
+end
+
 return T

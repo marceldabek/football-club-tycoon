@@ -68,6 +68,10 @@ Quality.DECOR_PART_NAMES = {
 	ForkliftMast = true, -- EstateBuilder shed yard forklift (X55)
 	ForkliftForks = true, -- EstateBuilder shed yard forklift (X55)
 	ForkliftWheels = true, -- EstateBuilder shed yard forklift (X55)
+	AerialMast = true, -- TerraceBuilder TV aerials (X99)
+	AerialBar = true, -- TerraceBuilder TV aerials (X99)
+	Dish = true, -- TerraceBuilder satellite dishes (X99)
+	DishBracket = true, -- TerraceBuilder satellite dishes (X99)
 } :: { [string]: boolean }
 
 -- X96: parts that are decoration only inside a model of this name (the names
