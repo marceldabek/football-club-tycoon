@@ -72,6 +72,9 @@ Quality.DECOR_PART_NAMES = {
 	AerialBar = true, -- TerraceBuilder TV aerials (X99)
 	Dish = true, -- TerraceBuilder satellite dishes (X99)
 	DishBracket = true, -- TerraceBuilder satellite dishes (X99)
+	TelegraphPole = true, -- WireDresser (X100)
+	PoleArm = true, -- WireDresser (X100)
+	Wire = true, -- WireDresser (X100)
 } :: { [string]: boolean }
 
 -- X96: parts that are decoration only inside a model of this name (the names
