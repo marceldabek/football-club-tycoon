@@ -505,7 +505,9 @@ local function refreshPhasePanels()
 		summary.frame.Visible = false -- a lingering card must never cover the next match
 		seasonCard.frame.Visible = false
 		welcome.frame.Visible = false
-		bannerBody.Text = ("%s  vs  %s   ·   Match %d of %d"):format(get("ClubName") or "Home", get("Opponent") or "Away", (get("Round") or 0) + 1, get("Rounds") or 10)
+		bannerBody.Text = if get("Friendly") == true
+			then ("%s  vs  %s   ·   Friendly"):format(get("ClubName") or "Home", get("Opponent") or "Away")
+			else ("%s  vs  %s   ·   Match %d of %d"):format(get("ClubName") or "Home", get("Opponent") or "Away", (get("Round") or 0) + 1, get("Rounds") or 10)
 	end
 end
 

@@ -94,7 +94,7 @@
 - [~] I3.1 Local friendly: challenge/accept, no injuries, small home payout, no league effect `[studio]` L → split:
   - [x] I3.1a Pure `Friendly` invite book (challenge/respond/expire/dropUser) + TEMP home payout, tests `[disk]` S
   - [x] I3.1b (DebugRun "friendly|20|3" plays one solo; remotes untested until I3.1d) Server `FriendlyService` (remotes, invites, calls the home plot's `MatchService.playFriendly(away)`: away squad + strength from the away plot, no league/injuries/development/W-D-L, TEMP payout) `[studio]` M
-  - [ ] I3.1c Client: "Challenge to a friendly" on the visitor club card, invite card with Accept/Decline for the other owner, FRIENDLY banner `[studio]` M
+  - [x] I3.1c Client: "Challenge to a friendly" on the visitor club card, invite card with Accept/Decline for the other owner, FRIENDLY banner `[studio]` M
   - [ ] I3.1d Two-player friendly test (needs Players = 2) `[studio]` S
 - [ ] I4.1 Same-server player trades (cash only as part of a deal) `[studio]` L
 
@@ -141,4 +141,5 @@
 - [x] X37 (16 nearest lamps get a PointLight when ClockTime is dark; 6 on Low) Evening fixtures: town streets away from the ground are nearly black during an evening match (street lamps don't light); either brighten the evening look's ambient or make lamp heads Neon/PointLight in the evening for the local player `[studio]` S
 - [x] X38 (pill under PLAY MATCH: "Watching  A 2 - 1 B  ·  60'"; crowd audio level still own-club based) Spectators (I2.1) get no scoreboard, club names or crowd audio level of the watched club; show a small "Watching: A 1–0 B, 63'" pill from the watched folder `[studio]` S
 - [ ] X39 Spectating needs a real two-player check (B2.1d): the solo test faked a live match by cloning the club folder onto the Plot2 lot `[studio]` S
+- [ ] X40 The bottom hint pill (e.g. "Fans were turned away...") sits on top of the match summary's Back to Club button (seen on the friendly summary, also true for league matches); hide hints while the summary or season card is open, or raise the card's DisplayOrder `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

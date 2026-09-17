@@ -225,3 +225,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Playtest:** DebugRun `friendly|15|3` played "Friendly Test XI" (Plot1's own side renamed). MatchesPlayed stayed 30 and W/D/L stayed 12/9/9, cash rose £300 (25% of the 150-seat × £8 gate), and Friendly went true, then false. A league match right after still counted: match 31, a draw, cash +£1,350, round 1. No console errors. The remotes can't be fired from the MCP client (capability block), so they wait for I3.1d.
 - **TEMP:** your away club can still start its own league match while its friendly plays at the other ground. That's harmless, since the away side is a snapshot. Part of question 5.
 - RunAll 314/314.
+
+### 2026-09-17 03:33 — Friendlies part 3: client (I3.1c)
+- **Visitor club card:** new "Play a friendly" button, shown when you own a club and the one you're visiting has an owner. It fires FriendlyChallenge. Clicking it at my own ground (the one-player test) got the server's refusal toast "You can't play a friendly against yourself.", so the whole remote path is exercised (FriendlyButton_1).
+- **Invite card (FriendlyInvite):** "FRIENDLY CHALLENGE", showing the challenging club and its manager, a 45 s countdown, and Accept / Decline. It closes on its own at 0 (FriendlyInvite_1). Accept on the debug invite came back "That challenge has expired.", as expected with no real invite. New Studio-only DebugRun `invite` shows the card, because MCP threads can't fire remotes.
+- **Banner and summary:** the PreMatch banner reads "… vs Friendly Test XI · Friendly". The summary header says FRIENDLY, the league row says "No league points · no injuries", and it showed +£300 (FriendlySummary_1).
+- New follow-up X40: the bottom hint pill covers the summary's Back to Club button. This already happened on league summaries too.
+- The Accept path that actually starts a match between two owners is I3.1d, which needs Players = 2.

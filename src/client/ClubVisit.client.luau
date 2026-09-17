@@ -2,7 +2,7 @@
 -- Visiting another club (I1.1): its office computer gets a local "View club"
 -- prompt that opens a read-only card (standing, record, ground, best players).
 -- Everything comes from ReplicatedStorage.Clubs.PlotN, which every client
--- already receives; nothing is sent to the server.
+-- already receives. The only request it sends is a friendly challenge (I3.1).
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -24,13 +24,20 @@ local CLOSE_DISTANCE = 24
 local gui = Theme.screenGui("ClubVisit", 6)
 local card = Theme.card(gui, "Card", "VISITING", UDim2.fromOffset(460, 390), UDim2.fromScale(0.5, 0.48))
 local closeButton = card.addButton("Close", "secondary")
+local challengeButton = card.addButton("Challenge", "primary")
+challengeButton.Text = "Play a friendly"
+challengeButton.LayoutOrder = 1
+closeButton.LayoutOrder = 2
 gui.Parent = player:WaitForChild("PlayerGui")
+local challengeEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("FriendlyChallenge") :: RemoteEvent
 
 local openAt: BasePart? = nil
+local openPlot: number? = nil
 
 local function close()
 	card.frame.Visible = false
 	openAt = nil
+	openPlot = nil
 end
 
 local function clubFolder(plot: number): Folder?
@@ -67,8 +74,11 @@ local function open(plot: number, at: BasePart)
 		table.insert(lines, ("<b>%d</b>  %s  <font transparency=\"0.4\">%s · %d goals</font>"):format(p.overall, p.name, p.role, p.goals))
 	end
 	card.body.Text = table.concat(lines, "\n")
+	-- friendlies (I3.1): you need your own club, and they need an owner
+	challengeButton.Visible = type(player:GetAttribute("ClubPlot")) == "number" and type(attrs.OwnerUserId) == "number"
 	card.frame.Visible = true
 	openAt = at
+	openPlot = plot
 end
 
 local function attach(clubPrompt: ProximityPrompt)
@@ -107,6 +117,13 @@ end
 plots.DescendantAdded:Connect(track)
 
 closeButton.Activated:Connect(close)
+challengeButton.Activated:Connect(function()
+	local plot = openPlot
+	if plot then
+		challengeEvent:FireServer(plot)
+		close()
+	end
+end)
 UserInputService.InputBegan:Connect(function(input)
 	if input.KeyCode == Enum.KeyCode.Escape and card.frame.Visible then
 		close()

@@ -510,7 +510,7 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		if stateFolder then
 			clubName = stateFolder:GetAttribute("ClubName") or clubName
 		end
-		matchLine.Text = ("MATCH %d / %d"):format(data.round or 0, data.rounds or 10)
+		matchLine.Text = if data.friendly then "FRIENDLY" else ("MATCH %d / %d"):format(data.round or 0, data.rounds or 10)
 		-- Same colours the crest uses everywhere else, looked up by club name.
 		local homeKit, homeAccent = Config.clubCrest(clubName, true)
 		homeInitials.Text = initials(clubName)
@@ -546,6 +546,9 @@ function MatchSummary.new(gui: ScreenGui): Summary
 			ordinal(data.position or 1), remaining, remainingText:gsub("^%d+ ", ""))
 		if remaining == 0 then
 			leagueRight.Text = ("<b>%s</b> place   <font color=\"#7c8594\">|</font>   Season complete"):format(ordinal(data.position or 1))
+		end
+		if data.friendly then
+			leagueRight.Text = "No league points · no injuries"
 		end
 
 		total.Text = "+" .. money(data.total or 0)

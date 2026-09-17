@@ -42,6 +42,16 @@ if game:GetService("RunService"):IsStudio() then
 		local a1, a2, a3 = args[1], args[2], args[3]
 		if command == "playMatch" then
 			return m.MatchService.playMatch(a1, a2)
+		elseif command == "invite" then
+			-- shows the friendly invite card to the first player without a second club
+			local target = game:GetService("Players"):GetPlayers()[1]
+			local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+			local invite = remotes and remotes:FindFirstChild("FriendlyInvite") :: RemoteEvent?
+			if not (target and invite) then
+				return false, "no player or remote"
+			end
+			invite:FireClient(target, { from = -1, fromName = "Debug", fromClub = "Friendly Test XI", seconds = 45 })
+			return true
 		elseif command == "friendly" then
 			-- solo stand-in for a second club: the same side under another name
 			local away = m.MatchService.awayTeam()
