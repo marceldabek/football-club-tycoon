@@ -57,12 +57,12 @@ local function setupLighting()
 	findOrCreate(Lighting, "Sky", "Sky") -- default skybox textures, nothing to load
 
 	local atmosphere = findOrCreate(Lighting, "Atmosphere", "Atmosphere") :: Atmosphere
-	atmosphere.Density = 0.34
+	atmosphere.Density = 0.22
 	atmosphere.Offset = 0.25
 	atmosphere.Color = Color3.fromRGB(205, 210, 225)
 	atmosphere.Decay = Color3.fromRGB(120, 110, 130)
 	atmosphere.Glare = 0.35
-	atmosphere.Haze = 1.6
+	atmosphere.Haze = 0.9
 
 	local rays = findOrCreate(Lighting, "SunRays", "SunRaysEffect") :: SunRaysEffect
 	rays.Intensity = 0.08

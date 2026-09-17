@@ -107,10 +107,10 @@ function PlotService.plotCFrame(plot: number): CFrame
 	return FALLBACK_SITES[plot]
 end
 
--- Where the picker's camera looks at this plot from: high, from the entrance
--- side (pitch-local -X), looking down at the ground.
+-- Where the picker's camera looks at this plot from: outside the entrance
+-- side (pitch-local -X), low enough to read the FOR SALE board, looking in.
 function PlotService.viewpoint(plot: number): CFrame
-	return PlotService.plotCFrame(plot) * CFrame.lookAt(Vector3.new(-520, 260, 0), Vector3.new(0, 0, 0))
+	return PlotService.plotCFrame(plot) * CFrame.lookAt(Vector3.new(-600, 120, -220), Vector3.new(-220, 0, 40))
 end
 
 -- Tells every client which plots are free/taken, and mirrors it as attributes
@@ -174,6 +174,8 @@ local function buildLot(plot: number)
 	end
 	local lot = Instance.new("Model")
 	lot.Name = "Lot"
+	-- ~30 parts; always streamed so the picker's camera can see every free plot
+	lot.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 	local frame = PlotService.plotCFrame(plot)
 	local half = PLOT_SIZE / 2
 	local rng = Random.new(plot * 97)
