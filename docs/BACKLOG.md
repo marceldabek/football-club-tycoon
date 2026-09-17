@@ -226,4 +226,5 @@
 - [x] X111 (09:19 two pairs of swans gliding slow ellipses near the Lune Bridge and the promenade, 4 parts each, client-only, within 500 of the camera, off on Low) RivermereRiverside.png has swans on the river; roadmap F4 small motion `[studio]` S
 - [x] X112 (09:24 free Creator Store K6 box, asset 760731465, on the market square between the stalls, scale 0.62; 66 parts) A red K6 telephone box, the one iconic British street prop the town lacked; found by a free Creator Store search as OVERNIGHT.md asks, instead of primitives `[studio]` S
 - [x] X113 (09:27 swans now clone a free one-mesh swan, asset 15968285610, from ReplicatedStorage.ClientKit; primitives only as a fallback) X111's swans were 4 primitive blocks; OVERNIGHT.md asks for free models first `[studio]` S
+- [x] X114 (09:31 13 shed yards now show a free textured forklift mesh, 1 part instead of 8; primitives kept as the fallback) The X55 forklift was 8 orange blocks `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

@@ -38,6 +38,7 @@
 -- (wall + hedge) sits inside the block instead of on the public pavement.
 
 local GeometryService = game:GetService("GeometryService")
+local KitPlacer = require(script.Parent.KitPlacer)
 
 local EstateBuilder = {}
 
@@ -267,6 +268,7 @@ end
 -- per server with GeometryService and cloned along each fence, so a section
 -- costs 1 part instead of ~15. If the union fails (or yields where it can't),
 -- palisadeTemplate stays nil and callers keep the old translucent mesh panel.
+EstateBuilder.FORKLIFT_KIT = "ForkliftYellow" -- ServerStorage.Kit.Vehicles (X114)
 EstateBuilder.PALISADE_SECTION = 20
 EstateBuilder.PALISADE_H = 4.5 -- about 1.6 m
 local PALISADE_PALES = 22
@@ -739,7 +741,13 @@ function EstateBuilder.shed(cframe: CFrame, size: Vector3, parent: Instance, rng
 	-- pallets (which stop at z = 0) and the sand heap
 	local hasLorry = kind == "warehouse" and width >= 40
 	local hasForklift = not hasLorry and (unit or 1) % 3 == 1
-	if hasForklift then
+	if hasForklift and KitPlacer.find(EstateBuilder.FORKLIFT_KIT) then
+		-- X114: the free Creator Store forklift mesh (MANIFEST), 7 long with its
+		-- forks at its local -Z; turned so the forks point at the shed like the
+		-- primitive one, centred where the primitive's body and forks were
+		local fork = cframe * CFrame.new(-depth / 2 - 9, 0, hw - 5)
+		KitPlacer.place(EstateBuilder.FORKLIFT_KIT, fork * CFrame.new(1, 0, 0) * CFrame.Angles(0, -math.pi / 2, 0), model)
+	elseif hasForklift then
 		local fork = cframe * CFrame.new(-depth / 2 - 9, 0, hw - 5) -- local +X toward the shed
 		local orange, dark = Color3.fromRGB(226, 118, 32), Color3.fromRGB(38, 38, 42)
 		block("Part", "ForkliftBody", Vector3.new(3.4, 1.8, 2.4), fork * CFrame.new(0, 1.4, 0), orange, Enum.Material.SmoothPlastic, model, true)

@@ -428,9 +428,17 @@ function T.shedYardsGetAForkliftClearOfPalletsAndSandUnlessALorryIsThere()
 		for _, kind in { "workshop", "builders yard", "trade counter" } do
 			local holder = Instance.new("Folder")
 			local shed = EstateBuilder.shed(CFrame.new(), Vector3.new(24 + seed * 2, 16, 30), holder, Random.new(seed), kind, seed)
-			local forklift, others, parts = {}, {}, 0
+			local forklift, others, parts, kitForklift = {}, {}, 0, false
 			for _, d in shed:GetChildren() do
-				if d:IsA("BasePart") then
+				if d:IsA("Model") and d:GetAttribute("Kit") == EstateBuilder.FORKLIFT_KIT then
+					-- X114: the kit mesh forklift (or its fallback block) stands in for the 8 parts
+					kitForklift = true
+					for _, k in d:GetDescendants() do
+						if k:IsA("BasePart") then
+							table.insert(forklift, k)
+						end
+					end
+				elseif d:IsA("BasePart") then
 					parts += 1
 					if string.sub(d.Name, 1, 8) == "Forklift" then
 						table.insert(forklift, d)
@@ -439,8 +447,9 @@ function T.shedYardsGetAForkliftClearOfPalletsAndSandUnlessALorryIsThere()
 					end
 				end
 			end
-			local want = if seed % 3 == 1 then 8 else 0 -- every third unit
-			assert(#forklift == want, ("%s seed %d: %d forklift parts"):format(kind, seed, #forklift))
+			local wanted = seed % 3 == 1 -- every third unit
+			assert((#forklift > 0) == wanted, ("%s seed %d: %d forklift parts"):format(kind, seed, #forklift))
+			assert(kitForklift or #forklift == 0 or #forklift == 8, ("%s seed %d: primitive forklift has %d parts"):format(kind, seed, #forklift))
 			assert(parts <= 30, ("%s seed %d: %d parts"):format(kind, seed, parts))
 			for _, f in forklift do
 				local fMin, fMax = aabb(f)
@@ -455,7 +464,7 @@ function T.shedYardsGetAForkliftClearOfPalletsAndSandUnlessALorryIsThere()
 	end
 	local holder = Instance.new("Folder")
 	local warehouse = EstateBuilder.shed(CFrame.new(), Vector3.new(44, 20, 30), holder, Random.new(1), "warehouse", 1)
-	assert(warehouse:FindFirstChild("Trailer") and not warehouse:FindFirstChild("ForkliftBody"), "a lorry yard has no forklift")
+	assert(warehouse:FindFirstChild("Trailer") and not warehouse:FindFirstChild("ForkliftBody") and not warehouse:FindFirstChild(EstateBuilder.FORKLIFT_KIT), "a lorry yard has no forklift")
 	holder:Destroy()
 end
 

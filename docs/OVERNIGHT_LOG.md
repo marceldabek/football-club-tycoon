@@ -40,7 +40,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 6. The Rojo panel in Studio shows "Unknown HTTP error: NetFail", although `rojo serve` is running on port 34872 and serving this branch. Click Connect (or Disconnect, then Connect) in the Rojo panel before editing, so Studio's hand-pasted copies are replaced from disk. The HTTP sync fallback in `tools/studio-sync.luau` no longer works from the MCP, because its sandbox lacks the Network capability.
 7. Created in Studio through the MCP tonight, not by Rojo: `ReplicatedStorage.Shared.TrainMath`, `StarterPlayerScripts.Client.ClubScarves`, `StarterPlayerScripts.Client.Deliveries`, `ServerScriptService.Server.SportsCentreDresser`, `StarterPlayerScripts.Client.Train`, and tests `TrainMathTest` / `SportsCentreDresserTest`. The disk versions carry full comments; a Rojo reconnect replaces the Studio copies.
 8. Traffic's roundabout fix (X79) is only visual: vehicles are pushed onto a ring round the island, with no give-way or real circulation, so two cars can overlap at a busy roundabout. The train (X82) runs under the station footbridge without a clearance check (deck 16, carriage roof about 9, so it's fine today).
-9. Last RunAll in Studio: **407 passed, 0 failed** (09:27). WireDresser, CrossingDresser, CentreTreeDresser, GroundInfluence (shared + client), Swans (client) and their tests were created in Studio with multi_edit (comments trimmed there). TownBuilderTest now exists in Studio as a shortened copy (made with multi_edit); the disk file is the full one.
+9. Last RunAll in Studio: **407 passed, 0 failed** (09:31). WireDresser, CrossingDresser, CentreTreeDresser, GroundInfluence (shared + client), Swans (client) and their tests were created in Studio with multi_edit (comments trimmed there). TownBuilderTest now exists in Studio as a shortened copy (made with multi_edit); the disk file is the full one.
 
 **Questions for Marcel**
 1. **Done as TEMP, please confirm:** Studio playtests now use the DataStore `ClubProfiles_Studio`, so Studio opens a fresh club and onboarding instead of Dino FC. To get your real club back in Studio, set `Config.Save.studioStoreSuffix = ""`. *Rec: keep it; live servers are unchanged.*
@@ -63,7 +63,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 **Buy list for Marcel**
 - Nothing new yet. Free store terraces are a flat-fronted Victorian row. If you want bay windows like `RiveremereWestdale.png`, "UK Housing – Terraced Set 1" (Macwelshman, Fab, $39.99) is the best paid match (see docs/ASSET_KIT.md).
 
-**Studio state:** Save the place (Ctrl+S / File → Save to Roblox) before trusting anything that only exists in Studio — in particular `ServerStorage.Kit.Town` (3 new store models, plus PhoneBoxK6 added at 09:24), `ReplicatedStorage.ClientKit.Swan` (09:27) and `ServerStorage.Kit.Vehicles.HatchbackNavy/Red/Silver` (generated at 07:41) only exist in the place file.
+**Studio state:** Save the place (Ctrl+S / File → Save to Roblox) before trusting anything that only exists in Studio — in particular `ServerStorage.Kit.Town` (3 new store models, plus PhoneBoxK6 added at 09:24), `ReplicatedStorage.ClientKit.Swan` (09:27), `ServerStorage.Kit.Vehicles.ForkliftYellow` (09:31) and `ServerStorage.Kit.Vehicles.HatchbackNavy/Red/Silver` (generated at 07:41) only exist in the place file.
 
 ---
 
@@ -899,3 +899,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 ### 2026-09-17 09:27 — Real swan mesh (X113 done)
 - Replaced X111's 4-block swans with a free Creator Store model: searched "swan" (free models), compared three, and kept 15968285610 (yiypoo1024), a single floating "Mute Swan" MeshPart with no scripts. It lives in `ReplicatedStorage.ClientKit.Swan` (place file only, MANIFEST row) because the client clones it. Swans.client.luau uses it facing its +Z and sunk 0.6, and falls back to the primitives if it is missing. The other two candidates were deleted.
 - In a playtest, 4 mesh swans glide on the Lune, each moving the way it faces. RunAll 407 passed. Screenshot at the water's edge checked.
+
+### 2026-09-17 09:31 — Real forklift mesh in the shed yards (X114 done)
+- Searched "forklift" (free models) and compared three. Kept 12635164828 (oreoPL2): one textured MeshPart with no scripts, scaled to 7 long and stored as `ServerStorage.Kit.Vehicles.ForkliftYellow` (MANIFEST row). The other two carried 29 and 3 scripts and were deleted.
+- EstateBuilder places it through KitPlacer where the 8-part primitive forklift went, turned so the forks face the shed, and keeps the primitive as the fallback when the kit is missing. The kit name is in Quality.DECOR_KITS, so Low hides it. Shed tests now accept either form. 13 forklifts, about -91 parts, no overlaps. RunAll 407 passed. Screenshot in a yard checked.

@@ -103,6 +103,7 @@ Quality.DECOR_KITS = {
 	HatchbackRed = true,
 	HatchbackSilver = true,
 	VanWhite = true,
+	ForkliftYellow = true, -- X114 EstateBuilder shed yards
 } :: { [string]: boolean }
 
 -- Texture instance names (the builders name each Texture after its key)
