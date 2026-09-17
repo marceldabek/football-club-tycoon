@@ -75,6 +75,7 @@ Quality.DECOR_PART_NAMES = {
 	TelegraphPole = true, -- WireDresser (X100)
 	PoleArm = true, -- WireDresser (X100)
 	Wire = true, -- WireDresser (X100)
+	Tactile = true, -- CrossingDresser tactile paving (X102)
 } :: { [string]: boolean }
 
 -- X96: parts that are decoration only inside a model of this name (the names
