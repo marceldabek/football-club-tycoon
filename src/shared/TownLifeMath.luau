@@ -274,6 +274,30 @@ function TownLifeMath.muralCount(matchesPlayed: number, tier: number): number
 	return if tier >= 2 then 2 else 1
 end
 
+-- X90: club scarves hung in the upstairs windows of terraces near the club's
+-- ground. One scarf per SCARF_MATCHES matches played, up to SCARF_MAX (TEMP).
+TownLifeMath.SCARF_MATCHES = 2
+TownLifeMath.SCARF_MAX = 16
+function TownLifeMath.scarfCount(matchesPlayed: number): number
+	return math.clamp(math.floor(matchesPlayed / TownLifeMath.SCARF_MATCHES), 0, TownLifeMath.SCARF_MAX)
+end
+
+-- Pure: where a scarf hangs in house `house` (0-based) of a terrace row, in the
+-- row Body's local frame: (z along the row, y from the wall's vertical centre).
+-- tools/kit/make_facades.py draws the wide upstairs sash at u 252..362 and v
+-- 52..184 of a 512 tile (front_b is mirrored); one tile is one house, and the
+-- tiles start at the Body's local -Z end.
+function TownLifeMath.scarfSpot(facade: string?, house: number, houseWidth: number, length: number, wallHeight: number): (number, number)
+	local u0, u1 = 252 / 512, 362 / 512
+	if facade == "front_b" then
+		u0, u1 = 1 - u1, 1 - u0
+	end
+	local z = -length / 2 + (house + (u0 + u1) / 2) * houseWidth
+	local v = (52 + 184) / 2 / 512 -- window centre, down from the wall top
+	local y = wallHeight / 2 - v * wallHeight
+	return z, y
+end
+
 -- Pure: which gable end (+1 = the body's local +Z face, -1 = local -Z) of a
 -- terrace row faces `target` more, and the outward direction of that face.
 function TownLifeMath.gableToward(body: CFrame, target: Vector3): (number, Vector3)

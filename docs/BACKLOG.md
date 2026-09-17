@@ -202,5 +202,5 @@
 - [x] X87 (07:49 Pro Sound Effects "Church Bell Tolling 1" 9113804436 from the spire, TEMP every 300 s, first at 45 s, rolls off to 1,400 studs) Church bell (roadmap F1): the spire rings the hour on the client's clock, audible across the centre, quieter with distance; licensed Roblox library audio `[studio]` S
 - [ ] X88 Traffic gives way at junctions (roadmap F2): a car turning onto another road waits briefly at the mouth when a car on that road is close, instead of merging through it `[studio]` M
 - [ ] X89 Deliveries (roadmap F4): a delivery van parks at a high-street shop kerb for a while, then drives off; client-side, one or two at a time `[studio]` S
-- [ ] X90 Club scarves in town windows (roadmap H1): as the player's club grows, scarves in its colours appear in terrace windows near the ground, client-side like the murals `[studio]` S
+- [x] X90 (07:52 client ClubScarves: TEMP one scarf per 2 matches played, max 16, in every other house of the terrace rows nearest the club's ground, in the wide upstairs sash) Club scarves in town windows (roadmap H1): as the player's club grows, scarves in its colours appear in terrace windows near the ground, client-side like the murals `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

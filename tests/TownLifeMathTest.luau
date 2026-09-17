@@ -283,4 +283,17 @@ function T.seatedFigureSitsFacingForward()
 	assert(turned[3].Position.Z > 0, "turning the seat turns the figure")
 end
 
+function T.scarvesGrowWithMatchesAndSitInTheUpstairsWindow()
+	assert(TownLifeMath.scarfCount(0) == 0 and TownLifeMath.scarfCount(1) == 0, "none before two matches")
+	assert(TownLifeMath.scarfCount(7) == 3, "one per two matches")
+	assert(TownLifeMath.scarfCount(500) == TownLifeMath.SCARF_MAX, "capped")
+	local z, y = TownLifeMath.scarfSpot("front_a", 0, 16, 64, 12)
+	assert(math.abs(z - (-32 + 307 / 512 * 16)) < 1e-6, "first house, right of centre")
+	assert(y > 0 and y < 6, "upper half of the wall")
+	local zb = TownLifeMath.scarfSpot("front_b", 0, 16, 64, 12)
+	assert(math.abs((zb + 32) - (16 - (z + 32))) < 1e-6, "front_b mirrored within the tile")
+	local z2 = TownLifeMath.scarfSpot("front_a", 2, 16, 64, 12)
+	assert(math.abs(z2 - z - 32) < 1e-6, "two houses along")
+end
+
 return T
