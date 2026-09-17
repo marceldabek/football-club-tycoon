@@ -235,4 +235,5 @@
 - [x] X120 (09:50 "ALL VISITORS REPORT TO RECEPTION / CCTV IN OPERATION" notice on the front palisade of every other shed yard; 21 signs, 1 part each) rivermer.industrialestate.png's gate notices `[studio]` S
 - [x] X121 (09:53 navy RIVERMERE / BUSINESS BUILDS COMMUNITIES banners on the 6 industrial estate street lamps, 2 parts each) rivermer.industrialestate.png's lamp banners `[studio]` S
 - [x] X122 (09:55 the club shop fascia reads "<CLUB NAME>  CLUB SHOP"; the name label is called ClubName so a rename repaints it) RivermereTurnstileEntrance.png: "RIVERMERE FC CLUB SHOP"; ours said only "CLUB SHOP" `[studio]` S
+- [x] X123 (09:56 a dark glazed walk-through door with a push bar in the club shop doorway) The shop doorway was an open hole; the reference shop is fully glazed `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

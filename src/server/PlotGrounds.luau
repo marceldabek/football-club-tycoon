@@ -568,6 +568,12 @@ local function buildShop(parent: Instance)
 	lamp.Parent = glass
 	extents("WallFront", fx0, fx1, GROUND_Y, frontTop, winZ1, doorZ0, BRICK, brick, shop)
 	extents("DoorHeader", fx0, fx1, doorTop, frontTop, doorZ0, doorZ1, BRICK, brick, shop)
+	-- X123: a glazed door with a dark frame and a push bar in the doorway,
+	-- walk-through (the shop is visual only)
+	local door = extents("ShopDoor", fx0 + 0.3, fx1 - 0.3, GROUND_Y + PATH_TOP, doorTop, doorZ0 + 0.15, doorZ1 - 0.15, Color3.fromRGB(70, 92, 108), Enum.Material.Glass, shop)
+	door.Transparency = 0.25
+	door.CanCollide = false
+	extents("ShopDoorBar", fx1 - 0.3, fx1 - 0.1, GROUND_Y + 3.6, GROUND_Y + 3.9, doorZ0 + 1, doorZ1 - 1, IRON, Enum.Material.Metal, shop).CanCollide = false
 	extents("WallFront", fx0, fx1, GROUND_Y, frontTop, doorZ1, z1, BRICK, brick, shop)
 
 	-- club-coloured fascia across the front, standing proud of the brick
