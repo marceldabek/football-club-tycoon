@@ -1287,7 +1287,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Known limit (question 17):** if an owner leaves mid-match and rejoins on a *different* server, the new server waits at most 30 s for the lock, less than a match. The old server then closes before the match settles, so the result is still lost there. Same-server rejoins are covered by X208.
 - Tested: RunAll 431 passed; a 12 s match in play paid +£23,144 (189,004 → 212,148), MatchesPlayed 44 → 45, back to Manage, saved, no console errors.
 
-### 2026-09-17 13:40 — Match summary: season division, season prize, friendly gate share (X216, X217, X225 done)
+### 2026-09-17 13:27 — Match summary: season division, season prize, friendly gate share (X216, X217, X225 done)
 - X216 `MatchService`: the last match of a season sends the division that season was played in (`roundResult.summary.division`), not the one just promoted into.
 - X217 `MatchSummary`: when the summary ends a season, the balance line adds a muted "includes £N season prize", so the balance adds up against the match earnings.
 - X225: a friendly's first earnings column is titled "Gate share" instead of "Tickets". HUD skips the "a week passes" fast-forward after a friendly's Back to Club, since friendlies don't move the season on.
