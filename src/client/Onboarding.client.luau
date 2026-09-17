@@ -43,7 +43,8 @@ Theme.corner(box, Theme.buttonRadius)
 Theme.stroke(box)
 Theme.padding(box, 0, 12)
 
-local hintText = ("%d to %d characters."):format(Config.ClubNameMinLength, Config.ClubNameMaxLength)
+-- X205: the server only accepts these characters (Session.applyName)
+local hintText = ("%d to %d characters: letters, numbers, spaces, ' - ."):format(Config.ClubNameMinLength, Config.ClubNameMaxLength)
 local hint = Theme.text(card.frame, hintText, "muted", {
 	Name = "Hint",
 	Size = UDim2.new(1, -40, 0, 20),
@@ -67,6 +68,11 @@ local function submit()
 	local name = box.Text:gsub("^%s+", ""):gsub("%s+$", "")
 	if (utf8.len(name) or #name) < Config.ClubNameMinLength then
 		hint.Text = ("Needs at least %d characters."):format(Config.ClubNameMinLength)
+		hint.TextColor3 = Theme.colors.bad
+		return
+	end
+	if not name:match("^[%w%s'%-%.]+$") then
+		hint.Text = "Only letters, numbers, spaces and ' - . please."
 		hint.TextColor3 = Theme.colors.bad
 		return
 	end

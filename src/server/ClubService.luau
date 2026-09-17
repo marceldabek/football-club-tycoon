@@ -26,8 +26,11 @@ local shortlist: { Squad.Prospect } = {}
 local nextId = 1
 local rng = Random.new()
 
+-- X204: thousands separators, like UpgradeService and Theme.money
 local function money(n: number): string
-	return ("£%d"):format(n)
+	local s = tostring(math.floor(n))
+	local withCommas = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
+	return "£" .. withCommas:gsub("^,", "")
 end
 
 local function publish()
@@ -419,7 +422,20 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 			return false, ("Squad cannot go below %d players"):format(Config.SquadMin)
 		end
 		if xiSlotOf(p.id) then
-			return false, "Take them out of the XI first"
+			-- X203: with Auto Squad on, swaps are refused, so say how to get there
+			return false, if autoSquad then "Turn Auto Squad off, then take them out of the XI to sell" else "Take them out of the XI first"
+		end
+		-- X199: never sell the last goalkeeper (trades already require one)
+		if p.role == "GK" then
+			local keepers = 0
+			for _, q in players do
+				if q.role == "GK" then
+					keepers += 1
+				end
+			end
+			if keepers <= 1 then
+				return false, "Keep at least one goalkeeper"
+			end
 		end
 		for i, q in players do
 			if q.id == p.id then

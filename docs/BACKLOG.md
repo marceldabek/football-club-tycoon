@@ -309,13 +309,13 @@
 - [x] X194 (12:54 done) The plot picker mixes "ground" and "plot" ("CHOOSE YOUR GROUND" / "Plot 2 of 4 — free"): "Ground 2 of 4 — for sale", 0 parts `[disk]` S
 - [x] X195 (12:54 done) ClubPanel keeps its own ordinal() copy of Theme.ordinal: use Theme's, 0 parts `[disk]` S
 - [x] X196 (13:02 done) After losing its save lock the old server still flushes (autosave loop and Session.stop), so it can overwrite saves the new server already made: never flush once the lock is lost, 0 parts `[disk]` S
-- [ ] X197 A text-filter outage uses up the player's only naming chance (applyName still sets NeedsName=false): on failure toast "try again" and keep NeedsName, 0 parts `[disk]` S
-- [ ] X198 A name filtered to "#####" is accepted permanently: if the filtered name differs, reject and ask again, 0 parts `[disk]` S
-- [ ] X199 Selling can leave the squad with no goalkeeper (release only checks size and XI; trades already require a GK): refuse selling the last GK, 0 parts `[disk]` S
+- [x] X197 (13:04 done) A text-filter outage uses up the player's only naming chance (applyName still sets NeedsName=false): on failure toast "try again" and keep NeedsName, 0 parts `[disk]` S
+- [x] X198 (13:04 done) A name filtered to "#####" is accepted permanently: if the filtered name differs, reject and ask again, 0 parts `[disk]` S
+- [x] X199 (13:04 done) Selling can leave the squad with no goalkeeper (release only checks size and XI; trades already require a GK): refuse selling the last GK, 0 parts `[disk]` S
 - [x] X200 (13:02 done) An error during a match locks the club in PreMatch/Match until rejoin (running flag only reset in finishCore, no pcall): pcall the match, on failure clear crowd and return to Manage, 0 parts `[disk]` S
 - [x] X201 (13:02 done) Matches kicking off in the same second replay identically: MatchSim seeds Random.new(os.time()); use Random.new() when no seed is passed, 0 parts `[disk]` S
 - [ ] X202 League table colours top 2 green / bottom 2 red in every division, but tier 1 has no relegation and the top tier's champion is only 1st: colour by League.outcome rules, 0 parts `[disk]` S
-- [ ] X203 With Auto Squad on, "Move them out of the team to sell" / "Take them out of the XI first" is unreachable advice (swaps refused): say to turn Auto Squad off first, 0 parts `[disk]` S
-- [ ] X204 Squad-screen toasts show money without commas ("Need £12500 more"): use Theme/Upgrade money formatting in ClubService, 0 parts `[disk]` S
-- [ ] X205 The naming card hint omits the allowed characters and the client doesn't pre-check them, so accented or "&" names bounce after pressing Found: add the rule to the hint and check client-side, 0 parts `[disk]` S
+- [x] X203 (13:04 done) With Auto Squad on, "Move them out of the team to sell" / "Take them out of the XI first" is unreachable advice (swaps refused): say to turn Auto Squad off first, 0 parts `[disk]` S
+- [x] X204 (13:04 done) Squad-screen toasts show money without commas ("Need £12500 more"): use Theme/Upgrade money formatting in ClubService, 0 parts `[disk]` S
+- [x] X205 (13:04 done) The naming card hint omits the allowed characters and the client doesn't pre-check them, so accented or "&" names bounce after pressing Found: add the rule to the hint and check client-side, 0 parts `[disk]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

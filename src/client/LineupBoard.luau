@@ -530,7 +530,9 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 			return
 		end
 		if inXi then
-			Theme.text(detailInner, "In the starting XI. Move them out of the team to sell.", "muted", {
+			-- X203: canDrag is off here only because Auto Squad is on
+			local advice = if canDrag then "In the starting XI. Move them out of the team to sell." else "In the starting XI. Turn Auto Squad off to move them out and sell."
+			Theme.text(detailInner, advice, "muted", {
 				Size = UDim2.new(1, 0, 0, 30),
 				Position = UDim2.new(0, 0, 1, -30),
 				TextSize = 12,

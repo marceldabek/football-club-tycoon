@@ -250,14 +250,20 @@ local function applyName(player: Player, requested: unknown)
 	end)
 	local final: string
 	if ok then
+		-- X198: a name the filter changed (hashes) is refused, not kept for good
+		if filtered ~= name then
+			toast(player, "That name isn't allowed. Try another one.")
+			return
+		end
 		final = filtered
 	elseif RunService:IsStudio() then
 		warn("[FCT] text filter unavailable in Studio; accepting the name unfiltered")
 		final = name
 	else
+		-- X197: a filter outage must not use up the only naming chance
 		warn("[FCT] text filter failed: " .. tostring(filtered))
-		final = ClubState.get("ClubName") :: string
-		toast(player, "Couldn't check that name right now. Keeping " .. final)
+		toast(player, "Couldn't check that name right now. Try again in a moment.")
+		return
 	end
 	ClubState.set("ClubName", final)
 	ClubState.set("NeedsName", false)
