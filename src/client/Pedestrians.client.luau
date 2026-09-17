@@ -21,6 +21,13 @@ local PedestrianMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForC
 -- ------------------------------------------------------------------ tuning
 
 local MAX_PEDESTRIANS = 30 -- TEMP mobile budget: 30 x 6 parts = 180 parts
+local MAX_PEDESTRIANS_LOW = 12 -- TEMP, Quality "Low" (mirrors Shared.Quality.BUDGETS.Low.pedestrians)
+
+-- C3.2: QualityController publishes "High" | "Low" on the LocalPlayer.
+local function maxPedestrians(): number
+	local player = game:GetService("Players").LocalPlayer
+	return if player and player:GetAttribute("Quality") == "Low" then MAX_PEDESTRIANS_LOW else MAX_PEDESTRIANS
+end
 local SPAWN_MIN_DIST = 60 -- TEMP: don't pop in right beside the camera (ignored on the first pass)
 local SPAWN_MAX_DIST = 250 -- TEMP
 local DESPAWN_DIST = 350 -- TEMP
@@ -237,10 +244,16 @@ local function recheckDespawns(camPos: Vector3)
 			despawnAt(i)
 		end
 	end
+	-- quality dropped to Low: shed walkers over the budget
+	local limit = maxPedestrians()
+	while #pedestrians > limit do
+		despawnAt(#pedestrians)
+	end
 end
 
 local function recheckSpawns(camPos: Vector3)
-	if #pedestrians >= MAX_PEDESTRIANS or #walkable == 0 then
+	local cap = maxPedestrians()
+	if #pedestrians >= cap or #walkable == 0 then
 		return
 	end
 	local refs = PedestrianMath.segmentsNear(TownLayout.ROADS, walkable, camPos, SPAWN_MAX_DIST)
@@ -251,10 +264,10 @@ local function recheckSpawns(camPos: Vector3)
 	-- of trickling. Only the very first fill may place walkers right by the camera.
 	local burst = #pedestrians == 0
 	local minDist = if firstPass then 0 else SPAWN_MIN_DIST
-	local maxSpawns = if burst then MAX_PEDESTRIANS else MAX_SPAWNS_PER_RECHECK
+	local maxSpawns = if burst then cap else MAX_SPAWNS_PER_RECHECK
 	local spawned = 0
 	for _ = 1, (if burst then SPAWN_ATTEMPTS_PER_RECHECK * 4 else SPAWN_ATTEMPTS_PER_RECHECK) do
-		if #pedestrians >= MAX_PEDESTRIANS or spawned >= maxSpawns then
+		if #pedestrians >= cap or spawned >= maxSpawns then
 			break
 		end
 		local ref = refs[math.random(1, #refs)]

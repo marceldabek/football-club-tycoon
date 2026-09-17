@@ -24,7 +24,7 @@ local Theme = require(script.Parent.Theme)
 local player = Players.LocalPlayer
 
 local ROOTS = { "Town", "Backdrop" } -- workspace children to scan
-local PER_FRAME = 300 -- instances processed per Heartbeat
+local PER_FRAME = 800 -- instances processed per Heartbeat
 local ROOT_POLL_SECONDS = 2
 
 local level: Quality.Level = Quality.defaultFor(UserInputService.TouchEnabled, UserInputService.KeyboardEnabled)
@@ -32,10 +32,12 @@ player:SetAttribute(Quality.ATTRIBUTE, level)
 
 -- ---------------------------------------------------------------- tracking
 
--- Weak keys: streamed-out instances are dropped by the GC; a part streaming
--- back in is a fresh instance and comes through DescendantAdded again.
-local decorParts: { [BasePart]: boolean } = setmetatable({}, { __mode = "k" }) :: any
-local fillerTextures: { [Texture]: number } = setmetatable({}, { __mode = "k" }) :: any -- original Transparency
+-- No instance-keyed tables: Luau can collect an Instance's wrapper from a
+-- weak table while the Instance still exists (seen in Studio: Low hid nothing).
+-- A toggle rescans the roots instead, and a texture's builder Transparency is
+-- kept in an attribute.
+local ORIGINAL_T = "QualityOriginalTransparency"
+local roots: { [string]: Instance } = {}
 
 local queue: { Instance } = {}
 local head = 1
@@ -49,11 +51,15 @@ local function applyPart(p: BasePart)
 end
 
 local function applyTexture(t: Texture)
-	local original = fillerTextures[t]
-	if original == nil then
-		return
+	local original = t:GetAttribute(ORIGINAL_T)
+	if level == "Low" then
+		if type(original) ~= "number" then
+			t:SetAttribute(ORIGINAL_T, t.Transparency)
+		end
+		t.Transparency = 1
+	elseif type(original) == "number" then
+		t.Transparency = original
 	end
-	t.Transparency = if level == "Low" then 1 else original
 end
 
 local function process(inst: Instance)
@@ -61,19 +67,11 @@ local function process(inst: Instance)
 		return -- streamed out or destroyed while queued
 	end
 	if inst:IsA("BasePart") then
-		if decorParts[inst] or Quality.isDecorative(inst) then
-			decorParts[inst] = true
+		if Quality.isDecorative(inst) then
 			applyPart(inst)
 		end
-	elseif inst:IsA("Texture") then
-		if fillerTextures[inst] == nil then
-			if not Quality.isFillerTexture(inst) then
-				return
-			end
-			-- first sighting: its current Transparency is the builder's value
-			fillerTextures[inst] = inst.Transparency
-		end
-		applyTexture(inst)
+	elseif Quality.isFillerTexture(inst) then
+		applyTexture(inst :: Texture)
 	end
 end
 
@@ -104,6 +102,7 @@ local function watchRoot(name: string)
 		found = workspace:FindFirstChild(name)
 	end
 	local root = found :: Instance
+	roots[name] = root
 	root.DescendantAdded:Connect(push)
 	for _, d in root:GetDescendants() do
 		push(d)
@@ -120,18 +119,21 @@ for _, name in ROOTS do
 	task.spawn(watchRoot, name)
 end
 
--- Re-apply to everything already classified; the queue spreads the work.
+-- Re-apply to everything currently streamed in; the queue spreads the work.
 local function setLevel(newLevel: Quality.Level)
 	if newLevel == level then
 		return
 	end
 	level = newLevel
 	player:SetAttribute(Quality.ATTRIBUTE, level)
-	for p in decorParts do
-		push(p)
-	end
-	for t in fillerTextures do
-		push(t)
+	table.clear(queue)
+	head = 1
+	for _, root in roots do
+		if root.Parent then
+			for _, d in root:GetDescendants() do
+				push(d)
+			end
+		end
 	end
 end
 

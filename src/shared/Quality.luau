@@ -44,7 +44,7 @@ Quality.DEFAULT = HIGH
 -- TEMP numbers, tune on a real mid-range phone. High matches the values the
 -- scripts shipped with before this toggle existed.
 Quality.BUDGETS = {
-	High = { maxCars = 24, banners = 60, buntingStrings = 40, pedestrians = 40 },
+	High = { maxCars = 24, banners = 60, buntingStrings = 40, pedestrians = 30 },
 	Low = { maxCars = 8, banners = 20, buntingStrings = 12, pedestrians = 12 },
 } :: { [Level]: Budget }
 
