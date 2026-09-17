@@ -284,4 +284,21 @@ function TownLifeMath.gableToward(body: CFrame, target: Vector3): (number, Vecto
 	return sign, outward
 end
 
+-- G2.2: how loud a live match sounds from `distance` studs away (0..1). Silent
+-- up close (the stadium crowd itself takes over there), loudest a short walk
+-- away, fading out across town.
+TownLifeMath.CROWD_INSIDE = 220 -- TEMP: MatchAudio / spectating own this range
+TownLifeMath.CROWD_PEAK = 420 -- TEMP
+TownLifeMath.CROWD_SILENT = 1500 -- TEMP
+
+function TownLifeMath.distantCrowdWeight(distance: number): number
+	if distance <= TownLifeMath.CROWD_INSIDE or distance >= TownLifeMath.CROWD_SILENT then
+		return 0
+	end
+	if distance <= TownLifeMath.CROWD_PEAK then
+		return (distance - TownLifeMath.CROWD_INSIDE) / (TownLifeMath.CROWD_PEAK - TownLifeMath.CROWD_INSIDE)
+	end
+	return 1 - (distance - TownLifeMath.CROWD_PEAK) / (TownLifeMath.CROWD_SILENT - TownLifeMath.CROWD_PEAK)
+end
+
 return TownLifeMath

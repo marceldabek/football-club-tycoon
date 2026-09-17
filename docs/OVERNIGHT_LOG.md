@@ -435,3 +435,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Roadmap G1 ("… parked cars, extra traffic"):** MatchdayLife now parks supporters' cars (a body plus a dark cabin, 2 parts each) in the club car park while a plot's match is in PreMatch or Match. Like the fans and stewards, anyone near the ground sees them. The 36 bay centres come from new `MatchdayRoutes.carParkBays()`, matching PlotGrounds' bay lines. `parkedCars(attendance, bays)` fills 10% for a tiny crowd and all bays from TEMP 1,500 attendance; which bays fill is seeded per plot. 2 new tests (bays inside the kerbs, clear of the road mouth and not overlapping; the count scales).
 - **Playtest:** attendance 150 gave 4 cars alongside 48 fans. The top-down Matchday_cars_2 shows each car sitting inside its bay lines, and Matchday_cars_1 shows the car park with fans walking to the turnstiles.
 - RunAll 342/342.
+
+### 2026-09-17 05:09 — A live match heard across town (G2.2)
+- **Roadmap G2 ("chants carrying across town"):** AmbientAudio has a fifth bed, the stadium crowd loop run through an EqualizerSoundEffect (highs −30 dB, mids −8, lows +2) so it reads as a distant roar. Its level follows the nearest ground with a live match, any club's: silent within 220 studs (MatchAudio or spectating covers that), loudest at 420, and fading out by 1,500 (`TownLifeMath.distantCrowdWeight`, 1 new test). It's quieter high above town, like the other beds.
+- **Playtest:** during a match, the bed was at 0.218 about 420 studs from the ground and 0.000 standing inside it.
+- RunAll 343/343.

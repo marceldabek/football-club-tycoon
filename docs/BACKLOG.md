@@ -85,6 +85,7 @@
 ## Phase G/H — Matchday town & influence
 - [x] G1.1 Matchday around a plot (all players): fans walking to the ground, stewards, barriers; fades after `[studio]` M dep: B2.1c
 - [x] G1.2 (36 bays; 10% floor, full at TEMP 1,500 attendance; seeded per plot) Matchday cars fill the club car park in proportion to attendance, visible to everyone near the ground `[studio]` S
+- [x] G2.2 (muffled crowd bed: silent inside 220, loudest at 420, gone by 1,500 studs from any live ground) Chants carrying across town `[studio]` S
 - [x] G2.1 (bunting and 10 pub drinkers verified in a match) Matchday town for the playing player only: banners on lamp posts, busy pub `[studio]` M
 - [x] H1.1 Club identity banners in town (client-side, player's own club colours/name) `[studio]` S
 - [x] H1.2 (TEMP: from 3 matches played, one mural; a second from tier 2) Club mural on a terrace gable near the market square, client-side in the player's club colours `[studio]` S

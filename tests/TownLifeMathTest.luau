@@ -253,4 +253,14 @@ function T.gableTowardPicksTheEndFacingTheTarget()
 	assert(s3 == -1 and out3.X < -0.99, "turned body: the -Z end faces -X")
 end
 
+function T.distantCrowdRisesThenFadesAcrossTown()
+	local M = TownLifeMath
+	assert(M.distantCrowdWeight(0) == 0 and M.distantCrowdWeight(M.CROWD_INSIDE) == 0, "silent inside the ground")
+	assert(M.distantCrowdWeight(M.CROWD_PEAK) == 1, "loudest at the peak")
+	assert(M.distantCrowdWeight(M.CROWD_SILENT) == 0 and M.distantCrowdWeight(5000) == 0, "silent far away")
+	local rising = M.distantCrowdWeight((M.CROWD_INSIDE + M.CROWD_PEAK) / 2)
+	local falling = M.distantCrowdWeight((M.CROWD_PEAK + M.CROWD_SILENT) / 2)
+	assert(math.abs(rising - 0.5) < 1e-6 and math.abs(falling - 0.5) < 1e-6, "linear ramps")
+end
+
 return T
