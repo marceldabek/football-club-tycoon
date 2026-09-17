@@ -695,3 +695,6 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 
 ### 2026-09-17 07:19 — X86 streaming attempt reverted
 - I tried `Player:RequestStreamAroundAsync` 400 studs ahead of each picker viewpoint to fill in the bare horizon. **PickerView_plot2c** showed no difference, so I reverted it on disk and in Studio. The client holds only 25 Backdrop parts (the turbines), and the edge is terrain beyond the streaming radius about 2,000 studs out. Fixing it means raising the streaming radius (a phone cost) or adding a cheap Persistent low-detail horizon ring. It's noted on X86 as a decision, not done.
+
+### 2026-09-17 07:21 — X86 horizon closed as haze
+- A live Studio test added a ring of 28 large Persistent grassy hill parts 3,400 studs out, not saved to disk. It was completely invisible from the plot 2 picker (HorizonRing_try), so the lavender band is the Atmosphere haze rather than a hole in the world. The flat edge is terrain that hasn't streamed yet, fading into haze, and nearby hills appear once they stream in. I removed the test ring and closed X86; no code change.
