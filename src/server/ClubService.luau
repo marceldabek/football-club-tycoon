@@ -471,7 +471,7 @@ function ClubService.prepareMatch(): Prepared
 end
 
 -- Called after the final whistle. `scorerSlots` index into the matchSquad.
-function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.MatchPlayer }): ({ string }, { Squad.RatingChange })
+function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.MatchPlayer }, subs: { Squad.Sub }?): ({ string }, { Squad.RatingChange })
 	local scorerIds: { number } = {}
 	for _, slot in scorerSlots do
 		local p = matchSquad[slot]
@@ -479,7 +479,14 @@ function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.Ma
 			table.insert(scorerIds, p.id)
 		end
 	end
-	local news, changes = Squad.afterMatch(players, lineup.xi, scorerIds, coachLevel, rng)
+	local subIds: { number } = {}
+	for _, sub in subs or {} do
+		local p = matchSquad[sub["in"]]
+		if p then
+			table.insert(subIds, p.id)
+		end
+	end
+	local news, changes = Squad.afterMatch(players, lineup.xi, scorerIds, coachLevel, rng, subIds)
 	refreshShortlist()
 	recomputeLineup()
 	publish()

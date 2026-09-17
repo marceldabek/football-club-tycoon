@@ -41,6 +41,7 @@ type Played = {
 
 local running = false
 local homeSquad: { Squad.MatchPlayer } = {}
+local matchMinute = 0 -- the scoreboard minute, stamped on substitutions (X218)
 local subsMade: { Squad.Sub } = {}
 
 -- Set by Session: called once the result and revenue are applied, so the
@@ -84,6 +85,7 @@ function MatchService.applyTactic(action: string): (boolean, string?)
 		if not sub then
 			return false, "No substitutions left"
 		end
+		sub.minute = matchMinute
 		table.insert(subsMade, sub)
 		ClubState.set("Subs", HttpService:JSONEncode(subsMade))
 		return true
@@ -129,6 +131,7 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	})
 	local scorerSlots = Squad.assignScorers(result.events :: any, homeSquad, Random.new())
 	subsMade = {}
+	matchMinute = 0
 
 	local capacity = ClubState.capacity()
 	local demand = SeasonService.demand()
@@ -165,6 +168,7 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 			break
 		end
 		local minute = math.floor(elapsed / duration * 90)
+		matchMinute = minute
 		while result.events[nextEvent] and result.events[nextEvent].minute <= minute do
 			local ev = result.events[nextEvent]
 			if ev.type == "GOAL" then
@@ -180,6 +184,9 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	ClubState.set("HomeGoals", result.homeGoals)
 	ClubState.set("AwayGoals", result.awayGoals)
 	ClubState.set("TimeLeft", 0)
+	matchMinute = 90
+	-- X218: goals after a substitution belong to the player who came on
+	scorerSlots = Squad.creditScorers(result.events :: any, subsMade)
 
 	return { result = result, scorerSlots = scorerSlots, capacity = capacity, demand = demand }
 end
@@ -246,7 +253,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		lossBonus = Config.LossBonus,
 	})
 
-	local news, development = ClubService.finishMatch(played.scorerSlots, homeSquad)
+	local news, development = ClubService.finishMatch(played.scorerSlots, homeSquad, subsMade)
 	local scorers = scorerLines(result)
 	-- league bookkeeping after the squad: at season end this ages the squad and rolls the division
 	local roundResult = SeasonService.recordPlayerResult(result.homeGoals, result.awayGoals, settlement.outcome)

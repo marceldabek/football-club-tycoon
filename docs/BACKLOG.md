@@ -331,9 +331,9 @@
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
 - [x] X216 (13:27 done) The last match summary of a season shows the *new* division (read after the season rolls over): use the finished season's division from `roundResult.summary`, 0 parts `[disk]` S
 - [x] X217 (13:27 done) The season-end summary's club balance includes the season prize, but the earnings list never shows it: add a "Season prize" line, 0 parts `[disk]` S
-- [ ] X218 A goal scored after its scorer was subbed off is credited to the starter while the substitute is seen scoring: credit whoever is on the pitch in that slot at that minute, 0 parts `[disk]` S
-- [ ] X219 Substitutes who come on get no appearance and count as unused for development: count them as played, 0 parts `[disk]` S
-- [ ] X220 With fewer than 11 fit players the match squad shifts position, and with 10 or fewer the presenter errors on a nil slot: fill empty XI slots from the fit reserves or keep the gap safely, 0 parts `[disk]` S
+- [x] X218 (13:30 done) A goal scored after its scorer was subbed off is credited to the starter while the substitute is seen scoring: credit whoever is on the pitch in that slot at that minute, 0 parts `[disk]` S
+- [x] X219 (13:30 done) Substitutes who come on get no appearance and count as unused for development: count them as played, 0 parts `[disk]` S
+- [x] X220 (13:30 done) With fewer than 11 fit players the match squad shifts position, and with 10 or fewer the presenter errors on a nil slot: fill empty XI slots from the fit reserves or keep the gap safely, 0 parts `[disk]` S
 - [ ] X221 A player who joined a full server can never claim a ground that frees up later: reopen the picker when a plot frees, 0 parts `[studio]` S
 - [ ] X222 Bus travel fades out and in even when the server refuses (not at a stop / cooldown), and the bus card stays open after walking away: close the card when far from the stop, fade only on success, 0 parts `[disk]` S
 - [ ] X223 Music and quality settings reset every session: save both in the profile and apply them on load, 0 parts `[disk]` S

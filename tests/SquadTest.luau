@@ -261,4 +261,40 @@ function T.prospectsAvoidSquadNames()
 	end
 end
 
+function T.matchSquadKeepsSlotsWhenShort()
+	local players = Squad.generate(12, 45)
+	for i = 1, 7 do
+		players[i].injured = 2
+	end
+	local ms = Squad.matchSquad(players, Squad.autoLineup(players))
+	assert(#ms >= #Pitch.ROLES, "matchday squad shorter than the XI")
+	for slot, role in Pitch.ROLES do
+		assert(ms[slot] ~= nil, "empty slot " .. slot)
+		if ms[slot].id < 0 then
+			assert(ms[slot].role == role, "trialist in the wrong role")
+		end
+	end
+end
+
+function T.creditScorersFollowsSubs()
+	local events = {
+		{ team = "Home", type = "GOAL", minute = 20, scorer = 10 },
+		{ team = "Home", type = "GOAL", minute = 70, scorer = 10 },
+		{ team = "Away", type = "GOAL", minute = 75 },
+		{ team = "Home", type = "GOAL", minute = 80, scorer = 9 },
+	}
+	local slots = Squad.creditScorers(events :: any, { { out = 10, ["in"] = 13, minute = 60 } })
+	assert(#slots == 3, "expected three home scorers")
+	assert(slots[1] == 10 and slots[2] == 13 and slots[3] == 9, "goals after the sub should go to the substitute")
+	assert((events[2] :: any).scorer == 13, "event scorer not updated")
+end
+
+function T.afterMatchCountsSubstitutes()
+	local players = Squad.generate(9, 45)
+	local lineup = Squad.autoLineup(players)
+	local benchId = lineup.bench[1]
+	Squad.afterMatch(players, lineup.xi, {}, 0, Random.new(3), { benchId })
+	assert(Squad.byId(players)[benchId].apps == 1, "substitute got no appearance")
+end
+
 return T

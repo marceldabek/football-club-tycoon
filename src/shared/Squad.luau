@@ -39,7 +39,7 @@ export type MatchPlayer = {
 	look: number,
 }
 
-export type Sub = { out: number, ["in"]: number }
+export type Sub = { out: number, ["in"]: number, minute: number? }
 
 -- One OVR move after a match, for the post-match development strip.
 export type RatingChange = { id: number, name: string, number: number, look: number, from: number, to: number }
@@ -225,7 +225,21 @@ function Squad.matchSquad(players: { Player }, lineup: Lineup): { MatchPlayer }
 		end
 	end
 	for slot = 1, #Pitch.ROLES do
-		add(lineup.xi[slot])
+		if lineup.xi[slot] and map[lineup.xi[slot]] then
+			add(lineup.xi[slot])
+		else
+			-- X220: too few fit players. A trialist holds the slot so every index
+			-- keeps its role (scorers, subs and the presenter all index by slot).
+			-- Rated like an empty slot in Squad.strength; negative id, never saved.
+			table.insert(out, {
+				id = -slot,
+				name = "Trialist",
+				number = 40 + slot,
+				role = Pitch.ROLES[slot],
+				overall = Squad.MIN_OVERALL,
+				look = 7919 * slot,
+			})
+		end
 	end
 	for _, id in lineup.bench do
 		add(id)
@@ -308,13 +322,38 @@ function Squad.assignScorers(events: { ScoredEvent }, matchSquad: { MatchPlayer 
 	return scorers
 end
 
--- Post-match bookkeeping. `scorerIds` are player ids. Mutates players and
--- returns human-readable news lines for the summary.
-function Squad.afterMatch(players: { Player }, xi: { number }, scorerIds: { number }, coachLevel: number, rng: Random): ({ string }, { RatingChange })
+-- X218: a goal is scored by whoever fills the slot at that minute. A starter
+-- subbed off at or before the goal's minute hands it to the substitute (the
+-- one the crowd sees score). Mutates the events' scorer; returns the scorer
+-- indices (into the matchSquad) in match order.
+function Squad.creditScorers(events: { ScoredEvent }, subs: { Sub }): { number }
+	local scorers: { number } = {}
+	for _, ev in events do
+		local slot = (ev :: any).scorer
+		if ev.team == "Home" and ev.type == "GOAL" and type(slot) == "number" then
+			for _, sub in subs do
+				if sub.out == slot and (sub.minute or 0) <= (ev :: any).minute then
+					slot = sub["in"]
+				end
+			end
+			(ev :: any).scorer = slot
+			table.insert(scorers, slot)
+		end
+	end
+	return scorers
+end
+
+-- Post-match bookkeeping. `scorerIds` are player ids; `subIds` are the
+-- players who came on (X219: they played too). Mutates players and returns
+-- human-readable news lines for the summary.
+function Squad.afterMatch(players: { Player }, xi: { number }, scorerIds: { number }, coachLevel: number, rng: Random, subIds: { number }?): ({ string }, { RatingChange })
 	local news: { string } = {}
 	local changes: { RatingChange } = {}
 	local played: { [number]: boolean } = {}
 	for _, id in xi do
+		played[id] = true
+	end
+	for _, id in subIds or {} do
 		played[id] = true
 	end
 	local map = byId(players)
