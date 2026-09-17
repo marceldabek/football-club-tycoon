@@ -217,6 +217,13 @@ function T.passedStopWorksBothWays()
 	assert(TrafficMath.passedStop(170, 30, stops) == 160, "first reached wins going backward")
 end
 
+function T.junctionBusyChecksFlatDistance()
+	local j = Vector3.new(100, 0, 100)
+	assert(TrafficMath.junctionBusy(j, { Vector3.new(110, 5, 105) }, 22), "a vehicle 11 away (height ignored) is in the junction")
+	assert(not TrafficMath.junctionBusy(j, { Vector3.new(130, 0, 100) }, 22), "30 away is clear")
+	assert(not TrafficMath.junctionBusy(j, {}, 22), "no vehicles")
+end
+
 function T.aroundIslandsPushesCarsOntoARingRoundTheIsland()
 	local rbs = { { centre = Vector3.new(100, 0, 100), radius = 40 } }
 	local ring = 40 * TrafficMath.ISLAND_SHARE + 4

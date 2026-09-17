@@ -756,3 +756,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Client check:** the van's centre is over `Road` and its left side over `Pavement`. **Screenshot** DeliveryVan_1: outside The Daily Bean by the Riverside Arms.
 - Known limit: passing traffic isn't told about it, so a car in that lane can clip the van's outer edge.
 - RunAll 374/374.
+
+### 2026-09-17 07:57 — Traffic gives way at junctions (X88)
+- `Traffic.client.luau`: when a vehicle reaches the end of its road, it checks whether any vehicle on another road is within TEMP 22 studs of that junction point (new pure `TrafficMath.junctionBusy`, 1 test). If so, it waits at the mouth for TEMP 1.4 s before choosing its next road. It gives way only once per arrival, so two cars can't wait on each other forever. The flag resets when it switches roads.
+- **Client check near Church Lane:** 1,296 vehicle samples over 30 s and 0 client errors. Only 2 samples were stationary, so I didn't directly observe a give-way; they're short and happen only when two vehicles meet at a junction. A first scripted edit broke the if/elseif structure on disk, so I reverted it and redid it with the Edit tool before testing.
+- RunAll 375/375.

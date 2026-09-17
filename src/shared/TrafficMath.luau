@@ -216,6 +216,16 @@ function TrafficMath.aroundIslands(pos: Vector3, direction: Vector3, roundabouts
 	return pos, direction
 end
 
+-- X88: true if any of `positions` is within `clear` studs (XZ) of `point`.
+function TrafficMath.junctionBusy(point: Vector3, positions: { Vector3 }, clear: number): boolean
+	for _, p in positions do
+		if Vector3.new(p.X - point.X, 0, p.Z - point.Z).Magnitude < clear then
+			return true
+		end
+	end
+	return false
+end
+
 -- F2.2 bus stops: distances along a road's polyline where a bus should pull
 -- up, for every stop within `maxOffset` studs of the road. Sorted ascending.
 function TrafficMath.stopDistances(points: { Vector3 }, stops: { Vector3 }, maxOffset: number): { number }

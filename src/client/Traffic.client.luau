@@ -51,6 +51,8 @@ local SPAWN_ATTEMPTS_PER_RECHECK = 40
 local MAX_SPAWNS_PER_RECHECK = 4
 local MIN_GAP = 14 -- studs kept behind the car ahead, same road + direction
 local JOIN_TOLERANCE_EXTRA = 45 -- added to (own road width / 2) when hunting for the next road
+local GIVE_WAY_CLEAR = 22 -- X88: another vehicle this close to the junction makes a car wait (TEMP)
+local GIVE_WAY_WAIT = 1.4 -- seconds, once per junction
 local SPEED_JITTER = 0.15 -- +/- fraction of a kind's base speed, per car
 
 local SPEED_BY_KIND: { [TownLayout.RoadKind]: number } = { ring = 40, main = 32, residential = 20, lane = 14 }
@@ -138,6 +140,7 @@ type Car = {
 	lastPos: Vector3, -- last computed world XZ position (Y = road/deck top), for despawn checks
 	dwell: number, -- seconds left stopped at a bus stop
 	lastStop: number?, -- distance of the stop it last pulled up at on this road (not twice in a row)
+	gaveWay: boolean, -- X88: already waited at the end of this road
 }
 
 -- ------------------------------------------------------------------ state
@@ -296,6 +299,7 @@ local function spawnCar(roadIndex: number, distance: number, direction: number)
 		speed = 0,
 		lastPos = Vector3.zero,
 		dwell = 0,
+		gaveWay = false,
 		lastStop = nil,
 	}
 	table.insert(cars, car)
@@ -451,6 +455,19 @@ local function switchRoad(car: Car, connection: TrafficMath.Connection, leftover
 	car.length = TrafficMath.polylineLength(road.points)
 	car.distance = math.clamp(connection.distance + connection.direction * leftover, 0, car.length)
 	car.lastStop = nil
+	car.gaveWay = false
+end
+
+-- X88: is another vehicle (not on this car's road) near the end this car is reaching?
+local function junctionBusy(car: Car, road: TownLayout.Road): boolean
+	local endPoint = if car.direction == 1 then road.points[#road.points] else road.points[1]
+	local others = {}
+	for _, other in cars do
+		if other ~= car and other.roadIndex ~= car.roadIndex then
+			table.insert(others, other.lastPos)
+		end
+	end
+	return TrafficMath.junctionBusy(endPoint, others, GIVE_WAY_CLEAR)
 end
 
 local function moveCar(car: Car, dt: number)
@@ -475,6 +492,11 @@ local function moveCar(car: Car, dt: number)
 	if TrafficMath.isClosed(road.points, 1e-3) then
 		local length = math.max(car.length, 1e-6)
 		car.distance = newDistance % length
+	elseif (newDistance > car.length or newDistance < 0) and not car.gaveWay and junctionBusy(car, road) then
+		-- X88: give way once at the junction mouth while another vehicle is crossing it
+		car.gaveWay = true
+		car.distance = math.clamp(newDistance, 0, car.length)
+		car.dwell = GIVE_WAY_WAIT
 	elseif newDistance > car.length or newDistance < 0 then
 		local atEnd = car.direction == 1
 		local overshoot = if atEnd then newDistance - car.length else -newDistance
