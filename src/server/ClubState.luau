@@ -148,7 +148,7 @@ function ClubState.init()
 	ClubState.set("NextOpponent", "")
 	ClubState.set("LeagueTable", "[]") -- JSON standings
 	ClubState.set("AmenityLevel", 0)
-	ClubState.set("History", "{}") -- JSON { seasons, honours } (HistoryService)
+	ClubState.set("History", "{}") -- JSON { seasons, servants, honours } (HistoryService)
 end
 
 -- The scalar half of the profile.

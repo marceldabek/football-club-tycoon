@@ -49,7 +49,9 @@ function UpgradeService.refreshPrompt()
 			local price = if nextLevel.cost <= 0 then "Free" else money(nextLevel.cost)
 			local extraFans = math.min(queue, seats - Config.plotCapacity(plot, level))
 			prompt.ActionText = if extraFans > 0
-				then ("%s %s (%d seats, +%s a match) — %s"):format(verb, nextLevel.name, seats, money(extraFans * perFan), price)
+				-- "while seats are short": two plots can each let in the same
+				-- queue, so the figures are not additive (review of X293)
+				then ("%s %s (%d seats, +%s a match while seats are short) — %s"):format(verb, nextLevel.name, seats, money(extraFans * perFan), price)
 				else ("%s %s (%d seats, ground isn't full yet) — %s"):format(verb, nextLevel.name, seats, price)
 			prompt.Enabled = managing
 		else

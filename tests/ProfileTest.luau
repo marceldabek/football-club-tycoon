@@ -152,4 +152,25 @@ function T.settingsDefaultAndValidate()
 	assert(out.settings.quality == "", "unknown quality dropped")
 end
 
+-- Review of X288: normalize used to rebuild `history` from the seasons alone,
+-- so the club servants were thrown away by every save.
+function T.normalizeKeepsClubServants()
+	local raw = {
+		history = {
+			seasons = {},
+			servants = {
+				{ name = "Rafa Kettering", age = 36, apps = 214, goals = 41, season = 9 },
+				"not a servant",
+			},
+		},
+	}
+	local p, changed = Profile.normalize(raw)
+	assert(#p.history.servants == 1, "the real servant should survive normalize")
+	assert(p.history.servants[1].apps == 214, "with their record intact")
+	assert(changed, "dropping the bad row counts as a change")
+	local fresh = Profile.normalize({})
+	assert(type(fresh.history.servants) == "table" and #fresh.history.servants == 0, "a profile with no history gets an empty list")
+	assert(type(Profile.new().history.servants) == "table", "Profile.new has the list too")
+end
+
 return T

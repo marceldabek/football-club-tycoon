@@ -773,9 +773,17 @@ local function renderHistory()
 	for _, p in (club and club.players or {}) do
 		consider(p.name, p.apps or 0, p.goals or 0)
 	end
+	-- Review of X288: the goals half used to ride on the appearance guard, so a
+	-- club whose first retiree never scored read "Most goals: <name> (0)".
+	local parts = {}
 	if topApps and topApps.n > 0 then
-		note(("Most appearances: %s (%d)  ·  Most goals: %s (%d)"):format(
-			topApps.name, topApps.n, (topGoals :: any).name, (topGoals :: any).n))
+		table.insert(parts, ("Most appearances: %s (%d)"):format(topApps.name, topApps.n))
+	end
+	if topGoals and (topGoals :: any).n > 0 then
+		table.insert(parts, ("Most goals: %s (%d)"):format((topGoals :: any).name, (topGoals :: any).n))
+	end
+	if #parts > 0 then
+		note(table.concat(parts, "  ·  "))
 	end
 
 	if #servants > 0 then

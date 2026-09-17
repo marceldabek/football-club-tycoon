@@ -585,7 +585,9 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 				else "Near the end — may retire at the end of a season.", "muted", {
 				Name = "Retirement",
 				Size = UDim2.new(1, 0, 0, 20),
-				Position = UDim2.fromOffset(0, 182),
+				-- above the sell button / XI advice, which own the bottom 34px
+				-- (review of X285: at y=182 the two overlapped by 10px)
+				Position = UDim2.new(0, 0, 1, -58),
 				TextSize = 12,
 				TextColor3 = ageColor or Theme.colors.muted,
 				TextTruncate = Enum.TextTruncate.AtEnd,

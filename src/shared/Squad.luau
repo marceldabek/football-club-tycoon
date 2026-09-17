@@ -617,6 +617,8 @@ function Squad.promoteYouth(players: { Player }, rng: Random, firstId: number, a
 	-- Review of X277: retireVeterans never retires the last goalkeeper, so
 	-- without this he plays for ever — the squad is up to size, so nothing else
 	-- would promote his replacement. One comes up, and he can go next season.
+	-- (A squad already at Config.SquadMax has no room for him, so there the
+	-- keeper does keep going until the player releases somebody.)
 	local keeperToCome = false
 	for _, p in players do
 		if p.role == "GK" and p.age < Config.RetireMaxAge then

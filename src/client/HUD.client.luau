@@ -357,8 +357,7 @@ local function showSeason(data)
 	end
 	-- Both blocks at three names each would overflow even the tallest card the
 	-- phone can take, so they share the room when there are two of them.
-	local perBlock = if count(data.retirements) > 0 and count(data.arrivals) > 0 then 2 else 3
-	local function block(list: any, more: string)
+	local function block(lines: { string }, perBlock: number, list: any, more: string)
 		local items = if type(list) == "table" then list else {}
 		if #items == 0 then
 			return
@@ -371,16 +370,27 @@ local function showSeason(data)
 			table.insert(lines, rich((more):format(#items - perBlock), C.muted))
 		end
 	end
-	block(data.retirements, "+%d more retired.")
-	block(data.arrivals, "+%d more came up from the academy.")
-	local text = table.concat(lines, "\n")
+	-- Review of X277: a card whose blocks are both full still measured past the
+	-- tallest card a phone can take, so it lost its last line. Names are dropped
+	-- (and counted in the "+N more" line instead) until the text fits.
+	local text, measured = "", Vector2.zero
+	local perBlock = if count(data.retirements) > 0 and count(data.arrivals) > 0 then 2 else 3
+	while true do
+		local all = table.clone(lines)
+		block(all, perBlock, data.retirements, "+%d more retired.")
+		block(all, perBlock, data.arrivals, "+%d more came up from the academy.")
+		text = table.concat(all, "\n")
+		measured = TextService:GetTextSize((text:gsub("<[^>]->", "")), 17, Theme.fonts.body, Vector2.new(480 - 40, math.huge))
+		if measured.Y + 150 <= 520 or perBlock <= 1 then
+			break
+		end
+		perBlock -= 1
+	end
 	seasonCard.body.Text = text
 	-- The card has to grow, and a line like "Ezra Hartigan (18) comes up from
 	-- the academy, shirt 12." wraps to two rendered lines, so measure the text
 	-- rather than counting entries (the review had the card clipping its last
 	-- line). 40 = Theme.card's body inset, 136 = title + footer.
-	local plain = (text:gsub("<[^>]->", ""))
-	local measured = TextService:GetTextSize(plain, 17, Theme.fonts.body, Vector2.new(480 - 40, math.huge))
 	seasonCard.frame.Size = UDim2.fromOffset(480, math.clamp(measured.Y + 150, 330, 520))
 	seasonCard.frame.Visible = true
 end
@@ -563,8 +573,13 @@ end
 function midGameHint(): string
 	local roundsLeft = (get("Rounds") or 10) - (get("Round") or 0)
 	local position = get("Position") or 99
-	if roundsLeft > 0 and roundsLeft <= 3 and position <= 3 then
-		return ("%d to play and you're %s. Win these and you go up."):format(roundsLeft, ordinal(position))
+	-- Review of X295: this promised promotion from 3rd (only two go up) and
+	-- promised it in the top flight, where there is nowhere to go.
+	if roundsLeft > 0 and roundsLeft <= 3 and position <= Config.PromotionSpots then
+		local top = (get("Tier") or 1) >= #Config.Divisions
+		return if top
+			then ("%d to play and you're %s. Win these and you're champions."):format(roundsLeft, ordinal(position))
+			else ("%d to play and you're %s. Win these and you go up."):format(roundsLeft, ordinal(position))
 	end
 
 	local candidates: { { cost: number, what: string, text: string } } = {}

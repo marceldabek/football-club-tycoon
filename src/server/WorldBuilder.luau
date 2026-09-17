@@ -1669,12 +1669,37 @@ function WorldBuilder.buildStands(levels: { [string]: number })
 	end
 end
 
--- X297: which end the visiting supporters get, how full it is compared with the
--- rest of the ground, and how much of the away club's colour they wear. TEMP
--- numbers: a real away following is a tenth of the gate, but a third-empty
--- corner reads as nobody came, and the point is that the end is visibly theirs.
-local AWAY_END_KEY = "North"
-local AWAY_END_FILL = 0.55
+-- X297: where the visiting supporters go. Review: it was pinned to the North
+-- Terrace, which starts unbuilt, so most of tier 1 had no away end at all and
+-- away goals still landed on a motionless ground. It now follows whichever
+-- stand is smallest among those actually built (the traditional away end), and
+-- it fills at the same density as the rest of the ground: a sell-out has to
+-- look like a sell-out, and CrowdCount has to stay honest.
+-- Behind a goal first, the main stand last: an away end in the North or South
+-- terrace is what a ground looks like, and picking by seat count alone handed
+-- the visitors the Main Stand when two stands were the same size.
+local AWAY_END_PREFERENCE = { "North", "South", "West", "East" }
+
+local function awayEndKey(levels: { [string]: number }): string?
+	local built = 0
+	for _, plot in PLOTS do
+		if (levels[plot.key] or 0) > 0 then
+			built += 1
+		end
+	end
+	-- A one-stand ground has no away end: handing the visitors the only stand
+	-- there is would leave the home crowd nowhere. They get one as soon as the
+	-- club builds a second.
+	if built < 2 then
+		return nil
+	end
+	for _, key in AWAY_END_PREFERENCE do
+		if (levels[key] or 0) > 0 then
+			return key
+		end
+	end
+	return nil
+end
 
 -- TEMP crowd palette: mostly home colours with some neutrals.
 local CROWD_COLORS = {
@@ -1755,6 +1780,7 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 	local awayColours = if awayKit
 		then { awayKit, awayKit, Color3.fromRGB(240, 240, 240), Color3.fromRGB(40, 40, 40), Color3.fromRGB(90, 90, 100) }
 		else nil
+	local awayKey = if awayColours then awayEndKey(levels) else nil
 	local club = PlotContext.clubModel() :: Model
 	local stands = club:FindFirstChild("Stands") :: Folder
 	local fill = math.clamp(attendance / math.max(capacity, 1), 0, 1)
@@ -1796,7 +1822,7 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 			continue
 		end
 		-- X297: the away end, so the client knows whose goal to hop for
-		local awayEnd = awayColours ~= nil and plot.key == AWAY_END_KEY
+		local awayEnd = awayKey ~= nil and plot.key == awayKey
 		crowd:SetAttribute("AwayEnd", awayEnd)
 		for row = 1, geo.rows do
 			local top = DECK_Y + geo.stepHeight * row
@@ -1805,7 +1831,7 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 			-- the good seats near the pitch fill first, the back rows thin out;
 			-- the weights average to 1 so the budget is still what it says
 			local weight = 1 + swing * (1 - 2 * (row - 1) / math.max(geo.rows - 1, 1))
-			local chance = math.min(1, base * weight * (if awayEnd then AWAY_END_FILL else 1))
+			local chance = math.min(1, base * weight)
 			-- offset each row a little so identical seat positions never line
 			-- up into a column of people
 			local nudge = (row * 0.37) % 1 * spacing

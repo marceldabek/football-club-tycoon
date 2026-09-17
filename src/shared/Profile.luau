@@ -27,7 +27,7 @@ export type Profile = {
 	losses: number,
 	club: any?, -- ClubService.serialize() shape, nil = generate fresh
 	season: any?, -- SeasonService.serialize() shape, nil = new season at tier 1
-	history: { seasons: { any } },
+	history: { seasons: { any }, servants: { any } }, -- X288 servants (review)
 	-- X223: the owner's music switch and quality level ("" = pick by device)
 	settings: { music: boolean, quality: string },
 	createdAt: number,
@@ -74,7 +74,7 @@ function Profile.new(clubName: string, now: number?): Profile
 		losses = 0,
 		club = nil,
 		season = nil,
-		history = { seasons = {} },
+		history = { seasons = {}, servants = {} },
 		settings = { music = true, quality = "" },
 		createdAt = t,
 		updatedAt = t,
@@ -238,7 +238,20 @@ function Profile.normalize(raw: any, now: number?): (Profile, boolean)
 	else
 		changed = true
 	end
-	out.history = { seasons = seasons }
+	-- Review of X288: normalize rebuilt `history` from the seasons alone, so the
+	-- club servants were thrown away by every single save. Shape-checked here
+	-- the same way the season rows are; HistoryService re-sorts and re-caps.
+	local servants = {}
+	if type(raw.history) == "table" and type(raw.history.servants) == "table" then
+		for _, s in ipairs(raw.history.servants) do
+			if type(s) == "table" and type(s.name) == "string" and type(s.apps) == "number" then
+				table.insert(servants, s)
+			else
+				changed = true
+			end
+		end
+	end
+	out.history = { seasons = seasons, servants = servants }
 
 	return out :: Profile, changed
 end

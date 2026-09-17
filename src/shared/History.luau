@@ -61,8 +61,19 @@ function History.recordRetirement(history: History, servant: Servant)
 		end
 		return a.season > b.season
 	end)
+	-- Review of X288: dropping the tail by appearances alone could evict the
+	-- club's all-time top scorer, so the leading scorer is always kept.
 	while #history.servants > History.MAX_SERVANTS do
-		table.remove(history.servants)
+		local topScorer, dropAt = 1, #history.servants
+		for i, s in history.servants do
+			if s.goals > history.servants[topScorer].goals then
+				topScorer = i
+			end
+		end
+		if dropAt == topScorer then
+			dropAt -= 1
+		end
+		table.remove(history.servants, dropAt)
 	end
 end
 
