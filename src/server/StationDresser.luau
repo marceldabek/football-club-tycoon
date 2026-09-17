@@ -15,6 +15,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local KitPlacer = require(script.Parent.KitPlacer)
+local SquareDresser = require(script.Parent.SquareDresser)
 
 local StationDresser = {}
 
@@ -522,6 +523,21 @@ function StationDresser.build(): string
 		busWord.CastShadow = false
 		sign(busWord, Enum.NormalId.Top, "BUS STOP", MARKING_YELLOW, nil, Enum.Font.GothamBlack)
 	end
+
+	-- X73: a finger post on the pavement between the stop and the taxi rank
+	local carPark: Vector3? = nil
+	for _, district in TownLayout.DISTRICTS do
+		for _, block in district.blocks do
+			if block.use == "station car park" then
+				carPark = block.centre
+			end
+		end
+	end
+	local destinations: { SquareDresser.FingerDestination } = { "Town Centre", "Industrial Estate", "Riverside" }
+	if carPark then
+		table.insert(destinations, 2, { name = "Car Park", position = carPark })
+	end
+	SquareDresser.fingerPost(m, f * Vector3.new(layby.x0 - 10, 0, (layby.z0 + layby.z1) / 2), 0.45, destinations)
 
 	-- platform side (X20): read the greybox platform so its depth stays TownBuilder's call
 	local platform = greybox and greybox:FindFirstChild("Platform")

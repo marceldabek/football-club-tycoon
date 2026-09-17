@@ -127,14 +127,20 @@ local function bladeLabel(blade: BasePart, face: Enum.NormalId, text: string)
 	label.Parent = gui
 end
 
-local function buildFingerPost(parent: Instance, at: Vector3)
+-- A finger post at `at` standing on `groundY` (default the square's paving).
+-- `destinations` (default the square's) are names SquareDresser.destination
+-- resolves, or { name, position } pairs for places that aren't a stop or
+-- landmark; unresolved names are skipped. X73 uses it at the station too.
+export type FingerDestination = string | { name: string, position: Vector3 }
+function SquareDresser.fingerPost(parent: Instance, at: Vector3, groundY: number?, destinations: { FingerDestination }?)
+	local ground = groundY or TOP
 	local m = Instance.new("Model")
 	m.Name = "FingerPost"
 	m.Parent = parent
 	part({
 		Name = "Post",
 		Size = Vector3.new(0.5, 11, 0.5),
-		CFrame = CFrame.new(at.X, TOP + 5.5 - 0.05, at.Z),
+		CFrame = CFrame.new(at.X, ground + 5.5 - 0.05, at.Z),
 		Color = IRON,
 		Material = Enum.Material.Metal,
 		Parent = m,
@@ -143,18 +149,25 @@ local function buildFingerPost(parent: Instance, at: Vector3)
 		Name = "Finial",
 		Shape = Enum.PartType.Ball,
 		Size = Vector3.new(0.9, 0.9, 0.9),
-		CFrame = CFrame.new(at.X, TOP + 11.2, at.Z),
+		CFrame = CFrame.new(at.X, ground + 11.2, at.Z),
 		Color = IRON,
 		Material = Enum.Material.Metal,
 		Parent = m,
 	})
 	local length = 6
-	for i, name in FINGER_DESTINATIONS do
-		local target = SquareDresser.destination(name)
+	local row = 0
+	for _, entry in destinations or FINGER_DESTINATIONS do
+		local name: string, target: Vector3?
+		if type(entry) == "string" then
+			name, target = entry, SquareDresser.destination(entry)
+		else
+			name, target = entry.name, entry.position
+		end
 		if not target then
 			continue
 		end
-		local y = TOP + 10 - (i - 1) * 1.15
+		row += 1
+		local y = ground + 10 - (row - 1) * 1.15
 		local cf = SquareDresser.bladeFrame(at, target, y, length)
 		local blade = part({
 			Name = "Blade",
@@ -481,7 +494,7 @@ function SquareDresser.build(): string
 		})
 	end
 
-	buildFingerPost(square, SquareDresser.ring(centre, FINGER_RING, 1, 0)[1].Position)
+	SquareDresser.fingerPost(square, SquareDresser.ring(centre, FINGER_RING, 1, 0)[1].Position)
 
 	for _, cf in SquareDresser.ring(centre, BOLLARD_RING - 3, 4, math.pi / 4) do
 		KitPlacer.place("LampVictorian", cf * CFrame.new(0, TOP, 0), square, {

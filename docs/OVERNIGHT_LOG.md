@@ -547,3 +547,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshot** StationBusBay_1. The painted words are small, because the text plate is only as tall as the bay is wide.
 - Logged X73 for the rest of that comparison: a finger post, double yellow lines, a kiosk basket, and the raised platform wall with railings.
 - RunAll 357/357.
+
+### 2026-09-17 06:17 — Finger post at the station (X73 part)
+- The square's finger post is now `SquareDresser.fingerPost(parent, at, groundY?, destinations?)`, whose destinations can be names or `{ name, position }`. The square's call is unchanged (still 4 blades). `StationDresser` stands one on the pavement between the Station stop and the taxi rank. Its blades point to Town Centre, Car Park (the station car park block), Industrial Estate and Riverside, the same set as RivermereStation.png.
+- **Screenshot** StationFingerPost_1: the post beside the moved shelter and the BUS STOP bay.
+- RunAll 357/357.
