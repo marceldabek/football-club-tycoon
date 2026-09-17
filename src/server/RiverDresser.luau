@@ -209,7 +209,7 @@ function RiverDresser.buildBoat(parent: Instance, cf: CFrame, rng: Random)
 	part({
 		Name = "Bow",
 		Size = Vector3.new(6, 2.4, 5),
-		CFrame = cf * CFrame.new(0, 0.2, -length / 2 - 2.5) * CFrame.Angles(0, math.pi, 0),
+		CFrame = cf * CFrame.new(0, 0.2, -length / 2 - 2.5), -- full height at local +Z meets the hull (X32)
 		Color = hull,
 		Parent = m,
 	}, "WedgePart")

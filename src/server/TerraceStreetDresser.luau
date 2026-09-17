@@ -779,10 +779,12 @@ function TerraceStreetDresser.build(): string
 
 	local rng = Random.new(1911)
 	local full, streets, skipped = 0, 0, 0
+	local parked: { string } = {}
 	for _, entry in entries do
 		local m = Instance.new("Model")
 		m.Name = entry.road.name
 		m.Parent = root
+		table.insert(parked, entry.road.name)
 		dressEntry(entry, m, roads, true, rng)
 		local n = countParts(m)
 		partCount += n
@@ -805,7 +807,10 @@ function TerraceStreetDresser.build(): string
 		m.Parent = root
 		partCount += n
 		streets += 1
+		table.insert(parked, e.road.name)
 	end
+	-- X36: client Traffic keeps off streets with cars parked on both kerbs
+	root:SetAttribute("ParkedStreets", table.concat(parked, "|"))
 	root.Parent = town
 	return ("terrace streets: %d parts (showpiece %d), %d light streets, %d over budget"):format(partCount, full, streets, skipped)
 end

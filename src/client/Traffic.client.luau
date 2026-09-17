@@ -268,15 +268,32 @@ end
 -- unobtrusive but close enough to soon come into view. Returns nil (three
 -- times, so the call site's tuple arity is stable) if nothing qualifies in
 -- a bounded number of tries -- including when there are no roads at all.
+-- X36: TerraceStreetDresser parks cars on both kerbs of the streets it lists in
+-- the TerraceStreets folder's "ParkedStreets" attribute; one lane each way
+-- would drive through them, so traffic keeps off those streets.
+local function parkedStreets(): { [string]: boolean }
+	local out: { [string]: boolean } = {}
+	local town = workspace:FindFirstChild("Town")
+	local folder = town and town:FindFirstChild("TerraceStreets")
+	local list = folder and folder:GetAttribute("ParkedStreets")
+	if type(list) == "string" then
+		for name in list:gmatch("[^|]+") do
+			out[name] = true
+		end
+	end
+	return out
+end
+
 local function randomSpawnCandidate(camPos: Vector3): (number?, number?, number?)
 	local roads = TownLayout.ROADS
 	if #roads == 0 then
 		return nil, nil, nil
 	end
+	local parked = parkedStreets()
 	for _ = 1, SPAWN_ATTEMPTS_PER_RECHECK do
 		local roadIndex = math.random(1, #roads)
 		local road = roads[roadIndex]
-		if #road.points < 2 then
+		if #road.points < 2 or parked[road.name] then
 			continue
 		end
 		local length = TrafficMath.polylineLength(road.points)
@@ -387,6 +404,12 @@ local function moveCar(car: Car, dt: number)
 		local overshoot = if atEnd then newDistance - car.length else -newDistance
 		local tolerance = road.width / 2 + JOIN_TOLERANCE_EXTRA
 		local options = TrafficMath.connections(TownLayout.ROADS, car.roadIndex, atEnd, tolerance)
+		local parked = parkedStreets()
+		for i = #options, 1, -1 do
+			if parked[TownLayout.ROADS[options[i].roadIndex].name] then
+				table.remove(options, i)
+			end
+		end
 		if #options > 0 then
 			switchRoad(car, options[math.random(1, #options)], overshoot)
 		else
