@@ -42,6 +42,7 @@ type Played = {
 local running = false
 local homeSquad: { Squad.MatchPlayer } = {}
 local matchMinute = 0 -- the scoreboard minute, stamped on substitutions (X218)
+local eventsShown = 0 -- timeline events already on the scoreboard, stamped on substitutions
 local subsMade: { Squad.Sub } = {}
 
 -- Set by Session: called once the result and revenue are applied, so the
@@ -86,6 +87,7 @@ function MatchService.applyTactic(action: string): (boolean, string?)
 			return false, "No substitutions left"
 		end
 		sub.minute = matchMinute
+		sub.afterEvent = eventsShown
 		table.insert(subsMade, sub)
 		ClubState.set("Subs", HttpService:JSONEncode(subsMade))
 		return true
@@ -132,6 +134,7 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	local scorerSlots = Squad.assignScorers(result.events :: any, homeSquad, Random.new())
 	subsMade = {}
 	matchMinute = 0
+	eventsShown = 0
 
 	local capacity = ClubState.capacity()
 	local demand = SeasonService.demand()
@@ -176,6 +179,7 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 			end
 			nextEvent += 1
 		end
+		eventsShown = nextEvent - 1
 		ClubState.set("TimeLeft", math.ceil(duration - elapsed))
 		task.wait(0.25)
 	end
@@ -196,7 +200,10 @@ local function scorerLines(result: MatchSim.Result): { string }
 	for _, ev in result.events do
 		local scorer = (ev :: any).scorer
 		if scorer and homeSquad[scorer] then
-			table.insert(scorers, ("%d' %s"):format(ev.minute, homeSquad[scorer].name))
+			local p = homeSquad[scorer]
+			-- trialists share a name; the shirt number tells two of them apart
+			local name = if p.id < 0 then ("%s (%d)"):format(p.name, p.number) else p.name
+			table.insert(scorers, ("%d' %s"):format(ev.minute, name))
 		end
 	end
 	return scorers

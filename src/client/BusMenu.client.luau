@@ -114,7 +114,7 @@ local buttons: { TextButton } = {}
 local traveling = false
 -- X222: the server refuses travel away from a stop (20 studs) or within its 3 s
 -- cooldown; mirror both so a refused trip never plays the fade
-local WALK_AWAY_STUDS = 14 -- from where the card opened
+local WALK_AWAY_STUDS = 18 -- from the stop (server allows 20); from where it opened if unknown
 local TRAVEL_COOLDOWN = 3.2
 local openedAt: Vector3? = nil
 local lastTravel = -math.huge
@@ -206,7 +206,7 @@ local function showMenu(payload: any)
 	list.CanvasPosition = Vector2.zero -- every new stop starts at the top
 	setInteractive(true)
 	card.Visible = true
-	openedAt = rootPosition()
+	openedAt = if typeof(payload.stopPosition) == "Vector3" then payload.stopPosition else rootPosition()
 end
 
 -- close the card once the player walks away from the stop

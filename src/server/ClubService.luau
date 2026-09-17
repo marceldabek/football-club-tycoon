@@ -125,7 +125,6 @@ local function repairLineup()
 	lineup.bench = newBench
 
 	-- fill empty XI slots from the best fit players not in use, in-role first
-	local auto = Squad.autoLineup(players)
 	local function pickFor(slot: number): number?
 		local role = Pitch.ROLES[slot]
 		local best: Squad.Player? = nil
@@ -147,7 +146,10 @@ local function repairLineup()
 	end
 	for slot = 1, #Pitch.ROLES do
 		if not lineup.xi[slot] then
-			local id = pickFor(slot) or auto.xi[slot]
+			-- nil when every fit player is already used: the slot stays empty and
+			-- Squad.matchSquad puts a trialist there (the auto XI fallback here
+			-- used to name a player already in the XI or on the bench)
+			local id = pickFor(slot)
 			if id then
 				lineup.xi[slot] = id
 				inUse[id] = true

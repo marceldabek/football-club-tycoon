@@ -159,7 +159,15 @@ task.spawn(function()
 	local savedApplied = false
 	local function applySaved()
 		local saved = state:GetAttribute("SettingQuality")
-		if savedApplied or saved == nil then
+		if saved == nil then
+			return
+		end
+		if savedApplied then
+			-- toggled before the club loaded (the server ignored it): save it now
+			local saveSettings = ReplicatedStorage:WaitForChild("Remotes"):FindFirstChild("SaveSettings")
+			if saved ~= level and saveSettings and saveSettings:IsA("RemoteEvent") and state:GetAttribute("OwnerUserId") == player.UserId then
+				saveSettings:FireServer(nil, level)
+			end
 			return
 		end
 		savedApplied = true
@@ -173,6 +181,7 @@ task.spawn(function()
 	button.Activated:Connect(function()
 		setLevel(Quality.other(level))
 		refresh()
+		savedApplied = true
 		local saveSettings = ReplicatedStorage:WaitForChild("Remotes"):FindFirstChild("SaveSettings")
 		if saveSettings and saveSettings:IsA("RemoteEvent") and player:GetAttribute("ClubPlot") ~= nil then
 			saveSettings:FireServer(nil, level)

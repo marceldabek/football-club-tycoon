@@ -297,4 +297,16 @@ function T.afterMatchCountsSubstitutes()
 	assert(Squad.byId(players)[benchId].apps == 1, "substitute got no appearance")
 end
 
+
+function T.creditScorersKeepsSameMinuteGoalBeforeSub()
+	local events = {
+		{ team = "Home", type = "GOAL", minute = 40, scorer = 10 },
+		{ team = "Home", type = "GOAL", minute = 41, scorer = 10 },
+	}
+	-- the sub came in minute 40 but after the first goal was shown
+	local slots = Squad.creditScorers(events :: any, { { out = 10, ["in"] = 13, minute = 40, afterEvent = 1 } })
+	assert(slots[1] == 10, "a goal shown before the sub stays the starter's")
+	assert(slots[2] == 13, "a later goal goes to the substitute")
+end
+
 return T

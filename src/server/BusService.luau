@@ -138,7 +138,13 @@ function BusService.start()
 	local lastTravel: { [number]: number } = {}
 
 	local function openMenu(player: Player, stopName: string)
-		menuEvent:FireClient(player, { from = stopName, destinations = BusService.destinationsFor(stopName, currentClubNames()) })
+		local stop = stopByName[stopName]
+		menuEvent:FireClient(player, {
+			from = stopName,
+			destinations = BusService.destinationsFor(stopName, currentClubNames()),
+			-- the client closes the card once the player walks out of travel range
+			stopPosition = if stop then stop.position else nil,
+		})
 	end
 
 	local town = workspace:WaitForChild("Town")

@@ -46,9 +46,28 @@ local function paintHead(d: Instance, on: boolean)
 	end
 end
 
+-- X237: a ground whose club is playing an evening match right now. The server
+-- lit those heads for everyone; turning them off locally hides a live match.
+local function inLiveEveningMatch(d: Instance): boolean
+	local plots = workspace:FindFirstChild("Plots")
+	local plot: Instance? = d
+	while plot and plot.Parent ~= plots do
+		plot = plot.Parent
+	end
+	local clubs = ReplicatedStorage:FindFirstChild("Clubs")
+	local state = plot and clubs and clubs:FindFirstChild(plot.Name)
+	if not state then
+		return false
+	end
+	local phase = state:GetAttribute("Phase")
+	return state:GetAttribute("Evening") == true and (phase == "PreMatch" or phase == "Match")
+end
+
 local function setFloodHeads(on: boolean)
 	for _, d in CollectionService:GetTagged(FLOOD_HEAD_TAG) do
-		paintHead(d, on)
+		if on or not inLiveEveningMatch(d) then
+			paintHead(d, on)
+		end
 	end
 end
 

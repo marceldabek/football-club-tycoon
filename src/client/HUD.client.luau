@@ -95,9 +95,11 @@ local function refreshMusicButton()
 	musicButton.Text = on and "♪  Music on" or "♪  Music off"
 	musicButton.TextColor3 = on and C.text or C.muted
 end
+local savedMusicApplied = false
 musicButton.Activated:Connect(function()
 	MatchAudio.setMusicEnabled(not MatchAudio.isMusicEnabled())
 	refreshMusicButton()
+	savedMusicApplied = true -- the player's own choice beats a save still loading
 	-- X223: remembered with the club
 	local saveSettings = ReplicatedStorage:WaitForChild("Remotes"):FindFirstChild("SaveSettings")
 	if saveSettings and saveSettings:IsA("RemoteEvent") and get("OwnerUserId") == player.UserId then
@@ -105,10 +107,17 @@ musicButton.Activated:Connect(function()
 	end
 end)
 -- the saved choice can arrive after the HUD is built (the club loads after the claim)
-local savedMusicApplied = false
 local function applySavedMusic()
 	local saved = get("SettingMusic")
-	if savedMusicApplied or saved == nil then
+	if saved == nil then
+		return
+	end
+	if savedMusicApplied then
+		-- toggled before the club loaded (the server ignored it): save it now
+		local saveSettings = ReplicatedStorage:WaitForChild("Remotes"):FindFirstChild("SaveSettings")
+		if saved ~= MatchAudio.isMusicEnabled() and saveSettings and saveSettings:IsA("RemoteEvent") and get("OwnerUserId") == player.UserId then
+			saveSettings:FireServer(MatchAudio.isMusicEnabled(), nil)
+		end
 		return
 	end
 	savedMusicApplied = true

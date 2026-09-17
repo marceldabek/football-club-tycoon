@@ -39,7 +39,7 @@ export type MatchPlayer = {
 	look: number,
 }
 
-export type Sub = { out: number, ["in"]: number, minute: number? }
+export type Sub = { out: number, ["in"]: number, minute: number?, afterEvent: number? }
 
 -- One OVR move after a match, for the post-match development strip.
 export type RatingChange = { id: number, name: string, number: number, look: number, from: number, to: number }
@@ -322,17 +322,20 @@ function Squad.assignScorers(events: { ScoredEvent }, matchSquad: { MatchPlayer 
 	return scorers
 end
 
--- X218: a goal is scored by whoever fills the slot at that minute. A starter
--- subbed off at or before the goal's minute hands it to the substitute (the
--- one the crowd sees score). Mutates the events' scorer; returns the scorer
--- indices (into the matchSquad) in match order.
+-- X218: a goal is scored by whoever fills the slot when it happens. A starter
+-- subbed off before the goal hands it to the substitute (the one the crowd
+-- sees score). `afterEvent` is how many timeline events had been shown when
+-- the sub was made, so a goal earlier in the same minute stays the starter's;
+-- subs without it fall back to the minute. Mutates the events' scorer; returns
+-- the scorer indices (into the matchSquad) in match order.
 function Squad.creditScorers(events: { ScoredEvent }, subs: { Sub }): { number }
 	local scorers: { number } = {}
-	for _, ev in events do
+	for index, ev in events do
 		local slot = (ev :: any).scorer
 		if ev.team == "Home" and ev.type == "GOAL" and type(slot) == "number" then
 			for _, sub in subs do
-				if sub.out == slot and (sub.minute or 0) <= (ev :: any).minute then
+				local after = if sub.afterEvent then index > sub.afterEvent else (sub.minute or 0) <= (ev :: any).minute
+				if sub.out == slot and after then
 					slot = sub["in"]
 				end
 			end

@@ -79,9 +79,70 @@ end
 local free: { number } = decodeNumberList(plotsFolder:GetAttribute("Free"))
 local owners: { [number]: string } = decodeOwners(plotsFolder:GetAttribute("Owners"))
 
+-- X221: a visitor who joined a full server is offered the picker again when
+-- a ground frees up. The picker runs top to bottom once, so it restarts by
+-- running a fresh copy of this script. Defined before the full-server early
+-- return below, which is exactly the case it is for (and the case a copy
+-- hits when the ground is taken again before it starts).
+local function watchForFreeGround()
+	local offer: ScreenGui? = nil
+	local conn: RBXScriptConnection? = nil
+	local function clearOffer()
+		if offer then
+			offer:Destroy()
+			offer = nil
+		end
+	end
+	local function update(freeNow: { number })
+		if player:GetAttribute("ClubPlot") ~= nil then
+			clearOffer()
+			if conn then
+				conn:Disconnect()
+			end
+			return
+		end
+		if #freeNow == 0 then
+			clearOffer()
+			return
+		end
+		if offer then
+			return
+		end
+		local offerGui = Theme.screenGui("GroundFree", 8)
+		local button = Theme.button(offerGui, "A ground is free: tap to choose it", "primary", {
+			Name = "Choose",
+			Size = UDim2.fromOffset(320, 48),
+			Position = UDim2.new(0.5, -160, 0, 16),
+			TextSize = 16,
+		})
+		button.Activated:Connect(function()
+			if conn then
+				conn:Disconnect()
+			end
+			clearOffer()
+			local copy = script:Clone()
+			copy.Parent = script.Parent
+			script:Destroy()
+		end)
+		offerGui.Parent = player:WaitForChild("PlayerGui")
+		offer = offerGui
+	end
+	conn = plotsChangedEvent.OnClientEvent:Connect(function(payload: any)
+		local list = {}
+		for _, v in (payload and payload.free) or {} do
+			if type(v) == "number" then
+				table.insert(list, v)
+			end
+		end
+		update(list)
+	end)
+	update(decodeNumberList(plotsFolder:GetAttribute("Free")))
+end
+
 -- The server only lets a picker exist when there is something to pick: if the
--- server is already full of clubs, stay a visitor with no picker at all.
+-- server is already full of clubs, stay a visitor and wait for a free ground.
 if #free == 0 then
+	watchForFreeGround()
 	return
 end
 
@@ -237,64 +298,6 @@ local function finish()
 	end
 	gui:Destroy()
 	Iris.open(0.6)
-end
-
--- X221: a visitor who joined a full server is offered the picker again when
--- a ground frees up. The picker runs top to bottom once, so it restarts by
--- running a fresh copy of this script.
-local function watchForFreeGround()
-	local offer: ScreenGui? = nil
-	local conn: RBXScriptConnection? = nil
-	local function clearOffer()
-		if offer then
-			offer:Destroy()
-			offer = nil
-		end
-	end
-	local function update(freeNow: { number })
-		if player:GetAttribute("ClubPlot") ~= nil then
-			clearOffer()
-			if conn then
-				conn:Disconnect()
-			end
-			return
-		end
-		if #freeNow == 0 then
-			clearOffer()
-			return
-		end
-		if offer then
-			return
-		end
-		local offerGui = Theme.screenGui("GroundFree", 8)
-		local button = Theme.button(offerGui, "A ground is free: tap to choose it", "primary", {
-			Name = "Choose",
-			Size = UDim2.fromOffset(320, 48),
-			Position = UDim2.new(0.5, -160, 0, 16),
-			TextSize = 16,
-		})
-		button.Activated:Connect(function()
-			if conn then
-				conn:Disconnect()
-			end
-			clearOffer()
-			local copy = script:Clone()
-			copy.Parent = script.Parent
-			script:Destroy()
-		end)
-		offerGui.Parent = playerGui
-		offer = offerGui
-	end
-	conn = plotsChangedEvent.OnClientEvent:Connect(function(payload: any)
-		local list = {}
-		for _, v in (payload and payload.free) or {} do
-			if type(v) == "number" then
-				table.insert(list, v)
-			end
-		end
-		update(list)
-	end)
-	update(decodeNumberList(plotsFolder:GetAttribute("Free")))
 end
 
 local function showAllTaken()
