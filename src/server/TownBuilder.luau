@@ -73,6 +73,13 @@ local RAIL_OFFSETS = { -5.95, -2.05, 2.05, 5.95 } -- twin track, two rails each
 local PAVE_CELL = 2 -- pavement clipping resolution
 local PAVE_MIN_RUN = 3
 local OVERLAP_TOL = 0.05
+-- X75: estate closes get a grass verge along the kerb edge of each pavement
+-- (RivermereNorthfields.png). It sits 0.04 proud of the pavement and 0.05 in
+-- from the kerb so no faces share a plane; lamps and tree pits stand in it.
+TownBuilder.VERGE_ROADS = { ["Hayfield Close"] = true, ["Rowan Close"] = true } :: { [string]: boolean }
+TownBuilder.VERGE_WIDTH = 1.8
+local VERGE_KERB_GAP = 0.05
+local VERGE_PROUD = 0.04
 
 local COLOURS = {
 	asphalt = Color3.fromRGB(78, 80, 84),
@@ -430,6 +437,21 @@ local function buildPavements(parent: Instance, road: TownLayout.Road, blockers:
 					Parent = parent,
 				})
 				table.insert(accepted, TownBuilder.rect(cx, cz, ux, uz, runLength / 2, PAVEMENT_WIDTH / 2))
+				if TownBuilder.VERGE_ROADS[road.name] then
+					local w = TownBuilder.VERGE_WIDTH
+					local shift = side * (half + VERGE_KERB_GAP + w / 2 - (half + PAVEMENT_WIDTH / 2))
+					-- top at Y.PAVEMENT + VERGE_PROUD, bottom buried 0.04 in the pavement
+					local vergeCentre = Vector3.new(cx + rx * shift, Y.PAVEMENT + VERGE_PROUD / 2 - 0.02, cz + rz * shift)
+					part({
+						Name = "Verge",
+						Size = Vector3.new(w, VERGE_PROUD + 0.04, runLength - 0.1),
+						CFrame = CFrame.lookAt(vergeCentre, vergeCentre + Vector3.new(ux, 0, uz)),
+						Color = COLOURS.lawn,
+						Material = Enum.Material.Grass,
+						CastShadow = false,
+						Parent = parent,
+					})
+				end
 			end
 		end
 	end

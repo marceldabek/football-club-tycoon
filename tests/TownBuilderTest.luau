@@ -2,6 +2,7 @@
 -- Pure checks for TownBuilder helpers; nothing is built into workspace.
 local ServerScriptService = game:GetService("ServerScriptService")
 local TownBuilder = require(ServerScriptService.Server.TownBuilder)
+local TownLayout = require(game:GetService("ReplicatedStorage").Shared.TownLayout)
 
 local T = {}
 
@@ -103,6 +104,21 @@ function T.yLevelsAreOrderedAndDistinct()
 		end
 	end
 	assert(TownBuilder.roadTop("unknown") == lane, "fallback kind")
+end
+
+-- X75: every verge road exists, is residential, and its verge fits inside
+-- the pavement with room left for walkers (they use the pavement centre).
+function T.vergeRoadsAreRealResidentialRoads()
+	local byName = {}
+	for _, road in TownLayout.ROADS do
+		byName[road.name] = road
+	end
+	for name in TownBuilder.VERGE_ROADS do
+		local road = byName[name]
+		assert(road, "no road " .. name)
+		assert(road.kind == "residential", name .. " is " .. road.kind)
+	end
+	assert(TownBuilder.VERGE_WIDTH > 0 and TownBuilder.VERGE_WIDTH < TownLayout.PAVEMENT_WIDTH / 2 - 1, "verge leaves the pavement centre clear")
 end
 
 return T
