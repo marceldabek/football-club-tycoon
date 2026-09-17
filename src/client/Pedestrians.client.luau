@@ -17,6 +17,7 @@ local RunService = game:GetService("RunService")
 local TownLayout = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TownLayout"))
 local TrafficMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrafficMath"))
 local PedestrianMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("PedestrianMath"))
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 
 -- ------------------------------------------------------------------ tuning
 
@@ -226,8 +227,27 @@ local function pick<T>(list: { T }): T
 	return list[math.random(1, #list)]
 end
 
-local function buildFigure(parent: Instance): { BasePart }
-	local top = pick(TOPS)
+-- X162: on matchday (a ground within MATCHDAY_RADIUS of the spawn is in
+-- PreMatch or Match) about a third of new walkers wear the home kit colour
+local MATCHDAY_RADIUS = 900 -- plots sit on the edge of town; the nearest pavement to a plot centre is ~490 away
+local MATCHDAY_KIT_SHARE = 1 / 3
+local function matchdayNear(p: Vector3): boolean
+	local clubs = ReplicatedStorage:FindFirstChild("Clubs")
+	if not clubs then
+		return false
+	end
+	for _, folder in clubs:GetChildren() do
+		local phase = folder:GetAttribute("Phase")
+		local cf = folder:GetAttribute("PlotCFrame")
+		if (phase == "PreMatch" or phase == "Match") and typeof(cf) == "CFrame" and flatDistance(cf.Position, p) <= MATCHDAY_RADIUS then
+			return true
+		end
+	end
+	return false
+end
+
+local function buildFigure(parent: Instance, kit: Color3?): { BasePart }
+	local top = kit or pick(TOPS)
 	local trousers = pick(TROUSERS)
 	local skin = pick(SKIN_TONES)
 	local torso = part("Torso", TORSO_SIZE, top, true, parent)
@@ -253,7 +273,8 @@ end
 local function spawnPedestrian(path: Path, kind: string, distance: number, lateral: number, pos: Vector3)
 	local model = Instance.new("Model")
 	model.Name = "Pedestrian"
-	local parts = buildFigure(model)
+	local kit = if math.random() < MATCHDAY_KIT_SHARE and matchdayNear(pos) then Config.HomeKit else nil
+	local parts = buildFigure(model, kit)
 	local dog = DOG_KINDS[kind] == true and math.random() < DOG_CHANCE
 	if dog then
 		local coat = pick(DOG_COLOURS)
