@@ -15,6 +15,7 @@ local TeamGen = require(ReplicatedStorage.Shared.TeamGen)
 local Squad = require(ReplicatedStorage.Shared.Squad)
 local DayCycle = require(ReplicatedStorage.Shared.DayCycle)
 local ClubState = require(script.Parent.ClubState)
+local PlotContext = require(script.Parent.PlotContext)
 local WorldBuilder = require(script.Parent.WorldBuilder)
 local ClubService = require(script.Parent.ClubService)
 local SeasonService = require(script.Parent.SeasonService)
@@ -73,11 +74,16 @@ function MatchService.applyTactic(action: string): (boolean, string?)
 	return false, "Unknown action"
 end
 
+-- True from kickoff prep until the result is settled.
+function MatchService.isRunning(): boolean
+	return running
+end
+
 function MatchService.init()
 	remote("MatchSummary")
 	remote("Toast")
 	local tactic = remote("Tactic")
-	tactic.OnServerEvent:Connect(function(player: Player, action: unknown)
+	PlotContext.onRemote(tactic, function(player: Player, action: unknown)
 		if type(action) ~= "string" then
 			return
 		end
@@ -216,7 +222,12 @@ function MatchService.playMatch(durationOverride: number?, walkoutOverride: numb
 		task.spawn(settled)
 	end
 
-	remote("MatchSummary"):FireAllClients({
+	-- only the owner sees their club's summary
+	local owner = ClubState.owner()
+	if not owner then
+		return true
+	end
+	remote("MatchSummary"):FireClient(owner, {
 		opponent = fixture.opponent,
 		awayKit = fixture.kit,
 		homeGoals = result.homeGoals,

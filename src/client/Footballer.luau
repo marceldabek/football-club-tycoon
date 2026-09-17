@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Appearance = require(ReplicatedStorage.Shared.Appearance)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local BlockFootballer = require(script.Parent.BlockFootballer)
+local ClubRef = require(script.Parent.ClubRef)
 
 local Footballer = {}
 Footballer.__index = Footballer
@@ -432,7 +433,7 @@ function Footballer.update(self: Footballer, dt: number)
 	elseif self.pose == "sit" then
 		lift = SIT_HIP - self.hipHeight
 	end
-	root.CFrame = CFrame.new(self.position + Vector3.new(0, self.hipHeight + lift, 0))
+	root.CFrame = ClubRef.frame() * CFrame.new(self.position + Vector3.new(0, self.hipHeight + lift, 0))
 		* CFrame.Angles(0, self.yaw, 0)
 		* CFrame.Angles(0, 0, tilt)
 

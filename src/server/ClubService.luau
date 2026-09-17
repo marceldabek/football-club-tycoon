@@ -12,6 +12,7 @@ local Squad = require(ReplicatedStorage.Shared.Squad)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local Profile = require(ReplicatedStorage.Shared.Profile)
 local ClubState = require(script.Parent.ClubState)
+local PlotContext = require(script.Parent.PlotContext)
 
 local ClubService = {}
 
@@ -274,7 +275,7 @@ function ClubService.init()
 		action.Parent = remotes
 	end
 	local toast = remotes:FindFirstChild("Toast") :: RemoteEvent
-	action.OnServerEvent:Connect(function(player: Player, name: unknown, a: unknown, b: unknown)
+	PlotContext.onRemote(action, function(player: Player, name: unknown, a: unknown, b: unknown)
 		if type(name) ~= "string" then
 			return
 		end

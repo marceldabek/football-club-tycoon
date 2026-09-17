@@ -15,7 +15,7 @@ local Crest = require(script.Parent.Crest)
 local Sky = require(script.Parent.Sky)
 
 local player = Players.LocalPlayer
-local state = ReplicatedStorage:WaitForChild("ClubState")
+local state = require(script.Parent.ClubRef).waitState()
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local summaryEvent = remotes:WaitForChild("MatchSummary") :: RemoteEvent
 local toastEvent = remotes:WaitForChild("Toast") :: RemoteEvent

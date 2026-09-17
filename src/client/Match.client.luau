@@ -14,8 +14,9 @@ local Iris = require(script.Parent.Iris)
 local Presenter = require(script.Parent.MatchPresenter)
 local MatchAudio = require(script.Parent.MatchAudio)
 local Sky = require(script.Parent.Sky)
+local ClubRef = require(script.Parent.ClubRef)
 
-local state = ReplicatedStorage:WaitForChild("ClubState")
+local state = require(script.Parent.ClubRef).waitState()
 local camera = workspace.CurrentCamera
 
 local presenter: Presenter.Presenter? = nil
@@ -37,8 +38,9 @@ local function cameraWalkout(seconds: number)
 	camera.CameraType = Enum.CameraType.Scriptable
 	-- start low beside the tunnel looking down the line of players, rise to a
 	-- stand-side view of the centre circle as they take their positions
-	local from = CFrame.lookAt(Vector3.new(-70, 9, 30), Vector3.new(-100, 4, -2))
-	local to = CFrame.lookAt(Vector3.new(70, 34, 70), Vector3.new(0, 3, 0))
+	local plot = ClubRef.frame()
+	local from = plot * CFrame.lookAt(Vector3.new(-70, 9, 30), Vector3.new(-100, 4, -2))
+	local to = plot * CFrame.lookAt(Vector3.new(70, 34, 70), Vector3.new(0, 3, 0))
 	local t0 = os.clock()
 	while os.clock() - t0 < seconds and get("Phase") == "PreMatch" do
 		camera.CFrame = from:Lerp(to, (os.clock() - t0) / seconds)

@@ -23,6 +23,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local Assets = require(script.Parent.Assets)
+local PlotContext = require(script.Parent.PlotContext)
 
 local WorldBuilder = {}
 
@@ -745,13 +746,13 @@ local function bindScoreboard()
 	if scoreboardBound then
 		return
 	end
-	local state = ReplicatedStorage:FindFirstChild("ClubState")
+	local state = PlotContext.stateFolder()
 	if not state then
 		return
 	end
 	scoreboardBound = true
 	local function refresh()
-		local club = workspace:FindFirstChild("Club")
+		local club = PlotContext.clubModel()
 		local model = club and club:FindFirstChild("Scoreboard")
 		local panel = model and model:FindFirstChild("Panel")
 		local gui = panel and panel:FindFirstChild("Face")
@@ -914,7 +915,7 @@ end
 -- Trophy shelf on the inside of the office's north wall: one gold cup per
 -- league title (Milestone 5 club history). Safe to call again after a title.
 function WorldBuilder.buildTrophies(count: number)
-	local club = workspace:FindFirstChild("Club")
+	local club = PlotContext.clubModel()
 	local office = club and club:FindFirstChild("Office")
 	if not office then
 		return
@@ -978,6 +979,7 @@ function WorldBuilder.buildTrophies(count: number)
 			Parent = model,
 		})
 	end
+	PlotContext.place(model)
 end
 
 
@@ -1090,7 +1092,7 @@ local function rowRuns(geo: PlotGeometry, row: number): { { number } }
 end
 
 function WorldBuilder.buildPlot(plotIndex: number, level: number)
-	local club = workspace:FindFirstChild("Club") :: Model
+	local club = PlotContext.clubModel() :: Model
 	local stands = club:FindFirstChild("Stands") :: Folder
 	local plot = PLOTS[plotIndex]
 	local old = stands:FindFirstChild(plot.key)
@@ -1317,7 +1319,8 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 		end
 	end
 
-	local state = ReplicatedStorage:FindFirstChild("ClubState")
+	PlotContext.place(stand)
+	local state = PlotContext.stateFolder()
 	if state then
 		WorldBuilder.setClubName((state:GetAttribute("ClubName") :: string?) or Config.ClubName)
 	end
@@ -1403,7 +1406,7 @@ end
 -- stands for several real ones, so a full house means every slot filled. The
 -- budget is shared across all four plots.
 function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: number, capacity: number)
-	local club = workspace:FindFirstChild("Club") :: Model
+	local club = PlotContext.clubModel() :: Model
 	local stands = club:FindFirstChild("Stands") :: Folder
 	local fill = math.clamp(attendance / math.max(capacity, 1), 0, 1)
 	local rng = Random.new(attendance)
@@ -1460,7 +1463,7 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 					end
 					local z = run[1] + 1 + nudge + spacing * (i - 0.5)
 					-- yaw so the fan's front faces the pitch (local -X)
-					buildFan(geo.frame * CFrame.new(x, top, z) * CFrame.Angles(0, math.pi / 2, 0), rng, crowd, row <= FAN_LEG_ROWS)
+					buildFan(PlotContext.cframe * geo.frame * CFrame.new(x, top, z) * CFrame.Angles(0, math.pi / 2, 0), rng, crowd, row <= FAN_LEG_ROWS)
 					placed += 1
 				end
 			end
@@ -1472,7 +1475,7 @@ end
 
 -- Fans go home at full time; the stands are empty between matches.
 function WorldBuilder.clearCrowd()
-	local club = workspace:FindFirstChild("Club")
+	local club = PlotContext.clubModel()
 	local stands = club and club:FindFirstChild("Stands")
 	if not (club and stands) then
 		return
@@ -1491,7 +1494,7 @@ end
 local AMENITY_POS = Vector3.new(FORECOURT_CX - 2, GROUND_Y, FORECOURT_CZ + 23)
 
 function WorldBuilder.buildAmenity(level: number)
-	local club = workspace:FindFirstChild("Club") :: Model
+	local club = PlotContext.clubModel() :: Model
 	local old = club:FindFirstChild("Amenity")
 	if old then
 		old:Destroy()
@@ -1524,6 +1527,7 @@ function WorldBuilder.buildAmenity(level: number)
 			box("Flag", Vector3.new(0.1, 2.5, 4), pole.Position + Vector3.new(0, 5.5, 2), Config.HomeKit, Enum.Material.Fabric, amenity)
 		end
 	end
+	PlotContext.place(amenity)
 end
 
 local function buildAmenitySign(parent: Instance): ProximityPrompt
@@ -1561,7 +1565,7 @@ export type World = {
 -- Every place the club's name is painted in the world (tunnel, turnstiles,
 -- roof fascias).
 function WorldBuilder.setClubName(name: string)
-	local club = workspace:FindFirstChild("Club")
+	local club = PlotContext.clubModel()
 	if not club then
 		return
 	end
@@ -1573,7 +1577,7 @@ function WorldBuilder.setClubName(name: string)
 end
 
 function WorldBuilder.build(standLevels: { [string]: number }, amenityLevel: number?): World
-	local existing = workspace:FindFirstChild("Club")
+	local existing = PlotContext.clubModel()
 	if existing then
 		existing:Destroy()
 	end
@@ -1584,7 +1588,7 @@ function WorldBuilder.build(standLevels: { [string]: number }, amenityLevel: num
 
 	local club = Instance.new("Model")
 	club.Name = "Club"
-	club.Parent = workspace
+	club.Parent = PlotContext.worldParent()
 
 	buildPitch(club)
 	buildHardstanding(club)
@@ -1614,9 +1618,12 @@ function WorldBuilder.build(standLevels: { [string]: number }, amenityLevel: num
 		standPrompts[plot.key] = buildStandSign(club, plot)
 	end
 	local amenityPrompt = buildAmenitySign(club)
+	-- everything so far was built around the origin; the stands and the
+	-- amenity move themselves into the plot as they are (re)built
+	PlotContext.place(club)
 	WorldBuilder.buildStands(standLevels)
 	WorldBuilder.buildAmenity(amenityLevel or 0)
-	local state = ReplicatedStorage:FindFirstChild("ClubState")
+	local state = PlotContext.stateFolder()
 	if state then
 		WorldBuilder.setClubName((state:GetAttribute("ClubName") :: string?) or Config.ClubName)
 	end

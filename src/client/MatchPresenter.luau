@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local Footballer = require(script.Parent.Footballer)
+local ClubRef = require(script.Parent.ClubRef)
 local MatchAudio = require(script.Parent.MatchAudio)
 
 local Presenter = {}
@@ -55,6 +56,7 @@ export type Presenter = typeof(setmetatable(
 		swapped: boolean, -- second half: teams attack the opposite ends
 		homeTactic: Pitch.Tactic,
 		ballRot: CFrame, -- accumulated rolling rotation
+		ballPos: Vector3, -- pitch-local ball position (the part itself sits in the plot)
 		dribbleT: number, -- time since the carrier last knocked the ball ahead
 		settleUntil: number, -- first touch: the ball sits still until this clock time
 	},
@@ -121,7 +123,7 @@ local function makeBall(parent: Instance): Part
 	ball.CanQuery = false
 	ball.CanTouch = false
 	ball.CastShadow = true
-	ball.Position = centre() + Vector3.new(0, BALL_R, 0)
+	ball.CFrame = ClubRef.frame() * CFrame.new(centre() + Vector3.new(0, BALL_R, 0))
 	ball.Parent = parent
 	-- dark patches half-sunk into the surface so the roll is visible; they are
 	-- unanchored and welded, so they follow the anchored ball's CFrame
@@ -169,6 +171,7 @@ function Presenter.new(timeline: Timeline, duration: number): Presenter
 		swapped = false,
 		homeTactic = "Balanced" :: Pitch.Tactic,
 		ballRot = CFrame.identity,
+		ballPos = centre() + Vector3.new(0, BALL_R, 0), -- pitch-local; the part is in the plot
 		dribbleT = 0,
 		settleUntil = 0,
 	}, Presenter)
@@ -256,7 +259,7 @@ function Presenter.step(self: Presenter, dt: number)
 					-- knock it ahead and run onto it; the holder is unchanged
 					self.dribbleT = 0
 					local ahead = restAt(fb.position + look.LookVector * (TOUCH_AHEAD + DRIBBLE_KNOCK) + look.RightVector * 0.35)
-					self.flight = { from = self.ball.Position, to = ahead, t = 0, dur = 0.35, arc = 0, kind = "ground" }
+					self.flight = { from = self.ballPos, to = ahead, t = 0, dur = 0.35, arc = 0, kind = "ground" }
 				else
 					self:moveBall(restAt(fb.position + look.LookVector * TOUCH_AHEAD + look.RightVector * 0.35), 1)
 				end
@@ -268,18 +271,20 @@ end
 -- Moves the ball and rolls it by the ground distance covered. `roll` scales
 -- the spin (1 on the grass, less in the air, 0 when carried).
 function Presenter.moveBall(self: Presenter, pos: Vector3, roll: number)
-	local moved = pos - self.ball.Position
+	local moved = pos - self.ballPos
 	local flat = Vector3.new(moved.X, 0, moved.Z)
 	if roll > 0 and flat.Magnitude > 1e-4 then
 		local axis = Vector3.yAxis:Cross(flat.Unit)
 		self.ballRot = CFrame.fromAxisAngle(axis, flat.Magnitude / BALL_R * roll) * self.ballRot
 	end
-	self.ball.CFrame = CFrame.new(pos) * self.ballRot
+	self.ballPos = pos
+	self.ball.CFrame = ClubRef.frame() * CFrame.new(pos) * self.ballRot
 end
 
 function Presenter.placeBall(self: Presenter, pos: Vector3)
 	self.flight = nil
-	self.ball.CFrame = CFrame.new(restAt(pos)) * self.ballRot
+	self.ballPos = restAt(pos)
+	self.ball.CFrame = ClubRef.frame() * CFrame.new(self.ballPos) * self.ballRot
 end
 
 -- Which end a team attacks. In the second half the teams swap, so Home uses
@@ -302,7 +307,7 @@ local function clampToPitch(p: Vector3): Vector3
 end
 
 function Presenter.updateFormationTargets(self: Presenter, dt: number)
-	local ballPos = self.ball.Position
+	local ballPos = self.ballPos
 	for teamName, team in self.teams do
 		local dir = attackDir(self:geom(teamName))
 		for idx, fb in team.players do
@@ -417,7 +422,7 @@ end
 -- Kicks the ball from the current holder (or wherever it is) to a player.
 function Presenter.pass(self: Presenter, toTeam: Pitch.Team, toIdx: number, arcOverride: number?)
 	local receiver = self.teams[toTeam].players[toIdx]
-	local from = self.ball.Position
+	local from = self.ballPos
 	-- play it into space ahead of the receiver so they run onto it
 	local dir = attackDir(self:geom(toTeam))
 	local landing = clampToPitch(receiver.position + Vector3.new(math.random() * 6 - 3, 0, dir * LEAD_DISTANCE))
@@ -516,13 +521,21 @@ end
 
 local function crowdReact()
 	MatchAudio.goalCheer()
-	local club = workspace:FindFirstChild("Club")
-	local stand = club and club:FindFirstChild("Stand")
-	local crowd = stand and stand:FindFirstChild("Crowd")
-	if not crowd then
+	local club = ClubRef.clubModel()
+	local stands = club and club:FindFirstChild("Stands")
+	if not stands then
 		return
 	end
-	for _, fan in crowd:GetChildren() do
+	local fans = {}
+	for _, stand in stands:GetChildren() do
+		local crowd = stand:FindFirstChild("Crowd")
+		if crowd then
+			for _, fan in crowd:GetChildren() do
+				table.insert(fans, fan)
+			end
+		end
+	end
+	for _, fan in fans do
 		if fan:IsA("BasePart") then
 			task.delay(math.random() * 0.35, function()
 				TweenService:Create(fan, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 2, true),
@@ -598,7 +611,7 @@ function Presenter.playSequence(self: Presenter, ev: Event, shotAt: number)
 
 	shooter:face(target)
 	shooter:kick()
-	local from = self.ball.Position
+	local from = self.ballPos
 	self.holder = nil
 	self.flight = {
 		from = from,

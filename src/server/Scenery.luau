@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local Assets = require(script.Parent.Assets)
+local PlotContext = require(script.Parent.PlotContext)
 
 local Scenery = {}
 
@@ -83,12 +84,27 @@ end
 
 -- ------------------------------------------------------------------- terrain
 
-local function setupTerrain()
+local function setupTerrain(town: boolean?)
 	local terrain = workspace.Terrain
 	if terrain:GetAttribute("FCTScenery") then
 		return
 	end
 	terrain:SetAttribute("FCTScenery", true)
+	if town then
+		-- Rivermere: one flat grass sheet under the whole town (docs/BACKLOG.md
+		-- world frame), stopping short of Workspace.VerticalSlice at x 2880.
+		-- Rivers, hills and the backdrop come from the town builder.
+		local baseplate = workspace:FindFirstChild("Baseplate")
+		if baseplate and baseplate:IsA("BasePart") then
+			baseplate:Destroy()
+		end
+		terrain:FillBlock(CFrame.new(0, GROUND_Y - 10, 0), Vector3.new(5600, 16, 4400), Enum.Material.LeafyGrass)
+		local clouds = findOrCreate(terrain, "Clouds", "Clouds") :: Clouds
+		clouds.Cover = 0.55
+		clouds.Density = 0.3
+		clouds.Color = Color3.fromRGB(245, 240, 235)
+		return
+	end
 
 	-- terrain is the ground everywhere (top exactly at GROUND_Y); the template
 	-- baseplate would show as a flat square against it, so it goes
@@ -359,6 +375,25 @@ function Scenery.setMatchday(on: boolean, evening: boolean?)
 	Scenery.setFloodlights(on and evening == true)
 end
 
+-- Shared town: lighting defaults and the ground only. Each club brings its
+-- own floodlights (buildClubFloodlights); the town builder does the rest.
+function Scenery.setupTown()
+	setupLighting()
+	setupTerrain(true)
+end
+
+-- Floodlight masts for one club, inside its world model and moved into the
+-- plot. The heads are this copy's to switch (one Scenery copy per plot).
+function Scenery.buildClubFloodlights(club: Instance)
+	local floods = Instance.new("Model")
+	floods.Name = "Floodlights"
+	floods.Parent = club
+	setupFloodlights(floods)
+	PlotContext.place(floods)
+	Scenery.setFloodlights(false)
+end
+
+-- Single-club place (no plots): the old everything-around-the-origin scenery.
 function Scenery.setup()
 	setupLighting()
 	setupTerrain()

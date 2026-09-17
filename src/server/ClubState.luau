@@ -7,16 +7,14 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Profile = require(ReplicatedStorage.Shared.Profile)
+local PlotContext = require(script.Parent.PlotContext)
 
 local ClubState = {}
 
--- Find-or-create so a second Luau VM (Studio command bar / MCP) shares the same state.
-local folder = ReplicatedStorage:FindFirstChild("ClubState") :: Folder
-if not folder then
-	folder = Instance.new("Folder")
-	folder.Name = "ClubState"
-	folder.Parent = ReplicatedStorage
-end
+-- ReplicatedStorage.Clubs.PlotN for a plot's copy of this module, or the old
+-- ReplicatedStorage.ClubState without plots (docs/PLOTS.md). Find-or-create so
+-- a second Luau VM (Studio command bar / MCP) shares the same state.
+local folder = PlotContext.stateFolder()
 ClubState.Folder = folder
 
 -- Keys that are part of the save; changing one marks the profile dirty.
@@ -98,6 +96,12 @@ end
 
 function ClubState.isOwner(player: Player): boolean
 	return (ClubState.get("OwnerUserId") :: number?) == player.UserId
+end
+
+-- The owning Player while they are in the server.
+function ClubState.owner(): Player?
+	local id = ClubState.get("OwnerUserId") :: number?
+	return if id and id ~= 0 then game:GetService("Players"):GetPlayerByUserId(id) else nil
 end
 
 function ClubState.init()

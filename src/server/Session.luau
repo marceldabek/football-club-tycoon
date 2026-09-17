@@ -1,9 +1,10 @@
 --!strict
--- Boots the club for this server and keeps it saved.
---   Loading: wait for the first player (the owner) -> load their profile ->
+-- Boots one club and keeps it saved.
+--   Loading: PlotService hands over the owner -> load their profile ->
 --   restore every service -> build the world -> Manage.
 -- Also owns the club-naming remote and the world prompt wiring, both of
--- which are owner-only. One club per server; other players are visitors.
+-- which are owner-only. There is one copy of this module per claimed plot
+-- (docs/PLOTS.md); other players on the plot are visitors.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -20,6 +21,7 @@ local SeasonService = require(script.Parent.SeasonService)
 local HistoryService = require(script.Parent.HistoryService)
 local SaveService = require(script.Parent.SaveService)
 local Scenery = require(script.Parent.Scenery)
+local PlotContext = require(script.Parent.PlotContext)
 
 local Session = {}
 
@@ -27,6 +29,7 @@ local saver: SaveService.Saver
 local backendKind = "none"
 local ownerId = 0
 local loaded = false
+local stopped = false
 local world: WorldBuilder.World? = nil
 -- Stamps carried across snapshots (the saver bumps updatedAt / saveCount).
 local createdAt = 0
@@ -113,7 +116,7 @@ local function wireWorld(w: WorldBuilder.World)
 			end
 			local ok, message = UpgradeService.tryExpandStand(key)
 			if ok then
-				remote("Toast"):FireAllClients(message or "Stand expanded!", true)
+				toast(player, message or "Stand expanded!", true)
 			else
 				toast(player, message or "Cannot expand right now")
 			end
@@ -127,7 +130,7 @@ local function wireWorld(w: WorldBuilder.World)
 		end
 		local ok, message = UpgradeService.tryUpgradeAmenity()
 		if ok then
-			remote("Toast"):FireAllClients(message or "Amenity built!", true)
+			toast(player, message or "Amenity built!", true)
 		else
 			toast(player, message or "Cannot build right now")
 		end
@@ -143,6 +146,9 @@ function Session.restoreAll(p: Profile.Profile)
 	ClubState.restore(p)
 	local w = WorldBuilder.build(p.stands, p.amenityLevel)
 	world = w
+	if PlotContext.index then
+		Scenery.buildClubFloodlights(w.model)
+	end
 	UpgradeService.init({ stands = w.standPrompts, amenity = w.amenityPrompt })
 	wireWorld(w)
 	ClubService.restore(p.club)
@@ -165,7 +171,7 @@ end
 
 -- Every save goes through here so the stamps the saver writes stay in step.
 local function flush(force: boolean): boolean
-	if not loaded then
+	if not loaded or stopped then
 		return false
 	end
 	local ok = saver:flush(ownerId, Session.snapshot, force)
@@ -254,65 +260,53 @@ end
 
 -- --------------------------------------------------------------------- boot
 
-local function waitForOwner(): Player
-	local existing = Players:GetPlayers()[1]
-	if existing then
-		return existing
-	end
-	return Players.PlayerAdded:Wait()
-end
-
-function Session.start()
+-- Loads `owner`'s club into this plot and runs it until stop(). Yields while
+-- the save loads. Returns false when the owner left during the load or the
+-- load failed (they are kicked so a broken store never gets overwritten).
+function Session.start(owner: Player): boolean
 	ClubState.init()
 	MatchService.init()
 	ClubService.init()
 	HistoryService.init()
 	SeasonService.init()
-	remote("ClubName").OnServerEvent:Connect(applyName)
-	remote("PlayMatch").OnServerEvent:Connect(function(player: Player)
+	PlotContext.onRemote(remote("ClubName"), applyName)
+	PlotContext.onRemote(remote("PlayMatch"), function(player: Player)
 		if loaded then
 			requestMatch(player)
 		end
 	end)
-	Scenery.setup() -- lighting, horizon and floodlights exist while the club loads
+	if not PlotContext.index then
+		Scenery.setup() -- single-club place: the old scenery around the origin
+	end
 
 	local backend, kind = SaveService.autoBackend(Config.Save.storeName)
 	backendKind = kind
 	saver = SaveService.new(backend, { retries = Config.Save.loadRetries, backoff = Config.Save.retryBackoffSeconds })
 
-	local owner: Player
+	local data, status = saver:load(owner.UserId)
+	if owner.Parent ~= Players or stopped then
+		return false -- left while we were loading
+	end
+	if status == "error" then
+		owner:Kick("Your club could not be loaded. Please rejoin.")
+		return false
+	end
 	local profile: Profile.Profile
-	local isNew = false
-	while true do
-		owner = waitForOwner()
-		local data, status = saver:load(owner.UserId)
-		if owner.Parent ~= Players then
-			continue -- left while we were loading; wait for the next one
+	local isNew = status == "new"
+	if isNew then
+		profile = Profile.new(owner.DisplayName .. Config.DefaultClubNameSuffix)
+	else
+		local changed
+		profile, changed = Profile.normalize(data)
+		if changed then
+			warn("[FCT] profile needed repairs on load")
 		end
-		if status == "error" then
-			owner:Kick("Your club could not be loaded. Please rejoin.")
-			while owner.Parent do
-				task.wait(0.1)
-			end
-			continue
-		end
-		if status == "new" then
-			isNew = true
-			profile = Profile.new(owner.DisplayName .. Config.DefaultClubNameSuffix)
-		else
-			local changed
-			profile, changed = Profile.normalize(data)
-			if changed then
-				warn("[FCT] profile needed repairs on load")
-			end
-		end
-		break
 	end
 
 	ownerId = owner.UserId
+	ClubState.set("OwnerUserId", ownerId)
 	Session.restoreAll(profile)
 	loaded = true
-	ClubState.set("OwnerUserId", ownerId)
 	ClubState.onDirty = function()
 		saver:markDirty()
 	end
@@ -321,17 +315,17 @@ function Session.start()
 	ClubState.Folder:GetAttributeChangedSignal("Phase"):Connect(Session.refreshPromptLock)
 	ClubState.set("Phase", "Manage")
 	Session.refreshPromptLock()
-	print(("[FCT] %s profile for %s (%s): %s, %d matches played"):format(
-		if isNew then "new" else "loaded", owner.Name, backendKind, profile.clubName, profile.matchesPlayed))
+	print(("[FCT] %s %s profile for %s (%s): %s, %d matches played"):format(
+		PlotContext.name(), if isNew then "new" else "loaded", owner.Name, backendKind, profile.clubName, profile.matchesPlayed))
 
 	-- a brand-new club exists in the store straight away
 	if isNew then
 		Session.saveNow()
 	end
 	task.spawn(function()
-		while true do
+		while not stopped do
 			task.wait(Config.Save.autosaveSeconds)
-			if saver:isDirty() then
+			if not stopped and saver:isDirty() then
 				flush(false)
 			end
 		end
@@ -339,15 +333,24 @@ function Session.start()
 	MatchService.onSettled = function()
 		Session.saveNow()
 	end
+	return true
+end
 
-	Players.PlayerRemoving:Connect(function(player)
-		if player.UserId == ownerId then
-			flush(true)
-		end
-	end)
-	game:BindToClose(function()
-		flush(true)
-	end)
+-- The owner left (or the server is closing): save one last time, then take
+-- the club out of the world. Safe to call twice.
+function Session.stop()
+	if stopped then
+		return
+	end
+	flush(true)
+	stopped = true
+	loaded = false
+	local w = world
+	world = nil
+	if w and w.model.Parent then
+		w.model:Destroy()
+	end
+	ClubState.Folder:Destroy()
 end
 
 return Session

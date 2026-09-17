@@ -1,17 +1,14 @@
 --!strict
--- Entry point: boot the session (load the owner's club, build the world).
+-- Entry point: the shared town scenery, then the four club plots.
+-- Each claimed plot runs its own copy of the club services (docs/PLOTS.md).
 
-local Session = require(script.Parent.Session)
-local MatchService = require(script.Parent.MatchService)
-local UpgradeService = require(script.Parent.UpgradeService)
-local ClubService = require(script.Parent.ClubService)
-local ClubState = require(script.Parent.ClubState)
-local WorldBuilder = require(script.Parent.WorldBuilder)
-local SeasonService = require(script.Parent.SeasonService)
+local PlotService = require(script.Parent.PlotService)
+local Scenery = require(script.Parent.Scenery)
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 
 -- Studio-only debug hook so agent/manual playtests can drive the real services
--- without walking to prompts. Never present in a live server.
+-- without walking to prompts. Never present in a live server. Commands run
+-- against the first claimed plot unless prefixed with "plot|N|".
 --   ("playMatch", durationSeconds?, walkoutSeconds?)
 --   ("expandStand", "East"|"West"|"North"|"South") / ("amenity")
 --   ("tactic", "Attack" | "Defend" | "Balanced" | "Sub")
@@ -25,48 +22,60 @@ local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 -- Studio MCP bridge runs in a sandboxed thread that may not invoke a
 -- BindableFunction here. Arguments are separated by "|":
 --   ServerScriptService.Server:SetAttribute("DebugRun", "preview|4,2,1,0")
---   ServerScriptService.Server:SetAttribute("DebugRun", "playMatch|20|3")
+--   ServerScriptService.Server:SetAttribute("DebugRun", "plot|2|playMatch|20|3")
 -- The result is written back to the "DebugResult" attribute.
 if game:GetService("RunService"):IsStudio() then
 	local function run(command: string, ...): (boolean, string?)
+		local args = { ... }
+		local plot: number? = nil
+		if command == "plot" then
+			plot = tonumber(args[1])
+			command = args[2]
+			args = { select(3, ...) }
+		end
+		local m = PlotService.debugModules(plot)
+		if not m then
+			return false, "no club is running"
+		end
+		local a1, a2, a3 = args[1], args[2], args[3]
 		if command == "playMatch" then
-			return MatchService.playMatch(...)
+			return m.MatchService.playMatch(a1, a2)
 		elseif command == "expandStand" then
-			return UpgradeService.tryExpandStand(...)
+			return m.UpgradeService.tryExpandStand(a1)
 		elseif command == "amenity" then
-			return UpgradeService.tryUpgradeAmenity()
+			return m.UpgradeService.tryUpgradeAmenity()
 		elseif command == "tactic" then
-			return MatchService.applyTactic(...)
+			return m.MatchService.applyTactic(a1)
 		elseif command == "club" then
-			return ClubService.act(...)
+			return m.ClubService.act(a1, a2, a3)
 		elseif command == "cash" then
-			ClubState.addCash((...) or 1000)
+			m.ClubState.addCash(a1 or 1000)
 			return true
 		elseif command == "tier" then
-			return SeasonService.setTier(tonumber((...)) or 1)
+			return m.SeasonService.setTier(tonumber(a1) or 1)
 		elseif command == "save" then
-			return Session.saveNow()
+			return m.Session.saveNow()
 		elseif command == "reload" then
-			return Session.reload()
+			return m.Session.reload()
 		elseif command == "wipe" then
-			return Session.wipe()
+			return m.Session.wipe()
 		elseif command == "preview" then
 			local levels: { [string]: number } = {}
 			local i = 1
-			for value in tostring((...)):gmatch("[^,%s]+") do
-				local plot = Config.StandPlots[i]
-				if plot then
-					levels[plot.key] = math.clamp(tonumber(value) or 0, 0, #Config.StandLevels)
+			for value in tostring(a1):gmatch("[^,%s]+") do
+				local standPlot = Config.StandPlots[i]
+				if standPlot then
+					levels[standPlot.key] = math.clamp(tonumber(value) or 0, 0, #Config.StandLevels)
 				end
 				i += 1
 			end
-			for index, plot in Config.StandPlots do
-				ClubState.setPlotLevel(plot, levels[plot.key] or 0)
-				WorldBuilder.buildPlot(index, levels[plot.key] or 0)
+			for index, standPlot in Config.StandPlots do
+				m.ClubState.setPlotLevel(standPlot, levels[standPlot.key] or 0)
+				m.WorldBuilder.buildPlot(index, levels[standPlot.key] or 0)
 			end
-			local capacity = ClubState.capacity()
-			WorldBuilder.buildCrowd(ClubState.plotLevels(), capacity, capacity)
-			UpgradeService.refreshPrompt()
+			local capacity = m.ClubState.capacity()
+			m.WorldBuilder.buildCrowd(m.ClubState.plotLevels(), capacity, capacity)
+			m.UpgradeService.refreshPrompt()
 			return true, ("preview: capacity %d"):format(capacity)
 		end
 		return false, "unknown command: " .. tostring(command)
@@ -92,6 +101,7 @@ if game:GetService("RunService"):IsStudio() then
 	end)
 end
 
-Session.start()
+Scenery.setupTown()
+PlotService.start()
 
-print("[FCT] world ready")
+print("[FCT] town ready")

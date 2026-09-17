@@ -10,7 +10,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Co
 local Theme = require(script.Parent.Theme)
 
 local player = Players.LocalPlayer
-local state = ReplicatedStorage:WaitForChild("ClubState")
+local state = require(script.Parent.ClubRef).waitState()
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local nameEvent = remotes:WaitForChild("ClubName") :: RemoteEvent
 

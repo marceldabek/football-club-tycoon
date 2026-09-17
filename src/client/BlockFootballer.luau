@@ -4,6 +4,8 @@
 -- be built (no network, description fetch failure). Every part is anchored and
 -- repositioned each frame with BulkMoveTo.
 
+local ClubRef = require(script.Parent.ClubRef)
+
 local BlockFootballer = {}
 BlockFootballer.__index = BlockFootballer
 
@@ -249,7 +251,7 @@ function BlockFootballer.update(self: BlockFootballer, dt: number)
 	end
 
 	local torsoCenterY = LEG.Y + TORSO.Y / 2 + bob + lift
-	local root = CFrame.new(self.position + Vector3.new(0, torsoCenterY, 0))
+	local root = ClubRef.frame() * CFrame.new(self.position + Vector3.new(0, torsoCenterY, 0))
 		* CFrame.Angles(0, self.yaw, 0)
 		* CFrame.Angles(0, 0, tilt)
 

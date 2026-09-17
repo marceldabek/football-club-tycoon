@@ -506,7 +506,7 @@ function MatchSummary.new(gui: ScreenGui): Summary
 
 	local function show(data: any)
 		local clubName = (Config :: any).ClubName
-		local stateFolder = ReplicatedStorage:FindFirstChild("ClubState")
+		local stateFolder = require(script.Parent.ClubRef).state()
 		if stateFolder then
 			clubName = stateFolder:GetAttribute("ClubName") or clubName
 		end
