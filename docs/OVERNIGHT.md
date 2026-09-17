@@ -36,6 +36,7 @@ so that in the morning he can walk around, list what's wrong, and fix it with yo
 - **Don't break the loop.** Play Match → earn → upgrade must still work after every change. If a change breaks it and you can't fix it in about 20 minutes, revert it and log the problem.
 - **Assets:**
   - Allowed: free Creator Store models (strip every script, log the id and creator in `assets/kit/MANIFEST.md`), free CC0 sources (Poly Haven, ambientCG, Kenney), `generate_mesh` for props, and uploading your own GLB exports with `tools/upload_kit.py`.
+  - **Actively look for free models that match the reference images.** Before building something from primitives, search `search_asset` (Creator Store, free only), Poly Haven, ambientCG and Kenney for a close match (terraced houses, shopfronts, lamp posts, bus shelters, benches, bins, planters, railings, trees, cars, station and industrial pieces), then download or insert it. Only use sources that don't need a login, since you can't sign in or create accounts. Check the licence (CC0 / free Creator Store), log it in `assets/kit/MANIFEST.md`, and remove scripts. If the best match needs a login or payment, add it to the buy list with a link instead. Use primitives only when nothing free fits well.
   - Not allowed: buying anything (paid packs, Robux). Add them to a "Buy list for Marcel" section in the log with the price and why.
   - Not allowed: executables or files from unknown sites.
   - Prefer bought or downloaded buildings over generated ones (Q27).
