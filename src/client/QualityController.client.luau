@@ -143,7 +143,7 @@ end
 -- club), so wait for it rather than making a second ScreenGui. Sits directly
 -- under the Music toggle, same size and style.
 task.spawn(function()
-	local hud = player:WaitForChild("PlayerGui"):WaitForChild("TycoonHUD")
+	local hud = player:WaitForChild("PlayerGui"):WaitForChild("TycoonHUD", math.huge)
 	local button = Theme.button(hud, "", "ghost", {
 		Name = "QualityToggle",
 		Size = UDim2.fromOffset(130, 34),
