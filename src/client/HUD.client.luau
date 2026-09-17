@@ -16,7 +16,8 @@ local Crest = require(script.Parent.Crest)
 local Sky = require(script.Parent.Sky)
 
 local player = Players.LocalPlayer
-local state = require(script.Parent.ClubRef).waitState()
+local ClubRef = require(script.Parent.ClubRef)
+local state = ClubRef.waitState()
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local summaryEvent = remotes:WaitForChild("MatchSummary") :: RemoteEvent
 local toastEvent = remotes:WaitForChild("Toast") :: RemoteEvent
@@ -518,6 +519,11 @@ end)
 local refreshHintText: () -> ()
 
 local midGameHint: () -> string
+local refreshBeacon: () -> ()
+-- X311: a hint names a thing; `hintTarget` names the part it is standing on, so
+-- a player who has never seen the ground can be pointed at it. Set by
+-- refreshHintText alongside the text, read by refreshBeacon.
+local hintTarget: string? = nil
 local function refreshHint()
 	refreshHintText()
 	-- the summary and season cards own the bottom of the screen (their buttons sit there)
@@ -525,6 +531,7 @@ local function refreshHint()
 end
 
 function refreshHintText()
+	hintTarget = nil
 	local phase = get("Phase")
 	if phase == "Loading" then
 		hintLabel.Text = ""
@@ -551,14 +558,18 @@ function refreshHintText()
 	end
 	if played == 0 then
 		hintLabel.Text = "Welcome to your club. Have a look around, then hit PLAY MATCH at the top."
+		hintTarget = "MatchdayBoard"
 	elseif not grown then
 		-- X193: only say fans were turned away when they were
+		hintTarget = "StandSign_East"
 		hintLabel.Text = if (get("Demand") or 0) > (get("Capacity") or math.huge)
 			then "Fans were turned away. Expand the East Stand (yellow sign in front of it)."
 			else "Grow your ground: expand the East Stand (yellow sign in front of it)."
 	elseif (get("ScoutLevel") or 0) == 0 then
+		hintTarget = "Computer"
 		hintLabel.Text = "Hire a scout to find new players: the office computer, or the CLUB OFFICE button."
 	elseif (get("AmenityLevel") or 0) == 0 then
+		hintTarget = "AmenitySign"
 		hintLabel.Text = "Fans spend money too: build a Snack Bar at the CONCOURSE sign on the forecourt."
 	else
 		hintLabel.Text = midGameHint()
@@ -582,7 +593,7 @@ function midGameHint(): string
 			else ("%d to play and you're %s. Win these and you go up."):format(roundsLeft, ordinal(position))
 	end
 
-	local candidates: { { cost: number, what: string, text: string } } = {}
+	local candidates: { { cost: number, what: string, text: string, target: string? } } = {}
 	local turnedAway = (get("Demand") or 0) - (get("Capacity") or 0)
 	if turnedAway > 0 then
 		local best, bestCost = nil, math.huge
@@ -597,6 +608,7 @@ function midGameHint(): string
 			table.insert(candidates, {
 				cost = bestCost,
 				what = ("bigger %s"):format((best :: any).label),
+				target = "StandSign_" .. (best :: any).key,
 				text = ("About %d fans are being turned away. Expand the %s."):format(turnedAway, (best :: any).label),
 			})
 		end
@@ -606,6 +618,7 @@ function midGameHint(): string
 		table.insert(candidates, {
 			cost = nextCoach.cost,
 			what = nextCoach.name,
+			target = "Computer",
 			text = ("A %s picks the team and brings your young players on: CLUB OFFICE, then STAFF."):format(nextCoach.name),
 		})
 	end
@@ -614,6 +627,7 @@ function midGameHint(): string
 		table.insert(candidates, {
 			cost = nextScout.cost,
 			what = nextScout.name,
+			target = "Computer",
 			text = ("A %s finds better players: CLUB OFFICE, then SCOUTING."):format(nextScout.name),
 		})
 	end
@@ -623,6 +637,7 @@ function midGameHint(): string
 		table.insert(candidates, {
 			cost = nextAmenity.cost,
 			what = nextAmenity.name,
+			target = "AmenitySign",
 			text = ("A %s takes more money off every fan: the CONCOURSE sign."):format(nextAmenity.name),
 		})
 	end
@@ -635,11 +650,87 @@ function midGameHint(): string
 	local cash = get("Cash") or 0
 	for _, c in candidates do
 		if cash >= c.cost then
+			hintTarget = c.target
 			return c.text
 		end
 	end
 	-- nothing affordable: name the target, short enough for the pill
+	hintTarget = candidates[1].target
 	return ("Play matches and save %s for a %s."):format(money(candidates[1].cost - cash), candidates[1].what)
+end
+
+-- X311: the hints name things a player who has just arrived cannot find - "the
+-- East Stand", "the office computer", "the CONCOURSE sign" - on a 760-stud plot
+-- inside a 4,800-stud town. A club-colour marker floats over whatever the
+-- current hint is about, with how far away it is, and goes when the hint does.
+-- No parts: one BillboardGui, moved between targets.
+local beacon: BillboardGui? = nil
+local beaconLabel: TextLabel? = nil
+local beaconArrow: TextLabel? = nil
+
+local function beaconGui(): BillboardGui
+	local existing = beacon
+	if existing then
+		return existing
+	end
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "HintBeacon"
+	gui.Size = UDim2.fromOffset(150, 64)
+	-- just above the thing it marks: +7 put it through the office ceiling
+	gui.StudsOffsetWorldSpace = Vector3.new(0, 3.5, 0)
+	gui.AlwaysOnTop = true
+	gui.MaxDistance = 900
+	local arrow = Theme.text(gui, "▾", "display", {
+		Name = "Arrow",
+		Size = UDim2.new(1, 0, 0, 26),
+		Position = UDim2.fromOffset(0, 34),
+		TextSize = 26,
+		TextColor3 = C.accent,
+		TextXAlignment = Enum.TextXAlignment.Center,
+	})
+	local label = Theme.text(gui, "", "body", {
+		Name = "Distance",
+		Size = UDim2.new(1, 0, 0, 30),
+		TextSize = 15,
+		Font = Theme.fonts.display,
+		TextColor3 = C.accent,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextStrokeTransparency = 0.4,
+	})
+	beacon, beaconLabel, beaconArrow = gui, label, arrow
+	return gui
+end
+
+function refreshBeacon()
+	local target = hintTarget
+	local wanted: BasePart? = nil
+	if target and hintLabel.Visible then
+		local club = ClubRef.clubModel()
+		local found = club and club:FindFirstChild(target, true)
+		if found and found:IsA("BasePart") then
+			wanted = found
+		end
+	end
+	local gui = beacon
+	if not wanted then
+		if gui then
+			gui.Adornee = nil
+			gui.Enabled = false
+		end
+		return
+	end
+	gui = beaconGui()
+	gui.Adornee = wanted
+	gui.Parent = player:WaitForChild("PlayerGui")
+	gui.Enabled = true
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if root and root:IsA("BasePart") and beaconLabel then
+		local away = math.floor((root.Position - (wanted :: BasePart).Position).Magnitude)
+		beaconLabel.Text = if away > 12 then ("%d studs"):format(away) else "here"
+	elseif beaconLabel then
+		beaconLabel.Text = ""
+	end
 end
 
 local function refreshCash()
@@ -788,6 +879,17 @@ seasonCard.frame:GetPropertyChangedSignal("Visible"):Connect(refreshHint)
 refreshCash()
 refreshScoreboard()
 refreshHint()
+-- X311: the marker is re-evaluated on a slow loop rather than on every hint
+-- change, so the distance on it counts down as the player walks over.
+task.spawn(function()
+	while true do
+		local ok, err = pcall(refreshBeacon)
+		if not ok then
+			warn("[FCT] hint beacon:", err)
+		end
+		task.wait(0.5)
+	end
+end)
 refreshPlayButton()
 refreshLoading()
 refreshPhasePanels()
