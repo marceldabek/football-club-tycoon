@@ -43,6 +43,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local CrestBadge = require(ReplicatedStorage.Shared.CrestBadge)
+local HttpService = game:GetService("HttpService") -- X289: the academy intake
 local PlotContext = require(script.Parent.PlotContext)
 
 local PlotGrounds = {}
@@ -843,6 +844,118 @@ end
 -- Builds `Grounds` under the club model. Rebuilding replaces the old one.
 -- Part count: wall ~10, road 1, car park ~63 (40 bay lines), shop 15,
 -- training pitches 2 x 24 + fence ~5 panels + ~48 posts, footpath 3: ~190.
+-- ----------------------------------------------------------------- academy
+--
+-- X289: academy players walk into the squad from nowhere (X277). The plot had
+-- two identical training pitches, no youth setup and nothing anywhere that says
+-- the word academy, so the renewal that keeps a squad alive was invisible until
+-- a new name appeared in the XI. A hut and a board beside training pitch 2,
+-- with this season's intake chalked on it.
+local ACADEMY_CX = TRAIN_CX + TRAIN_W / 2 + 18 -- outside the training fence
+local ACADEMY_CZ = TRAIN_CZ[2]
+
+local function buildAcademy(parent: Instance)
+	local academy = model("Academy", parent)
+	local y0 = GROUND_Y
+	local w, d, h = 14, 10, 8
+	local x0, x1 = ACADEMY_CX - w / 2, ACADEMY_CX + w / 2
+	local z0, z1 = ACADEMY_CZ - d / 2, ACADEMY_CZ + d / 2
+
+	-- a portable cabin: slab, two long walls, one end wall, a door end and a
+	-- shallow roof. The door faces the pitches (west).
+	extents("Slab", x0 - 1, x1 + 1, y0, y0 + 0.4, z0 - 1, z1 + 1, Color3.fromRGB(150, 150, 146), Enum.Material.Concrete, academy)
+	local wall = Color3.fromRGB(226, 222, 210)
+	extents("WallN", x0, x1, y0 + 0.4, y0 + h, z0, z0 + 0.4, wall, Enum.Material.SmoothPlastic, academy)
+	extents("WallS", x0, x1, y0 + 0.4, y0 + h, z1 - 0.4, z1, wall, Enum.Material.SmoothPlastic, academy)
+	extents("WallE", x1 - 0.4, x1, y0 + 0.4, y0 + h, z0, z1, wall, Enum.Material.SmoothPlastic, academy)
+	-- the west face has the doorway in it: two piers and a header
+	extents("WallW", x0, x0 + 0.4, y0 + 0.4, y0 + h, z0, z0 + 3.5, wall, Enum.Material.SmoothPlastic, academy)
+	extents("WallW", x0, x0 + 0.4, y0 + 0.4, y0 + h, z1 - 3.5, z1, wall, Enum.Material.SmoothPlastic, academy)
+	extents("DoorHeader", x0, x0 + 0.4, y0 + 6.4, y0 + h, z0 + 3.5, z1 - 3.5, wall, Enum.Material.SmoothPlastic, academy)
+	extents("Roof", x0 - 0.8, x1 + 0.8, y0 + h, y0 + h + 0.5, z0 - 0.8, z1 + 0.8,
+		Color3.fromRGB(86, 90, 96), Enum.Material.Metal, academy)
+	local fascia = extents("Fascia", x0 - 0.5, x0 - 0.2, y0 + h - 2.4, y0 + h - 0.4, z0, z1,
+		Color3.fromRGB(32, 38, 48), Enum.Material.SmoothPlastic, academy)
+	addSign(fascia, "ACADEMY", { Enum.NormalId.Left })
+
+	-- the intake board on the pitch side of the hut, filled in by
+	-- PlotGrounds.setAcademyIntake when a season rolls over
+	local board = extents("IntakeBoard", x0 - 0.9, x0 - 0.5, y0 + 1.6, y0 + 6.2, z0 + 1, z1 - 1,
+		Color3.fromRGB(28, 60, 40), Enum.Material.SmoothPlastic, academy)
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "Intake"
+	gui.Face = Enum.NormalId.Left
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 26
+	gui.LightInfluence = 0.3
+	gui.MaxDistance = 220
+	gui.Parent = board
+	local title = Instance.new("TextLabel")
+	title.Name = "Title"
+	title.BackgroundTransparency = 1
+	title.Size = UDim2.fromScale(0.92, 0.2)
+	title.Position = UDim2.fromScale(0.04, 0.05)
+	title.Font = Enum.Font.GothamBlack
+	title.TextScaled = true
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.TextColor3 = Color3.fromRGB(240, 240, 235)
+	title.Text = "THIS SEASON'S INTAKE"
+	title.Parent = gui
+	local names = Instance.new("TextLabel")
+	names.Name = "Names"
+	names.BackgroundTransparency = 1
+	names.Size = UDim2.fromScale(0.92, 0.68)
+	names.Position = UDim2.fromScale(0.04, 0.27)
+	names.Font = Enum.Font.PatrickHand
+	names.TextScaled = true
+	names.TextWrapped = true
+	names.TextXAlignment = Enum.TextXAlignment.Left
+	names.TextYAlignment = Enum.TextYAlignment.Top
+	names.TextColor3 = Color3.fromRGB(226, 232, 226)
+	names.Text = "nobody yet"
+	names.Parent = gui
+end
+
+-- X289: the names the club's own academy has produced this season, as published
+-- by ClubService. Safe to call before the grounds exist.
+function PlotGrounds.setAcademyIntake(lines: { string })
+	local club = PlotContext.clubModel()
+	local grounds = club and club:FindFirstChild("Grounds")
+	local label = grounds and grounds:FindFirstChild("Names", true)
+	if label and label:IsA("TextLabel") then
+		label.Text = if #lines > 0 then table.concat(lines, "\n") else "nobody yet"
+	end
+end
+
+local intakeBound = false
+
+local function bindAcademy()
+	local state = PlotContext.stateFolder()
+	if intakeBound or not state then
+		return
+	end
+	intakeBound = true
+	local function refresh()
+		local raw = state:GetAttribute("Academy")
+		local lines = {}
+		if type(raw) == "string" and raw ~= "" then
+			local ok, decoded = pcall(function()
+				return HttpService:JSONDecode(raw)
+			end)
+			if ok and type(decoded) == "table" then
+				for _, line in decoded do
+					if type(line) == "string" then
+						table.insert(lines, line)
+					end
+				end
+			end
+		end
+		PlotGrounds.setAcademyIntake(lines)
+	end
+	state:GetAttributeChangedSignal("Academy"):Connect(refresh)
+	task.defer(refresh)
+end
+
 function PlotGrounds.build(club: Model): Model
 	local old = club:FindFirstChild("Grounds")
 	if old then
@@ -866,8 +979,10 @@ function PlotGrounds.build(club: Model): Model
 	buildKiosk(grounds)
 	buildBorders(grounds)
 	buildSupportersBar(grounds)
+	buildAcademy(grounds) -- X289
 
 	PlotContext.place(grounds)
+	bindAcademy()
 	return grounds
 end
 

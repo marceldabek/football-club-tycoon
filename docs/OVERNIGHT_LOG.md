@@ -1687,3 +1687,14 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Three placement fixes on the way: the frame first hung across the doorway, the pennants sat on top of the trophies, and the tier-3 tactics board shared the wall with all of it - the board moved to the long wall opposite (past the tier-4 crest panel) and the tier-4 plant to the far corner, so each wall now carries one thing.
 - RunAll 464 passed.
 
+### 2026-09-17 18:28 — The academy exists in the world (X289)
+- Academy players walked into the squad from nowhere (X277): the plot had two identical training pitches, no youth setup and nothing anywhere that said the word academy, so the renewal that keeps a squad alive was invisible until a new name appeared in the XI.
+- A portable cabin now stands outside the training fence beside pitch 2 - slab, walls with a doorway facing the pitches, a shallow metal roof, an ACADEMY fascia and a green board with **this season's intake chalked on it** (shirt number, name, age), fed by a new `Academy` attribute that `ClubService.newSeason` publishes. 10 parts.
+- Pitch 2 is now the academy's: `TrainingLife` runs a session there too, with smaller figures and only as many of them as the intake, so an empty academy means an empty pitch.
+- Verified in play: the hut and sign sit between the training fence and the boundary wall (screenshot), the board read "1 Pablo Rashford-Lee (19) / 3 Vinnie Bloxham (19) / 13 Rafa Quayle (17)" straight after a rollover, and with a three-player intake the two pitches ran 6 + 3 figures (9 torsos in two session folders).
+- RunAll 464 passed.
+
+### 2026-09-17 18:28 — Backlog extended to X324
+- The list was down to two unblocked items, so a drafting pass added sixteen more (X309-X324) after checking them against everything ticked tonight. The themes it found: sponsorship income (the FINANCE tab has essentially one income line), away fixtures that still look and pay like home ones, a beacon over whatever the hint pill is pointing at, a way out of the office for a first-time player, a crowd that fills and empties instead of appearing, a referee, a statue of the record appearance holder on the forecourt, named pegs in the dressing rooms, a concourse that has people on it, a churchyard, schools with railings and playgrounds, weather in the fast-forward, cafe/pub/market sound, transfer bids for your players, and a plan drawn in the bus card.
+- Its own first three would be the hint beacon, away fixtures and sponsorship; I agree with that order for the disk items, and the statue is the best of the studio ones.
+

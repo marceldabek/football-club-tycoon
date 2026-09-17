@@ -545,9 +545,13 @@ function ClubService.newSeason(): ({ string }, { string }, { Squad.Player })
 	local arrivals: { string } = {}
 	local graduates = Squad.promoteYouth(players, rng, nextId, spoken)
 	nextId += #graduates
+	local intake: { string } = {}
 	for _, p in graduates do
 		table.insert(arrivals, ("%s (%d) comes up from the academy, shirt %d."):format(p.name, p.age, p.number))
+		-- X289: chalked on the board outside the academy hut
+		table.insert(intake, ("%d  %s  (%d)"):format(p.number, p.name, p.age))
 	end
+	ClubState.set("Academy", HttpService:JSONEncode(intake))
 	recomputeLineup()
 	publish()
 	return news, arrivals, retired
