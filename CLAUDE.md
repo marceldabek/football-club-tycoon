@@ -1035,7 +1035,8 @@ The game is moving from one club per server to a **shared multiplayer town**. Fu
 
 ## Town
 
-- The town is **Rivermere** (never "Riverdale", even though one concept map says so). The river is the **River Lune**.
+- The town is **Rivermere**. Many concept images say "Riverdale": always use Rivermere instead. The river is the **River Lune**.
+- District names (from the concept map): **Northfields**, **Westdale**, **Riverside**, **Riverside Park**, plus Town Centre, Station and Industrial Estate.
 - Every player club is from Rivermere.
 - The concept map is the target idea, not an exact copy: a river through the middle with bridges, a railway and station, a town centre with a market square, terraced housing estates, an industrial estate, a riverside park, a community sports centre, and **club grounds on the edge of town**.
 - Landmarks: church spire, river bridge, railway viaduct over the river.

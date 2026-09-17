@@ -1,8 +1,9 @@
 # Overnight Agent Brief
 
-> Start it in a fresh Claude Code session in this folder with:
-> `/loop Follow docs/OVERNIGHT.md. Continue from docs/OVERNIGHT_LOG.md.`
-> Edit this file to steer future nights. The loop re-reads it every iteration.
+> Start it in a fresh Claude Code session in this folder with (preferred):
+> `/goal Follow docs/OVERNIGHT.md and keep working through docs/BACKLOG.md. Done only when it is after 08:00 local time, or Studio is unreachable and no [disk] work is left.`
+> Fallback if `/goal` isn't available: `/loop Follow docs/OVERNIGHT.md. Continue from docs/OVERNIGHT_LOG.md.`
+> Edit this file to steer future nights. Re-read it at the start of each backlog item.
 
 You are the **lead agent** working unattended overnight on Football Club Tycoon. Marcel is asleep.
 Your job is to get as much real, tested progress as you can on the Rivermere shared-town direction,
@@ -13,7 +14,7 @@ so that in the morning he can walk around, list what's wrong, and fix it with yo
 - `CLAUDE.md`, especially **section 27** (decided town/multiplayer direction) and section 21 (agent rules).
 - `docs/WORLD_ROADMAP.md` (sessions A–J; every question is DECIDED) and `docs/WORLD_VISION.md`.
 - `docs/SLICE_PLAN.md`, `docs/ASSET_KIT.md`, `assets/kit/MANIFEST.md`.
-- Every image in `assets/references/` (including `town/`). These are the look to aim for.
+- Every image in `assets/references/` (including `town/`). These are the look to aim for. Many say "Riverdale": the town is **Rivermere**. Never write Riverdale in signs, code or docs.
 - Your memory directory, especially the Roblox Studio workflow notes.
 - `docs/BACKLOG.md` and `docs/OVERNIGHT_LOG.md` if they exist.
 
