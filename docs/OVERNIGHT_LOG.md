@@ -92,3 +92,8 @@ ambient audio (F1.1), matchday fans (G1.1), 10-part team coach (X14).
 - Ambient audio: four Pro Sound Effects loops (street, birds, river, industry) crossfade by camera position (F1.1). Not listened to (no audio in MCP); volumes are guesses.
 - Matchday fans (subagent G1.1): client-side walkers on the plot footpaths and 5 hi-vis stewards for any plot on matchday within 900 studs; 39 fans at PreMatch, 17 still walking in Match. Screenshot checked.
 - RunAll 128/128 (approx; last full run 126 before MatchdayRoutesTest).
+
+### 2026-09-17 ~01:40 — Kit church (E9.1), riverside promenade (E6.1)
+- Kit church with broach spire replaces the greybox landmark at (-220, -230), scaled to 130 tall; spire reads above the centre roofs.
+- `RiverDresser` (reference `RivermereRiverside.png`): quay wall, promenade, railings, benches, planters, lamps along the north bank, pontoons and boats on the marina reach; 813 parts. Where to look: (660, 9, 316) looking east. Follow-ups: marina slab, empty grass behind the promenade (X18), plain bridges (X19).
+- RunAll 130/130.
