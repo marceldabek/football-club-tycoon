@@ -1524,3 +1524,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Smaller ones: `formNet` reads the club's own row (no clone-and-sort, and nil-safe before a season is restored), `FormDemandCap` is 0.15 (a 10-match season can only reach ±10 net), the promenade blade resolves Plot 1 from the layout instead of a hardcoded position, `nearestRoad` is annotated for strict mode, and the injury chip's gutter matches the rest of the row.
 - RunAll 439 passed.
 
+### 2026-09-17 16:13 — Honest amenity sign, one crowd, the rest of the signs, plaque crests (X280–X283 done)
+- X280 `UpgradeService`: the concourse prompt only advertises "+N% demand" when capacity is above demand. For most of the game demand runs ahead of the ground, so those extra fans are turned away and the bonus earns £0 at the moment the player is asked to pay; it now reads "+£2 per fan — ground already full". Checked in play both ways by shrinking and restoring the stands.
+- X281: the town's ambient crowd bed and `MatchAudio` play the same asset, and the bed was only silenced within 220 studs while a plot is 760 across — so standing in your own car park or by the training pitches layered a second, EQ'd copy of the same loop. `MatchAudio.isCrowdPlaying()` now stands the bed down entirely while a match crowd plays.
+- X282: X270 only covered five signs. The shared `addSign` helper (dugout HOME/AWAY, MATCHDAY post, CONCOURSE, stand labels, TEAM COACH), the pitch-side sponsor boards (on camera for the whole match) and the stand name plate are now 0.25 too, so nothing on the ground blacks out at an evening fixture.
+- X283: the gate pier slogan plaques carry the club crest under the wording, as on `RivermereTurnstileEntrance.png` — 2 per ground, 0 parts. They were the last club sign without one.
+- RunAll 439 passed; the plaque crests and both amenity wordings confirmed in play.
+

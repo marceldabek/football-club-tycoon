@@ -18,6 +18,7 @@ local SoundService = game:GetService("SoundService")
 local TownLayout = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TownLayout"))
 local TownLifeMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TownLifeMath"))
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local MatchAudio = require(script.Parent.MatchAudio)
 
 type Bed = { id: string, volume: number, sound: Sound?, target: number }
 
@@ -165,7 +166,13 @@ local function retarget()
 	BEDS.river.target = river * height
 	BEDS.industry.target = industry * height
 	BEDS.birds.target = birds * height
-	BEDS.crowd.target = TownLifeMath.distantCrowdWeight(nearestLiveGround(p)) * height
+	-- X281: the town bed and MatchAudio play the same crowd asset, and the bed was
+	-- only silenced within 220 studs while a plot is 760 across, so standing in
+	-- your own car park or by the training pitches layered a second copy on top.
+	-- MatchAudio owns the crowd whenever it is playing.
+	BEDS.crowd.target = if MatchAudio.isCrowdPlaying()
+		then 0
+		else TownLifeMath.distantCrowdWeight(nearestLiveGround(p)) * height
 end
 
 -- X87: the church bell tolls from the spire every BELL_EVERY seconds (TEMP:

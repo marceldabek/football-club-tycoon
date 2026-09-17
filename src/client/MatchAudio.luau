@@ -33,6 +33,11 @@ function MatchAudio.startCrowd(fullness: number)
 	end
 end
 
+-- X281: the town's ambient crowd bed stands down while this one plays
+function MatchAudio.isCrowdPlaying(): boolean
+	return ambient ~= nil
+end
+
 function MatchAudio.stopCrowd()
 	if ambient then
 		ambient:Stop()

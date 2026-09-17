@@ -112,7 +112,10 @@ local function addSign(target: BasePart, text: string, faces: { Enum.NormalId }?
 		gui.Face = face
 		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 		gui.PixelsPerStud = 24
-		gui.LightInfluence = 0.85
+		-- X282: near-unlit like the fascia and banners, so the dugout, matchday
+		-- post, concourse, stand labels and coach boards still read at an
+		-- evening fixture (nothing lights them)
+		gui.LightInfluence = 0.25
 		gui.MaxDistance = 260
 		gui.Parent = target
 		local label = Instance.new("TextLabel")
@@ -404,7 +407,7 @@ local function sponsorBoard(parent: Instance, cframe: CFrame, length: number, in
 	gui.Face = Enum.NormalId.Front
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = 20
-	gui.LightInfluence = 1
+	gui.LightInfluence = 0.25 -- X282: the ad boards are on camera all match
 	gui.Parent = board
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
@@ -600,7 +603,7 @@ local function buildTunnel(parent: Instance)
 	gui.Face = Enum.NormalId.Right
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = 24
-	gui.LightInfluence = 0.8
+	gui.LightInfluence = 0.25
 	gui.Parent = header
 	local label = Instance.new("TextLabel")
 	label.Name = "ClubName"
@@ -918,6 +921,7 @@ local function buildTurnstiles(parent: Instance)
 	-- X84: navy slogan plaques on the outer side faces of the end piers (the
 	-- walk-up faces carry the open gate leaves) and a shrub planter beside the
 	-- gates (RivermereTurnstileEntrance.png)
+	-- X283: with a crest under the wording, as on RivermereTurnstileEntrance.png
 	for i, slogan in { "PRIDE\nPEOPLE\nRIVERMERE", "MATCH DAYS\nBRING PEOPLE\nTOGETHER" } do
 		local side = if i == 1 then -1 else 1
 		-- x - 3.9 .. x - 0.5: clear of the perimeter wall (x +- 0.4) that starts at the pier
@@ -929,14 +933,15 @@ local function buildTurnstiles(parent: Instance)
 		plaqueGui.PixelsPerStud = 50
 		plaqueGui.Parent = plaque
 		local plaqueText = Instance.new("TextLabel")
-		plaqueText.Size = UDim2.fromScale(0.86, 0.8)
-		plaqueText.Position = UDim2.fromScale(0.07, 0.1)
+		plaqueText.Size = UDim2.fromScale(0.86, 0.6)
+		plaqueText.Position = UDim2.fromScale(0.07, 0.06)
 		plaqueText.BackgroundTransparency = 1
 		plaqueText.Font = Enum.Font.GothamBold
 		plaqueText.TextScaled = true
 		plaqueText.TextColor3 = Color3.fromRGB(240, 240, 240)
 		plaqueText.Text = slogan
 		plaqueText.Parent = plaqueGui
+		CrestBadge.draw(plaqueGui, SIGN_DARK:Lerp(Color3.new(1, 1, 1), 0.12), UDim2.fromScale(0.5, 0.26), UDim2.fromScale(0.5, 0.68), Vector2.new(0.5, 0))
 	end
 	-- out beside the plaque (x - 3.9 .. x - 0.5), not in front of it
 	local planterX, planterZ = x - 7.5, TURNSTILE_Z + total / 2 + 2.5

@@ -51,8 +51,17 @@ function UpgradeService.refreshPrompt()
 		local current = Config.AmenityLevels[amenity + 1]
 		local perFanGain = nextAmenity.perFan - (if current then current.perFan else 0)
 		local demandGain = nextAmenity.demandBonus - (if current then current.demandBonus else 0)
-		amenityPrompt.ActionText = ("Build %s (+%s per fan, +%d%% demand) — %s"):format(
-			nextAmenity.name, money(perFanGain), math.floor(demandGain * 100 + 0.5), money(nextAmenity.cost))
+		-- X280: demand runs ahead of capacity for most of the game, so the extra
+		-- fans the bonus brings are turned away and earn nothing. Only sell the
+		-- demand when there is room for it.
+		local capacity = ClubState.capacity()
+		local demand = (ClubState.get("Demand") :: number?) or 0
+		local roomToGrow = capacity > demand
+		amenityPrompt.ActionText = if roomToGrow
+			then ("Build %s (+%s per fan, +%d%% demand) — %s"):format(
+				nextAmenity.name, money(perFanGain), math.floor(demandGain * 100 + 0.5), money(nextAmenity.cost))
+			else ("Build %s (+%s per fan — ground already full) — %s"):format(
+				nextAmenity.name, money(perFanGain), money(nextAmenity.cost))
 		amenityPrompt.Enabled = managing
 	else
 		amenityPrompt.ActionText = "Fully built"
