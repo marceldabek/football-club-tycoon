@@ -25,8 +25,14 @@
 --
 -- Part budget: semiPair <= 14 (body 1, attic wedges 2, roof slabs 2, ridge 1,
 -- chimney 2, garden wall <= 3 segments, hedge <= 3 segments) against a
--- target of <= 16. shed ~15-16 (body 1, roof 2, sign 1, yard 1,
--- fence 7, pallets 2-3, +1 sand heap for "builders yard") against <= 25.
+-- target of <= 16. driveway <= 3 (slab 1, optional parked car body + cabin 2).
+-- shed ~15-16 (body 1, roof 2, sign 1, yard 1, fence 7, pallets 2-3, +1 sand
+-- heap for "builders yard") against <= 25.
+--
+-- Plot layout (backlog X30): a semis block is split into rowLayout slots,
+-- each pair centred in its slot with a SIDE_GAP driveway strip between
+-- neighbours, and fitPair pushes the house back so the whole front garden
+-- (wall + hedge) sits inside the block instead of on the public pavement.
 
 local EstateBuilder = {}
 
@@ -72,6 +78,18 @@ local SHED_DOOR_TILE = 30 -- one shed_door.png image per this many studs of fron
 local YARD_DEPTH = 20
 local MIN_SEGMENT = 1 -- garden wall / hedge stubs shorter than this are left out
 local HEDGE_GAP_EXTRA = 0.4
+local GARDEN_WALL_T = 1
+local DRIVE_TOP = 0.35 -- differs by 0.05 from lawns (0.30) and forecourt paths (0.40), 0.10 under the pavement (0.45)
+local DRIVE_UNDER = 0.1 -- a driveway runs this far under a neighbouring house body (no shared face with the gable)
+local DRIVE_INSET = 0.05 -- ...and stops this far inside the block's edges
+local TARMAC = Color3.fromRGB(62, 62, 66)
+local GRAVEL = Color3.fromRGB(168, 160, 146)
+local CAR_COLOURS = {
+	Color3.fromRGB(40, 48, 62), -- navy
+	Color3.fromRGB(150, 152, 156), -- silver
+	Color3.fromRGB(128, 28, 30), -- red
+	Color3.fromRGB(236, 236, 232), -- white
+}
 
 -- Pure: pairs of semis a block of this length should hold. A block 40-50
 -- long is one pair; a longer block gets floor(length / 48) pairs (matches a
@@ -86,9 +104,63 @@ end
 -- image's left edge is the -Z end of each tile. Fraction across one house.
 EstateBuilder.DOOR_U = { semi_front_a = 83 / 512, semi_front_b = 1 - 83 / 512 } :: { [string]: number }
 EstateBuilder.GATE_WIDTH = 4 -- gap in the garden wall per door (front paths are 3 wide)
-EstateBuilder.GARDEN_OUT = 6 -- garden wall distance out from the front wall
+EstateBuilder.GARDEN_OUT = 6 -- garden wall (centre line) distance out from the front wall
+-- how far the front garden reaches out from the front wall: the wall's outer
+-- face (the hedge stands behind the wall, on the house side)
+EstateBuilder.GARDEN_REACH = EstateBuilder.GARDEN_OUT + GARDEN_WALL_T / 2
+EstateBuilder.PLOT_MARGIN = 0.5 -- the garden wall stays this far inside the block's road-facing edge
+EstateBuilder.MIN_HOUSE_DEPTH = 14 -- TEMP
+EstateBuilder.MAX_HOUSE_DEPTH = 24 -- TEMP: a block whose short side faces the road keeps a back garden instead of a 40-deep house
+EstateBuilder.SIDE_GAP = 10 -- TEMP driveway strip between neighbouring pairs (half of it at each block end)
 
 export type Segment = { z0: number, z1: number }
+export type PairSlot = { z: number, width: number }
+
+-- Pure: house depth and house-centre offset along local X (+ = away from the
+-- road) for a semis block `blockDepth` deep, framed at the block centre with
+-- the road-facing edge at x = -blockDepth / 2. The front garden (`gardenOut`
+-- from the front wall to its outermost face) starts PLOT_MARGIN inside that
+-- edge and the house front stands right behind it. The house takes whatever
+-- depth is left, clamped to [minDepth, maxDepth] (maxDepth defaults to
+-- MAX_HOUSE_DEPTH): on a normal block its back sits on the block's back
+-- edge; on a deep block the rest is back garden; if even minDepth does not
+-- fit, the garden still stays inside the road edge and the house back runs
+-- past the block's back edge instead (no current block is that shallow).
+function EstateBuilder.fitPair(blockDepth: number, gardenOut: number, minDepth: number, maxDepth: number?): (number, number)
+	local front = -blockDepth / 2 + EstateBuilder.PLOT_MARGIN + gardenOut
+	local available = blockDepth - EstateBuilder.PLOT_MARGIN - gardenOut
+	local houseDepth = math.max(minDepth, math.min(available, maxDepth or EstateBuilder.MAX_HOUSE_DEPTH))
+	return houseDepth, front + houseDepth / 2
+end
+
+-- Pure: pair slots and driveway slabs along a semis block `blockWidth` wide
+-- (local Z, centred on 0). Each of pairCount(blockWidth) slots holds one pair
+-- centred in it, narrowed by the side gap (sideGap, but at most a quarter of
+-- the slot). Driveway slabs fill every gap: a full gap between neighbours,
+-- half a gap at each block end. Each slab runs DRIVE_UNDER under the house
+-- bodies beside it and stops DRIVE_INSET inside the block's ends. Sorted by z.
+function EstateBuilder.rowLayout(blockWidth: number, sideGap: number): ({ PairSlot }, { Segment })
+	local n = EstateBuilder.pairCount(blockWidth)
+	local step = blockWidth / n
+	local gap = math.clamp(sideGap, 0, step * 0.25)
+	local slots: { PairSlot } = {}
+	for i = 1, n do
+		table.insert(slots, { z = -blockWidth / 2 + (i - 0.5) * step, width = step - gap })
+	end
+	local drives: { Segment } = {}
+	if gap > 0 then
+		for i = 0, n do
+			local b = -blockWidth / 2 + i * step
+			-- the block ends (i = 0, i = n) have houses on one side only
+			local z0 = if i == 0 then b + DRIVE_INSET else b - gap / 2 - DRIVE_UNDER
+			local z1 = if i == n then b - DRIVE_INSET else b + gap / 2 + DRIVE_UNDER
+			if z1 - z0 > DRIVE_UNDER + DRIVE_INSET then
+				table.insert(drives, { z0 = z0, z1 = z1 })
+			end
+		end
+	end
+	return slots, drives
+end
 
 -- Pure: local Z of house `house` (0 = the -Z house, 1 = the +Z house) front
 -- door, for a pair `width` wide centred on Z = 0 wearing front `frontName`.
@@ -292,17 +364,70 @@ function EstateBuilder.semiPair(cframe: CFrame, width: number, depth: number, he
 	pots.CastShadow = false
 
 	-- low front garden wall + hedge, GARDEN_OUT studs out from the front (-X),
-	-- with a gate gap in each where a house's front path comes through (X29)
+	-- with a gate gap in each where a house's front path comes through (X29).
+	-- Nothing reaches further out than GARDEN_REACH (the wall's outer face), so
+	-- fitPair can keep the garden inside the block.
 	local wallX = -(depth / 2 + EstateBuilder.GARDEN_OUT)
 	local doors = { EstateBuilder.doorZ(width, frontName, 0), EstateBuilder.doorZ(width, frontName, 1) }
 	for _, seg in EstateBuilder.splitAroundGaps(-width / 2, width / 2, doors, EstateBuilder.GATE_WIDTH, MIN_SEGMENT) do
-		block("Part", "GardenWall", Vector3.new(1, 1.2, seg.z1 - seg.z0), cframe * CFrame.new(wallX, 0.6, (seg.z0 + seg.z1) / 2), WALL_STONE, Enum.Material.Concrete, model, true)
+		block("Part", "GardenWall", Vector3.new(GARDEN_WALL_T, 1.2, seg.z1 - seg.z0), cframe * CFrame.new(wallX, 0.6, (seg.z0 + seg.z1) / 2), WALL_STONE, Enum.Material.Concrete, model, true)
 	end
-	-- the hedge overlaps the wall's front 0.2 studs, so its gaps are HEDGE_GAP_EXTRA
-	-- wider: the segment end faces never share a plane with the wall's
+	-- the hedge stands behind the wall (house side; X30: it used to stand in
+	-- front and reach 1.2 further out) overlapping the wall's back 0.2 studs,
+	-- so its gaps are HEDGE_GAP_EXTRA wider: the segment end faces never share
+	-- a plane with the wall's
 	for _, seg in EstateBuilder.splitAroundGaps(-width / 2 + 1, width / 2 - 1, doors, EstateBuilder.GATE_WIDTH + HEDGE_GAP_EXTRA, MIN_SEGMENT) do
-		local hedge = block("Part", "Hedge", Vector3.new(1.4, 1.8, seg.z1 - seg.z0), cframe * CFrame.new(wallX - 1, 0.9, (seg.z0 + seg.z1) / 2), HEDGE_GREEN, Enum.Material.Grass, model, false)
+		local hedge = block("Part", "Hedge", Vector3.new(1.4, 1.8, seg.z1 - seg.z0), cframe * CFrame.new(wallX + 1, 0.9, (seg.z0 + seg.z1) / 2), HEDGE_GREEN, Enum.Material.Grass, model, false)
 		hedge.CastShadow = false
+	end
+
+	model.Parent = parent
+	return model
+end
+
+-- A driveway strip beside a semi pair (X30): one tarmac or gravel slab
+-- `width` wide (local Z) and `length` long (local X), top at DRIVE_TOP, with
+-- an optional parked car block (body + cabin) near the road end when the
+-- strip is at least 5 wide. The frame is the slab's centre at ground level,
+-- local -X toward the road. <= 3 parts.
+function EstateBuilder.driveway(cframe: CFrame, width: number, length: number, parent: Instance, withCar: boolean, rng: Random?): Model
+	local r = rng or Random.new()
+	local model = Instance.new("Model")
+	model.Name = "Driveway"
+	local gravel = r:NextNumber() < 0.4
+	local slab = block(
+		"Part",
+		"Drive",
+		Vector3.new(length, DRIVE_TOP, width),
+		cframe * CFrame.new(0, DRIVE_TOP / 2, 0),
+		if gravel then GRAVEL else TARMAC,
+		if gravel then Enum.Material.Pebble else Enum.Material.Asphalt,
+		model,
+		true
+	)
+	slab.CastShadow = false
+	model.PrimaryPart = slab
+
+	local carL, carW, bodyH, sink = 8, 4, 1.8, 0.1
+	if withCar and width >= 5 and length >= carL + 2 then
+		local colour = CAR_COLOURS[r:NextInteger(1, #CAR_COLOURS)]
+		-- the nose sits 1 stud inside the road end; the body sinks `sink` into
+		-- the slab and the cabin `sink` into the body (no shared faces)
+		local cx = -length / 2 + 1 + carL / 2
+		local bodyBottom = DRIVE_TOP - sink
+		block("Part", "CarBody", Vector3.new(carL, bodyH, carW), cframe * CFrame.new(cx, bodyBottom + bodyH / 2, 0), colour, Enum.Material.SmoothPlastic, model, true)
+		local cabinH = 1.4
+		local cabin = block(
+			"Part",
+			"CarCabin",
+			Vector3.new(carL * 0.55, cabinH, carW - 0.4),
+			cframe * CFrame.new(cx + 0.6, bodyBottom + bodyH - sink + cabinH / 2, 0),
+			colour:Lerp(Color3.new(0, 0, 0), 0.35),
+			Enum.Material.Glass,
+			model,
+			false
+		)
+		cabin.CastShadow = false
 	end
 
 	model.Parent = parent
