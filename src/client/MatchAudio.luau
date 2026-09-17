@@ -152,7 +152,11 @@ function MatchAudio.nearMiss()
 	sound:Play()
 	task.delay(1.6, function()
 		if sound.Parent then
-			TweenService:Create(sound, TweenInfo.new(0.6), { Volume = 0 }):Play()
+			local fade = TweenService:Create(sound, TweenInfo.new(0.6), { Volume = 0 })
+			fade.Completed:Once(function()
+				sound:Destroy()
+			end)
+			fade:Play()
 		end
 	end)
 end

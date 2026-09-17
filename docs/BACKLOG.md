@@ -298,4 +298,14 @@
 - [x] X183 (12:25 MatchAudio.nearMiss: goalCheer at 0.28 volume, 0.72 speed, faded; TEMP until a licensed ooh clip) Home saves and misses get no crowd reaction: a short "ooh" (quieter goalCheer or a PSE crowd clip) in MatchPresenter's SAVE/miss branches, 0 parts `[studio]` S
 - [x] X184 (12:27 PondDucks client: 3 ducks, 2 parts each, loops on the Pond Water disc) The Riverside Park pond is empty: 3 client ducks paddling loops on the Pond water within 250, off on Low. RivermereRiverside.png `[studio]` S
 - [x] X185 (12:35 BenchSitters client: about half the 8 nearest kit benches within 200 get 1-2 sitters, town-wide) Nobody sits on Riverside Park benches: 3 client seated figures on the nearest park benches within 220, off on Low. RivermereRiverside.png `[studio]` S
+- [ ] X186 Joining or reconnecting mid-match flashes "KICK-OFF" (and "HALF TIME" in the second half): HUD counts the first Phase after loading as a kick-off and starts lastMinute at 0; seed both from current state, 0 parts. Stadium matchday `[studio]` S
+- [ ] X187 Joining your own evening fixture already in Match shows the afternoon sky: Match.client onPhase only calls Sky.setMatchday on PreMatch; also on an own-club Match, 0 parts `[studio]` S
+- [ ] X188 A player subbed off in the last 10 s pops back onto the bench after full time: MatchPresenter.applySubs' delayed teleport-and-sit runs after finish(); skip unless still playing, 0 parts `[studio]` S
+- [ ] X189 Long club names are clipped on the match scoreboard (34 px label, TextSize 24, wraps): TextScaled with a UITextSizeConstraint max 24 in HUD, 0 parts `[studio]` S
+- [ ] X190 Club name length counts bytes, not letters (Onboarding, Session, Profile use #name / string.sub): use utf8.len / utf8.offset, 0 parts `[disk]` S
+- [ ] X191 The honours line says "1 promotions" / "1 relegations": singular for 1 in ClubPanel, 0 parts `[disk]` S
+- [ ] X192 The onboarding hint says "the CLUB button" but the button is "CLUB OFFICE": fix the hint text, 0 parts `[disk]` S
+- [ ] X193 "Fans were turned away" stand hint shows whenever the East Stand is level 1 even with nobody turned away: only when Demand > Capacity, refresh on Demand/Capacity, 0 parts `[disk]` S
+- [ ] X194 The plot picker mixes "ground" and "plot" ("CHOOSE YOUR GROUND" / "Plot 2 of 4 — free"): "Ground 2 of 4 — for sale", 0 parts `[disk]` S
+- [ ] X195 ClubPanel keeps its own ordinal() copy of Theme.ordinal: use Theme's, 0 parts `[disk]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

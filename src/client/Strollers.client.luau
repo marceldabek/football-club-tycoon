@@ -147,7 +147,13 @@ local moveCFrames: { CFrame } = {}
 local check = 0
 local elapsed = 0
 local walksBuilt = false
-local nextWalkScan = 0 -- a full town scan, so at most every 20 s until found
+local nextWalkScan = 0 -- the walk rebuild is a full town scan, so at most every 10 s
+-- promenade strips stream in as the camera moves: rebuild to take them in
+town.DescendantAdded:Connect(function(d)
+	if d.Name == "Promenade" and d:IsA("BasePart") then
+		walksBuilt = false
+	end
+end)
 
 local function pose(w: Walker, pos: Vector3, facing: Vector3)
 	local bob = math.abs(math.sin((elapsed + w.phase) * 6)) * 0.12
@@ -179,7 +185,7 @@ RunService.RenderStepped:Connect(function(dt: number)
 	if check <= 0 then
 		check = 2
 		if not walksBuilt and elapsed >= nextWalkScan then
-			nextWalkScan = elapsed + 20
+			nextWalkScan = elapsed + 10
 			rebuildWalks()
 			walksBuilt = #walks > 0
 		end

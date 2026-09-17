@@ -87,6 +87,11 @@ RunService.RenderStepped:Connect(function(dt: number)
 		local cam = if camera then camera.CFrame.Position else Vector3.zero
 		local best: BasePart? = nil
 		local bestD = NEAR
+		for i = #pitches, 1, -1 do
+			if not pitches[i].Parent then
+				table.remove(pitches, i)
+			end
+		end
 		if player:GetAttribute("Quality") ~= "Low" then
 			for _, p in pitches do
 				if p.Parent then

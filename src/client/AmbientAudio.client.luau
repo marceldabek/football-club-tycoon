@@ -109,16 +109,27 @@ end
 type RoomBox = { cf: CFrame, half: Vector3 }
 local rooms: { RoomBox } = {}
 local roomsAge = math.huge
-local function refreshRooms()
-	table.clear(rooms)
-	local plots = workspace:FindFirstChild("Plots")
-	if not plots then
-		return
+local roomModels: { [Model]: boolean } = {}
+task.spawn(function()
+	local plots = workspace:WaitForChild("Plots", math.huge)
+	local function consider(d: Instance)
+		if d:IsA("Model") and (d.Name == "Office" or d.Name == "DressingRooms") then
+			roomModels[d] = true
+		end
 	end
 	for _, d in plots:GetDescendants() do
-		if d:IsA("Model") and (d.Name == "Office" or d.Name == "DressingRooms") then
-			local cf, size = d:GetBoundingBox()
+		consider(d)
+	end
+	plots.DescendantAdded:Connect(consider)
+end)
+local function refreshRooms()
+	table.clear(rooms)
+	for model in roomModels do
+		if model.Parent then
+			local cf, size = model:GetBoundingBox()
 			table.insert(rooms, { cf = cf, half = size / 2 })
+		else
+			roomModels[model] = nil
 		end
 	end
 end

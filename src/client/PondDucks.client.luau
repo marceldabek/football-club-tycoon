@@ -48,14 +48,19 @@ for i = 1, DUCKS do
 end
 
 local water: BasePart? = nil
-local function findWater(): BasePart?
-	for _, d in town:GetDescendants() do
-		if d:IsA("BasePart") and d.Name == "Water" and d.Parent and d.Parent.Name == "Pond" then
-			return d
-		end
-	end
-	return nil
+local function isPondWater(d: Instance): boolean
+	return d:IsA("BasePart") and d.Name == "Water" and d.Parent ~= nil and d.Parent.Name == "Pond"
 end
+for _, d in town:GetDescendants() do
+	if isPondWater(d) then
+		water = d :: BasePart
+	end
+end
+town.DescendantAdded:Connect(function(d)
+	if isPondWater(d) then
+		water = d :: BasePart
+	end
+end)
 
 local moveParts: { BasePart } = {}
 local moveCFrames: { CFrame } = {}
@@ -66,8 +71,8 @@ RunService.RenderStepped:Connect(function(dt: number)
 	check -= dt
 	if check <= 0 then
 		check = 2
-		if not (water and water.Parent) then
-			water = findWater()
+		if water and not water.Parent then
+			water = nil
 		end
 		local camera = workspace.CurrentCamera
 		local want = false

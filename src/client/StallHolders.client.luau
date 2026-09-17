@@ -104,6 +104,11 @@ RunService.RenderStepped:Connect(function(dt: number)
 		local cam = if camera then camera.CFrame.Position else Vector3.zero
 		local low = player:GetAttribute("Quality") == "Low"
 		local seen: { [Model]: boolean } = {}
+		for i = #stalls, 1, -1 do
+			if not stalls[i].Parent then
+				table.remove(stalls, i)
+			end
+		end
 		if not low then
 			for i, d in stalls do
 				if d.Parent then

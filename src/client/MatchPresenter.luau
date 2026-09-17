@@ -552,7 +552,15 @@ local function crowdReact()
 	for _, fan in fans do
 		if fan:IsA("BasePart") then
 			local offset = FAN_PART_OFFSETS[fan.Name] or Vector3.zero
-			local seat = (fan.CFrame * CFrame.new(-offset)).Position
+			-- the resting position, remembered on the first hop so a hop that
+			-- starts mid-hop doesn't leave the part floating
+			local rest = fan:GetAttribute("RestPosition")
+			if typeof(rest) ~= "Vector3" then
+				rest = fan.Position
+				fan:SetAttribute("RestPosition", rest)
+			end
+			local restPos = rest :: Vector3
+			local seat = (CFrame.new(restPos) * fan.CFrame.Rotation * CFrame.new(-offset)).Position
 			local key = Vector3.new(math.round(seat.X * 2), math.round(seat.Y * 2), math.round(seat.Z * 2))
 			local delay = seatDelay[key]
 			if not delay then
@@ -560,8 +568,9 @@ local function crowdReact()
 				seatDelay[key] = delay
 			end
 			task.delay(delay, function()
+				fan.Position = restPos
 				TweenService:Create(fan, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 2, true),
-					{ Position = fan.Position + Vector3.new(0, 1.5, 0) }):Play()
+					{ Position = restPos + Vector3.new(0, 1.5, 0) }):Play()
 			end)
 		end
 	end

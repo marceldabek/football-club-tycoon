@@ -122,6 +122,11 @@ local function refresh()
 	for i = 1, math.min(MAX_BENCHES, #ranked) do
 		keep[ranked[i].bench] = true
 	end
+	for bench in empty do
+		if not keep[bench] then
+			empty[bench] = nil
+		end
+	end
 	for bench, m in seated do
 		if not keep[bench] then
 			m:Destroy()

@@ -128,6 +128,10 @@ RunService.RenderStepped:Connect(function(dt: number)
 		local want: { [BasePart]: boolean } = {}
 		if not low and clubs then
 			for grass, plotName in pitches do
+				if not grass.Parent then
+					pitches[grass] = nil
+					continue
+				end
 				local state = clubs:FindFirstChild(plotName)
 				if grass.Parent and state and state:GetAttribute("Phase") == "Manage" and (grass.Position - cam).Magnitude < NEAR then
 					want[grass] = true

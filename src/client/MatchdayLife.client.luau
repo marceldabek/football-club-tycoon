@@ -459,7 +459,9 @@ end
 -- worth) walk back out from the turnstiles along their routes; the stewards,
 -- barriers and cars stay until LEAVE_SECONDS is up.
 local function startLeaving(crowd: PlotCrowd)
-	crowd.leavingUntil = os.clock() + MatchdayRoutes.LEAVE_SECONDS
+	if not crowd.leavingUntil then
+		crowd.leavingUntil = os.clock() + MatchdayRoutes.LEAVE_SECONDS
+	end
 	for _, fan in crowd.queue do
 		fan:Destroy()
 	end
@@ -483,6 +485,9 @@ local function recheckCrowd(crowd: PlotCrowd, camPos: Vector3)
 		startLeaving(crowd)
 	end
 	crowd.lastPhase = phase
+	if phase == "PreMatch" or phase == "Match" then
+		crowd.leavingUntil = nil
+	end
 	local leaving = crowd.leavingUntil ~= nil and os.clock() < (crowd.leavingUntil :: number)
 	if not leaving then
 		crowd.leavingUntil = nil
@@ -506,6 +511,9 @@ local function recheckCrowd(crowd: PlotCrowd, camPos: Vector3)
 	if shouldBeAlive and not crowd.alive then
 		crowd.alive = true
 		spawnCrowd(crowd)
+		if leaving then
+			startLeaving(crowd)
+		end
 	elseif not shouldBeAlive and crowd.alive then
 		crowd.alive = false
 		despawnCrowd(crowd)
