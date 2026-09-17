@@ -659,6 +659,87 @@ local function removeGreyboxFor(greybox: Instance?, block: TownLayout.Box)
 end
 
 -- Returns a summary line for the server log.
+-- X119 (rivermer.industrialestate.png): the estate roundabout's island is
+-- planted with shrubs inside a stone kerb, with a blue keep-left sign facing
+-- traffic coming in from the High Street side. TownBuilder builds the grass
+-- island disc (radius 0.35 of the roundabout, top Y 0.8).
+EstateDresser.PLANTED_ROUNDABOUTS = { "Foundry Way Roundabout" }
+local ISLAND_SHARE, ISLAND_TOP = 0.35, 0.8
+
+function EstateDresser.islandShrubSpots(centre: Vector3, islandRadius: number): { Vector3 }
+	local out = { Vector3.new(centre.X, 0, centre.Z) }
+	local ring = islandRadius * 0.55
+	for k = 0, 4 do
+		local a = k / 5 * math.pi * 2 + 0.3
+		table.insert(out, Vector3.new(centre.X + math.cos(a) * ring, 0, centre.Z + math.sin(a) * ring))
+	end
+	return out
+end
+
+local function plantIsland(parent: Instance, rb: TownLayout.Roundabout)
+	local m = Instance.new("Model")
+	m.Name = "PlantedIsland"
+	m:SetAttribute("Decor", true)
+	m.Parent = parent
+	local r = rb.radius * ISLAND_SHARE
+	local kerb = Instance.new("Part")
+	kerb.Name = "IslandKerb"
+	kerb.Anchored = true
+	kerb.Shape = Enum.PartType.Cylinder
+	kerb.Size = Vector3.new(0.35, r * 2 + 0.6, r * 2 + 0.6)
+	kerb.CFrame = CFrame.new(rb.centre.X, ISLAND_TOP - 0.02 - 0.175, rb.centre.Z) * CFrame.Angles(0, 0, math.pi / 2) -- top just under the grass: only the rim shows
+	kerb.Color = Color3.fromRGB(196, 192, 184)
+	kerb.Material = Enum.Material.Concrete
+	kerb.CastShadow = false
+	kerb.Parent = m
+	for i, p in EstateDresser.islandShrubSpots(rb.centre, r) do
+		local d = if i == 1 then 3.4 else 2.4
+		local shrub = Instance.new("Part")
+		shrub.Name = "IslandShrub"
+		shrub.Anchored = true
+		shrub.CanCollide = false
+		shrub.Shape = Enum.PartType.Ball
+		shrub.Size = Vector3.one * d
+		shrub.CFrame = CFrame.new(p.X, ISLAND_TOP + d * 0.3, p.Z)
+		shrub.Color = if i % 2 == 0 then Color3.fromRGB(70, 112, 52) else Color3.fromRGB(58, 98, 46)
+		shrub.Material = Enum.Material.LeafyGrass
+		shrub.CastShadow = false
+		shrub.Parent = m
+	end
+	-- keep-left sign at the island's edge, facing east along the High Street approach
+	local signAt = Vector3.new(rb.centre.X + r - 0.8, ISLAND_TOP, rb.centre.Z + 1.2)
+	local post = Instance.new("Part")
+	post.Name = "KeepLeftPost"
+	post.Anchored = true
+	post.Size = Vector3.new(0.2, 3.4, 0.2)
+	post.CFrame = CFrame.new(signAt + Vector3.new(0, 1.7, 0))
+	post.Color = Color3.fromRGB(150, 152, 156)
+	post.Material = Enum.Material.Metal
+	post.Parent = m
+	local disc = Instance.new("Part")
+	disc.Name = "KeepLeft"
+	disc.Anchored = true
+	disc.Shape = Enum.PartType.Cylinder
+	disc.Size = Vector3.new(0.12, 1.8, 1.8)
+	disc.CFrame = CFrame.new(signAt + Vector3.new(0.15, 3.1, 0)) -- axis along +X: the faces look east / west
+	disc.Color = Color3.fromRGB(26, 76, 160)
+	disc.Material = Enum.Material.SmoothPlastic
+	disc.Parent = m
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Right
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 60
+	gui.Parent = disc
+	local arrow = Instance.new("TextLabel")
+	arrow.BackgroundTransparency = 1
+	arrow.Size = UDim2.fromScale(1, 1)
+	arrow.Font = Enum.Font.GothamBlack
+	arrow.TextScaled = true
+	arrow.TextColor3 = Color3.new(1, 1, 1)
+	arrow.Text = "↙"
+	arrow.Parent = gui
+end
+
 function EstateDresser.build(): string
 	local town = workspace:FindFirstChild("Town")
 	if not town then
@@ -816,6 +897,12 @@ function EstateDresser.build(): string
 					buildPlayArea(estates, centre, facing)
 				end
 			end
+		end
+	end
+
+	for _, rb in TownLayout.ROUNDABOUTS do
+		if table.find(EstateDresser.PLANTED_ROUNDABOUTS, rb.name) then
+			plantIsland(estates, rb)
 		end
 	end
 

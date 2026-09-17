@@ -548,4 +548,25 @@ function T.palisadeSectionsCoverTheFence()
 	holder:Destroy()
 end
 
+-- X119: the planted roundabouts exist, and the island shrubs stay inside the
+-- island disc TownBuilder builds (radius 0.35 of the roundabout).
+function T.plantedIslandShrubsStayOnTheIsland()
+	for _, name in EstateDresser.PLANTED_ROUNDABOUTS do
+		local rb
+		for _, r in TownLayout.ROUNDABOUTS do
+			if r.name == name then
+				rb = r
+			end
+		end
+		assert(rb, "no roundabout " .. name)
+		local islandR = rb.radius * 0.35
+		local spots = EstateDresser.islandShrubSpots(rb.centre, islandR)
+		assert(#spots >= 4, "a few shrubs")
+		for _, p in spots do
+			local d = Vector3.new(p.X - rb.centre.X, 0, p.Z - rb.centre.Z).Magnitude
+			assert(d + 1.2 <= islandR, ("shrub hangs over the island edge at %.2f of %.2f"):format(d, islandR))
+		end
+	end
+end
+
 return T
