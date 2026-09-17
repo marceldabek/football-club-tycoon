@@ -5,8 +5,10 @@
 -- squad / season / history are published by their own services.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Profile = require(ReplicatedStorage.Shared.Profile)
+local Finance = require(ReplicatedStorage.Shared.Finance) -- X299
 local PlotContext = require(script.Parent.PlotContext)
 
 local ClubState = {}
@@ -48,6 +50,13 @@ function ClubState.get(key: string): any
 	return folder:GetAttribute(key)
 end
 
+local finance: Finance.Ledger = Finance.new()
+
+local function publishFinance()
+	folder:SetAttribute("Finance", HttpService:JSONEncode(finance))
+	ClubState.markDirty()
+end
+
 function ClubState.set(key: string, value: any)
 	local changed = folder:GetAttribute(key) ~= value
 	folder:SetAttribute(key, value)
@@ -56,8 +65,24 @@ function ClubState.set(key: string, value: any)
 	end
 end
 
-function ClubState.addCash(amount: number)
+-- X299: money moves through here and nowhere else, so this is where the ledger
+-- is kept. `category` is one of Finance.INCOME / Finance.SPEND; the few places
+-- that move money for no reportable reason (the debug `cash` command) pass nil.
+function ClubState.addCash(amount: number, category: string?)
 	ClubState.set("Cash", (ClubState.get("Cash") :: number) + amount)
+	if category then
+		Finance.record(finance, category, amount)
+		publishFinance()
+	end
+end
+
+function ClubState.recordMatchFinance(row: Finance.MatchRow)
+	Finance.recordMatch(finance, row)
+	publishFinance()
+end
+
+function ClubState.financeSnapshot(): Finance.Ledger
+	return Finance.normalize(finance)
 end
 
 -- Stand plots. Each side of the ground has its own level on the shared chain;
@@ -149,6 +174,8 @@ function ClubState.init()
 	ClubState.set("LeagueTable", "[]") -- JSON standings
 	ClubState.set("AmenityLevel", 0)
 	ClubState.set("History", "{}") -- JSON { seasons, servants, honours } (HistoryService)
+	finance = Finance.new()
+	publishFinance()
 end
 
 -- The scalar half of the profile.
@@ -168,6 +195,8 @@ function ClubState.restore(p: Profile.Profile)
 	ClubState.set("SettingQuality", p.settings.quality)
 	ClubState.set("Draws", p.draws)
 	ClubState.set("Losses", p.losses)
+	finance = Finance.normalize((p :: any).finance) -- X299
+	publishFinance()
 end
 
 export type Scalars = {

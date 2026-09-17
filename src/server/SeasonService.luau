@@ -252,7 +252,7 @@ function SeasonService.endSeason(): SeasonSummary
 		prize = prize,
 	})
 
-	ClubState.addCash(prize)
+	ClubState.addCash(prize, "prize") -- X299
 	if outcome == "Promoted" then
 		tier += 1
 		popularity = Economy.popularityAfter(popularity, "Promoted")

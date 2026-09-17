@@ -10,6 +10,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 
+local Finance = require(script.Parent.Finance) -- X299
+
 local Profile = {}
 
 Profile.VERSION = 2
@@ -30,6 +32,7 @@ export type Profile = {
 	history: { seasons: { any }, servants: { any } }, -- X288 servants (review)
 	-- X223: the owner's music switch and quality level ("" = pick by device)
 	settings: { music: boolean, quality: string },
+	finance: any, -- X299: Finance.Ledger, shape-checked by Finance.normalize
 	createdAt: number,
 	updatedAt: number,
 	saveCount: number,
@@ -75,6 +78,7 @@ function Profile.new(clubName: string, now: number?): Profile
 		club = nil,
 		season = nil,
 		history = { seasons = {}, servants = {} },
+		finance = Finance.new(),
 		settings = { music = true, quality = "" },
 		createdAt = t,
 		updatedAt = t,
@@ -252,6 +256,9 @@ function Profile.normalize(raw: any, now: number?): (Profile, boolean)
 		end
 	end
 	out.history = { seasons = seasons, servants = servants }
+	-- X299: the ledger owns its own validation, so a save from an older build
+	-- (or a corrupted one) comes back as an empty ledger rather than failing
+	out.finance = Finance.normalize(raw.finance)
 
 	return out :: Profile, changed
 end

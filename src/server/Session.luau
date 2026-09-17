@@ -87,6 +87,7 @@ function Session.snapshot(): Profile.Profile
 		club = ClubService.serialize(),
 		season = SeasonService.serialize(),
 		history = HistoryService.serialize(),
+		finance = ClubState.financeSnapshot(), -- X299
 		settings = {
 			music = ClubState.get("SettingMusic") ~= false,
 			quality = ClubState.get("SettingQuality") or "",

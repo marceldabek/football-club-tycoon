@@ -277,7 +277,18 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 
 	-- review of X200: pay last, so an error above that repeats every match can't
 	-- pay out again and again for a fixture that never moves on
-	ClubState.addCash(settlement.total)
+	-- X299: the gate, the pie money and the win bonus are three different
+	-- answers to "where did that come from", so they are recorded apart
+	ClubState.addCash(settlement.ticketRevenue, "gate")
+	ClubState.addCash(settlement.concessionRevenue, "concessions")
+	ClubState.addCash(settlement.resultBonus, "bonus")
+	ClubState.recordMatchFinance({
+		round = roundResult.round,
+		gate = settlement.ticketRevenue,
+		concessions = settlement.concessionRevenue,
+		bonus = settlement.resultBonus,
+		total = settlement.total,
+	})
 	bump("MatchesPlayed", 1)
 	if settlement.outcome == "Win" then
 		bump("Wins", 1)
@@ -377,7 +388,7 @@ local function playFriendlyInner(opponent: Opponent, durationOverride: number?, 
 	)
 	local result = played.result
 	local payout = Friendly.homePayout(played.capacity, played.demand, Config.TicketPrice)
-	ClubState.addCash(payout)
+	ClubState.addCash(payout, "friendly") -- X299
 	local scorers = scorerLines(result)
 	local outcome = if result.homeGoals > result.awayGoals
 		then "Win"

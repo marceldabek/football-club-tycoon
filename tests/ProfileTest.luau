@@ -173,4 +173,21 @@ function T.normalizeKeepsClubServants()
 	assert(type(Profile.new().history.servants) == "table", "Profile.new has the list too")
 end
 
+function T.normalizeKeepsTheLedger()
+	local p = Profile.normalize({
+		finance = {
+			income = { gate = 1200.7, nonsense = 5 },
+			spend = { stands = 1500, transfers = -20 },
+			matches = { { round = 3, gate = 400, concessions = 100, bonus = 0, total = 500 } },
+		},
+	})
+	assert(p.finance.income.gate == 1200, "income should survive, floored")
+	assert(p.finance.income.nonsense == nil, "an unknown category is dropped")
+	assert(p.finance.spend.stands == 1500, "spend should survive")
+	assert(p.finance.spend.transfers == nil, "a negative total is not a total")
+	assert(#p.finance.matches == 1 and p.finance.matches[1].total == 500, "the matchday rows survive")
+	local fresh = Profile.normalize({})
+	assert(type(fresh.finance) == "table" and type(fresh.finance.income) == "table", "a profile with no ledger gets an empty one")
+end
+
 return T

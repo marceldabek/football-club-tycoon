@@ -394,7 +394,7 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 		if cash < nextLevel.cost then
 			return false, ("Need %s more"):format(money(nextLevel.cost - cash))
 		end
-		ClubState.addCash(-nextLevel.cost)
+		ClubState.addCash(-nextLevel.cost, "staff") -- X299
 		coachLevel += 1
 		publish()
 		return true, ("%s hired"):format(nextLevel.name)
@@ -416,7 +416,7 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 		if cash < prospect.fee then
 			return false, ("Need %s more"):format(money(prospect.fee - cash))
 		end
-		ClubState.addCash(-prospect.fee)
+		ClubState.addCash(-prospect.fee, "transfers") -- X299
 		table.remove(shortlist, index :: number)
 		local signed: Squad.Player = {
 			id = nextId,
@@ -468,7 +468,7 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 			end
 		end
 		local value = Squad.value(p)
-		ClubState.addCash(value)
+		ClubState.addCash(value, "sales") -- X299
 		recomputeLineup()
 		publish()
 		return true, ("%s sold for %s"):format(p.name, money(value))

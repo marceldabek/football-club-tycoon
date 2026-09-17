@@ -11,6 +11,7 @@ local ProximityPromptService = game:GetService("ProximityPromptService")
 local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Finance = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Finance")) -- X299
 local Theme = require(script.Parent.Theme)
 local LineupBoard = require(script.Parent.LineupBoard)
 local Headshot = require(script.Parent.Headshot)
@@ -205,7 +206,7 @@ local tabButtons: { [string]: TextButton } = {}
 local render: () -> ()
 
 -- Five tabs share the row: each takes a fifth of the width minus its share of the gaps.
-local TAB_NAMES = { "Squad", "League", "History", "Scouting", "Staff" }
+local TAB_NAMES = { "Squad", "League", "Finance", "History", "Scouting", "Staff" }
 local tabGapShare = math.ceil(8 * (#TAB_NAMES - 1) / #TAB_NAMES)
 for i, name in TAB_NAMES do
 	local b = button(tabs, name:upper(), ROW_BG, { Name = name .. "Tab", Size = UDim2.new(1 / #TAB_NAMES, -tabGapShare, 0, 38), LayoutOrder = i, TextSize = 16, Font = Theme.fonts.display })
@@ -740,6 +741,91 @@ local function renderStaff(club: Club)
 	end
 end
 
+-- ---------------------------------------------------------------- Finance tab
+
+-- X299: the panel had five tabs and none of them was money, so after ten
+-- matches the only number in the game was the balance. Every movement is
+-- recorded by category in ClubState (Finance.luau); this reads it back.
+local FINANCE_LABELS: { [string]: string } = {
+	gate = "Tickets",
+	concessions = "Concessions",
+	bonus = "Result bonuses",
+	prize = "Season prizes",
+	sales = "Players sold",
+	friendly = "Friendlies",
+	transfers = "Transfers in",
+	stands = "Stands",
+	amenities = "Amenities",
+	staff = "Coach & scouting",
+	trades = "Trades",
+}
+
+local function renderFinance()
+	local raw = get("Finance")
+	local ok, data = pcall(function()
+		return if type(raw) == "string" and raw ~= "" then HttpService:JSONDecode(raw) else {}
+	end)
+	local ledger = if ok and type(data) == "table" then data else {}
+	local income = if type(ledger.income) == "table" then ledger.income else {}
+	local spend = if type(ledger.spend) == "table" then ledger.spend else {}
+	local matches = if type(ledger.matches) == "table" then ledger.matches else {}
+
+	local function total(t: { [string]: number }): number
+		local sum = 0
+		for _, v in t do
+			sum += if type(v) == "number" then v else 0
+		end
+		return sum
+	end
+	local earned, spent = total(income), total(spend)
+
+	section("CLUB BALANCE")
+	note(("In: %s   ·   Out: %s   ·   Now: %s"):format(money(earned), money(spent), money(get("Cash") or 0)))
+	if earned == 0 and spent == 0 then
+		note("Nothing recorded yet. Play a match and it starts adding up.", GREY)
+		return
+	end
+
+	local function table_(title: string, t: { [string]: number }, keys: { string }, colour: Color3)
+		section(title)
+		local any = false
+		for i, key in keys do
+			local amount = t[key]
+			if type(amount) == "number" and amount > 0 then
+				any = true
+				local f = row(i % 2 == 0)
+				cell(f, FINANCE_LABELS[key] or key, 10, 220)
+				cell(f, money(amount), 240, 120, { TextColor3 = colour, Font = Enum.Font.GothamBold })
+			end
+		end
+		if not any then
+			note("Nothing yet.", GREY)
+		end
+	end
+	table_("MONEY IN", income, Finance.INCOME, Theme.colors.cash)
+	table_("MONEY OUT", spend, Finance.SPEND, Theme.colors.bad)
+
+	if #matches > 0 then
+		section(if #matches == 1 then "LAST MATCHDAY" else ("LAST %d MATCHDAYS"):format(#matches))
+		local head = row(false)
+		head.BackgroundColor3 = PANEL_BG
+		cell(head, "Match", 10, 70, { TextColor3 = GREY })
+		cell(head, "Tickets", 85, 90, { TextColor3 = GREY })
+		cell(head, "Concessions", 180, 110, { TextColor3 = GREY })
+		cell(head, "Bonus", 295, 80, { TextColor3 = GREY })
+		cell(head, "Total", 380, 90, { TextColor3 = GREY })
+		for i = #matches, 1, -1 do
+			local m = matches[i]
+			local f = row(i % 2 == 0)
+			cell(f, ("%d"):format(m.round or 0), 10, 70, { TextColor3 = GREY })
+			cell(f, money(m.gate or 0), 85, 90)
+			cell(f, money(m.concessions or 0), 180, 110)
+			cell(f, money(m.bonus or 0), 295, 80)
+			cell(f, money(m.total or 0), 380, 90, { TextColor3 = Theme.colors.cash, Font = Enum.Font.GothamBold })
+		end
+	end
+end
+
 -- ---------------------------------------------------------------- History tab
 
 local function renderHistory()
@@ -894,6 +980,8 @@ render = function()
 	if currentTab == "League" then
 		renderLeague()
 		renderLastRound() -- X294
+	elseif currentTab == "Finance" then
+		renderFinance()
 	elseif currentTab == "History" then
 		renderHistory()
 	elseif currentTab == "Scouting" then
@@ -945,7 +1033,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
 	end
 end)
 
-for _, key in { "Club", "Cash", "MatchesPlayed", "LeagueTable", "LastRound", "Demand", "History", "ClubName", "OwnerUserId" } do
+for _, key in { "Club", "Cash", "MatchesPlayed", "LeagueTable", "LastRound", "Demand", "History", "Finance", "ClubName", "OwnerUserId" } do
 	state:GetAttributeChangedSignal(key):Connect(render)
 end
 state:GetAttributeChangedSignal("Phase"):Connect(function()

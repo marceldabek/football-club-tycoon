@@ -89,7 +89,7 @@ function UpgradeService.init(prompts: { stands: { [string]: ProximityPrompt }, a
 	UpgradeService.refreshPrompt()
 end
 
-local function pay(cost: number): (boolean, string?)
+local function pay(cost: number, category: string): (boolean, string?)
 	if ClubState.get("Phase") ~= "Manage" then
 		return false, "Locked during matchday"
 	end
@@ -97,7 +97,7 @@ local function pay(cost: number): (boolean, string?)
 	if cash < cost then
 		return false, ("Need %s more"):format(money(cost - cash))
 	end
-	ClubState.addCash(-cost)
+	ClubState.addCash(-cost, category) -- X299: which upgrade the money went on
 	return true
 end
 
@@ -120,7 +120,7 @@ function UpgradeService.tryExpandStand(key: string?): (boolean, string?)
 	if not nextLevel then
 		return false, "Already fully expanded"
 	end
-	local ok, reason = pay(nextLevel.cost)
+	local ok, reason = pay(nextLevel.cost, "stands")
 	if not ok then
 		return false, reason
 	end
@@ -137,7 +137,7 @@ function UpgradeService.tryUpgradeAmenity(): (boolean, string?)
 	if not nextLevel then
 		return false, "Already fully built"
 	end
-	local ok, reason = pay(nextLevel.cost)
+	local ok, reason = pay(nextLevel.cost, "amenities")
 	if not ok then
 		return false, reason
 	end
