@@ -180,4 +180,20 @@ function T.aFewShopRowsGetTheChippy()
 	holder:Destroy()
 end
 
+-- X146: balconies sit on whole windows on the two upper floors, inside the wall
+function T.balconiesSitOnUpperFloorWindows()
+	local length, wallH = 140, 28
+	local spots = ShopBuilder.balconySpots(length, wallH)
+	assert(#spots >= 8 and #spots % 2 == 0, #spots .. " balcony spots")
+	for _, s in spots do
+		assert(math.abs(s.X) + ShopBuilder.BALCONY_W / 2 <= length / 2, "balcony past the wall end at z " .. s.X)
+		assert(s.Y > wallH * 0.3 and s.Y < wallH * 0.75, "balcony on an upper floor at y " .. s.Y)
+	end
+	for i = 2, #spots, 2 do
+		if i + 2 <= #spots then
+			assert(spots[i + 2].X - spots[i].X >= ShopBuilder.BALCONY_W, "balconies don't overlap")
+		end
+	end
+end
+
 return T

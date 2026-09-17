@@ -136,7 +136,7 @@ function ShopDresser.build(): string
 			removeGreybox(greybox, block)
 			local cf, length, depth = ShopDresser.placement(block, TownLayout.ROADS)
 			if ShopDresser.FLATS_USES[block.use] then
-				ShopBuilder.flats(cf, Vector3.new(depth, block.size.Y, length), parent)
+				ShopBuilder.flats(cf, Vector3.new(depth, block.size.Y, length), parent, block.use == "waterfront flats") -- X146 balconies
 			elseif ShopDresser.CIVIC_USES[block.use] then
 				ShopBuilder.civic(cf, Vector3.new(depth, block.size.Y, length), parent, block.use)
 			else

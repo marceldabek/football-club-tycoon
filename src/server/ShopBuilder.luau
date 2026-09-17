@@ -428,7 +428,37 @@ function ShopBuilder.shopRow(cframe: CFrame, length: number, depth: number, heig
 end
 
 -- A block of flats. size = (depth, height, length) in the frame's local axes. 3 parts.
-function ShopBuilder.flats(cframe: CFrame, size: Vector3, parent: Instance): Model
+-- X146: balconies on waterfront flats (RivermereRiverside.png). flats_facade.png
+-- tiles every FLATS_TILE studs along the wall and once up it: two windows a
+-- tile, centred at u 0.249 and 0.75, with sills at v 152/512 (top floor) and
+-- 317/512 (middle floor) from the top. On the Left (-X) face the image's left
+-- edge is the -Z end; the Right face mirrors that. Pure: { z, y } for the
+-- Left face, every other window on the two upper floors, whole windows only.
+local FLATS_TILE = 24
+ShopBuilder.BALCONY_W = 9
+ShopBuilder.BALCONY_OUT = 3
+function ShopBuilder.balconySpots(length: number, wallH: number): { Vector2 }
+	local out: { Vector2 } = {}
+	local sills = { wallH * (1 - 152 / 512), wallH * (1 - 317 / 512) }
+	local window = 0
+	for k = 0, math.floor(length / FLATS_TILE) do
+		for _, u in { 0.249, 0.75 } do
+			window += 1
+			local z = -length / 2 + FLATS_TILE * (k + u)
+			if window % 2 == 1 and math.abs(z) <= length / 2 - ShopBuilder.BALCONY_W / 2 - 0.5 then
+				for _, y in sills do
+					table.insert(out, Vector2.new(z, y))
+				end
+			end
+		end
+	end
+	return out
+end
+
+local BALCONY_STONE = Color3.fromRGB(206, 202, 194)
+local BALCONY_RAIL = Color3.fromRGB(24, 24, 26)
+
+function ShopBuilder.flats(cframe: CFrame, size: Vector3, parent: Instance, balconies: boolean?): Model
 	local depth, wallH, length = size.X, size.Y, size.Z
 	local model = Instance.new("Model")
 	model.Name = "Flats"
@@ -439,8 +469,24 @@ function ShopBuilder.flats(cframe: CFrame, size: Vector3, parent: Instance): Mod
 			t:Destroy()
 		end
 	end
-	texture(b, Enum.NormalId.Left, "flats_facade", 24, wallH)
-	texture(b, Enum.NormalId.Right, "flats_facade", 24, wallH)
+	texture(b, Enum.NormalId.Left, "flats_facade", FLATS_TILE, wallH)
+	texture(b, Enum.NormalId.Right, "flats_facade", FLATS_TILE, wallH)
+	if balconies then
+		-- a stone slab (top at the sill), a glass front and a black top rail,
+		-- on both long faces; the Right face's tiles run from the +Z end
+		local w, out = ShopBuilder.BALCONY_W, ShopBuilder.BALCONY_OUT
+		for _, side in { -1, 1 } do
+			for _, spot in ShopBuilder.balconySpots(length, wallH) do
+				local z = spot.X * -side
+				local face = side * depth / 2
+				block("Part", "BalconySlab", Vector3.new(out, 0.4, w), cframe * CFrame.new(face + side * out / 2, spot.Y - 0.2, z), BALCONY_STONE, Enum.Material.Concrete, model, false)
+				local glass = block("Part", "BalconyGlass", Vector3.new(0.15, 2.6, w - 0.2), cframe * CFrame.new(face + side * (out - 0.2), spot.Y + 1.3, z), Color3.fromRGB(170, 200, 215), Enum.Material.Glass, model, false)
+				glass.Transparency = 0.55
+				glass.CastShadow = false
+				block("Part", "BalconyRail", Vector3.new(0.25, 0.25, w), cframe * CFrame.new(face + side * (out - 0.2), spot.Y + 2.725, z), BALCONY_RAIL, Enum.Material.Metal, model, false).CastShadow = false
+			end
+		end
+	end
 	coping(cframe, depth, wallH, length, Color3.fromRGB(198, 194, 184), model)
 	stack(cframe, depth / 4, wallH + 1, 4.5, 0, FLATS_BRICK:Lerp(Color3.new(0, 0, 0), 0.12), model)
 	model.Parent = parent
