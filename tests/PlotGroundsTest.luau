@@ -43,7 +43,7 @@ function T.footprintsHaveTheExpectedPieces()
 		names[r.name] = true
 		assert(r.min.X < r.max.X and r.min.Y < r.max.Y, "degenerate " .. describe(r))
 	end
-	for _, want in { "CarPark", "Kiosk", "ClubShop", "TrainingPitch1", "TrainingPitch2" } do
+	for _, want in { "CarPark", "SupportersBar", "Kiosk", "ClubShop", "TrainingPitch1", "TrainingPitch2" } do
 		assert(names[want], "missing footprint " .. want)
 	end
 end
@@ -161,6 +161,21 @@ function T.borderBedsKeepClearOfGatesPathAndFootprints()
 			assert(not overlaps(bed, k), describe(bed) .. " hits " .. describe(k))
 		end
 	end
+end
+
+-- X97: the supporters' bar stands between the entrance wall's border beds and
+-- the path, with its patio stopping short of the footpath.
+function T.supportersBarSitsBesideTheGateClearOfTheFootpath()
+	local bar
+	for _, fp in PlotGrounds.footprints() do
+		if fp.name == "SupportersBar" then
+			bar = fp
+		end
+	end
+	assert(bar, "bar footprint")
+	assert(bar.max.Y < -12 - 4, "north of the 8-wide footpath at z -12")
+	assert(bar.min.X > -HALF + 1 + PlotGrounds.BORDER_DEPTH + 0.1, "clear of the border beds inside the wall")
+	assert(bar.min.X < -HALF + 40, "near the pedestrian gate")
 end
 
 return T

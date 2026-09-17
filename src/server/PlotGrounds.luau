@@ -82,6 +82,13 @@ local SHOP_CX, SHOP_CZ = -300, -150
 -- footpath, hatch facing the path (-Z). TEMP.
 local KIOSK_CX, KIOSK_CZ = -314, 8 -- between the south-side trees at x -326 and -302
 local KIOSK_W, KIOSK_H, KIOSK_D = 12, 9, 8 -- along X, height, along Z
+-- X97: a supporters' bar just inside the pedestrian gate, north of the
+-- footpath and facing it (+Z), with a patio of picnic benches
+-- (RivermereTurnstileEntrance.png has a pub right by the entrance). TEMP.
+local PUB_X0, PUB_X1 = -372, -344
+local PUB_Z0, PUB_Z1 = -70, -38
+local PUB_WALL_H, PUB_ROOF_H, PUB_EAVE = 12, 5, 0.8
+local PUB_PATIO_D = 8
 local SHOP_W, SHOP_H, SHOP_D = 26, 14, 30 -- along X, height, along Z
 local SHOP_WALL_T = 1
 local FASCIA_H, FASCIA_PROUD = 3, 0.5
@@ -186,6 +193,7 @@ export type Footprint = { name: string, min: Vector2, max: Vector2 }
 function PlotGrounds.footprints(): { Footprint }
 	local out: { Footprint } = {
 		{ name = "CarPark", min = Vector2.new(PARK_X0, PARK_Z0), max = Vector2.new(PARK_X1, PARK_Z1) },
+		{ name = "SupportersBar", min = Vector2.new(PUB_X0 - PUB_EAVE, PUB_Z0 - PUB_EAVE), max = Vector2.new(PUB_X1 + PUB_EAVE, PUB_Z1 + PUB_PATIO_D) },
 		{ name = "Kiosk", min = Vector2.new(KIOSK_CX - KIOSK_W / 2 - 0.5, KIOSK_CZ - KIOSK_D / 2 - 1.5), max = Vector2.new(KIOSK_CX + KIOSK_W / 2 + 0.5, KIOSK_CZ + KIOSK_D / 2 + 0.5) },
 		{
 			name = "ClubShop",
@@ -319,6 +327,61 @@ local function buildKiosk(parent: Instance)
 	label.TextColor3 = Color3.fromRGB(40, 90, 60)
 	label.Text = "PIES · TEAS · CHIPS"
 	label.Parent = gui
+end
+
+local function buildSupportersBar(parent: Instance)
+	local m = model("SupportersBar", parent)
+	local x0, x1, z0, z1 = PUB_X0, PUB_X1, PUB_Z0, PUB_Z1
+	local xc = (x0 + x1) / 2
+	local paint = Color3.fromRGB(28, 58, 44) -- pub green ground floor
+	local cream = Color3.fromRGB(236, 230, 212)
+	extents("Body", x0, x1, GROUND_Y, GROUND_Y + PUB_WALL_H, z0, z1, BRICK, Enum.Material.Brick, m)
+	-- painted ground-floor frontage with two lit windows and a door, then the fascia
+	extents("Frontage", x0 + 0.5, x1 - 0.5, GROUND_Y, GROUND_Y + 5.2, z1, z1 + 0.3, paint, Enum.Material.WoodPlanks, m)
+	for _, wx in { x0 + 6, x1 - 6 } do
+		local glass = extents("Window", wx - 3.5, wx + 3.5, GROUND_Y + 1.6, GROUND_Y + 4.6, z1 + 0.3, z1 + 0.45, Color3.fromRGB(96, 78, 52), Enum.Material.Glass, m)
+		glass.Transparency = 0.1
+	end
+	extents("Door", xc - 1.6, xc + 1.6, GROUND_Y, GROUND_Y + 4.8, z1 + 0.3, z1 + 0.5, Color3.fromRGB(60, 36, 24), Enum.Material.Wood, m)
+	local fascia = extents("Fascia", x0 + 0.5, x1 - 0.5, GROUND_Y + 5.2, GROUND_Y + 7, z1, z1 + 0.5, Config.HomeKit, Enum.Material.SmoothPlastic, m)
+	addSign(fascia, "SUPPORTERS' BAR", { Enum.NormalId.Back })
+	for _, wx in { x0 + 6, xc, x1 - 6 } do
+		extents("UpperWindow", wx - 1.6, wx + 1.6, GROUND_Y + 8, GROUND_Y + 11, z1, z1 + 0.15, cream, Enum.Material.SmoothPlastic, m)
+		extents("UpperPane", wx - 1.3, wx + 1.3, GROUND_Y + 8.3, GROUND_Y + 10.7, z1 + 0.15, z1 + 0.25, Color3.fromRGB(58, 74, 90), Enum.Material.Glass, m)
+	end
+	-- slate roof: two wedges meeting over the middle of the depth (tall side at local +Z)
+	local zc = (z0 + z1) / 2
+	local half = (z1 - z0) / 2 + PUB_EAVE
+	local roofY = GROUND_Y + PUB_WALL_H + PUB_ROOF_H / 2
+	local length = x1 - x0 + PUB_EAVE * 2
+	for _, side in { -1, 1 } do
+		local wedge = Instance.new("WedgePart")
+		wedge.Name = "Roof"
+		wedge.Anchored = true
+		wedge.Size = Vector3.new(length, PUB_ROOF_H, half)
+		-- the back slope (side -1) rises toward +Z as built; the front one is turned round
+		wedge.CFrame = CFrame.new(xc, roofY, zc + side * half / 2) * (if side > 0 then CFrame.Angles(0, math.pi, 0) else CFrame.identity)
+		wedge.Color = Color3.fromRGB(74, 82, 96)
+		wedge.Material = Enum.Material.Slate
+		wedge.Parent = m
+	end
+	extents("Chimney", x0 + 3, x0 + 5.5, GROUND_Y + PUB_WALL_H + 2, GROUND_Y + PUB_WALL_H + PUB_ROOF_H + 2.5, zc - 1.5, zc + 1.5, BRICK, Enum.Material.Brick, m)
+	-- patio in front, a link to the footpath and two picnic benches
+	local py0, py1 = GROUND_Y, GROUND_Y + PATH_TOP
+	extents("Patio", x0, x1, py0, py1, z1 + 0.5, z1 + PUB_PATIO_D, CONCRETE, Enum.Material.Concrete, m)
+	extents("PatioPath", xc - 2, xc + 2, py0, py1, z1 + PUB_PATIO_D, PATH_Z - PATH_W / 2, CONCRETE, Enum.Material.Concrete, m)
+	local wood = Color3.fromRGB(140, 104, 68)
+	for _, bx in { x0 + 5, x1 - 5 } do
+		local bz = z1 + 4.6
+		-- solid end frames carry the top and both seats
+		for _, ex in { bx - 2, bx + 2 } do
+			extents("PicnicFrame", ex - 0.15, ex + 0.15, py1, py1 + 2.4, bz - 2.7, bz + 2.7, wood, Enum.Material.Wood, m)
+		end
+		extents("PicnicTop", bx - 2.5, bx + 2.5, py1 + 2.4, py1 + 2.7, bz - 1.2, bz + 1.2, wood, Enum.Material.Wood, m)
+		for _, sz in { -1, 1 } do
+			extents("PicnicSeat", bx - 2.5, bx + 2.5, py1 + 1.3, py1 + 1.55, bz + sz * 2.3 - 0.45, bz + sz * 2.3 + 0.45, wood, Enum.Material.Wood, m)
+		end
+	end
 end
 
 local function buildBoundary(parent: Instance)
@@ -630,6 +693,7 @@ function PlotGrounds.build(club: Model): Model
 	buildPathside(grounds)
 	buildKiosk(grounds)
 	buildBorders(grounds)
+	buildSupportersBar(grounds)
 
 	PlotContext.place(grounds)
 	return grounds
