@@ -36,6 +36,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 3. Season-end fast-forward: the server rollover is verified; the client 10 s sweep has not been watched.
 4. Studio holds hand-pasted copies of every module merged tonight (comments stripped). Disk is the source of truth; reconnect Rojo before editing in Studio (X4/X34).
 5. Studio shows "Assistant plugin version changed ... restart Roblox Studio" warnings; the MCP kept working, but restart Studio before trusting the Assistant.
+6. The Rojo panel in Studio shows "Unknown HTTP error: NetFail", although `rojo serve` is running on port 34872 and serving this branch. Click Connect (or Disconnect, then Connect) in the Rojo panel before editing, so Studio's hand-pasted copies are replaced from disk. The HTTP sync fallback in `tools/studio-sync.luau` no longer works from the MCP, because its sandbox lacks the Network capability.
 
 **Questions for Marcel**
 1. **Done as TEMP, please confirm:** Studio playtests now use the DataStore `ClubProfiles_Studio`, so Studio opens a fresh club and onboarding instead of Dino FC. To get your real club back in Studio, set `Config.Save.studioStoreSuffix = ""`. *Rec: keep it; live servers are unchanged.*
@@ -279,3 +280,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - The Studio MCP `screen_capture` only returns the image to the agent. `store_image` reads files but can't write them. A System.Drawing desktop grab (no external tools) works, but the Studio viewport in it is a stale, stretched frame rather than the live game view while Studio isn't the focused window. A blank "RobloxStudio" popup also sits over the viewport, and I left it alone. The "before" hero look no longer exists either. The probe images were deleted.
 - **Seen in passing:** the Rojo 7.4.4 panel in Studio shows "Unknown HTTP error: HttpError: NetFail". That fits X4/X34: the plugin can't reach `rojo serve`, so start `rojo serve` and reconnect in the morning.
 - **Suggestion:** take the A1.4 shots by hand (F12 in Studio, or the Screenshot button) at the places listed at the top of the handoff.
+
+### 2026-09-17 03:55 — Rojo reconnect attempt (X34): blocked
+- `rojo serve` is running (port 34872) and serves the current branch: TradePanel, FriendlyService and the X43 colours are all in its tree. The Studio plugin panel shows NetFail.
+- I tried the memory's HTTP fallback (`tools/studio-sync.luau` through execute_luau). The MCP thread now "cannot read 'HttpEnabled' (lacking capability Network)", so it can't run from here. Nothing was changed. Clicking Connect in the Rojo panel is the fix, and that has to be done by hand (handoff known bug 6).
