@@ -213,7 +213,10 @@ function BlockFootballer.update(self: BlockFootballer, dt: number)
 		else
 			self.position += step
 		end
-		self.yaw = math.atan2(-self.velocity.X, -self.velocity.Z)
+		-- X238: a diving keeper keeps facing the shooter while he shuffles across
+		if self.pose ~= "dive" then
+			self.yaw = math.atan2(-self.velocity.X, -self.velocity.Z)
+		end
 		self.phase += dt * (speedNow * 0.55)
 	end
 	self.moving = speedNow > 1.5
@@ -240,7 +243,9 @@ function BlockFootballer.update(self: BlockFootballer, dt: number)
 		bob = math.abs(math.sin(self.poseT * 9)) * 1.2
 	elseif self.pose == "dive" then
 		local k = math.min(self.poseT / 0.25, 1)
-		tilt = self.diveDir * 1.35 * k
+		-- X238: a positive roll about the look axis leans the body to its own
+		-- left (UpVector goes to -X), so a dive to the right rolls negative
+		tilt = -self.diveDir * 1.35 * k
 		lift = -1.6 * k
 		armLA, armRA = math.pi / 2, math.pi / 2
 	elseif self.pose == "sit" then

@@ -627,6 +627,8 @@ function Presenter.playSequence(self: Presenter, ev: Event, shotAt: number)
 	local keeper = self.teams[opp].players[1]
 	local target: Vector3
 	local side = math.random() < 0.5 and -1 or 1
+	-- X238: square up to the shooter first, so dive left/right is relative to him
+	keeper:face(shooter.position)
 	if ev.type == "GOAL" then
 		target = Vector3.new(side * (2 + math.random() * 6), 1.5 + math.random() * 4, goalZ + dir * 3)
 		keeper:dive(-side * dir) -- wrong way

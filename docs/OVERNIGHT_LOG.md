@@ -1374,3 +1374,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - X246 `RiverDresser`: each river mooring pontoon has a tall dark timber post with a pale cap at both ends, on the boat side, as in `RivermereRiverside.png`. That's 4 parts per pontoon; this build rolled one pontoon, so +4 parts. Screenshot checked from the promenade at (845, 8, 290).
 - RunAll 437 passed.
 
+### 2026-09-17 14:13 — Keeper dives toward the ball (X238 done)
+- `MatchPresenter`: before any shot the keeper turns to face the shooter (`keeper:face(shooter.position)`), so "dive left/right" is relative to the shooter.
+- `Footballer` / `BlockFootballer`: while the dive pose runs, the yaw is no longer taken from the velocity. Before, the keeper's sideways shuffle on a save turned him side-on, so he fell forwards or backwards.
+- The roll sign was backwards. `CFrame.Angles(0, 0, θ)` with θ > 0 sends UpVector to −X (checked in Studio: θ = 1.35 gives UpVector (−0.98, 0.22, 0)), which leans the body to its *left*, while `dive(1)` means right. Now `tilt = -diveDir * 1.35`. With the keeper facing the shooter, `dive(side * dir)` then leans toward the shot on saves and misses, and the wrong way on goals, as intended.
+- Checked in play over three 60–75 s matches: diving keepers faced the ball at the kick (look·ball 0.98–1.00), with no console errors. A per-frame lean-vs-ball sample was inconclusive (it mixed intentional wrong-way goal dives with saves, and measured the side against the already-rolled right vector), so the lean direction rests on the CFrame check above. RunAll 437 passed.
+
