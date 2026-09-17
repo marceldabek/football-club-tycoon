@@ -42,6 +42,20 @@ function T.footbridgeClearsTheTracks()
 	assert(TownLayout.distanceToPolyline(near:Lerp(far, 0.5), TownLayout.RAIL.points) < half, "the span crosses the line")
 end
 
+function T.carParkBaysFitTheBlockAndLeaveTheEntrance()
+	local block: TownLayout.Box = { centre = Vector3.new(0, 0.5, 0), size = Vector3.new(120, 1, 60), yaw = 0, use = "station car park" }
+	local bays = StationDresser.carParkBays(block, 30)
+	assert(#bays > 10, "rows of bays, got " .. #bays)
+	for _, bay in bays do
+		local p = bay.Position
+		assert(math.abs(p.X) + 5.5 <= 60 + 1e-3 and math.abs(p.Z) + 10 <= 30 + 1e-3, "inside the slab")
+		assert(math.abs(bay.LookVector.Z) > 0.99 and bay.LookVector.Z * p.Z < 0, "looks out towards the aisle")
+		if p.Z > 0 then
+			assert(p.X + 5.5 <= 60 - 30 + 1e-3, "near row stays clear of the entrance")
+		end
+	end
+end
+
 function T.farPlatformIsOffTheTrackAndUnderTheFarTower()
 	local f = StationDresser.frontFrame()
 	local p = StationDresser.platformFrame(f, TownLayout.RAIL.station.size)

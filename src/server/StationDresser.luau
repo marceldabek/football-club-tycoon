@@ -197,6 +197,32 @@ function StationDresser.yellowLineRuns(f: CFrame, layby: { x0: number, x1: numbe
 	return runs
 end
 
+-- X83: the station car park (a plain greybox slab). Pure: bay centres as
+-- CFrames looking out of the bay (nose-in cars face the other way): a row
+-- along the far (-Z) edge and one along the near (+Z) edge, BAY_W wide and
+-- BAY_D deep, skipping near-row bays within `entryClear` of the +X edge where
+-- Station Road comes in.
+local BAY_W, BAY_D = 11, 20
+function StationDresser.carParkBays(block: TownLayout.Box, entryClear: number): { CFrame }
+	local out = {}
+	local c, s = block.centre, block.size
+	local count = math.floor((s.X - 2) / BAY_W)
+	local x0 = c.X - count * BAY_W / 2
+	for row = 0, 1 do
+		local z = if row == 0 then c.Z - s.Z / 2 + 0.5 + BAY_D / 2 else c.Z + s.Z / 2 - 0.5 - BAY_D / 2
+		local outward = if row == 0 then 1 else -1 -- towards the aisle
+		for k = 0, count - 1 do
+			local x = x0 + (k + 0.5) * BAY_W
+			if row == 1 and x + BAY_W / 2 > c.X + s.X / 2 - entryClear then
+				continue
+			end
+			local at = Vector3.new(x, 0, z)
+			table.insert(out, CFrame.lookAt(at, at + Vector3.new(0, 0, outward)))
+		end
+	end
+	return out
+end
+
 -- True if a TownBuilder pavement part covers this ground point.
 local function pavementAt(p: Vector3): boolean
 	for _, hit in workspace:GetPartBoundsInBox(CFrame.new(p.X, 0.2, p.Z), Vector3.new(0.5, 0.4, 0.5)) do
@@ -640,6 +666,23 @@ function StationDresser.build(): string
 		for _, block in district.blocks do
 			if block.use == "station car park" then
 				carPark = block.centre
+				-- X83: bay lines, some parked cars and a P sign on the greybox slab (top 0.3)
+				local rng = Random.new(707)
+				for _, bay in StationDresser.carParkBays(block, 30) do
+					for _, dx in { -BAY_W / 2, BAY_W / 2 } do
+						local line = part({ Name = "BayLine", Size = Vector3.new(0.35, 0.04, BAY_D - 2), CFrame = bay * CFrame.new(dx, 0.33, 0), Color = Color3.fromRGB(235, 235, 230), Parent = m })
+						line.CastShadow = false
+					end
+					if rng:NextNumber() < 0.55 then
+						-- nose in: the kit car's long axis runs along its Z, facing away from the aisle
+						KitPlacer.place("HatchbackOrange", bay * CFrame.new(0, 0.32, 0) * CFrame.Angles(0, math.pi, 0), m, { fallbackSize = Vector3.new(6, 4, 12), fallbackColor = Color3.fromRGB(150, 152, 156) })
+					end
+				end
+				local signAt = Vector3.new(block.centre.X + block.size.X / 2 - 4, 0, block.centre.Z - block.size.Z / 2 - 3)
+				part({ Name = "ParkingSignPost", Size = Vector3.new(0.4, 8, 0.4), CFrame = CFrame.new(signAt + Vector3.new(0, 4, 0)), Color = IRON, Material = Enum.Material.Metal, Parent = m })
+				local plate = part({ Name = "ParkingSign", Size = Vector3.new(3.2, 3.2, 0.2), CFrame = CFrame.new(signAt + Vector3.new(0, 8.4, 0.3)), Color = Color3.fromRGB(28, 70, 150), Parent = m })
+				sign(plate, Enum.NormalId.Back, "P", Color3.new(1, 1, 1), nil, Enum.Font.GothamBlack)
+				sign(plate, Enum.NormalId.Front, "P", Color3.new(1, 1, 1), nil, Enum.Font.GothamBlack)
 			end
 		end
 	end

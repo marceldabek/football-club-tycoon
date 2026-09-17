@@ -659,3 +659,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Playtest:** the train left the station northbound and was on the viaduct at body height 27.3 (rail top 22.5). **Screenshot** TrainOnViaduct_1. TrainAtStation_1 was taken after it had already left.
 - Not done: it isn't hidden on Quality Low (12 parts), there's no sound, and it passes through the footbridge span's clearance without a check (the deck is at 16, the carriage roof at about 9).
 - RunAll 370/370.
+
+### 2026-09-17 07:07 — Station car park dressed (X83)
+- The station car park, where the extended Station Road now ends, was a plain grey slab. New pure `StationDresser.carParkBays` (1 test: inside the slab, bays look out to the aisle, near row clear of the entrance) lays out 19 bays in two rows 11 × 20, with the near row stopping 30 short of the Station Road end. StationDresser paints 38 bay lines, lifted 0.01 off the slab so no faces share a plane, parks kit hatchbacks nose-in in about half the bays (7 cars), and stands a blue P sign at the corner.
+- **Screenshot** StationCarPark_1. Every car is the orange kit hatchback, the X45 monotone problem again.
+- RunAll 371/371.
