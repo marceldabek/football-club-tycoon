@@ -522,7 +522,16 @@ function SquareDresser.build(): string
 		})
 	end
 
-	SquareDresser.fingerPost(square, SquareDresser.ring(centre, FINGER_RING, 1, 0)[1].Position)
+	-- X267: the square's post now points at the club grounds too (the blades
+	-- were all landmarks, so nothing in town pointed a visitor at a ground)
+	local groundsAt = SquareDresser.destination("Plot 1")
+	local squareBlades: { FingerDestination } = { "Station", "Riverside", "Lune Bridge" }
+	if groundsAt then
+		table.insert(squareBlades, { name = "Club Grounds", position = groundsAt })
+	else
+		table.insert(squareBlades, "Church Spire")
+	end
+	SquareDresser.fingerPost(square, SquareDresser.ring(centre, FINGER_RING, 1, 0)[1].Position, nil, squareBlades)
 
 	for _, cf in SquareDresser.ring(centre, BOLLARD_RING - 3, 4, math.pi / 4) do
 		KitPlacer.place("LampVictorian", cf * CFrame.new(0, TOP, 0), square, {

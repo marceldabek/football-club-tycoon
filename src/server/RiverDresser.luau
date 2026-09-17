@@ -44,6 +44,7 @@ local STONE = Color3.fromRGB(196, 184, 160)
 local PAVING = Color3.fromRGB(206, 192, 170)
 local IRON = Color3.fromRGB(22, 22, 24)
 local TownCrest = require(game:GetService("ReplicatedStorage").Shared.TownCrest)
+local SquareDresser = require(script.Parent.SquareDresser)
 
 local TIMBER = Color3.fromRGB(120, 92, 64)
 local BOAT_HULLS = { Color3.fromRGB(245, 245, 245), Color3.fromRGB(30, 50, 100), Color3.fromRGB(180, 40, 40) }
@@ -513,6 +514,16 @@ function RiverDresser.build(): string
 	end
 
 	RiverDresser.cafePavilion(furniture, RiverDresser.CAFE_SITE, RiverDresser.CAFE_FACING)
+
+	-- X267: a finger post on the promenade, as on RivermereRiverside.png. The
+	-- town had exactly one, in the market square, and none of its blades pointed
+	-- at a club ground. ~7 parts.
+	SquareDresser.fingerPost(furniture, Vector3.new(RiverDresser.CAFE_SITE.X - 26, 0, RiverDresser.CAFE_SITE.Z - 4), PROM_TOP, {
+		"Town Centre",
+		"Station",
+		"Riverside Park",
+		{ name = "Club Grounds", position = Vector3.new(992, 0, 840) },
+	})
 
 	root.Parent = town
 	local parts = 0

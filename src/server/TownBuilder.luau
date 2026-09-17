@@ -942,9 +942,83 @@ function TownBuilder.timetableLines(stopName: string): { string }
 	return out
 end
 
+-- X268: the nearest road to a point, with the closest point on its centreline
+-- and the direction it runs there. Only the station lay-by had a painted bay,
+-- so the fast-travel stops read as street furniture from the carriageway.
+local function nearestRoad(at: Vector3): (TownLayout.Road?, Vector3, Vector3)
+	local best, bestPoint, bestDir, bestD = nil, at, Vector3.new(0, 0, 1), math.huge
+	for _, road in TownLayout.ROADS do
+		for i = 1, #road.points - 1 do
+			local a, b = road.points[i], road.points[i + 1]
+			local ab = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+			local len = ab.Magnitude
+			if len < 1e-3 then
+				continue
+			end
+			local dir = ab / len
+			local t = math.clamp(Vector3.new(at.X - a.X, 0, at.Z - a.Z):Dot(dir), 0, len)
+			local point = Vector3.new(a.X, 0, a.Z) + dir * t
+			local d = (Vector3.new(at.X, 0, at.Z) - point).Magnitude
+			if d < bestD then
+				best, bestPoint, bestDir, bestD = road, point, dir, d
+			end
+		end
+	end
+	if bestD > 60 then
+		return nil, bestPoint, bestDir -- no carriageway close enough to paint
+	end
+	return best, bestPoint, bestDir
+end
+
+-- A bus stop bay: one transparent slab on the carriageway carrying the yellow
+-- bay outline on its top face (1 part). No painted legend: a rotated label
+-- would not sit inside the bay at any size that stayed readable, and the
+-- station's own BUS STOP wording is built from parts (X72).
+local function busStopBay(parent: Instance, stop: TownLayout.BusStop)
+	local road, point, dir = nearestRoad(stop.position)
+	if not road then
+		return
+	end
+	local normal = Vector3.new(-dir.Z, 0, dir.X)
+	if (Vector3.new(stop.position.X, 0, stop.position.Z) - point):Dot(normal) < 0 then
+		normal = -normal
+	end
+	local inset = math.max(road.width / 2 - 3.2, 1.4)
+	local centre = point + normal * inset
+	local top = TownBuilder.roadTop(road.kind)
+	local at = Vector3.new(centre.X, top + 0.02, centre.Z)
+	local slab = part({
+		Name = "BusBay",
+		Size = Vector3.new(6.4, 0.04, 20),
+		CFrame = CFrame.lookAt(at, at + dir),
+		Transparency = 1,
+		CanCollide = false,
+		CastShadow = false,
+		Parent = parent,
+	})
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "BayMarking"
+	gui.Face = Enum.NormalId.Top
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 24
+	gui.LightInfluence = 0.6
+	gui.MaxDistance = 220
+	gui.Parent = slab
+	local outline = Instance.new("Frame")
+	outline.Name = "Outline"
+	outline.Size = UDim2.fromScale(1, 1)
+	outline.BackgroundTransparency = 1
+	outline.Parent = gui
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(236, 196, 72)
+	stroke.Thickness = 4
+	stroke.Parent = outline
+end
+
 local function buildBusStop(parent: Instance, stop: TownLayout.BusStop)
 	local m = model(stop.name, parent)
 	m:SetAttribute("BusStop", stop.name)
+	busStopBay(m, stop)
 	-- shelter opens toward local -Z (the yaw direction)
 	local base = CFrame.new(stop.position.X, 0, stop.position.Z) * CFrame.Angles(0, math.rad(stop.yaw), 0)
 	-- X63: a paved pad under the shelter, pole and bin, so a stop set back on the

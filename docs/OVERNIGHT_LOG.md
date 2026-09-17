@@ -1492,3 +1492,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Checked at a real evening fixture (match index 71, `Evening` true): the turnstile fascia and the North stand street board both read clearly under the floodlights (screenshots). The generic in-ground signs (lane signs, plaques, stand signs, addSign at 0.85) and the pitch-side name plate (0.8) were left alone — they're lit differently and read as painted signs; worth a look with fresh eyes.
 - RunAll 438 passed.
 
+### 2026-09-17 15:40 — Finger posts that point at the grounds, and marked bus bays (X267, X268 done)
+- X267: a second finger post on the riverside promenade beside the café (Town Centre / Station / Riverside Park / **Club Grounds**), and the market square's post now carries a Club Grounds blade in place of Church Spire. Nothing in town pointed a visitor at a ground before. About 7 parts each; the station's existing post keeps its own blades. Screenshot checked on the promenade.
+- The promenade post stands on the grass verge beside the paving rather than on the paving itself; it reads fine (a signpost on the verge is normal) so I left the position rather than guessing at the paving strip maths.
+- X268 `TownBuilder.buildBusStop`: every fast-travel stop (11, including the four club plots) gets a yellow bay outline painted on the carriageway beside it, found by measuring the nearest road centreline from `TownLayout.ROADS` and insetting from the kerb. **1 part per stop** — a transparent slab carrying the outline on its top face. Only the station lay-by had one before (X72).
+- **No painted BUS STOP legend at these stops:** a Top-face label reads across the bay, and rotating it never sat inside the bay at a readable size (two attempts, both screenshot-checked). The station keeps its part-built wording. The outline alone still reads as a bay from the road.
+- RunAll 438 passed; 11 bays and 3 finger posts confirmed in play, no console errors.
+
