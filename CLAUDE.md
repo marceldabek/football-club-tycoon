@@ -1041,6 +1041,7 @@ The game is moving from one club per server to a **shared multiplayer town**. Fu
 - The concept map is the target idea, not an exact copy: a river through the middle with bridges, a railway and station, a town centre with a market square, terraced housing estates, an industrial estate, a riverside park, a community sports centre, and **club grounds on the edge of town**.
 - Landmarks: church spire, river bridge, railway viaduct over the river.
 - Scale it down so it can be walked on Roblox.
+- **Use the reference images in `assets/references/` whenever possible.** Check the matching image before building or restyling anything in town, and compare the result against it.
 - Build districts one at a time. Start with a terraced-housing district next to the town centre.
 
 ## Plots & players
