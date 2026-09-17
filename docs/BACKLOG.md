@@ -241,4 +241,6 @@
 - [x] X126 (10:07 three fans queue at the snack kiosk hatch while the crowd is out; 3-4 parts each) Matchday life at the X95 kiosk `[studio]` S
 - [x] X127 (10:10 matchday car park cars are the town's one-mesh hatchbacks, published to ReplicatedStorage.ClientKit.Cars by the new ClientKit server module and scaled 0.85 to fit the bays; 1 part per car instead of 2 grey blocks) `[studio]` S
 - [x] X128 (10:16 traffic cars are the town's hatchback meshes (1 part instead of 8); fixed a traffic bug on the way: cars travelling against a road's polyline drove backwards in the same lane) `[studio]` S
+- [x] X129 (10:19 station taxis are the navy hatchback mesh at 0.7 scale with a yellow TAXI roof sign; 2 parts instead of 7) RivermereStation.png's taxi rank `[studio]` S
+- [ ] X130 RivermereStation.png: planters are lush mounded flowers; ours at the station and square are flat pink/coloured slabs. A few overlapping flower balls on the planter soil instead `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

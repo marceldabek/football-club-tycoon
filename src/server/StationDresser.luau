@@ -233,7 +233,28 @@ local function pavementAt(p: Vector3): boolean
 	return false
 end
 
+-- X129 (RivermereStation.png: dark cars with a yellow TAXI roof sign): the
+-- town's navy hatchback mesh at 0.7 scale (fits the 8-wide lay-by) with a roof
+-- sign; the 7-part block taxi stays as the fallback when the kit is missing.
+local TAXI_KIT, TAXI_SCALE = "HatchbackNavy", 0.7
+
 local function buildTaxi(parent: Instance, cf: CFrame)
+	if KitPlacer.find(TAXI_KIT) then
+		local car = KitPlacer.place(TAXI_KIT, cf, parent, { scale = TAXI_SCALE })
+		car.Name = "Taxi"
+		local bb, size = car:GetBoundingBox()
+		local roof = part({
+			Name = "TaxiSign",
+			Size = Vector3.new(1.1, 0.5, 2.2),
+			CFrame = CFrame.new(bb.Position + Vector3.new(0, size.Y / 2 + 0.15, 0)) * (cf - cf.Position),
+			Color = Color3.fromRGB(250, 200, 30),
+			Parent = car,
+		})
+		roof.CastShadow = false
+		sign(roof, Enum.NormalId.Left, "TAXI", Color3.fromRGB(20, 20, 20))
+		sign(roof, Enum.NormalId.Right, "TAXI", Color3.fromRGB(20, 20, 20))
+		return
+	end
 	local m = Instance.new("Model")
 	m.Name = "Taxi"
 	m.Parent = parent
