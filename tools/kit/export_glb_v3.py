@@ -40,7 +40,12 @@ def build_pbr(m, ts, glass):
     nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
     if "D" in ts:
         t = nt.nodes.new("ShaderNodeTexImage"); t.image = load_img(ts["D"], True); nt.links.new(t.outputs["Color"], bsdf.inputs["Base Color"])
-        if ts["D"].lower().endswith(".png"): nt.links.new(t.outputs["Alpha"], bsdf.inputs["Alpha"])
+        if ts["D"].lower().endswith(".png"):
+            nt.links.new(t.outputs["Alpha"], bsdf.inputs["Alpha"])
+            try: m.surface_render_method = 'DITHERED'
+            except Exception: pass
+            try: m.blend_method = 'CLIP'; m.alpha_threshold = 0.5
+            except Exception: pass
     if "R" in ts:
         t = nt.nodes.new("ShaderNodeTexImage"); t.image = load_img(ts["R"], False); nt.links.new(t.outputs["Color"], bsdf.inputs["Roughness"])
     else:
@@ -129,6 +134,14 @@ def prep_object(o, job):
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
     s = SPM / job.get("source_units_per_meter", 1.0)
     o.scale = (s, s, s); bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    # keep only the render UV layer: Roblox samples the last UV set, and lightmap UVs break trim sheets
+    uvl = o.data.uv_layers
+    if len(uvl) > 1:
+        keep = None
+        for l in uvl:
+            if l.active_render: keep = l.name
+        for l in [l for l in uvl if l.name != keep]:
+            uvl.remove(l)
     vs = o.data.vertices
     if len(vs) == 0: return 0
     mn = [min(v.co[i] for v in vs) for i in range(3)]; mx = [max(v.co[i] for v in vs) for i in range(3)]

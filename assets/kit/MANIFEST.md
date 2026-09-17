@@ -28,6 +28,9 @@ Rejected on inspection: Bloxy Cola vending machine (untextured), Roblox classic 
 Small Hatchback Cars (toy look), Sport Stadium Seats (924 red blocks), Lada hatchback (walk-path rig).
 
 ## Import limits applied
+- **SurfaceAppearance maps must be 1024×1024 or smaller.** Larger maps upload and pass moderation but render as flat grey on MeshParts (the same image still works as a Decal). Everything in the kit is therefore cached at 1K; the 2K cache is only for decals.
+- Chain-link fence panels in UK Street Props ship without an opacity mask; the cut-out is derived from the wire luminance of `Fencing*_D.tif`, exported as a PNG colour map with CLIP blending, and the SurfaceAppearance uses AlphaMode Transparency.
+- Modular English Housing prefabs carry a second lightmap UV layer; the exporter strips it.
 - 20,000 triangles per mesh: TowerBlock (279k), Flats_01 (33k), Mansion_02 (21k) excluded or decimated; UKSP Wall (51k), Pylon (61k), TrashBags (30-132k), UtilityPoles (31k) decimated or skipped.
 - Textures: 4K/8K sources cached at 1K (props) or 2K (walls, houses); Open Cloud upload limit is 20 MB per GLB.
 - Normal maps: Studio-Lab textures were DirectX (Y-) and are flipped in the cache; Modular English Housing and Poly Haven are already OpenGL.
