@@ -26,6 +26,7 @@ local BEDS: { [string]: Bed } = {
 	birds = { id = "rbxassetid://9112831284", volume = 0.3, target = 0 }, -- Morning Birds 1
 	river = { id = "rbxassetid://9118187543", volume = 0.35, target = 0 }, -- River Water 1
 	industry = { id = "rbxassetid://9112796599", volume = 0.12, target = 0 }, -- Industrial Ambience 1
+	station = { id = "rbxassetid://9114300983", volume = 0.25, target = 0 }, -- X173: Elevated New York City Subway 1 (exterior platform, P.A., brakes)
 	crowd = { id = Config.Sounds.crowdAmbient, volume = 0.22, target = 0 }, -- the stadium crowd, low-passed below
 }
 
@@ -34,6 +35,9 @@ local TOWN_FADE = 380
 local RIVER_NEAR = 60 -- beyond the river's half width
 local RIVER_FADE = 180
 local INDUSTRY_FADE = 160
+local STATION_NEAR = 40 -- beyond the station building's footprint
+local STATION_FADE = 160
+local INDOOR_GAIN = 0.3 -- X175: outdoor beds inside the office and dressing rooms
 
 for _, bed in BEDS do
 	local sound = Instance.new("Sound")
@@ -93,16 +97,59 @@ local function boxDistance(p: Vector3, box: { number }): number
 	return math.sqrt(dx * dx + dz * dz)
 end
 
+-- X173: the station's footprint as a box
+local stationBox: { number }
+do
+	local st = TownLayout.RAIL.station
+	stationBox = { st.centre.X - st.size.X / 2, st.centre.X + st.size.X / 2, st.centre.Z - st.size.Z / 2, st.centre.Z + st.size.Z / 2 }
+end
+
+-- X175: the camera is inside a club's office or dressing rooms (their models'
+-- oriented bounding boxes, refreshed every few seconds as plots come and go)
+type RoomBox = { cf: CFrame, half: Vector3 }
+local rooms: { RoomBox } = {}
+local roomsAge = math.huge
+local function refreshRooms()
+	table.clear(rooms)
+	local plots = workspace:FindFirstChild("Plots")
+	if not plots then
+		return
+	end
+	for _, d in plots:GetDescendants() do
+		if d:IsA("Model") and (d.Name == "Office" or d.Name == "DressingRooms") then
+			local cf, size = d:GetBoundingBox()
+			table.insert(rooms, { cf = cf, half = size / 2 })
+		end
+	end
+end
+local function indoors(p: Vector3): boolean
+	for _, room in rooms do
+		local q = room.cf:PointToObjectSpace(p)
+		if math.abs(q.X) < room.half.X and math.abs(q.Y) < room.half.Y and math.abs(q.Z) < room.half.Z then
+			return true
+		end
+	end
+	return false
+end
+
 local function retarget()
 	local p = workspace.CurrentCamera.CFrame.Position
+	roomsAge += 0.25
+	if roomsAge > 4 then
+		roomsAge = 0
+		refreshRooms()
+	end
 	local square = TownLayout.SQUARE.centre
 	local town = falloff((Vector3.new(p.X, 0, p.Z) - square).Magnitude, TOWN_RADIUS, TOWN_FADE)
 	local river = falloff(TownLayout.distanceToPolyline(p, TownLayout.RIVER.points), TownLayout.RIVER.width / 2 + RIVER_NEAR, RIVER_FADE)
 	local industry = if industrialBox then falloff(boxDistance(p, industrialBox), 0, INDUSTRY_FADE) else 0
+	local station = falloff(boxDistance(p, stationBox), STATION_NEAR, STATION_FADE)
 	-- birds fill whatever the busier beds leave, never silent outdoors
-	local birds = math.clamp(1 - math.max(town * 0.7, industry), 0.25, 1)
-	-- high above town (the picker camera) everything is quieter
-	local height = math.clamp(1 - (p.Y - 60) / 300, 0.3, 1)
+	local birds = math.clamp(1 - math.max(town * 0.7, industry, station * 0.7), 0.25, 1)
+	-- high above town (the picker camera) everything is quieter, and indoors
+	-- the outdoor beds are muffled
+	local height = math.clamp(1 - (p.Y - 60) / 300, 0.3, 1) * (if indoors(p) then INDOOR_GAIN else 1)
+	BEDS.station.target = station * height
 	BEDS.town.target = town * height
 	BEDS.river.target = river * height
 	BEDS.industry.target = industry * height
