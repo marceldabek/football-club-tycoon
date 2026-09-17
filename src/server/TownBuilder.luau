@@ -890,6 +890,9 @@ local ADVERTS = {
 	{ text = "SUPPORT YOUR LOCAL CLUB", colour = Color3.fromRGB(150, 36, 44) },
 }
 
+-- Route numbers on the bus stop flags (X58), TEMP and decorative only.
+local BUS_ROUTES = { "21  23", "7  24", "12  N3", "21  7" }
+
 local function buildBusStop(parent: Instance, stop: TownLayout.BusStop)
 	local m = model(stop.name, parent)
 	m:SetAttribute("BusStop", stop.name)
@@ -930,24 +933,59 @@ local function buildBusStop(parent: Instance, stop: TownLayout.BusStop)
 		Material = Enum.Material.Metal,
 		Parent = m,
 	})
+	-- X58: a UK bus stop flag like RiveremereWestdale.png: white plate, a red
+	-- BUS band, the stop name and route numbers, readable from both sides
 	local sign = part({
 		Name = "Sign",
-		Size = Vector3.new(2.4, 2.4, 0.2),
-		CFrame = base * CFrame.new(6, 9, -0.3),
-		Color = COLOURS.sign,
+		Size = Vector3.new(2.6, 3.6, 0.2),
+		CFrame = base * CFrame.new(6, 8.4, -0.3),
+		Color = Color3.fromRGB(245, 245, 242),
 		Parent = m,
 	})
-	local gui = Instance.new("SurfaceGui")
-	gui.Face = Enum.NormalId.Front
-	gui.Parent = sign
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.TextScaled = true
-	label.TextColor3 = Color3.new(1, 1, 1)
-	label.Font = Enum.Font.GothamBold
-	label.Text = "BUS\n" .. stop.name
-	label.Parent = gui
+	local routes = BUS_ROUTES[(#stop.name % #BUS_ROUTES) + 1]
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 50
+		gui.Parent = sign
+		local band = Instance.new("TextLabel")
+		band.Size = UDim2.fromScale(1, 0.3)
+		band.BackgroundColor3 = COLOURS.sign
+		band.BorderSizePixel = 0
+		band.TextScaled = true
+		band.TextColor3 = Color3.new(1, 1, 1)
+		band.Font = Enum.Font.GothamBlack
+		band.Text = "BUS"
+		band.Parent = gui
+		local name = Instance.new("TextLabel")
+		name.Size = UDim2.fromScale(0.9, 0.3)
+		name.Position = UDim2.fromScale(0.05, 0.33)
+		name.BackgroundTransparency = 1
+		name.TextScaled = true
+		name.TextColor3 = Color3.fromRGB(20, 20, 24)
+		name.Font = Enum.Font.GothamBold
+		name.Text = stop.name
+		name.Parent = gui
+		local numbers = Instance.new("TextLabel")
+		numbers.Size = UDim2.fromScale(0.9, 0.28)
+		numbers.Position = UDim2.fromScale(0.05, 0.68)
+		numbers.BackgroundTransparency = 1
+		numbers.TextScaled = true
+		numbers.TextColor3 = Color3.fromRGB(20, 20, 24)
+		numbers.Font = Enum.Font.GothamBlack
+		numbers.Text = routes
+		numbers.Parent = gui
+	end
+	-- a litter bin beside the pole, clear of the shelter's open side
+	part({
+		Name = "Bin",
+		Size = Vector3.new(1.4, 2.6, 1.4),
+		CFrame = base * CFrame.new(7.4, 0.5 + 1.3, 1.2),
+		Color = Color3.fromRGB(24, 26, 28),
+		Material = Enum.Material.Metal,
+		Parent = m,
+	})
 
 	-- X47: an advert panel across the shelter's open end, like the poster in
 	-- RivermereCenter.png; clear of the back panel (z 1.6) and the post (z -1.6)

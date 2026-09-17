@@ -387,3 +387,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshot** Porch_1: red-slate hoods over the red doors of a Northfields pair.
 - X57 still has the play area and front-garden flower borders to do.
 - RunAll 335/335.
+
+### 2026-09-17 04:47 — Bus stop flags (X58)
+- **Compared with `RiveremereWestdale.png`:** the reference has a proper UK bus stop flag. Ours was a small red square with tiny white text.
+- **Change:** every stop (TownBuilder) now has a white 2.6 × 3.6 plate with a red "BUS" band, the stop name and TEMP decorative route numbers ("21 23", "7 24"…), readable from both sides, plus a litter bin beside the pole. The prompt still attaches to the Sign part (checked).
+- **Screenshot** BusFlag_1: the Westdale stop.
+- **Still different in Westdale (new X59):** the side streets are bare (no trees, lamps, cars or railings), there's no corner shop with a post box, and a big white civic greybox block sits among the houses.
+- RunAll 335/335.
