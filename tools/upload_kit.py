@@ -62,15 +62,23 @@ def upload_one(path, key, user_id, display_name):
 
 
 def main():
+    global IDS_PATH
     ap = argparse.ArgumentParser()
     ap.add_argument("--user", required=True)
     ap.add_argument("--list", required=True)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--ids", default=IDS_PATH, help="ids json to read/write (use one per worker)")
+    ap.add_argument("--skip", default="", help="comma-separated extra ids json files whose entries are treated as done")
     args = ap.parse_args()
     key = os.environ.get("ROBLOX_API_KEY")
     if not key:
         sys.exit("set ROBLOX_API_KEY first")
+    IDS_PATH = args.ids
     ids = json.load(open(IDS_PATH)) if os.path.exists(IDS_PATH) else {}
+    for extra in [p for p in args.skip.split(",") if p]:
+        if os.path.exists(extra):
+            for k in json.load(open(extra)):
+                ids.setdefault(k, {"assetId": None, "name": "(uploaded by another worker)"})
     names = [l.strip() for l in open(args.list) if l.strip() and not l.startswith("#")]
     done = 0
     for name in names:

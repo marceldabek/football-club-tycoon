@@ -1,0 +1,40 @@
+"""Merge every asset_ids*.json under assets/kit/_export and emit fetch_kit.luau, a Luau chunk that
+loads each uploaded kit asset into ServerStorage.Kit.Meshes (skipping ones already there)."""
+import glob, json, os
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+EXP = os.path.join(ROOT, "assets", "kit", "_export")
+merged = {}
+for p in sorted(glob.glob(os.path.join(EXP, "asset_ids*.json"))):
+    if p.endswith("asset_ids_merged.json"):
+        continue
+    for k, v in json.load(open(p)).items():
+        if isinstance(v, dict) and v.get("assetId"):
+            merged[k[:-4] if k.endswith(".glb") else k] = int(v["assetId"])
+json.dump(merged, open(os.path.join(EXP, "asset_ids_merged.json"), "w"), indent=1)
+lines = ["local IS = game:GetService(\"InsertService\")",
+         "local kit = game.ServerStorage:FindFirstChild(\"Kit\") or Instance.new(\"Folder\"); kit.Name = \"Kit\"; kit.Parent = game.ServerStorage",
+         "local meshes = kit:FindFirstChild(\"Meshes\") or Instance.new(\"Folder\"); meshes.Name = \"Meshes\"; meshes.Parent = kit",
+         "local ids = {"]
+for k, v in sorted(merged.items()):
+    lines.append('  ["%s"] = %d,' % (k, v))
+lines += ["}",
+          "local fetched, failed = 0, {}",
+          "for name, id in pairs(ids) do",
+          "  if not meshes:FindFirstChild(name) then",
+          "    local ok, err = pcall(function()",
+          "      local container = IS:LoadAsset(id)",
+          "      local model = container:FindFirstChildWhichIsA(\"Model\") or container",
+          "      model.Name = name",
+          "      for _, d in ipairs(model:GetDescendants()) do",
+          "        if d:IsA(\"PackageLink\") then d:Destroy() elseif d:IsA(\"BasePart\") then d.Anchored = true end",
+          "      end",
+          "      model.Parent = meshes",
+          "      if container ~= model then container:Destroy() end",
+          "    end)",
+          "    if ok then fetched += 1 else table.insert(failed, name .. \": \" .. tostring(err)) end",
+          "  end",
+          "end",
+          "return \"fetched=\" .. fetched .. \" library=\" .. #meshes:GetChildren() .. \" failed=\" .. #failed .. \" \" .. table.concat(failed, \"; \")"]
+out = os.path.join(EXP, "fetch_kit.luau")
+open(out, "w").write("\n".join(lines) + "\n")
+print(len(merged), "ids ->", out)
