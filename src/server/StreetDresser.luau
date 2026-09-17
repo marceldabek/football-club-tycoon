@@ -38,7 +38,8 @@ local StreetDresser = {}
 local DRESSED = {
 	-- xRange: only this stretch gets the kit (the streets were extended to x 900)
 	["Mill Street Terraces"] = { streets = { "Mill Street", "Weaver Street" }, xRange = { 0, 400 } },
-}
+} :: { [string]: { streets: { string }, xRange: { number }? } }
+StreetDresser.DRESSED = DRESSED -- read by TerraceStreetDresser (X11)
 
 -- Every other district gets the low-part TerraceBuilder row and lamp; the
 -- kit district's rows away from its kit streets do too. The densified layout
@@ -229,6 +230,36 @@ local function inRange(x: number, range: { number }?): boolean
 	return range == nil or (x >= range[1] and x <= range[2])
 end
 
+-- Pure: true when StreetDresser gives this district's "terraced row" block the
+-- kit row (inside a DRESSED district's xRange and fronting one of its streets).
+function StreetDresser.isKitRow(districtName: string, block: TownLayout.Box): boolean
+	local spec = DRESSED[districtName]
+	return spec ~= nil and block.use == "terraced row" and inRange(block.centre.X, spec.xRange) and nearStreets(block, spec.streets)
+end
+
+-- Pure: XZ positions (Y = 0) of every lamp post StreetDresser can put on this
+-- street: the kit streets' staggered 50-stud stations (only every other one
+-- beyond the showpiece stretch), otherwise the light 80-stud stations. A light
+-- street that ends up unlit just gets a few spots avoided for nothing.
+function StreetDresser.lampPositions(road: TownLayout.Road): { Vector3 }
+	local out: { Vector3 } = {}
+	local xRange: { number }? = nil
+	local kit = false
+	for _, spec in DRESSED do
+		if table.find(spec.streets, road.name) then
+			kit, xRange = true, spec.xRange
+		end
+	end
+	for i, st in StreetDresser.stations(road.points, if kit then LAMP_SPACING else LIGHT_LAMP_SPACING) do
+		if kit and not inRange(st.position.X, xRange) and i % 2 ~= 0 then
+			continue
+		end
+		local _, pos = lampSpot(road, i, st)
+		table.insert(out, Vector3.new(pos.X, 0, pos.Z))
+	end
+	return out
+end
+
 local function dressRows(districtName: string, streets: { string }, xRange: { number }?, greybox: Instance?, parent: Instance, rng: Random): (number, number)
 	local district = districtNamed(districtName)
 	if not district then
@@ -240,7 +271,7 @@ local function dressRows(districtName: string, streets: { string }, xRange: { nu
 		if block.use ~= "terraced row" then
 			continue
 		end
-		if not (inRange(block.centre.X, xRange) and nearStreets(block, streets)) then
+		if not StreetDresser.isKitRow(districtName, block) then
 			local length = math.max(block.size.X, block.size.Z)
 			local depth = math.min(block.size.X, block.size.Z)
 			TerraceBuilder.row(StreetDresser.lightRowPlacement(block), length, depth, block.size.Y, parent, rng)
