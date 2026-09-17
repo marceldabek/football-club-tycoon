@@ -73,6 +73,10 @@ local function colorToJson(c: Color3): { number }
 	return { math.floor(c.R * 255 + 0.5), math.floor(c.G * 255 + 0.5), math.floor(c.B * 255 + 0.5) }
 end
 
+local function jsonToColor(c: { number }): Color3
+	return Color3.fromRGB(c[1] or 255, c[2] or 255, c[3] or 255)
+end
+
 -- Attack / Defend / Balanced / Sub. Returns false plus a reason if refused.
 function MatchService.applyTactic(action: string): (boolean, string?)
 	if ClubState.get("Phase") ~= "Match" then
@@ -156,7 +160,8 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	ClubState.set("Timeline", HttpService:JSONEncode({
 		events = result.events,
 		home = { name = ClubState.get("ClubName"), kit = colorToJson(Config.HomeKit), squad = homeSquad },
-		away = { name = opponent.name, kit = opponent.kit, squad = opponent.squad },
+		-- X263: shift an away kit that would read as this club's own red
+		away = { name = opponent.name, kit = colorToJson(Config.pitchKit(jsonToColor(opponent.kit))), squad = opponent.squad },
 	}))
 	ClubState.set("Phase", "PreMatch")
 
@@ -290,7 +295,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 	end
 	remote("MatchSummary"):FireClient(owner, {
 		opponent = fixture.opponent,
-		awayKit = fixture.kit,
+		awayKit = colorToJson(Config.pitchKit(jsonToColor(fixture.kit))),
 		homeGoals = result.homeGoals,
 		awayGoals = result.awayGoals,
 		outcome = settlement.outcome,
@@ -384,7 +389,7 @@ local function playFriendlyInner(opponent: Opponent, durationOverride: number?, 
 		remote("MatchSummary"):FireClient(owner, {
 			friendly = true,
 			opponent = opponent.name,
-			awayKit = opponent.kit,
+			awayKit = colorToJson(Config.pitchKit(jsonToColor(opponent.kit))),
 			homeGoals = result.homeGoals,
 			awayGoals = result.awayGoals,
 			outcome = outcome,

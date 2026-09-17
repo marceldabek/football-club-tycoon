@@ -660,10 +660,41 @@ function Presenter.playSequence(self: Presenter, ev: Event, shotAt: number)
 
 	if ev.type == "GOAL" then
 		shooter:celebrate()
+		-- X264: the two nearest teammates run in and celebrate with the scorer,
+		-- so a goal isn't one player waving while ten others jog to their spots
+		local mates = {}
+		for idx, mate in T.players do
+			if mate ~= shooter and idx > 1 then
+				table.insert(mates, { idx = idx, d = (mate.position - shooter.position).Magnitude })
+			end
+		end
+		table.sort(mates, function(a, b)
+			return a.d < b.d
+		end)
+		local joined = {}
+		for i = 1, math.min(2, #mates) do
+			local mate = T.players[mates[i].idx]
+			table.insert(joined, mate)
+			mate.busy = true
+			mate:setTarget(shooter.position + Vector3.new(if i == 1 then -4 else 4, 0, -3))
+			task.delay(1.1, function()
+				if self.mode == "play" then
+					mate:celebrate()
+				end
+			end)
+		end
 		if team == "Home" then
 			crowdReact()
+		else
+			-- X264: an away goal was silent; the only goal sound rode on the home
+			-- cheer. A quiet groan marks it instead.
+			MatchAudio.nearMiss()
 		end
 		task.wait(CELEBRATE_SECONDS)
+		for _, mate in joined do
+			mate.busy = false
+			mate:setTarget(nil)
+		end
 		self:resetToFormation()
 		self:placeBall(centre())
 		task.wait(RESET_SECONDS)

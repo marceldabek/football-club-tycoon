@@ -113,6 +113,25 @@ end
 -- falls through to the home kit. Any other unknown name gets a stable colour
 -- derived from the name itself rather than a shared default, so a club added
 -- later still reads as its own side until it is given real colours.
+-- X263: how far round the hue wheel a kit must sit from HomeKit to read as a
+-- different side on the pitch
+local CREST_HUE_CLEARANCE = 0.09
+
+-- Every player club wears HomeKit, so an opponent whose colour lands on the
+-- same hue puts two near-identical sides on the pitch for 90 seconds. The
+-- league's designed crest colours are left alone (they are the club's
+-- identity); this shifts only the shirts a match is played in.
+function Config.pitchKit(kit: Color3): Color3
+	local hue, sat, val = Color3.toHSV(kit)
+	local homeHue = select(1, Color3.toHSV(Config.HomeKit))
+	local gap = math.abs(hue - homeHue)
+	gap = math.min(gap, 1 - gap)
+	if gap >= CREST_HUE_CLEARANCE then
+		return kit
+	end
+	return Color3.fromHSV((hue + 0.5) % 1, sat, val)
+end
+
 function Config.clubCrest(name: string?, isPlayer: boolean?): (Color3, Color3)
 	if isPlayer or name == nil or name == "" then
 		return Config.HomeKit, Color3.fromRGB(245, 245, 245)
@@ -125,7 +144,17 @@ function Config.clubCrest(name: string?, isPlayer: boolean?): (Color3, Color3)
 	for i = 1, #name do
 		hash = (hash * 31 + name:byte(i)) % 360
 	end
-	return Color3.fromHSV(hash / 360, 0.55, 0.55), Color3.fromRGB(240, 240, 240)
+	local hue = hash / 360
+	-- X263: every player club wears HomeKit, so a hashed kit that lands on the
+	-- same hue puts two near-identical sides on the pitch for 90 seconds. Push
+	-- it round the wheel until it is clearly a different colour.
+	local homeHue = select(1, Color3.toHSV(Config.HomeKit))
+	local gap = math.abs(hue - homeHue)
+	gap = math.min(gap, 1 - gap)
+	if gap < CREST_HUE_CLEARANCE then
+		hue = (hue + 0.5) % 1
+	end
+	return Color3.fromHSV(hue, 0.55, 0.55), Color3.fromRGB(240, 240, 240)
 end
 
 -- Squad (Milestone 3). All TEMP.

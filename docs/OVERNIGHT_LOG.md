@@ -1473,3 +1473,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - New test `awayFixturesLoseTheVenueAdvantage`: over 400 seeds at equal strength, the club scores more and concedes less at home than away. RunAll 438 passed.
 - Played four league matches in a row (1-1, 3-0, 0-0, 0-2), each settling and saving with no console errors.
 
+### 2026-09-17 15:21 — Away kits can't clash, and a goal brings teammates over (X263, X264 done)
+- X263: every player club wears `Config.HomeKit` (red), so an opponent whose colour hashes near the same hue put two near-identical sides on the pitch. Generated kits now keep a 0.09 hue clearance from HomeKit, and the new `Config.pitchKit` shifts a *designed* league colour only for the shirts a match is played in — the crest keeps the club's identity. Measured: Redcliffe Rangers' crest gap 0.040 → pitch 0.460, Copperfield Celtic 0.074 → 0.426, clubs already clear are untouched, and across 400 generated names the worst gap is 0.092.
+- Checked in play: a match against Copperfield Celtic had away kit (42, 130, 184) against home (200, 40, 50) — blue against red, clear in the screenshot.
+- X264 `MatchPresenter`: on a goal the two nearest teammates run to the scorer and celebrate with him (they're released and re-formed afterwards), and an away goal now plays the quiet groan cue — before, the only goal sound rode on the home crowd cheer, so an away goal was silent.
+- **The celebration itself wasn't caught on camera**: the window is about 2 s and by the time a capture landed the players were back in formation; a cluster measure over all 32 players was inconclusive. The code path is straightforward, and nothing errored across four matches. Worth an eye in the morning.
+- RunAll 438 passed.
+
