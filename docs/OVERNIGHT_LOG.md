@@ -2,22 +2,34 @@
 
 ## Morning handoff (kept current)
 
-**What to look at:** (filled in as work lands)
+**What to look at:** Press Play in Studio. You get a club plot automatically (picker is on its way),
+spawn in your office, and your ground now sits on a town plot (Plot 1, south-east, rotated). The
+other three plots are "FOR SALE" lots. Play a match: evening fixtures (every 4th match from match 3)
+go floodlit; after the summary, click "Back to Club" to see the week fast-forward. Open CLUB OFFICE to
+see the menu depth of field. (MCP screenshots can't be written to disk, so none are saved in
+`assets/screenshots/overnight/`; camera spots are listed in the entries.)
 
-**Done:** —
-**Half-done:** —
-**Reverted:** —
+**Done:** client-side sky + evening fixtures + fast-forward (A1, A2), depth of field (A3), clubs as
+plots with per-plot services (B1, B2 server side, B2.3 despawn, B4.1 for-sale lot), save lock (B3),
+town master plan + layout data (C1), KitPlacer (D4.1), free-asset research (D1.1) + 3 store keepers
+in `ServerStorage.Kit.Town`.
+**Half-done:** plot picker, town greybox builder, plot surroundings (subagents drafting).
+**Reverted:** none.
 
 **Known bugs**
-1. —
+1. Studio playtests use your real DataStore club (the place is published). Agent tests added matches, cash and one North-stand level to it.
+2. Studio holds condensed copies of the new modules (comments trimmed). Reconnect Rojo to overwrite them from disk.
+3. Season-end fast-forward is wired but not playtested.
 
 **Questions for Marcel**
-1. —
+1. Should Studio playtests use a separate save key (e.g. `studio_u<id>`) so test sessions never touch your real club? *Rec: yes, with a Config switch to use the real save when you want it.*
+2. Plot size 760 and river width 90 are TEMP (docs/TOWN_PLAN.md end list has 8 TEMP choices). *Rec: accept for the greybox, revisit after walking it.*
+3. Evening fixtures are every 4th match starting at match 3 (TEMP). *Rec: fine until the fixture list gets real kick-off times.*
 
 **Buy list for Marcel**
-- —
+- Nothing new yet. Free store terraces are a flat-fronted Victorian row. If you want bay windows like `RiveremereWestdale.png`, "UK Housing – Terraced Set 1" (Macwelshman, Fab, $39.99) is the best paid match (see docs/ASSET_KIT.md).
 
-**Studio state:** Save the place (Ctrl+S / File → Save to Roblox) before trusting anything that only exists in Studio.
+**Studio state:** Save the place (Ctrl+S / File → Save to Roblox) before trusting anything that only exists in Studio — in particular `ServerStorage.Kit.Town` (3 new store models) only exists in the place file.
 
 ---
 
@@ -42,3 +54,8 @@
 - Town plan + layout data (subagent, `docs/TOWN_PLAN.md`, `src/shared/TownLayout.luau`, reference `RivermereAImap.png`): plots at SE (1050,1250) yaw 270, NE (1900,-1200), E (1950,420), NW (-1900,-1200) yaw 180. Plots now use these.
 - Also merged: `KitPlacer` (not yet in Studio), `docs/FREE_ASSETS.md` (Poly Haven/ambientCG shortlist; Poly Haven has no buildings/vehicles).
 - Note: the place is published, so Studio playtests load and save **Marcel's real club** from DataStore (it went from 34 to 36 matches, cash up, North stand +1 during testing). Backlog X1 proposes a Studio-only save key.
+
+### 2026-09-17 ~01:00 — Save lock wired (B3.2), depth of field (A3.1), town kit keepers
+- `Session` acquires the save lock before loading, heartbeats it in the autosave loop (kicks with "Your club was opened on another server." if another server takes it) and releases on stop. Fixed: SaveLock was missing from the per-plot module list; plot start/stop errors now free the plot. Tested: stop → restart Play reacquires instantly (lock released).
+- `src/client/Focus.luau`: DoF eases in behind the club office panel, match summary and season card; softer far blur during the walkout. Tested: panel open → FocusDoF enabled, far 0.55, office blurred (screenshot).
+- Free Creator Store hunt against `RiveremereWestdale.png` / `RivermereCenter.png`: kept Victorian terrace row (2974339114), church with spire (7976643711), Victorian gas lamp (8408243710) in `ServerStorage.Kit.Town`; rejected 5 (see MANIFEST). KitPlacer synced, RunAll 114/114.
