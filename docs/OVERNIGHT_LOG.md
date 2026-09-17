@@ -703,3 +703,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Ran a server `GetPartsInPart` audit over the new semis street trees, flower beds, forklifts and play area; the station platform 2, car park, finger post, basket and yellow lines; the sports centre; and the turnstile additions. I first checked the audit catches a known overlap: 41 of 41 hedges touch their garden wall by design. The only unexpected hit was the MATCH DAYS plaque running 1.1 studs into the start of the perimeter wall, which would clip its text. The others were by design: pitch lines sink 0.02 into the slab, and yellow lines sit on a road joint.
 - **Fixed:** the plaques are now 3.4 wide at x - 3.9 .. x - 0.5, clear of the wall (the re-audit finds nothing). The shrub planter, which TurnstilePlaques_3 showed standing right in front of the plaque, moved out beside it. Both plaque labels render text (client TextBounds checked).
 - RunAll 371/371.
+
+### 2026-09-17 07:25 — Overlap audit, part 2 (clean)
+- Foundry Way Roundabout: nothing but road parts stands on its disc; no imperfection dashes, give-ways or shed yards.
+- Weir Road dressing (X59): nothing in it overlaps any part outside the terrace dressing, roads and street dressing.
+- Moved Station bus stop (X71): its pad overlaps the station forecourt slab (tops 0.40 vs 0.30, not coplanar) and its back panel carries the imperfection poster, both by design.
