@@ -82,11 +82,9 @@ function T.aboutHalfTheBoatsHaveAMast()
 	for x = 0, 12 do
 		local p = Vector3.new(x * 21, 0, 0)
 		if RiverDresser.hasMast(p) and not with then
-			RiverDresser.buildBoat(folder, CFrame.new(p), rng)
-			with = folder:GetChildren()[#folder:GetChildren()]
+			with = RiverDresser.buildBoat(folder, CFrame.new(p), rng)
 		elseif not RiverDresser.hasMast(p) and not without then
-			RiverDresser.buildBoat(folder, CFrame.new(p), rng)
-			without = folder:GetChildren()[#folder:GetChildren()]
+			without = RiverDresser.buildBoat(folder, CFrame.new(p), rng)
 		end
 	end
 	assert(with and with:FindFirstChild("SailMast") and with:FindFirstChild("Boom") and with:FindFirstChild("Forestay"), "sailing boat rigged")

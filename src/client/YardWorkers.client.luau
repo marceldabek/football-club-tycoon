@@ -107,7 +107,8 @@ local function build(shed: Model, budget: number): Yard?
 		if i > budget then
 			break
 		end
-		table.insert(workers, worker(folder, spot.cf, spot.pace, i + #shed.Name))
+		-- seeded from the yard's position so neighbouring workers differ
+		table.insert(workers, worker(folder, spot.cf, spot.pace, i + math.floor(math.abs(yardPart.Position.X + yardPart.Position.Z))))
 	end
 	return { folder = folder, workers = workers }
 end

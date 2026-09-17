@@ -45,7 +45,7 @@ piece("Cabin", Vector3.new(4.6, 2.2, LENGTH * 0.35), CFrame.new(0, 2.5, -LENGTH 
 piece("Glass", Vector3.new(4.2, 1.2, 0.2), CFrame.new(0, 2.9, -LENGTH * 0.1 - LENGTH * 0.175 - 0.1), Color3.fromRGB(40, 60, 80), Enum.Material.Glass)
 -- a short white wash trailing the stern, flat on the water
 local wake = Color3.fromRGB(235, 242, 245)
-piece("Wake", Vector3.new(5, 0.1, 6), CFrame.new(0, -0.05, LENGTH / 2 + 3), wake)
+piece("Wake", Vector3.new(5, 0.1, 6), CFrame.new(0, -0.9, LENGTH / 2 + 3), wake) -- on the rendered water, level with the hull bottom
 parts[#parts].Transparency = 0.35
 
 local mid = (TownLifeMath.CRUISER_FROM + TownLifeMath.CRUISER_TO) / 2

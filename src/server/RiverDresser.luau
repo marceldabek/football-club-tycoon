@@ -277,7 +277,7 @@ end
 
 -- A simple moored boat, 5 parts, centred on `cf` with the bow towards its -Z
 -- (LookVector). Hull length 16..24 plus a 5-stud bow; width 6.
-function RiverDresser.buildBoat(parent: Instance, cf: CFrame, rng: Random)
+function RiverDresser.buildBoat(parent: Instance, cf: CFrame, rng: Random): Model
 	local m = Instance.new("Model")
 	m.Name = "Boat"
 	m.Parent = parent
@@ -302,7 +302,7 @@ function RiverDresser.buildBoat(parent: Instance, cf: CFrame, rng: Random)
 		local top = Vector3.new(0, 3.6 + MAST_H, mastZ)
 		part({ Name = "SailMast", Size = Vector3.new(0.35, MAST_H, 0.35), CFrame = cf * CFrame.new(0, 3.6 + MAST_H / 2, mastZ), Color = Color3.fromRGB(225, 225, 220), Material = Enum.Material.Metal, CastShadow = false, Parent = m })
 		part({ Name = "Boom", Size = Vector3.new(0.3, 0.3, length * 0.45), CFrame = cf * CFrame.new(0, 5.2, mastZ + length * 0.225), Color = Color3.fromRGB(225, 225, 220), Material = Enum.Material.Metal, CastShadow = false, Parent = m })
-		local bowTip = Vector3.new(0, 1.4, -length / 2 - 4.8)
+		local bowTip = Vector3.new(0, 1.4, -length / 2) -- the hull top where the bow wedge starts (the wedge slopes away from there)
 		local stay = top - bowTip
 		part({
 			Name = "Forestay",
@@ -313,6 +313,7 @@ function RiverDresser.buildBoat(parent: Instance, cf: CFrame, rng: Random)
 			Parent = m,
 		})
 	end
+	return m
 end
 
 -- X143: deterministic 1-in-2 pick from a boat's berth position (a 7-stud checkerboard)
