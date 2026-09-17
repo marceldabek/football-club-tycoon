@@ -286,6 +286,50 @@ function StationDresser.dressPlatform(parent: Instance, front: CFrame, stationSi
 	end
 end
 
+-- X73: a raised terrace at platform height beside the east end of the
+-- building (RivermereStation.png: a brick retaining wall with railings on top
+-- and ivy hanging over it, seen beside the frontage). Pure extents in the
+-- front frame: x just past the building end, z from the rear wall line to
+-- just behind the front wall line.
+local TERRACE_LENGTH = 50
+StationDresser.TERRACE_TOP = 3 -- TownBuilder Y.PLATFORM
+function StationDresser.terraceExtents(stationSize: Vector3): (number, number, number, number)
+	local x0 = stationSize.X / 2 + 0.1
+	return x0, x0 + TERRACE_LENGTH, -stationSize.Z, -0.5
+end
+
+function StationDresser.platformTerrace(parent: Instance, f: CFrame, stationSize: Vector3)
+	local x0, x1, z0, z1 = StationDresser.terraceExtents(stationSize)
+	local top = StationDresser.TERRACE_TOP
+	local m = Instance.new("Model")
+	m.Name = "PlatformTerrace"
+	m.Parent = parent
+	-- the fill's front and east faces are the retaining walls
+	slab(m, f, "TerraceWall", x0, x1, 0, top - 0.3, z0, z1, BRICK, Enum.Material.Brick)
+	slab(m, f, "TerraceCoping", x0, x1 + 0.2, top - 0.3, top, z0, z1 + 0.2, Color3.fromRGB(176, 170, 160), Enum.Material.Concrete)
+	-- railings a little in from the coping edge, along the front and the east end
+	local rx, rz = x1 - 0.4, z1 - 0.4
+	for _, y in { top + 1.6, top + 3.3 } do
+		slab(m, f, "TerraceRail", x0, rx + 0.1, y, y + 0.2, rz - 0.1, rz + 0.1, IRON, Enum.Material.Metal)
+		slab(m, f, "TerraceRail", rx - 0.1, rx + 0.1, y, y + 0.2, z0, rz - 0.1, IRON, Enum.Material.Metal)
+	end
+	local postStep = 8
+	for x = x0 + 4, rx, postStep do
+		slab(m, f, "TerraceRailPost", x - 0.15, x + 0.15, top, top + 3.4, rz - 0.15, rz + 0.15, IRON, Enum.Material.Metal)
+	end
+	slab(m, f, "TerraceRailPost", rx - 0.15, rx + 0.15, top, top + 3.4, rz - 0.15, rz + 0.15, IRON, Enum.Material.Metal)
+	for z = rz - postStep, z0 + 2, -postStep do
+		slab(m, f, "TerraceRailPost", rx - 0.15, rx + 0.15, top, top + 3.4, z - 0.15, z + 0.15, IRON, Enum.Material.Metal)
+	end
+	-- ivy hanging over the front wall in uneven clumps, hung on the coping face
+	local IVY = Color3.fromRGB(58, 96, 46)
+	for i, spec in { { 3, 9, 2.4 }, { 14, 18, 1.4 }, { 24, 33, 2.7 }, { 40, 45, 1.8 } } do
+		local ix0, ix1, drop = x0 + spec[1], x0 + spec[2], spec[3]
+		local clump = slab(m, f, "Ivy", ix0, ix1, top - drop, top + 0.35, z1 + 0.2, z1 + 0.55, if i % 2 == 0 then IVY:Lerp(Color3.new(0, 0, 0), 0.15) else IVY, Enum.Material.LeafyGrass)
+		clump.CastShadow = false
+	end
+end
+
 -- X81: platform 2 across the line, where the footbridge's far stair tower
 -- stood in grass. Pure extents in the platform frame: z from just past the
 -- rail bed out FAR_PLATFORM_DEPTH (the far tower, at depth + railWidth + 6..13,
@@ -698,6 +742,7 @@ function StationDresser.build(): string
 	local platform = greybox and greybox:FindFirstChild("Platform")
 	if platform and platform:IsA("BasePart") then
 		StationDresser.dressPlatform(m, f, station.size, platform.Size)
+		StationDresser.platformTerrace(m, f, station.size)
 	end
 
 	m.Parent = town

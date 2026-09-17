@@ -192,4 +192,23 @@ function T.yellowLinesRunInsideTheKerbsAndSkipTheBayAndLayby()
 	end
 end
 
+-- X73: the raised terrace beside the building keeps off every road and its
+-- pavements, and off the railway.
+function T.platformTerraceKeepsOffRoadsAndTheRailway()
+	local f = StationDresser.frontFrame()
+	local station = TownLayout.RAIL.station
+	local x0, x1, z0, z1 = StationDresser.terraceExtents(station.size)
+	assert(x0 > station.size.X / 2 and x1 > x0 and z0 < z1 and z1 < 0, "terrace sits beside the building, behind the front line")
+	for x = x0, x1, 5 do
+		for z = z0, z1, 5 do
+			local p = f * Vector3.new(x, 0, z)
+			for _, road in TownLayout.ROADS do
+				local clear = road.width / 2 + TownLayout.PAVEMENT_WIDTH
+				assert(TownLayout.distanceToPolyline(p, road.points) > clear, ("terrace (%g, %g) is on %s"):format(x, z, road.name))
+			end
+			assert(TownLayout.distanceToPolyline(p, TownLayout.RAIL.points) > TownLayout.RAIL.width / 2 + 1, "terrace on the railway")
+		end
+	end
+end
+
 return T

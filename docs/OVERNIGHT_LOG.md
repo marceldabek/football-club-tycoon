@@ -40,7 +40,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 6. The Rojo panel in Studio shows "Unknown HTTP error: NetFail", although `rojo serve` is running on port 34872 and serving this branch. Click Connect (or Disconnect, then Connect) in the Rojo panel before editing, so Studio's hand-pasted copies are replaced from disk. The HTTP sync fallback in `tools/studio-sync.luau` no longer works from the MCP, because its sandbox lacks the Network capability.
 7. Created in Studio through the MCP tonight, not by Rojo: `ReplicatedStorage.Shared.TrainMath`, `StarterPlayerScripts.Client.ClubScarves`, `StarterPlayerScripts.Client.Deliveries`, `ServerScriptService.Server.SportsCentreDresser`, `StarterPlayerScripts.Client.Train`, and tests `TrainMathTest` / `SportsCentreDresserTest`. The disk versions carry full comments; a Rojo reconnect replaces the Studio copies.
 8. Traffic's roundabout fix (X79) is only visual: vehicles are pushed onto a ring round the island, with no give-way or real circulation, so two cars can overlap at a busy roundabout. The train (X82) runs under the station footbridge without a clearance check (deck 16, carriage roof about 9, so it's fine today).
-9. Last RunAll in Studio: **386 passed, 0 failed** (08:29). TownBuilderTest now exists in Studio as a shortened copy (made with multi_edit); the disk file is the full one.
+9. Last RunAll in Studio: **387 passed, 0 failed** (08:33). TownBuilderTest now exists in Studio as a shortened copy (made with multi_edit); the disk file is the full one.
 
 **Questions for Marcel**
 1. **Done as TEMP, please confirm:** Studio playtests now use the DataStore `ClubProfiles_Studio`, so Studio opens a fresh club and onboarding instead of Dino FC. To get your real club back in Studio, set `Config.Save.studioStoreSuffix = ""`. *Rec: keep it; live servers are unchanged.*
@@ -812,3 +812,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - 43 sheds use 284 sections instead of 129 panels: about +155 parts town-wide (town now 18,346 BaseParts). Corner posts are raised to match.
 - A first try with 10-stud sections pushed a builders' yard to 31 parts (the budget test allows 30), so sections are 20 long. New EstateBuilderTest case. RunAll 386 passed. Screenshots of a pallet yard and a lorry yard checked.
 - Worth watching: this is the first runtime CSG in the game. It took 0.03 s in Studio; check it on a live server when the place is next published.
+
+### 2026-09-17 08:33 — Raised terrace with railings and ivy beside the station (X73 done)
+- East of the station building, a 50 x 40 terrace at platform height (3): brick retaining wall, concrete coping, a two-rail iron railing along the front and east edges, and four ivy clumps hanging over the front wall, like RivermereStation.png. 21 parts, no overlaps with other town parts.
+- StationDresserTest checks it keeps off every road and pavement and off the railway. RunAll 387 passed. Screenshots from the forecourt and close up checked.
+- Logged X98: the reference wall is much taller, and the terrace has no steps.
