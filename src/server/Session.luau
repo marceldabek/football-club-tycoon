@@ -20,12 +20,15 @@ local ClubService = require(script.Parent.ClubService)
 local SeasonService = require(script.Parent.SeasonService)
 local HistoryService = require(script.Parent.HistoryService)
 local SaveService = require(script.Parent.SaveService)
+local SaveLock = require(script.Parent.SaveLock)
 local Scenery = require(script.Parent.Scenery)
 local PlotContext = require(script.Parent.PlotContext)
 
 local Session = {}
 
 local saver: SaveService.Saver
+local locker: SaveLock.Locker? = nil
+local haveLock = false
 local backendKind = "none"
 local ownerId = 0
 local loaded = false
@@ -283,6 +286,36 @@ function Session.start(owner: Player): boolean
 	backendKind = kind
 	saver = SaveService.new(backend, { retries = Config.Save.loadRetries, backoff = Config.Save.retryBackoffSeconds })
 
+	-- Decided behaviour (CLAUDE.md s27, "Save lock"): a new server always
+	-- acquires the lock and loads; a previous session holding it notices via
+	-- heartbeat (below) and closes itself rather than us waiting on it. The
+	-- lock backend mirrors the save backend so Studio's memory fallback never
+	-- touches a real DataStore. Acquiring is best-effort: a broken lock store
+	-- must never strand the player at a loading screen forever, so an error
+	-- here just logs and continues without a lock instead of blocking.
+	local lockBackend = if backendKind == "datastore"
+		then SaveLock.dataStoreBackend(Config.Save.storeName)
+		else SaveLock.memoryBackend()
+	local jobId = if game.JobId ~= "" then game.JobId else ("studio-" .. tostring(os.clock()))
+	locker = SaveLock.new(lockBackend, {
+		jobId = jobId,
+		now = os.time,
+		wait = task.wait,
+		staleAfter = Config.Save.lockStaleSeconds,
+		maxWait = Config.Save.lockMaxWaitSeconds,
+		poll = Config.Save.lockPollSeconds,
+	})
+	local lockOk, lockErr = pcall(function()
+		(locker :: SaveLock.Locker):acquire(owner.UserId)
+	end)
+	haveLock = lockOk
+	if not lockOk then
+		warn(("[FCT] save lock acquire failed for %d: %s (continuing without a lock)"):format(owner.UserId, tostring(lockErr)))
+	end
+	if owner.Parent ~= Players or stopped then
+		return false -- left while we were waiting for the lock
+	end
+
 	local data, status = saver:load(owner.UserId)
 	if owner.Parent ~= Players or stopped then
 		return false -- left while we were loading
@@ -325,6 +358,26 @@ function Session.start(owner: Player): boolean
 	task.spawn(function()
 		while not stopped do
 			task.wait(Config.Save.autosaveSeconds)
+			if stopped then
+				break
+			end
+			if haveLock then
+				-- Another server took (or is requesting) this owner's lock:
+				-- decided behaviour is the new server always wins, so this one
+				-- flushes what it has and closes rather than fighting for it.
+				local hbOk, hbHeld = pcall(function()
+					return (locker :: SaveLock.Locker):heartbeat(ownerId)
+				end)
+				if hbOk and not hbHeld then
+					flush(true)
+					local ownerPlayer = Players:GetPlayerByUserId(ownerId)
+					if ownerPlayer then
+						ownerPlayer:Kick("Your club was opened on another server.")
+					end
+					Session.stop()
+					break
+				end
+			end
 			if not stopped and saver:isDirty() then
 				flush(false)
 			end
@@ -343,6 +396,15 @@ function Session.stop()
 		return
 	end
 	flush(true)
+	if haveLock then
+		local ok = pcall(function()
+			(locker :: SaveLock.Locker):release(ownerId)
+		end)
+		if not ok then
+			warn("[FCT] save lock release failed (harmless; it will go stale and a new server can steal it)")
+		end
+		haveLock = false
+	end
 	stopped = true
 	loaded = false
 	local w = world
