@@ -2,18 +2,21 @@
 
 ## Morning handoff (kept current)
 
-**What to look at:** Press Play in Studio. You get a club plot automatically (picker is on its way),
-spawn in your office, and your ground now sits on a town plot (Plot 1, south-east, rotated). The
-other three plots are "FOR SALE" lots. Play a match: evening fixtures (every 4th match from match 3)
-go floodlit; after the summary, click "Back to Club" to see the week fast-forward. Open CLUB OFFICE to
-see the menu depth of field. (MCP screenshots can't be written to disk, so none are saved in
-`assets/screenshots/overnight/`; camera spots are listed in the entries.)
+**What to look at:** Press Play. Pick a ground with the picker (‹ › then BUILD MY CLUB HERE).
+You spawn in your office on that plot; the other plots are FOR SALE lots. Walk or take a bus (prompt on
+any bus-stop sign) around Rivermere: dense textured terraced streets (try Cherry Close at (-600, 9, -640)),
+the Mill Street kit showpiece at (30, 7, -192), the market square with its clock tower at (70, 30, 90),
+fields/hills/turbines past the edge. Play a match: fans and stewards walk to your turnstiles; every
+4th fixture from match 3 is an evening game under floodlights; "Back to Club" plays the week
+fast-forward. Open CLUB OFFICE for the menu depth of field.
 
-**Done:** client-side sky + evening fixtures + fast-forward (A1, A2), depth of field (A3), clubs as
-plots with per-plot services (B1, B2 server side, B2.3 despawn, B4.1 for-sale lot), save lock (B3),
-town master plan + layout data (C1), KitPlacer (D4.1), free-asset research (D1.1) + 3 store keepers
-in `ServerStorage.Kit.Town`.
-**Half-done:** plot picker, town greybox builder, plot surroundings (subagents drafting).
+**Done:** client sky + evening fixtures + fast-forward (A1–A3), clubs as plots with per-plot
+services, picker, go-home, despawn, for-sale lots (B1–B4), save lock (B3), town plan + dense layout
+(C1, X5, X6), greybox builder (C2.1), perf baseline (C3.1), KitPlacer + free kit (D1, D4.1), Mill Street
+kit street (E3.1), textured low-part terraces town-wide (X12/X13), market square (E1.1), backdrop
+(E9.2), bus fast travel (E7.2), plot grounds: car park, club shop, training pitches (E8.1/H2/H3),
+ambient audio (F1.1), matchday fans (G1.1), 10-part team coach (X14).
+**Half-done:** nothing in flight at the moment.
 **Reverted:** none.
 
 **Known bugs**
@@ -82,3 +85,10 @@ in `ServerStorage.Kit.Town`.
 - `Backdrop` (subagent): grass ring to ±4200/±3600, 18 hills, river carried to the ring edge, 112 field/hedge parts, 150 trees, 5 wind turbines. Checked from (-300, 60, 1600) looking south: fields and hills read, but fields look like plastic slabs (X16).
 - Aerial screenshots no longer work in Play: terrain streams too, so only ground near the character renders. Review shots have to be taken from the ground.
 - RunAll 121/121.
+
+### 2026-09-17 01:29 — Dense town, textured terraces, ambient audio, matchday fans
+- TownLayout densified (subagent, reference `RivermereAImap.png`): 682 blocks (was 74), 28 new residential streets, plot lanes now end at the plot vehicle gates (X5/X6). Studio copy is a generated compact file; checksum equals disk.
+- Low-part terraces (subagent + lead, references `RiveremereWestdale.png`/`RivermereNorthfields.png`): facade/slate/brick textures generated with PIL (`tools/kit/make_facades.py`) and uploaded via Open Cloud as Image assets (ids in `assets/kit/_export/asset_ids_textures.json`). A textured row is 6–12 parts; kit terraces only on the Mill Street showpiece stretch. Town dressing: 8 kit rows + 439 textured rows + 317 props = 8,371 parts. Where to look: (-600, 9, -640) looking north up Cherry Close — reads as a real Victorian street.
+- Ambient audio: four Pro Sound Effects loops (street, birds, river, industry) crossfade by camera position (F1.1). Not listened to (no audio in MCP); volumes are guesses.
+- Matchday fans (subagent G1.1): client-side walkers on the plot footpaths and 5 hi-vis stewards for any plot on matchday within 900 studs; 39 fans at PreMatch, 17 still walking in Match. Screenshot checked.
+- RunAll 128/128 (approx; last full run 126 before MatchdayRoutesTest).

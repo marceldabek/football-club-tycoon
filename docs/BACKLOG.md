@@ -61,7 +61,7 @@
 
 ## Phase E — Districts (terraced streets first, per Q4)
 - [x] E3.1 Terraced street 1 beside the town centre: 12 houses (MEH kit), front walls, pavements, lamp posts, bins, parked cars; layout data + builder; reference `RiveremereWestdale.png`/`RivermereNorthfields.png` `[studio]` M dep: C2.1, D4.1
-- [ ] E3.2 Terraced street 2 + back alley with wheelie bins and garden walls `[studio]` M dep: E3.1
+- [x] E3.2 Terraced street 2 + back alley with wheelie bins and garden walls `[studio]` M dep: E3.1
 - [x] E1.1 Market square: round paved square, market stall ring, monument/clock, benches, planters, bunting; reference `RivermereCenter.png` `[studio]` M dep: C2.1
 - [ ] E2.1 High street frontage: red-brick shops with ground-floor shopfronts (bakery, grocer, café, pub, barbers), flats above, A-boards, club banners on lamp posts; reference `RivermereCenter.png` `[studio]` L
 - [ ] E6.1 River Lune banks, stone road bridge (multi-arch), riverside path with railings and benches; reference `RivermereRiverside.png` `[studio]` M dep: C2.1
@@ -76,13 +76,13 @@
 - [ ] E10.1 Imperfection pass: patches, faded markings, weeds, posters, clutter `[studio]` M
 
 ## Phase F — Life & sound
-- [ ] F1.1 Ambient audio zones (town, river, station, park) from the Roblox library `[studio]` M
+- [x] F1.1 Ambient audio zones (town, river, station, park) from the Roblox library `[studio]` M
 - [ ] F2.1 Client-side traffic on road polylines, distance-budgeted `[studio]` M
 - [ ] F3.1 Client-side pedestrians on pavements, distance-budgeted `[studio]` M
 - [ ] F4.1 Small motion: flags, bunting sway, chimney smoke `[studio]` S
 
 ## Phase G/H — Matchday town & influence
-- [ ] G1.1 Matchday around a plot (all players): fans walking to the ground, stewards, barriers; fades after `[studio]` M dep: B2.1c
+- [x] G1.1 Matchday around a plot (all players): fans walking to the ground, stewards, barriers; fades after `[studio]` M dep: B2.1c
 - [ ] G2.1 Matchday town for the playing player only: banners on lamp posts, busy pub `[studio]` M
 - [ ] H1.1 Club identity banners in town (client-side, player's own club colours/name) `[studio]` S
 - [x] H2.1 Club shop building on the plot (visual) `[studio]` S dep: E8.1
@@ -102,15 +102,15 @@
 - [ ] X1 Test matches in Studio write to Marcel's real DataStore save (place is published): prefer a Studio-only save key prefix (e.g. `studio_u<id>`) so agent playtests never touch the live club `[disk]` S
 - [ ] X2 `Sky.setFloodHeads` scans all of workspace; tag floodlight heads with CollectionService instead once the town is big `[disk]` S
 - [ ] X3 A player who leaves mid-match: the old club copy finishes the match loop before the plot frees (up to 180 s); check no errors in that path `[studio]` S
-- [ ] X5 Districts are far too sparse next to `RivermereAImap.png`: add many more terraced rows / semis / shops so every block between roads is built up `[disk]` M
-- [ ] X6 Plot access lanes in TownLayout end at local z≈0 but the PlotGrounds vehicle gate is at local z 60..100: align the lane end with the gate `[disk]` S
+- [x] X5 Districts are far too sparse next to `RivermereAImap.png`: add many more terraced rows / semis / shops so every block between roads is built up `[disk]` M
+- [x] X6 Plot access lanes in TownLayout end at local z≈0 but the PlotGrounds vehicle gate is at local z 60..100: align the lane end with the gate `[disk]` S
 - [x] X7 Picker viewpoint is too high and hazy; lower/closer view onto the FOR SALE board; reduce Atmosphere density for town scale (HeroAfternoon 0.32 hides anything past ~600 studs) `[studio]` S
 - [x] X8 Town edge: terrain stops dead at x ±2800 / z ±2200; needs a backdrop (hills, tree belt) `[studio]` M
 - [ ] X9 Car park (100 × 300) dominates the plot entrance; halve it or turn it `[disk]` S
 - [ ] X10 Roads z-fight risk: overlapping tops only 0.004–0.01 apart; check at distance on a mid phone `[studio]` S
 - [ ] X11 Mill Street vs `RiveremereWestdale.png`: add street trees, front garden walls/railings + hedges, club banners on lamp posts, street name signs, cars on both kerbs `[studio]` M
-- [ ] X12 Low-part terrace row (≤ 25 parts: body, roof wedges, chimney stacks, door/window decals) so every terraced block in town can be dressed within the mobile budget `[disk]` M
-- [ ] X13 Kit lamp is 36 parts: build a ≤ 6-part Victorian lamp for town-wide use `[disk]` S
+- [x] X12 Low-part terrace row (≤ 25 parts: body, roof wedges, chimney stacks, door/window decals) so every terraced block in town can be dressed within the mobile budget `[disk]` M
+- [x] X13 Kit lamp is 36 parts: build a ≤ 6-part Victorian lamp for town-wide use `[disk]` S
 - [x] X14 TeamBus (Assets "Bus") is 587 parts per club; swap for a low-part coach or drop it `[studio]` S
 - [ ] X15 Bus menu: clicking a destination scrolled out of view did nothing in the test; check ScrollingFrame input and make the card taller on desktop `[studio]` S
 - [ ] X16 Backdrop fields read as flat plastic slabs: use Grass/Ground materials with a texture, hedges on all four sides and taller, more tree clumps along hedges `[studio]` S
