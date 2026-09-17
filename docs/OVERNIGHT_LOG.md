@@ -515,3 +515,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - The terrace dressing budget (1,240 parts) runs out on streets near the market square, so Westdale in RiveremereWestdale.png had bare streets. `TerraceStreetDresser.PRIORITY_STREETS = { "Weir Road" }` is dressed after the normal pass from `PRIORITY_RESERVE` (TEMP 260). Doing it first reshuffled the shared random stream: Mill Street's light stretch dropped out and Weaver Street's doubled. Doing it last leaves every earlier street exactly as before: Mill Street 476, Weaver Street 287 and 191 light, Church Lane 46, Mill Street light 229. Weir Road adds 216, so the dressing totals 1,445 parts. This is question 9.
 - **Screenshot** WeirRoad_1: Weir Road with street trees, low brick garden walls with hedges, and parked cars and a van at the kerb.
 - RunAll 354/354.
+
+### 2026-09-17 06:02 — Riverside promenade surface (X65), two reference follow-ups (X66, X67)
+- I compared the promenade with RivermereRiverside.png. A dark wavy "mud path" ran down the paving because TownBuilder fills the river banks with Mud to y -2 on a 4-stud voxel grid, and after the channel carve those voxels sit at occupancy 0.7 and render up to about y 1.4, over the promenade top at 0.35. `RiverDresser` now empties the top 1.8 studs of the ground layer under every quay and promenade run, plus 1.5 each side, which leaves occupancy about 0.55 and the surface below the paving. Voxel reads confirmed it. Note that server raycasts kept returning the old terrain for a while, so I checked the result with screenshots.
+- Planter flowers were a 4.4 ball that read as a pink rock. They're now a 3.6 × 1.1 planted LeafyGrass top sunk into the planter.
+- **Screenshots** Riverside_compare_1 (before) and Riverside_fixed_1 (paved to the railings, planted planter).
+- Logged from the same comparison: X66 heritage lamps and baskets on the promenade, and X67 river-facing shopfronts (the promenade's west end passes blank brick sides).
+- RunAll 354/354.

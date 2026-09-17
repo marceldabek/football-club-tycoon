@@ -196,6 +196,24 @@ local function strip(parent: Instance, name: string, run: Run, lateral: number, 
 	})
 end
 
+-- X65: the river's Mud bank voxels (4-stud grid, filled to y -2) render up to
+-- ~1.4 where the channel carve leaves them at occupancy 0.7, poking through
+-- the promenade paving (top 0.35). Emptying the top 1.8 studs of the ground
+-- layer under the quay and promenade (plus 1.5 each side) drops that surface
+-- to about -1.6, under the paving.
+local function clearBank(run: Run)
+	local lateral = (QUAY_W + PROM_W) / 2
+	local a = run.a + run.normal * lateral
+	local b = run.b + run.normal * lateral
+	local mid = (a + b) / 2
+	local length = (b - a).Magnitude
+	if length < 1e-3 then
+		return
+	end
+	local cf = CFrame.lookAt(Vector3.new(mid.X, -0.9, mid.Z), Vector3.new(b.X, -0.9, b.Z))
+	workspace.Terrain:FillBlock(cf, Vector3.new(QUAY_W + PROM_W + 3, 1.8, length + 0.5), Enum.Material.Air)
+end
+
 -- A simple moored boat, 5 parts, centred on `cf` with the bow towards its -Z
 -- (LookVector). Hull length 16..24 plus a 5-stud bow; width 6.
 function RiverDresser.buildBoat(parent: Instance, cf: CFrame, rng: Random)
@@ -254,6 +272,7 @@ function RiverDresser.build(): string
 		-- quay wall face down into the water, stone kerb on top, paving behind
 		strip(quay, "QuayWall", run, QUAY_W / 2, QUAY_W, -4, QUAY_TOP, STONE, Enum.Material.Cobblestone)
 		strip(quay, "Promenade", run, QUAY_W + PROM_W / 2, PROM_W, -0.5, PROM_TOP, PAVING, Enum.Material.Pavement)
+		clearBank(run)
 		strip(quay, "Rail", run, 0.9, 0.25, QUAY_TOP + RAIL_H - 0.25, QUAY_TOP + RAIL_H, IRON, Enum.Material.Metal)
 		travelled += length
 		while nextPost <= travelled do
@@ -283,13 +302,13 @@ function RiverDresser.build(): string
 			})
 			local planter = along + run.normal * (QUAY_W + 2.5) + dir * 7
 			part({ Name = "Planter", Size = Vector3.new(4, 2.4, 4), CFrame = CFrame.new(planter.X, PROM_TOP + 1.2, planter.Z), Color = STONE, Material = Enum.Material.Limestone, Parent = furniture })
+			-- X65: a planted top sunk 0.2 into the planter (a ball read as a pink rock)
 			part({
 				Name = "Flowers",
-				Shape = Enum.PartType.Ball,
-				Size = Vector3.new(4.4, 2.4, 4.4),
-				CFrame = CFrame.new(planter.X, PROM_TOP + 3, planter.Z),
+				Size = Vector3.new(3.6, 1.1, 3.6),
+				CFrame = CFrame.new(planter.X, PROM_TOP + 2.4 - 0.2 + 0.55, planter.Z),
 				Color = Color3.fromRGB(214, 70, 110):Lerp(Color3.fromRGB(240, 190, 60), rng:NextNumber()),
-				Material = Enum.Material.Grass,
+				Material = Enum.Material.LeafyGrass,
 				CastShadow = false,
 				Parent = furniture,
 			})
