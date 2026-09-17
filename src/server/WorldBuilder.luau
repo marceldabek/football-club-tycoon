@@ -810,6 +810,9 @@ local function buildTurnstiles(parent: Instance)
 	local brick = Color3.fromRGB(150, 84, 62)
 	local stone = Color3.fromRGB(214, 204, 184)
 	local iron = Color3.fromRGB(28, 34, 48)
+	-- X166: lane signs and plaques in a dark shade of the club colour, like the
+	-- fascia, club shop and bar sign (the reference's navy is its club's colour)
+	local SIGN_DARK = Config.HomeKit:Lerp(Color3.new(0, 0, 0), 0.45)
 	for i = 0, lanes do
 		local z = TURNSTILE_Z - total / 2 + pierW / 2 + i * (laneW + pierW)
 		box("Pier", Vector3.new(7, h, pierW), Vector3.new(x - 1, DECK_Y + h / 2, z), brick, Enum.Material.Brick, gate)
@@ -819,7 +822,7 @@ local function buildTurnstiles(parent: Instance)
 		local z = TURNSTILE_Z - total / 2 + pierW + laneW / 2 + (i - 1) * (laneW + pierW)
 		-- an open gate leaf folded flat against the outer face of each pier, clear of the lane
 		-- X53: a navy lane sign under the fascia, facing the walk-up side
-		local laneSign = box("LaneSign", Vector3.new(0.2, 1.3, laneW - 0.4), Vector3.new(x - 4.7, DECK_Y + h - 1.15, z), Color3.fromRGB(24, 36, 72), Enum.Material.SmoothPlastic, gate)
+		local laneSign = box("LaneSign", Vector3.new(0.2, 1.3, laneW - 0.4), Vector3.new(x - 4.7, DECK_Y + h - 1.15, z), SIGN_DARK, Enum.Material.SmoothPlastic, gate)
 		laneSign.CanCollide = false
 		local signGui = Instance.new("SurfaceGui")
 		signGui.Face = Enum.NormalId.Left
@@ -884,7 +887,7 @@ local function buildTurnstiles(parent: Instance)
 	for i, slogan in { "PRIDE\nPEOPLE\nRIVERMERE", "MATCH DAYS\nBRING PEOPLE\nTOGETHER" } do
 		local side = if i == 1 then -1 else 1
 		-- x - 3.9 .. x - 0.5: clear of the perimeter wall (x +- 0.4) that starts at the pier
-		local plaque = box("Plaque", Vector3.new(3.4, 3.4, 0.15), Vector3.new(x - 2.2, DECK_Y + 4.6, TURNSTILE_Z + side * (total / 2 + 0.075)), Color3.fromRGB(24, 36, 72), Enum.Material.SmoothPlastic, gate)
+		local plaque = box("Plaque", Vector3.new(3.4, 3.4, 0.15), Vector3.new(x - 2.2, DECK_Y + 4.6, TURNSTILE_Z + side * (total / 2 + 0.075)), SIGN_DARK, Enum.Material.SmoothPlastic, gate)
 		plaque.CanCollide = false
 		local plaqueGui = Instance.new("SurfaceGui")
 		plaqueGui.Face = if side < 0 then Enum.NormalId.Front else Enum.NormalId.Back

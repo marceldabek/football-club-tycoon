@@ -64,7 +64,8 @@ local RENDER_COLOURS: { [string]: Color3 } = {
 local SIGN_TEXTURES = { "shed_sign_a", "shed_sign_b", "shed_sign_c" }
 
 local BRICK = Color3.fromRGB(150, 62, 46)
-local ROOF_RED = Color3.fromRGB(140, 70, 46)
+local ROOF_RED = Color3.fromRGB(86, 74, 68) -- X167: dark brown-grey concrete tiles (RivermereNorthfields.png); was clay red
+local ROOF_TILE_TINT = Color3.new(0.52, 0.95, 1.35) -- multiplies the red-brown roof_tiles texture toward grey-brown (values over 1 lift a channel)
 local STACK_COLOUR = Color3.fromRGB(120, 66, 52)
 local WALL_STONE = Color3.fromRGB(196, 188, 170)
 local HEDGE_GREEN = Color3.fromRGB(46, 92, 44)
@@ -444,7 +445,7 @@ function EstateBuilder.semiPair(cframe: CFrame, width: number, depth: number, he
 			model,
 			true
 		)
-		texture(slab, Enum.NormalId.Top, "roof_tiles", 8, 8)
+		texture(slab, Enum.NormalId.Top, "roof_tiles", 8, 8, ROOF_TILE_TINT)
 	end
 	-- the slabs' outer surfaces, extended, meet (GAP + T) / cos theta above
 	-- ridgeY at x = 0 and drop tan theta per stud either side. A strip w wide

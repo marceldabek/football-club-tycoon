@@ -77,22 +77,24 @@ local FLOWERS = {
 	Color3.fromRGB(245, 240, 240),
 }
 
--- A-board text per shopfront texture key (ShopBuilder.SHOP_FRONTS etc.)
+-- A-board text per shopfront texture key (ShopBuilder.SHOP_FRONTS etc.).
+-- X171: short chalked lines like RivermereCenter.png / RiveremereWestdale.png
+-- (the board is 2 x 3, so two or three short lines at most)
 ForecourtDresser.BOARD_TEXT = {
-	shop_front_cafe = "COFFEE",
-	shop_front_bakery = "FRESH BREAD",
-	shop_front_deli = "LUNCH",
-	shop_front_pub = "REAL ALE",
-	shop_front_butcher = "LOCAL MEAT",
-	shop_front_barber = "WALK INS",
-	shop_front_charity = "OPEN",
-	shop_front_newsagent = "OPEN",
-	shop_front_pharmacy = "OPEN",
-	shop_front_estate = "OPEN",
-	shop_front_corner = "OPEN",
-	shop_front_corner2 = "OPEN",
-	shop_front_supermarket = "OFFERS",
-	shop_front_chippy = "FISH & CHIPS",
+	shop_front_cafe = "Great\nCoffee\nInside",
+	shop_front_bakery = "Fresh\nBread\nDaily",
+	shop_front_deli = "Soup &\nSandwich\n£4.50",
+	shop_front_pub = "Real Ale\nSunday\nRoasts",
+	shop_front_butcher = "Local\nMeat",
+	shop_front_barber = "Walk Ins\nWelcome",
+	shop_front_charity = "Donations\nWelcome",
+	shop_front_newsagent = "Papers\nSweets\nLotto",
+	shop_front_pharmacy = "Flu Jabs\nAvailable",
+	shop_front_estate = "Homes\nWanted",
+	shop_front_corner = "Open\nTill 10",
+	shop_front_corner2 = "Milk\nBread\nPapers",
+	shop_front_supermarket = "Today's\nOffers",
+	shop_front_chippy = "Fish &\nChips",
 } :: { [string]: string }
 
 -- fronts that always get a board (the rest roll BOARD_CHANCE) and cafe seating
