@@ -17,7 +17,7 @@
 -- x 0..400) gets FULL detail first. Then the LIGHT streets that front
 -- TerraceBuilder rows, nearest the market square first, each built into its
 -- own model and dropped again if it would push the total past PART_BUDGET.
---   FULL  tree 4 parts, railing segment ~3 + 1 bar per 2 studs, hedge
+--   FULL  tree 5 parts, railing segment ~3 + 1 bar per 2 studs, hedge
 --         segment 3, 2 piers per gate, sign 3, kit cars on the kerb
 --         StreetDresser leaves empty
 --   LIGHT tree 3 parts, 2 parts per house frontage, sign 3, sparse cars on
@@ -40,7 +40,7 @@ local TerraceBuilder = require(script.Parent.TerraceBuilder)
 
 local TerraceStreetDresser = {}
 
-TerraceStreetDresser.PART_BUDGET = 1200
+TerraceStreetDresser.PART_BUDGET = 1240 -- TEMP; +40 for the third canopy lobe on full-detail trees (X48)
 TerraceStreetDresser.TREE_INSET = 2.2 -- trunk centre from the kerb edge (walkers use pavement centre, +4)
 TerraceStreetDresser.LAMP_CLEAR = 8 -- XZ distance a tree keeps from a lamp post (and its bin, 3 along)
 TerraceStreetDresser.JUNCTION_CLEAR = 10 -- past the crossing road's pavement edge
@@ -501,10 +501,17 @@ local function tree(parent: Instance, spot: Spot, full: boolean, rng: Random)
 	local crown = part(m, "Canopy", Vector3.one * d1, base * CFrame.new(0, h + d1 / 2 - 1.5, 0), leaves, Enum.Material.Grass, false)
 	crown.Shape = Enum.PartType.Ball
 	if full then
+		-- X48: two offset lobes (one high, one low on the other side) instead of a
+		-- ball stacked on a ball, so the crown reads leafy rather than lollipop
 		local d2 = d1 * 0.7
-		local top = part(m, "CanopyTop", Vector3.one * d2, base * CFrame.new(rng:NextNumber(-0.8, 0.8), h + d1 - 1.2, rng:NextNumber(-0.8, 0.8)), leaves:Lerp(Color3.new(1, 1, 0.8), 0.08), Enum.Material.Grass, false)
+		local lift = leaves:Lerp(Color3.new(1, 1, 0.8), 0.08)
+		local top = part(m, "CanopyTop", Vector3.one * d2, base * CFrame.new(d1 * 0.3, h + d1 - 1.6, rng:NextNumber(-0.8, 0.8)), lift, Enum.Material.Grass, false)
 		top.Shape = Enum.PartType.Ball
 		top.CastShadow = false
+		local d3 = d1 * 0.62
+		local side = part(m, "CanopySide", Vector3.one * d3, base * CFrame.new(-d1 * 0.38, h + d1 * 0.35 - 1.2, rng:NextNumber(-0.8, 0.8)), leaves:Lerp(Color3.new(0, 0, 0), 0.06), Enum.Material.Grass, false)
+		side.Shape = Enum.PartType.Ball
+		side.CastShadow = false
 	end
 end
 

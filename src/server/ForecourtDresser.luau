@@ -23,7 +23,7 @@
 --         square's round rim (no staircase against the circle)
 --
 -- Part budget (all three items <= 700): paving ~1 per shop row, 1 per semi
--- house, ~50 zone slabs; planters 5 each; baskets 2; A-boards 2; cafe sets 10.
+-- house, ~50 zone slabs; planters 7 each; baskets 2; A-boards 2; cafe sets 10.
 -- Estimated from the layout: 69 forecourts + 58 paths + 51 zone slabs + 24
 -- planter parts + <= 152 basket + <= 80 A-board + <= 160 cafe parts ~= 594.
 -- (Baskets: one per join between shopfronts, about as many as the old one
@@ -566,6 +566,12 @@ local function planterTree(parent: Instance, p: Vector3, flowers: Color3)
 	part(m, "Trunk", Vector3.new(0.9, 9, 0.9), base * CFrame.new(0, 2.2 + 4.5, 0), TRUNK, Enum.Material.Wood, true)
 	local crown = part(m, "Crown", Vector3.new(9, 8, 9), base * CFrame.new(0, 14, 0), LEAVES, Enum.Material.Grass, false);
 	(crown :: any).Shape = Enum.PartType.Ball
+	-- X48: two offset lobes so the crown isn't a lollipop
+	for _, lobe in { { x = 3, y = 16.5, z = 1, d = 6 }, { x = -3.2, y = 12.8, z = -1.2, d = 5.4 } } do
+		local ball = part(m, "CrownLobe", Vector3.one * lobe.d, base * CFrame.new(lobe.x, lobe.y, lobe.z), LEAVES:Lerp(Color3.new(1, 1, 0.8), 0.06), Enum.Material.Grass, false);
+		(ball :: any).Shape = Enum.PartType.Ball
+		ball.CastShadow = false
+	end
 end
 
 -- -------------------------------------------------------------------- build

@@ -319,3 +319,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshot** LampBasket_1: a yellow basket hanging from a Mill Street lamp, with the terrace behind.
 - X47 is done. The trees still look like lollipops against the reference, so that's new X48.
 - RunAll 331/331.
+
+### 2026-09-17 04:16 — Leafier tree crowns (X48)
+- Full-detail street trees (Mill Street and Weaver Street) swap the ball stacked on a ball for two offset lobes: one high and to one side, one lower on the other side, in slightly different greens. The 8 planter trees round the square get two lobes as well. Light-street, park and backdrop trees are unchanged.
+- **Budget:** the terrace streets' TEMP PART_BUDGET went from 1,200 to 1,240 so the extra lobes don't push a light street out. It's now 1,229 (showpiece 763), still 3 light streets. Forecourts are 646 parts.
+- **Screenshot** Trees_lobes_1: the Mill Street trees have lumpy crowns. They're still stylised next to the reference's loose leafy trees.
