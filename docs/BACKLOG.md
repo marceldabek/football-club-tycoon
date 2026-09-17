@@ -314,7 +314,7 @@
 - [x] X199 (13:04 done) Selling can leave the squad with no goalkeeper (release only checks size and XI; trades already require a GK): refuse selling the last GK, 0 parts `[disk]` S
 - [x] X200 (13:02 done) An error during a match locks the club in PreMatch/Match until rejoin (running flag only reset in finishCore, no pcall): pcall the match, on failure clear crowd and return to Manage, 0 parts `[disk]` S
 - [x] X201 (13:02 done) Matches kicking off in the same second replay identically: MatchSim seeds Random.new(os.time()); use Random.new() when no seed is passed, 0 parts `[disk]` S
-- [ ] X202 League table colours top 2 green / bottom 2 red in every division, but tier 1 has no relegation and the top tier's champion is only 1st: colour by League.outcome rules, 0 parts `[disk]` S
+- [x] X202 (13:06 done) League table colours top 2 green / bottom 2 red in every division, but tier 1 has no relegation and the top tier's champion is only 1st: colour by League.outcome rules, 0 parts `[disk]` S
 - [x] X203 (13:04 done) With Auto Squad on, "Move them out of the team to sell" / "Take them out of the XI first" is unreachable advice (swaps refused): say to turn Auto Squad off first, 0 parts `[disk]` S
 - [x] X204 (13:04 done) Squad-screen toasts show money without commas ("Need £12500 more"): use Theme/Upgrade money formatting in ClubService, 0 parts `[disk]` S
 - [x] X205 (13:04 done) The naming card hint omits the allowed characters and the client doesn't pre-check them, so accented or "&" names bounce after pressing Found: add the rule to the hint and check client-side, 0 parts `[disk]` S

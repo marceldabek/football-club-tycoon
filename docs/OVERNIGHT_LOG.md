@@ -1251,3 +1251,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - X199 `ClubService` release: selling the last goalkeeper is refused ("Keep at least one goalkeeper"); trades already required one. X203: with Auto Squad on, both the sell panel and the server say to turn Auto Squad off before a starter can be moved out and sold, because swaps are refused while it's on. X204: squad-screen toasts format money with thousands commas ("Need £12,500 more").
 - X205: the naming card hint lists the allowed characters, and the client checks them before sending, so a refused name no longer costs a round trip.
 - Verification: RunAll 430 passed, but these weren't exercised in play. The MCP sandbox can't fire ClubAction/SetClubName remotes (a capability error) and a name can only be set once per club. They are small guards; question 16 (accented names) still applies.
+
+
+### 2026-09-17 13:06 — League table colours (X202 done)
+- `ClubPanel` league table: the position colours now follow `League.outcome`. The bottom rows only turn red above tier 1 (nobody goes down from the Sunday Parks League), and in the top flight only 1st is green, with the note "This is the top flight: 1st are champions." Screenshots: at tier 2 (County League) top 2 green and bottom 2 red as before; with Tier set to 1 locally, no red rows and "Nobody goes down from here." The top-flight case wasn't shown on screen. RunAll 430 passed. All of X196–X205 are done.

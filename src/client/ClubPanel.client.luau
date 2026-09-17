@@ -626,12 +626,18 @@ local function renderLeague()
 	cell(head, "GD", 410, 40, { TextColor3 = GREY })
 	cell(head, "Pts", 460, 40, { TextColor3 = GREY })
 	local promo, releg = Config.PromotionSpots, Config.RelegationSpots
+	-- X202: colour by what the places mean in this division (League.outcome):
+	-- the top flight has only a champion, and nobody goes down from tier 1
+	local tier = get("Tier") or 1
+	local topFlight = tier >= #Config.Divisions
 	for i, r in rows do
 		local f = row(i % 2 == 0)
 		if r.isPlayer then
 			f.BackgroundColor3 = Theme.colors.playerRow
 		end
-		local posColor = if i <= promo then Color3.fromRGB(120, 230, 120) elseif i > #rows - releg then Color3.fromRGB(240, 110, 110) else Color3.new(1, 1, 1)
+		local goesUp = if topFlight then i == 1 else i <= promo
+		local goesDown = tier > 1 and i > #rows - releg
+		local posColor = if goesUp then Color3.fromRGB(120, 230, 120) elseif goesDown then Color3.fromRGB(240, 110, 110) else Color3.new(1, 1, 1)
 		cell(f, tostring(r.position), 10, 30, { TextColor3 = posColor, Font = Enum.Font.GothamBold })
 		Crest.draw(f, r.name, 24, { isPlayer = r.isPlayer, position = UDim2.fromOffset(40, 3) })
 		cell(f, r.name, 68, 192, { Font = if r.isPlayer then Enum.Font.GothamBold else Enum.Font.Gotham })
@@ -642,8 +648,7 @@ local function renderLeague()
 		cell(f, ("%+d"):format(r.gd), 410, 40)
 		cell(f, tostring(r.points), 460, 40, { Font = Enum.Font.GothamBold, TextColor3 = ACCENT })
 	end
-	local tier = get("Tier") or 1
-	local up = if tier < #Config.Divisions then ("Top %d go up to the %s."):format(promo, Config.Divisions[tier + 1].name) else "This is the top flight."
+	local up = if not topFlight then ("Top %d go up to the %s."):format(promo, Config.Divisions[tier + 1].name) else "This is the top flight: 1st are champions."
 	local down = if tier > 1 then ("Bottom %d go down to the %s."):format(releg, Config.Divisions[tier - 1].name) else "Nobody goes down from here."
 	note(up .. "  " .. down, GREY)
 	note(("Popularity %d / 100 — wins raise it, losses lower it. Fan demand right now: %d."):format(get("Popularity") or 0, get("Demand") or 0), GREY)
