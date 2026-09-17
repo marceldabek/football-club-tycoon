@@ -104,6 +104,7 @@ end
 
 Scenery.setupTown()
 TownBuilder.build()
+require(script.Parent.Backdrop).build()
 PlotService.start()
 
 print("[FCT] town ready")
