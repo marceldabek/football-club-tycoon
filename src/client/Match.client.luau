@@ -127,6 +127,8 @@ local function onPhase()
 		Sky.setMatchday(true, get("Evening") == true)
 		beginPreMatch()
 	elseif phase == "Match" then
+		-- X187: joining your own evening fixture mid-match still needs its sky
+		Sky.setMatchday(true, get("Evening") == true)
 		beginMatch()
 	else
 		endMatch()

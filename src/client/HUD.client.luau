@@ -3,6 +3,7 @@
 -- matches, post-match / season / welcome cards, loading cover, toasts.
 -- Every widget comes from Theme so the whole game shares one look.
 
+local TextService = game:GetService("TextService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
@@ -164,6 +165,22 @@ local scoreLabel = Theme.text(scoreboard, "", "body", {
 	TextSize = 24,
 	TextXAlignment = Enum.TextXAlignment.Center,
 })
+-- X189: two long club names shrink to fit one line instead of wrapping and
+-- clipping (TextScaled can't be used without wrapping, so size by hand)
+scoreLabel.TextWrapped = false
+local function fitScoreText()
+	local width = scoreLabel.AbsoluteSize.X
+	if width <= 0 then
+		return
+	end
+	local size = 24
+	while size > 10 and TextService:GetTextSize(scoreLabel.Text, size, scoreLabel.Font, Vector2.new(10000, 100)).X > width do
+		size -= 1
+	end
+	scoreLabel.TextSize = size
+end
+scoreLabel:GetPropertyChangedSignal("Text"):Connect(fitScoreText)
+scoreLabel:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitScoreText)
 local clockLabel = Theme.text(scoreboard, "", "muted", {
 	Name = "Clock",
 	Size = UDim2.new(1, -24, 0, 20),
@@ -450,9 +467,12 @@ function refreshHintText()
 	if played == 0 then
 		hintLabel.Text = "Welcome to your club. Have a look around, then hit PLAY MATCH at the top."
 	elseif level == 1 then
-		hintLabel.Text = "Fans were turned away. Expand the East Stand (yellow sign in front of it)."
+		-- X193: only say fans were turned away when they were
+		hintLabel.Text = if (get("Demand") or 0) > (get("Capacity") or math.huge)
+			then "Fans were turned away. Expand the East Stand (yellow sign in front of it)."
+			else "Grow your ground: expand the East Stand (yellow sign in front of it)."
 	elseif (get("ScoutLevel") or 0) == 0 then
-		hintLabel.Text = "Hire a scout to find new players: the office computer, or the CLUB button."
+		hintLabel.Text = "Hire a scout to find new players: the office computer, or the CLUB OFFICE button."
 	elseif (get("AmenityLevel") or 0) == 0 then
 		hintLabel.Text = "Fans spend money too: build a Snack Bar at the CONCOURSE sign on the forecourt."
 	else
@@ -464,11 +484,14 @@ local function refreshCash()
 	cashLabel.Text = money(get("Cash") or 0)
 end
 
-local lastMinute = 0
+-- X186: nil until the first scoreboard refresh of a match, so joining mid-match
+-- doesn't flash HALF TIME for a half that already started
+local lastMinute: number? = nil
 local function refreshScoreboard()
 	local inMatch = get("Phase") == "Match"
 	scoreboard.Visible = inMatch
 	if not inMatch then
+		lastMinute = nil
 		return
 	end
 	local homeName, awayName = get("ClubName") or "Home", get("Opponent") or "Away"
@@ -480,7 +503,7 @@ local function refreshScoreboard()
 	local elapsedFrac = 1 - (total / math.max(get("MatchDuration") or 90, 1))
 	local minute = math.clamp(math.floor(elapsedFrac * 90), 0, 90)
 	clockLabel.Text = ("%d'   ·   %s"):format(minute, if minute < 45 then "First half" else "Second half")
-	if minute >= 45 and lastMinute < 45 then
+	if minute >= 45 and lastMinute ~= nil and (lastMinute :: number) < 45 then
 		flash("HALF TIME", C.text, 2)
 	end
 	lastMinute = minute
@@ -516,7 +539,7 @@ state:GetAttributeChangedSignal("Cash"):Connect(refreshCash)
 for _, key in { "Phase", "HomeGoals", "AwayGoals", "TimeLeft", "Opponent" } do
 	state:GetAttributeChangedSignal(key):Connect(refreshScoreboard)
 end
-for _, key in { "Phase", "MatchesPlayed", "StandLevel", "ScoutLevel", "AmenityLevel", "Round", "NeedsName" } do
+for _, key in { "Phase", "MatchesPlayed", "StandLevel", "ScoutLevel", "AmenityLevel", "Round", "NeedsName", "Demand", "Capacity" } do
 	state:GetAttributeChangedSignal(key):Connect(refreshHint)
 end
 for _, key in { "Phase", "OwnerUserId", "NeedsName", "NextOpponent", "Round", "Rounds", "MatchesPlayed" } do
@@ -529,7 +552,8 @@ state:GetAttributeChangedSignal("Phase"):Connect(function()
 	local phase = get("Phase")
 	if lastPhase == "Match" and phase == "Manage" then
 		flash("FULL TIME", C.text, 3)
-	elseif phase == "Match" then
+	elseif phase == "Match" and lastPhase == "PreMatch" then
+		-- X186: a real kick-off, not joining or reconnecting mid-match
 		lastMinute = 0
 		flash("KICK-OFF", C.text, 1.5)
 	end

@@ -232,7 +232,8 @@ local function applyName(player: Player, requested: unknown)
 		return
 	end
 	local name = requested:gsub("^%s+", ""):gsub("%s+$", ""):gsub("%s+", " ")
-	if #name < Config.ClubNameMinLength or #name > Config.ClubNameMaxLength then
+	local length = utf8.len(name) or #name -- X190: letters, not bytes
+	if length < Config.ClubNameMinLength or length > Config.ClubNameMaxLength then
 		toast(player, ("Name must be %d to %d characters"):format(Config.ClubNameMinLength, Config.ClubNameMaxLength))
 		return
 	end

@@ -144,8 +144,10 @@ function Profile.normalize(raw: any, now: number?): (Profile, boolean)
 
 	local name = raw.clubName
 	if type(name) == "string" and #name > 0 then
-		if #name > Config.ClubNameMaxLength then
-			name = name:sub(1, Config.ClubNameMaxLength)
+		-- X190: trim by letters without splitting a multi-byte character
+		if (utf8.len(name) or #name) > Config.ClubNameMaxLength then
+			local cut = utf8.offset(name, Config.ClubNameMaxLength + 1)
+			name = if cut then name:sub(1, cut - 1) else name:sub(1, Config.ClubNameMaxLength)
 			changed = true
 		end
 		out.clubName = name

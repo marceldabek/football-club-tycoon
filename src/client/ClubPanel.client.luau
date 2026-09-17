@@ -581,14 +581,7 @@ end
 
 -- ----------------------------------------------------------------- League tab
 
-local function ordinal(n: number): string
-	local suffix = "th"
-	local last = n % 10
-	if n % 100 < 11 or n % 100 > 13 then
-		suffix = if last == 1 then "st" elseif last == 2 then "nd" elseif last == 3 then "rd" else "th"
-	end
-	return ("%d%s"):format(n, suffix)
-end
+local ordinal = Theme.ordinal
 
 local function renderLeague()
 	local raw = get("LeagueTable")
@@ -693,8 +686,10 @@ local function renderHistory()
 
 	section(("%s  ·  HONOURS"):format(string.upper(get("ClubName") or "CLUB")))
 	local titleWord = if honours.titles == 1 then "title" else "titles"
-	note(("%d league %s  ·  %d promotions  ·  %d relegations  ·  Highest level: %s"):format(
-		honours.titles, titleWord, honours.promotions, honours.relegations,
+	local promotionWord = if honours.promotions == 1 then "promotion" else "promotions"
+	local relegationWord = if honours.relegations == 1 then "relegation" else "relegations"
+	note(("%d league %s  ·  %d %s  ·  %d %s  ·  Highest level: %s"):format(
+		honours.titles, titleWord, honours.promotions, promotionWord, honours.relegations, relegationWord,
 		if honours.bestTier > 0 then Config.Divisions[honours.bestTier].name else "-"))
 	note(("All-time record: %d played, %d won, %d drawn, %d lost."):format(
 		get("MatchesPlayed") or 0, get("Wins") or 0, get("Draws") or 0, get("Losses") or 0), GREY)

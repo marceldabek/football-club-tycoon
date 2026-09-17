@@ -752,6 +752,10 @@ function Presenter.applySubs(self: Presenter, subs: { { out: number, ["in"]: num
 			outgoing:setTarget(seat or Pitch.TUNNEL)
 			if seat then
 				task.delay(10, function()
+					-- X188: full time may have sent everyone to the tunnel since
+					if self.mode ~= "play" then
+						return
+					end
 					outgoing:teleport(seat)
 					outgoing:face(centre())
 					outgoing:sit()
@@ -769,7 +773,9 @@ function Presenter.applySubs(self: Presenter, subs: { { out: number, ["in"]: num
 			local slot = team.slots[sub.out]
 			fb:setTarget(Vector3.new(-(Pitch.WIDTH / 2 - 3), Pitch.SURFACE_Y, (seat or slot).Z))
 			task.delay(2, function()
-				fb:setTarget(slot)
+				if self.mode == "play" then
+					fb:setTarget(slot)
+				end
 			end)
 			-- they swap places: the bench slot now belongs to the player who
 			-- came off, which also keeps them in the per-frame update

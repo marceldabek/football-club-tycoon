@@ -131,4 +131,11 @@ function T.jsonRoundTrip()
 	assert(#normalized.club.players == 16, "players survived")
 end
 
+-- X190: a long accented name is trimmed by letters, never mid-character
+function T.longAccentedNameTrimsByLetters()
+	local name = string.rep("é", Config.ClubNameMaxLength + 5)
+	local p = Profile.normalize({ clubName = name })
+	assert(utf8.len(p.clubName) == Config.ClubNameMaxLength, "trimmed to the letter limit, got " .. tostring(utf8.len(p.clubName)))
+end
+
 return T

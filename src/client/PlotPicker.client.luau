@@ -204,7 +204,7 @@ local destroyed = false
 
 local function refreshLabels()
 	local ownerName = owners[currentPlot]
-	subtitle.Text = ("Plot %d of %d — %s"):format(currentPlot, PLOT_COUNT, if ownerName then ("Taken by " .. ownerName) else "free")
+	subtitle.Text = ("Ground %d of %d — %s"):format(currentPlot, PLOT_COUNT, if ownerName then ("Taken by " .. ownerName) else "for sale")
 end
 
 local function cyclePlot(direction: number)
@@ -244,7 +244,7 @@ local function showAllTaken()
 		return
 	end
 	title.Text = "CHOOSE YOUR GROUND"
-	subtitle.Text = "All grounds are taken — you're visiting"
+	subtitle.Text = "All grounds are taken — you're visiting."
 	messageLabel.Visible = false
 	prevButton.Visible = false
 	nextButton.Visible = false

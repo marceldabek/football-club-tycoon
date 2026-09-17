@@ -55,14 +55,17 @@ local found = card.addButton("Found the club", "primary")
 found.Name = "Found"
 
 box:GetPropertyChangedSignal("Text"):Connect(function()
-	if #box.Text > Config.ClubNameMaxLength then
-		box.Text = box.Text:sub(1, Config.ClubNameMaxLength)
+	-- X190: count letters, not bytes (an accented letter is two bytes)
+	local length = utf8.len(box.Text) or #box.Text
+	if length > Config.ClubNameMaxLength then
+		local cut = utf8.offset(box.Text, Config.ClubNameMaxLength + 1)
+		box.Text = if cut then box.Text:sub(1, cut - 1) else box.Text:sub(1, Config.ClubNameMaxLength)
 	end
 end)
 
 local function submit()
 	local name = box.Text:gsub("^%s+", ""):gsub("%s+$", "")
-	if #name < Config.ClubNameMinLength then
+	if (utf8.len(name) or #name) < Config.ClubNameMinLength then
 		hint.Text = ("Needs at least %d characters."):format(Config.ClubNameMinLength)
 		hint.TextColor3 = Theme.colors.bad
 		return
