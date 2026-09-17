@@ -318,4 +318,14 @@
 - [x] X203 (13:04 done) With Auto Squad on, "Move them out of the team to sell" / "Take them out of the XI first" is unreachable advice (swaps refused): say to turn Auto Squad off first, 0 parts `[disk]` S
 - [x] X204 (13:04 done) Squad-screen toasts show money without commas ("Need £12500 more"): use Theme/Upgrade money formatting in ClubService, 0 parts `[disk]` S
 - [x] X205 (13:04 done) The naming card hint omits the allowed characters and the client doesn't pre-check them, so accented or "&" names bounce after pressing Found: add the rule to the hint and check client-side, 0 parts `[disk]` S
+- [ ] X206 A player who rejoins the same server within ~180 s is stuck in the plot picker: PlotService.release frees the registry only after the old match ends, and onClaimPlot silently ignores listed owners; free the user entry at once and block only the plot, 0 parts `[disk]` S
+- [ ] X207 Leaving while Session.start is still acquiring the save lock leaves the lock held (start's early returns don't release), so the next join waits 30 s: release on those paths, 0 parts `[disk]` S
+- [ ] X208 Leaving mid-match wipes the match from the save (stop flushes then sets stopped before the result settles), so a losing player can quit to dodge it: finish the match before the final save, 0 parts `[disk]` S
+- [ ] X209 Friendly invite and trade offer cards stay open after the other club leaves: send a cancel so the card hides with a reason, 0 parts `[disk]` S
+- [ ] X210 A second trade offer / friendly invite silently replaces the first card while the first stays live on the server: decline the replaced one server-side (or queue), 0 parts `[disk]` S
+- [ ] X211 Challenges and trade offers target a plot number, so an offer can reach a new owner who claimed the plot meanwhile: send the expected OwnerUserId and refuse if changed, 0 parts `[disk]` S
+- [ ] X212 ClubVisit leaks a ClubPlot attribute connection for every club office prompt it ever sees: disconnect when the prompt goes, 0 parts `[disk]` S
+- [ ] X213 A club can take the same name as an AI club in its division (duplicate table rows and crests): reject names matching Config.Clubs, case-insensitive, 0 parts `[disk]` S
+- [ ] X214 Scouted prospects can share a name with a current squad player: seed the prospect name generator's used set with squad names, 0 parts `[disk]` S
+- [ ] X215 The concourse prompt shows cumulative amenity totals as the gain ("+£4 per fan, +20%") when the step is smaller: show the difference from the current level, 0 parts `[disk]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S
