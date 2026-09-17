@@ -202,4 +202,19 @@ function T.kioskQueueStandsBetweenHatchAndPath()
 	end
 end
 
+-- X161: leavers start at the turnstile end of the route, strung out behind the first
+function T.leaversStartAtTheGateEnd()
+	local route = MatchdayRoutes.ROUTES.fromTown
+	local length = MatchdayRoutes.length(route)
+	local n = 20
+	local prev = math.huge
+	for i = 1, n do
+		local d = MatchdayRoutes.leavingStart(length, i, n)
+		assert(d <= length and d >= length - MatchdayRoutes.LEAVE_SPREAD - 1e-6 and d >= 0, "start " .. d)
+		assert(d < prev, "strung out in order")
+		prev = d
+	end
+	assert(MatchdayRoutes.leavingStart(length, 1, 1) == length, "a lone leaver starts at the gate")
+end
+
 return T

@@ -56,6 +56,7 @@ type Fan = {
 	lateral: number,
 	phase: number,
 	loopsInMatch: boolean,
+	leaving: boolean, -- X161: walking back out after the match
 }
 
 type PlotCrowd = {
@@ -69,6 +70,8 @@ type PlotCrowd = {
 	alive: boolean,
 	plotCFrame: CFrame,
 	phaseConn: RBXScriptConnection,
+	lastPhase: any,
+	leavingUntil: number?, -- X161: os.clock() until which the crowd walks out
 }
 
 -- ------------------------------------------------------------------ state
@@ -159,6 +162,7 @@ local function makeFan(parent: Instance, route: MatchdayRoutes.Route, startDista
 		lateral = math.random() * 5 - 2.5,
 		phase = math.random() * math.pi * 2,
 		loopsInMatch = loopsInMatch,
+		leaving = false,
 	}
 end
 
@@ -181,7 +185,7 @@ local function appendFanPose(fan: Fan, plotCFrame: CFrame)
 	local point, direction = MatchdayRoutes.pointAt(fan.route, fan.distance)
 	local offset = lateralOffset(direction, fan.lateral)
 	local bob = math.abs(math.sin(fan.phase)) * 0.15
-	local yaw = math.atan2(-direction.X, -direction.Z)
+	local yaw = math.atan2(-direction.X, -direction.Z) + (if fan.leaving then math.pi else 0)
 	local root3 = plotCFrame * CFrame.new(point + offset + Vector3.new(0, bob, 0)) * CFrame.Angles(0, yaw, 0)
 
 	local legsY = LEG.Y / 2
@@ -451,10 +455,39 @@ local function despawnCrowd(crowd: PlotCrowd)
 	table.clear(crowd.queue)
 end
 
+-- X161: the whistle has gone. The queue goes, and the fans (a full crowd's
+-- worth) walk back out from the turnstiles along their routes; the stewards,
+-- barriers and cars stay until LEAVE_SECONDS is up.
+local function startLeaving(crowd: PlotCrowd)
+	crowd.leavingUntil = os.clock() + MatchdayRoutes.LEAVE_SECONDS
+	for _, fan in crowd.queue do
+		fan:Destroy()
+	end
+	table.clear(crowd.queue)
+	for i = #crowd.fans, 1, -1 do
+		removeFan(crowd, i)
+	end
+	local total = math.min(targetFanCount(crowd.folder), MAX_FANS_PER_PLOT)
+	for i = 1, total do
+		local route = ROUTE_LIST[(i % 2) + 1]
+		local fan = makeFan(crowd.model, route, MatchdayRoutes.leavingStart(MatchdayRoutes.length(route), i, total), false)
+		fan.leaving = true
+		table.insert(crowd.fans, fan)
+	end
+end
+
 local function recheckCrowd(crowd: PlotCrowd, camPos: Vector3)
 	local folder = crowd.folder
 	local phase = folder:GetAttribute("Phase")
-	local wantsLife = phase == "PreMatch" or phase == "Match"
+	if crowd.alive and crowd.lastPhase == "Match" and phase ~= "Match" and phase ~= "PreMatch" then
+		startLeaving(crowd)
+	end
+	crowd.lastPhase = phase
+	local leaving = crowd.leavingUntil ~= nil and os.clock() < (crowd.leavingUntil :: number)
+	if not leaving then
+		crowd.leavingUntil = nil
+	end
+	local wantsLife = phase == "PreMatch" or phase == "Match" or leaving
 
 	if wantsLife then
 		local dist = (camPos - plotCFrameOf(folder).Position).Magnitude
@@ -476,7 +509,7 @@ local function recheckCrowd(crowd: PlotCrowd, camPos: Vector3)
 	elseif not shouldBeAlive and crowd.alive then
 		crowd.alive = false
 		despawnCrowd(crowd)
-	elseif shouldBeAlive and crowd.alive then
+	elseif shouldBeAlive and crowd.alive and not leaving then
 		adjustFanCount(crowd)
 		local wantQueue = MatchdayRoutes.queueCount(numberAttribute(folder, "Attendance"), numberAttribute(folder, "Capacity"), phase)
 		if wantQueue ~= #crowd.queue then
@@ -515,6 +548,8 @@ local function trackPlot(folder: Folder)
 		near = false,
 		alive = false,
 		plotCFrame = CFrame.identity,
+		lastPhase = folder:GetAttribute("Phase"),
+		leavingUntil = nil,
 		phaseConn = folder:GetAttributeChangedSignal("Phase"):Connect(function()
 			recheckCrowd(crowd, currentCameraPosition())
 		end),
@@ -589,8 +624,18 @@ RunService.RenderStepped:Connect(function(dt: number)
 		local i = 1
 		while i <= #crowd.fans do
 			local fan = crowd.fans[i]
-			fan.distance += fan.speed * dt
 			fan.phase += dt * 2.2
+			if fan.leaving then
+				fan.distance -= fan.speed * dt
+				if fan.distance <= 0 then
+					removeFan(crowd, i)
+					continue
+				end
+				appendFanPose(fan, crowd.plotCFrame)
+				i += 1
+				continue
+			end
+			fan.distance += fan.speed * dt
 			if fan.distance >= fan.length then
 				if phase == "Match" and not fan.loopsInMatch then
 					removeFan(crowd, i)

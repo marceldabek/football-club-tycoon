@@ -246,4 +246,14 @@ function MatchdayRoutes.parkedCars(attendance: number, bays: number): number
 	return math.clamp(math.round(bays * share), 1, bays)
 end
 
+-- X161: after the final whistle fans walk back out along their route. Pure:
+-- the start distance of leaver i of n, strung out over the last SPREAD studs
+-- before the turnstiles (the route's end), nearest the gate first.
+MatchdayRoutes.LEAVE_SECONDS = 45 -- TEMP
+MatchdayRoutes.LEAVE_SPREAD = 60
+function MatchdayRoutes.leavingStart(length: number, i: number, n: number): number
+	local spread = math.min(MatchdayRoutes.LEAVE_SPREAD, length)
+	return length - (i - 1) / math.max(n - 1, 1) * spread
+end
+
 return MatchdayRoutes
