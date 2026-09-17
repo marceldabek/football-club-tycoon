@@ -20,7 +20,7 @@ local PedestrianMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForC
 
 -- ------------------------------------------------------------------ tuning
 
-local MAX_PEDESTRIANS = 30 -- TEMP mobile budget: 30 x 7 parts = 210 parts
+local MAX_PEDESTRIANS = 30 -- TEMP mobile budget: 30 x 7 parts = 210 parts (+4 per dog, about 1 in 6 on residential streets)
 local MAX_PEDESTRIANS_LOW = 12 -- TEMP, Quality "Low" (mirrors Shared.Quality.BUDGETS.Low.pedestrians)
 
 -- C3.2: QualityController publishes "High" | "Low" on the LocalPlayer.
@@ -51,6 +51,25 @@ local HEAD_Y = HIP_Y + TORSO_SIZE.Y + HEAD_SIZE / 2
 local LEG_X = 0.45
 local ARM_X = TORSO_SIZE.X / 2 + ARM_SIZE.X / 2 + 0.03
 local ARM_SWING_RATIO = 0.7 -- arms swing a little less than legs, opposite to them
+
+-- X142: some walkers on residential streets have a dog on a lead
+-- (RivermereNorthfields.png): body, head, tail and lead, trotting at heel on
+-- the walker's right. 4 more parts per dog.
+local DOG_CHANCE = 1 / 6
+local DOG_KINDS: { [string]: boolean } = { residential = true, lane = true }
+local DOG_SIDE = CFrame.new(1.9, 0, -1.4)
+local DOG_BODY = CFrame.new(0, 0.6, 0)
+local DOG_HEAD = CFrame.new(0, 1.15, -1.2)
+local DOG_TAIL = CFrame.new(0, 0.95, 1.25) * CFrame.Angles(math.rad(-35), 0, 0)
+local DOG_COLLAR = CFrame.new(0, 1.0, -0.8)
+local HAND_R = CFrame.new(ARM_X, SHOULDER_Y - ARM_SIZE.Y + 0.2, 0)
+local LEAD_LENGTH = ((DOG_SIDE * DOG_COLLAR).Position - HAND_R.Position).Magnitude
+local DOG_COLOURS = {
+	Color3.fromRGB(60, 44, 30),
+	Color3.fromRGB(196, 160, 100),
+	Color3.fromRGB(30, 30, 32),
+	Color3.fromRGB(235, 232, 225),
+}
 
 local TORSO_OFFSET = CFrame.new(0, TORSO_Y, 0)
 local HEAD_OFFSET = CFrame.new(0, HEAD_Y, 0)
@@ -120,6 +139,7 @@ type Pedestrian = {
 	lateral: number,
 	phase: number, -- walk-cycle time offset so walkers aren't in step
 	lastPos: Vector3,
+	dog: boolean, -- parts 8..11 are the dog (X142)
 }
 
 -- ------------------------------------------------------------------ state
@@ -234,6 +254,14 @@ local function spawnPedestrian(path: Path, kind: string, distance: number, later
 	local model = Instance.new("Model")
 	model.Name = "Pedestrian"
 	local parts = buildFigure(model)
+	local dog = DOG_KINDS[kind] == true and math.random() < DOG_CHANCE
+	if dog then
+		local coat = pick(DOG_COLOURS)
+		table.insert(parts, part("DogBody", Vector3.new(0.8, 0.9, 2), coat, true, model))
+		table.insert(parts, part("DogHead", Vector3.new(0.7, 0.7, 0.8), coat, false, model))
+		table.insert(parts, part("DogTail", Vector3.new(0.15, 0.15, 0.8), coat, false, model))
+		table.insert(parts, part("DogLead", Vector3.new(0.08, 0.08, LEAD_LENGTH), Color3.fromRGB(180, 30, 40), false, model))
+	end
 	model.Parent = root
 
 	local ped: Pedestrian = {
@@ -247,6 +275,7 @@ local function spawnPedestrian(path: Path, kind: string, distance: number, later
 		lateral = lateral,
 		phase = math.random() * 10,
 		lastPos = pos,
+		dog = dog,
 	}
 	table.insert(pedestrians, ped)
 end
@@ -354,6 +383,21 @@ local function movePedestrian(ped: Pedestrian, dt: number)
 	table.insert(moveCFrames, rootCFrame * SHOULDER_R * CFrame.Angles(armSwing, 0, 0) * ARM_HANG)
 	table.insert(moveParts, parts[7])
 	table.insert(moveCFrames, rootCFrame * HEAD_OFFSET * HAIR_OFFSET)
+	if ped.dog then
+		-- a quicker, smaller bounce than the walker's
+		local trot = math.abs(math.sin((elapsed + ped.phase) * 9)) * 0.12
+		local dogRoot = CFrame.new(pos.X, y - bob + trot, pos.Z) * CFrame.Angles(0, yaw, 0) * DOG_SIDE
+		table.insert(moveParts, parts[8])
+		table.insert(moveCFrames, dogRoot * DOG_BODY)
+		table.insert(moveParts, parts[9])
+		table.insert(moveCFrames, dogRoot * DOG_HEAD)
+		table.insert(moveParts, parts[10])
+		table.insert(moveCFrames, dogRoot * DOG_TAIL * CFrame.Angles(0, math.sin((elapsed + ped.phase) * 12) * 0.4, 0))
+		local hand = (rootCFrame * HAND_R).Position
+		local collar = (dogRoot * DOG_COLLAR).Position
+		table.insert(moveParts, parts[11])
+		table.insert(moveCFrames, CFrame.lookAt((hand + collar) / 2, collar))
+	end
 end
 
 -- ------------------------------------------------------------------ main loop
