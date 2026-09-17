@@ -175,4 +175,5 @@
 - [x] X60 (rail + three home-kit shirts and a warm light behind the glass) Club shop window is an empty dark box; RivermereTurnstileEntrance.png shows shirts on display `[studio]` S
 - [ ] X61 Part count has grown: server workspace 20,557 BaseParts (town 17,147: Mill Street kit Dressing 8,371 is half of it); a client standing at plot 1 streams 10,848 (01:12 baseline 5,740), 60 fps on the Studio PC. Before more dressing, measure on a mid phone (X28) and consider trimming the kit Dressing rows or lowering StreamingTargetRadius `[studio]` M
 - [x] X62 (road models Persistent: client had 43 of 80 carriageways at the west of town) Traffic drove over grass where a long carriageway part (streamed by its centre) had not streamed in `[studio]` S
+- [x] X63 (18 x 9 paved pad under every shelter, sign and bin) Riverside Park bus shelter stood on grass (BusAtStop_1) `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

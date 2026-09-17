@@ -903,6 +903,18 @@ local function buildBusStop(parent: Instance, stop: TownLayout.BusStop)
 	m:SetAttribute("BusStop", stop.name)
 	-- shelter opens toward local -Z (the yaw direction)
 	local base = CFrame.new(stop.position.X, 0, stop.position.Z) * CFrame.Angles(0, math.rad(stop.yaw), 0)
+	-- X63: a paved pad under the shelter, pole and bin, so a stop set back on the
+	-- verge isn't standing in grass. Top 0.40 sits under the pavement's 0.45
+	-- where they overlap (no shared plane).
+	part({
+		Name = "Pad",
+		Size = Vector3.new(18, 0.4, 9),
+		CFrame = base * CFrame.new(2, 0.2, -0.3),
+		Color = COLOURS.pavement,
+		Material = Enum.Material.Pavement,
+		CastShadow = false,
+		Parent = m,
+	})
 	part({
 		Name = "Back Panel",
 		Size = Vector3.new(8, 8.5, 0.4),

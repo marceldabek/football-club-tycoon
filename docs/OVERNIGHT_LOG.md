@@ -457,3 +457,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Roadmap F2 ("… buses, bus brakes"):** a traffic bus now pulls up for TEMP 4 s when it reaches the point on its road nearest a bus stop. Stops within 40 studs of the road's centreline count; the Station stop sits 36 out, so the first reach of 26 missed four stops. It won't stop twice in a row at the same stop. A dwelling bus counts as stopped before the leader-gap pass, so cars behind it queue rather than drive through. `TrafficMath.stopDistances` and `passedStop` are pure, with 2 new tests.
 - **Playtest:** a bus sat still for more than 2 s, 25 studs from the Riverside Park stop sign, then drove on. BusAtStop_1 shows the stop just after it left.
 - RunAll 347/347.
+
+### 2026-09-17 05:27 — Paved pads under bus stops (X63)
+- BusAtStop_1 showed the Riverside Park shelter, flag and bin standing on grass. `TownBuilder.buildBusStop` now lays an 18 x 9 paving pad under each stop, 0.4 thick.
+- **Screenshot** BusPad_1: the Riverside Park shelter, flag and bin sit on block paving beside the pavement.
+- RunAll 347/347.
