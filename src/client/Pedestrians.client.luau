@@ -20,7 +20,7 @@ local PedestrianMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForC
 
 -- ------------------------------------------------------------------ tuning
 
-local MAX_PEDESTRIANS = 30 -- TEMP mobile budget: 30 x 6 parts = 180 parts
+local MAX_PEDESTRIANS = 30 -- TEMP mobile budget: 30 x 7 parts = 210 parts
 local MAX_PEDESTRIANS_LOW = 12 -- TEMP, Quality "Low" (mirrors Shared.Quality.BUDGETS.Low.pedestrians)
 
 -- C3.2: QualityController publishes "High" | "Low" on the LocalPlayer.
@@ -54,6 +54,9 @@ local ARM_SWING_RATIO = 0.7 -- arms swing a little less than legs, opposite to t
 
 local TORSO_OFFSET = CFrame.new(0, TORSO_Y, 0)
 local HEAD_OFFSET = CFrame.new(0, HEAD_Y, 0)
+-- X135: a cap of hair on the crown, a little behind centre so the face shows
+local HAIR_SIZE = Vector3.new(HEAD_SIZE * 1.02, HEAD_SIZE * 0.3, HEAD_SIZE * 0.95)
+local HAIR_OFFSET = CFrame.new(0, HEAD_SIZE * 0.4, 0.08)
 local HIP_L = CFrame.new(-LEG_X, HIP_Y, 0)
 local HIP_R = CFrame.new(LEG_X, HIP_Y, 0)
 local SHOULDER_L = CFrame.new(-ARM_X, SHOULDER_Y, 0)
@@ -80,6 +83,14 @@ local TROUSERS = {
 	Color3.fromRGB(85, 85, 88), -- grey joggers
 	Color3.fromRGB(120, 105, 80), -- chinos
 	Color3.fromRGB(70, 90, 125), -- light denim
+}
+-- X135
+local HAIR_COLOURS = {
+	Color3.fromRGB(40, 30, 22),
+	Color3.fromRGB(90, 60, 30),
+	Color3.fromRGB(170, 130, 70),
+	Color3.fromRGB(20, 20, 22),
+	Color3.fromRGB(150, 150, 150),
 }
 local SKIN_TONES = {
 	Color3.fromRGB(235, 200, 165),
@@ -206,7 +217,15 @@ local function buildFigure(parent: Instance): { BasePart }
 	local legR = part("LegR", LEG_SIZE, trousers, false, parent)
 	local armL = part("ArmL", ARM_SIZE, top, false, parent)
 	local armR = part("ArmR", ARM_SIZE, top, false, parent)
-	return { torso, head, legL, legR, armL, armR }
+	-- X135: a face and a hair cap, like the stadium crowd (a head reads as a
+	-- person at street distance, not a skin-coloured ball)
+	local face = Instance.new("Decal")
+	face.Name = "Face"
+	face.Face = Enum.NormalId.Front
+	face.Texture = "rbxasset://textures/face.png"
+	face.Parent = head
+	local hair = part("Hair", HAIR_SIZE, pick(HAIR_COLOURS), false, parent)
+	return { torso, head, legL, legR, armL, armR, hair }
 end
 
 -- ------------------------------------------------------------------ spawn / despawn
@@ -333,6 +352,8 @@ local function movePedestrian(ped: Pedestrian, dt: number)
 	table.insert(moveCFrames, rootCFrame * SHOULDER_L * CFrame.Angles(-armSwing, 0, 0) * ARM_HANG)
 	table.insert(moveParts, parts[6])
 	table.insert(moveCFrames, rootCFrame * SHOULDER_R * CFrame.Angles(armSwing, 0, 0) * ARM_HANG)
+	table.insert(moveParts, parts[7])
+	table.insert(moveCFrames, rootCFrame * HEAD_OFFSET * HAIR_OFFSET)
 end
 
 -- ------------------------------------------------------------------ main loop

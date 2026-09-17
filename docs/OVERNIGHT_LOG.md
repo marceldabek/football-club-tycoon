@@ -983,3 +983,6 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 ### 2026-09-17 10:36 — Brick stands (X134, step 1)
 - Q25 says the kit sets the style and the stadium is restyled later. As a first, low-risk step, WorldBuilder's stand back walls and sloped end walls are now brick in the turnstiles' colour instead of pale grey concrete. The backs get a stone coping (sunk 0.1 into the wall top, 0.2 overhang) and a 1-high club-colour band on the outside face. There are no gameplay or geometry changes to the seats, rails, crowd or prompts; parts are +2 per stand side (coping and band).
 - Checked with DebugRun `preview|4,3,2,4` (a visual rebuild, not a purchase): the level-4 East stand's roofed back from outside, and a level-2/3 stand's brick end wedge and back from the north-west. RunAll 416 passed. Still to do in X134: dugouts, tunnel, roof material.
+
+### 2026-09-17 10:38 — Faces and hair on town pedestrians (X135 done)
+- Pedestrians.client.luau's walkers had a plain ball head. They now get the standard Roblox face decal (it faces the way they walk) and a hair cap in one of five colours, moved with the head, like WorldBuilder's stadium fans. +1 part each (30 × 7 = 210 at most on High). Checked by following a walker across the square with the camera. RunAll 416 passed (client script, no unit test).
