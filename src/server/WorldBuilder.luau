@@ -809,6 +809,23 @@ local function buildTurnstiles(parent: Instance)
 	for i = 1, lanes do
 		local z = TURNSTILE_Z - total / 2 + pierW + laneW / 2 + (i - 1) * (laneW + pierW)
 		-- an open gate leaf folded flat against the outer face of each pier, clear of the lane
+		-- X53: a navy lane sign under the fascia, facing the walk-up side
+		local laneSign = box("LaneSign", Vector3.new(0.2, 1.3, laneW - 0.4), Vector3.new(x - 4.7, DECK_Y + h - 1.15, z), Color3.fromRGB(24, 36, 72), Enum.Material.SmoothPlastic, gate)
+		laneSign.CanCollide = false
+		local signGui = Instance.new("SurfaceGui")
+		signGui.Face = Enum.NormalId.Left
+		signGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		signGui.PixelsPerStud = 40
+		signGui.Parent = laneSign
+		local signText = Instance.new("TextLabel")
+		signText.Size = UDim2.fromScale(0.9, 0.7)
+		signText.Position = UDim2.fromScale(0.05, 0.15)
+		signText.BackgroundTransparency = 1
+		signText.Font = Enum.Font.GothamBold
+		signText.TextScaled = true
+		signText.TextColor3 = Color3.fromRGB(240, 240, 240)
+		signText.Text = if i == 2 then "TICKETS" else "HOME FANS"
+		signText.Parent = signGui
 		for _, side in { -1, 1 } do
 			local leaf = box("GateLeaf", Vector3.new(0.2, 6.5, 2.2), Vector3.new(x - 4.65, DECK_Y + 3.35, z + side * (laneW / 2 + pierW / 2)), iron, Enum.Material.Metal, gate)
 			leaf.CanCollide = false

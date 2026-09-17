@@ -352,3 +352,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshot** Turnstiles_brick_1.
 - **Still missing (new X53):** lane signs ("HOME SUPPORTERS" / "TICKETS"), a brick boundary wall off each side, and a club banner on a lamp outside.
 - RunAll 332/332.
+
+### 2026-09-17 04:28 — Turnstile lane signs (X53, part)
+- Each turnstile lane has a navy sign under the fascia on the walk-up side, reading HOME FANS / TICKETS / HOME FANS, as in the reference. They have no collision and give 7.4 studs of headroom.
+- **Screenshot** Turnstiles_signs_3: straight on, the entrance now reads as a small football ground's gate (club-name fascia, brick piers, iron gates, turnstile drums, lane signs).
