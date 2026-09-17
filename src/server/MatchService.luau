@@ -13,6 +13,7 @@ local MatchSim = require(ReplicatedStorage.Shared.MatchSim)
 local Economy = require(ReplicatedStorage.Shared.Economy)
 local TeamGen = require(ReplicatedStorage.Shared.TeamGen)
 local Squad = require(ReplicatedStorage.Shared.Squad)
+local DayCycle = require(ReplicatedStorage.Shared.DayCycle)
 local ClubState = require(script.Parent.ClubState)
 local WorldBuilder = require(script.Parent.WorldBuilder)
 local ClubService = require(script.Parent.ClubService)
@@ -133,6 +134,8 @@ function MatchService.playMatch(durationOverride: number?, walkoutOverride: numb
 	ClubState.set("Attendance", attendance)
 	ClubState.set("Tactic", "Balanced")
 	ClubState.set("Subs", "[]")
+	-- TEMP rule in DayCycle: some fixtures kick off under the floodlights
+	ClubState.set("Evening", DayCycle.isEveningFixture(matchIndex))
 	ClubState.set("Timeline", HttpService:JSONEncode({
 		events = result.events,
 		home = { name = ClubState.get("ClubName"), kit = colorToJson(Config.HomeKit), squad = homeSquad },

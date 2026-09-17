@@ -121,6 +121,7 @@ function ClubState.init()
 	ClubState.set("KickoffAt", 0)
 	ClubState.set("Opponent", "")
 	ClubState.set("Attendance", 0)
+	ClubState.set("Evening", false) -- this fixture kicks off under the floodlights
 	ClubState.set("Tactic", "Balanced") -- "Balanced" | "Attack" | "Defend"
 	ClubState.set("Subs", "[]") -- JSON list of { out = number, in = number }
 	ClubState.set("Timeline", "") -- JSON published at PreMatch for the client presenter

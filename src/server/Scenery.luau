@@ -5,7 +5,6 @@
 -- Club model that WorldBuilder rebuilds on reload. No assets, all procedural.
 
 local Lighting = game:GetService("Lighting")
-local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
@@ -14,8 +13,7 @@ local Assets = require(script.Parent.Assets)
 local Scenery = {}
 
 local GROUND_Y = 0
-local DAY_CLOCK = 16.4 -- warm late afternoon while managing
-local MATCH_CLOCK = 17.6 -- dusk on matchday so the floodlights read
+local DAY_CLOCK = 15.0 -- matches DayCycle.LOOKS.HeroAfternoon; clients own the sky after load
 
 local function part(props: { [string]: any }): Part
 	local p = Instance.new("Part")
@@ -355,19 +353,10 @@ function Scenery.setFloodlights(on: boolean)
 	end
 end
 
-local clockTween: Tween? = nil
-local function tweenClock(target: number, seconds: number)
-	if clockTween then
-		clockTween:Cancel()
-	end
-	clockTween = TweenService:Create(Lighting, TweenInfo.new(seconds, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), { ClockTime = target })
-	;(clockTween :: Tween):Play()
-end
-
--- Dusk and floodlights on for the match; back to the afternoon afterwards.
-function Scenery.setMatchday(on: boolean)
-	tweenClock(if on then MATCH_CLOCK else DAY_CLOCK, if on then 6 else 4)
-	Scenery.setFloodlights(on)
+-- Floodlights are the only matchday lighting the server owns: everyone can
+-- see a lit ground. Time of day itself is per player (client Sky module).
+function Scenery.setMatchday(on: boolean, evening: boolean?)
+	Scenery.setFloodlights(on and evening == true)
 end
 
 function Scenery.setup()

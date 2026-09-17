@@ -160,7 +160,7 @@ function Session.refreshPromptLock()
 	local managing = phase == "Manage"
 	w.matchdayPrompt.Enabled = managing
 	UpgradeService.refreshPrompt()
-	Scenery.setMatchday(phase == "PreMatch" or phase == "Match")
+	Scenery.setMatchday(phase == "PreMatch" or phase == "Match", ClubState.get("Evening") == true)
 end
 
 -- Every save goes through here so the stamps the saver writes stay in step.

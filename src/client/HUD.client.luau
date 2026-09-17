@@ -12,6 +12,7 @@ local Theme = require(script.Parent.Theme)
 local MatchAudio = require(script.Parent.MatchAudio)
 local MatchSummary = require(script.Parent.MatchSummary)
 local Crest = require(script.Parent.Crest)
+local Sky = require(script.Parent.Sky)
 
 local player = Players.LocalPlayer
 local state = ReplicatedStorage:WaitForChild("ClubState")
@@ -256,6 +257,7 @@ local seasonCard = Theme.card(gui, "SeasonOver", "SEASON OVER", UDim2.fromOffset
 local seasonContinue = seasonCard.addButton("Next season", "primary")
 seasonContinue.Activated:Connect(function()
 	seasonCard.frame.Visible = false
+	Sky.fastForward("season") -- the long night between seasons
 end)
 
 local pendingSeason: any = nil
@@ -287,6 +289,8 @@ summaryContinue.Activated:Connect(function()
 		local data = pendingSeason
 		pendingSeason = nil
 		showSeason(data)
+	else
+		Sky.fastForward("match") -- a week passes
 	end
 end)
 

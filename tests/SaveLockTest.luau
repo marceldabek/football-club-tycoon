@@ -135,7 +135,8 @@ function T.heartbeatFalseWhenRequested()
 	-- without actually taking the lock yet.
 	backend.update("lock_u8", function(old: any?): any?
 		assert(old ~= nil, "record should exist")
-		(old :: any).requestedBy = "B"
+		local record = old :: any
+		record.requestedBy = "B"
 		return old
 	end)
 

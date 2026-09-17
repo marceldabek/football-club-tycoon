@@ -13,6 +13,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Iris = require(script.Parent.Iris)
 local Presenter = require(script.Parent.MatchPresenter)
 local MatchAudio = require(script.Parent.MatchAudio)
+local Sky = require(script.Parent.Sky)
 
 local state = ReplicatedStorage:WaitForChild("ClubState")
 local camera = workspace.CurrentCamera
@@ -99,6 +100,7 @@ end
 local function onPhase()
 	local phase = get("Phase")
 	if phase == "PreMatch" then
+		Sky.setMatchday(true, get("Evening") == true)
 		beginPreMatch()
 	elseif phase == "Match" then
 		beginMatch()
@@ -119,5 +121,6 @@ state:GetAttributeChangedSignal("Subs"):Connect(function()
 	end
 end)
 
+Sky.start()
 MatchAudio.startMusic()
 onPhase()
