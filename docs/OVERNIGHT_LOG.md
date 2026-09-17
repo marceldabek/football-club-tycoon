@@ -1329,3 +1329,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - X228 `UpgradeService`: an empty plot's first build reads "Build Bleachers (150 seats) — Free" rather than "£0". Whether it should cost something is question 18. X234 (the ground stops at 8,000 seats) is question 19.
 - Tested in play: with the stands set down to one 150-seat bleacher for a single match, the summary showed "150 / 150, 100% full" with the turned-away row (screenshot checked). The stands were then put back to 4/4/4/4 and another match was played so the test save is correct again (#393). RunAll 436 passed.
 
+### 2026-09-17 13:48 — Hire and sign buttons show when the club can't afford them (X232 done)
+- `ClubPanel`: the new `markAffordable` greys the scout Hire/Upgrade, prospect Sign and coach Hire/Upgrade buttons when Cash is below the cost, and says what's missing: "Need £480 more · Local Scout", "Hire Volunteer Coach — £800 · Need £680 more". Sign buttons read "Need £X more · £fee". The panel already re-renders on Cash changes, so the buttons come back once the club can pay. They stay tappable, and the server's answer is unchanged.
+- Tested in play: the club's Cash attribute was set to £120 for the check (scouting screenshot checked, coach text read back), then set back to £443,934 with no match or save in between. RunAll 436 passed.
+- Noticed: this play session took about 20 s to load the club after Build (normally under 9 s), with no save-lock warning. It was the first start right after a stop that followed a save, so it is most likely DataStore latency in Studio. Watch for it.
+

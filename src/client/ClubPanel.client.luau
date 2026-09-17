@@ -50,6 +50,20 @@ local function get(key: string): any
 	return state:GetAttribute(key)
 end
 
+-- X232: a purchase the club can't afford yet looks unavailable and says what's
+-- missing (the panel re-renders when Cash changes). Still tappable; the server
+-- answers with the same message.
+local function markAffordable(b: TextButton, cost: number, shortLabel: string?)
+	local cash = (get("Cash") :: number?) or 0
+	if cash >= cost then
+		return
+	end
+	b.BackgroundColor3 = Theme.colors.bg3
+	b.TextColor3 = Theme.colors.muted
+	local need = ("Need %s more"):format(money(cost - cash))
+	b.Text = if shortLabel then need .. "  ·  " .. shortLabel else b.Text .. "  ·  " .. need
+end
+
 local function loadClub(): Club?
 	local raw = get("Club")
 	if type(raw) ~= "string" or raw == "" then
@@ -493,6 +507,7 @@ local function renderScouting(club: Club)
 				TextSize = 15,
 				Font = Theme.fonts.display,
 			})
+			markAffordable(hire, nextLevel.cost, nextLevel.name)
 			hire.Activated:Connect(function()
 				actionEvent:FireServer(if level then "upgradeScout" else "hireScout")
 			end)
@@ -568,6 +583,7 @@ local function renderScouting(club: Club)
 				TextSize = 18,
 				Font = Theme.fonts.display,
 			})
+			markAffordable(sign, p.fee or 0, money(p.fee or 0))
 			sign.Activated:Connect(function()
 				actionEvent:FireServer("sign", p.id)
 			end)
@@ -670,6 +686,7 @@ local function renderStaff(club: Club)
 			Size = UDim2.fromOffset(340, 34),
 			LayoutOrder = nextOrder(),
 		})
+		markAffordable(hire, nextLevel.cost)
 		hire.Activated:Connect(function()
 			actionEvent:FireServer(if club.coachLevel == 0 then "hireCoach" else "upgradeCoach")
 		end)

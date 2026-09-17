@@ -345,7 +345,7 @@
 - [x] X229 (13:47 done) MatchSim's goal trim can flip a result (5-4 → 4-4 → 3-4) and undo the match-2 bias: trim from the side with more goals, both when level, so winner and margin hold, 0 parts `[disk]` S
 - [x] X230 (13:47 done) An injured reserve can be swapped onto the bench and is silently dropped at kick-off: refuse the swap, 0 parts `[disk]` S
 - [x] X231 (13:47 done) The match summary never shows fans turned away when the ground is full (CLAUDE.md s10's "leaving revenue on the table"): add "N fans turned away (~£X missed)", 0 parts `[disk]` S
-- [ ] X232 Hire/Sign buttons look ready when the club can't afford them: dim them and show "Need £X more", 0 parts `[disk]` S
+- [x] X232 (13:48 done) Hire/Sign buttons look ready when the club can't afford them: dim them and show "Need £X more", 0 parts `[disk]` S
 - [x] X233 (13:47 done) History's "Highest level" lags a season behind after promotion (only finished seasons count): include the current tier, 0 parts `[disk]` S
 - [ ] X234 (13:47 blocked on question 19) The ground caps at 8,000 seats while demand reaches ~20k in the top divisions (WORLD_ROADMAP Q14 wants ~30k): more stand levels need Marcel's numbers (question 19), 0 parts now `[disk]` M
 - [ ] X235 No corner arcs on the pitch (pitch-board.png has them): four quarter arcs at the flags, ~12 parts per club `[studio]` S
