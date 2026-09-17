@@ -26,3 +26,6 @@ assets/kit/_export/*
 
 # Open Cloud key for tools/upload_kit.py (never commit)
 .roblox_api_key
+
+# Claude Code agent worktrees
+.claude/worktrees/

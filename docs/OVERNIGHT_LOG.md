@@ -55,12 +55,12 @@ in `ServerStorage.Kit.Town`.
 - Also merged: `KitPlacer` (not yet in Studio), `docs/FREE_ASSETS.md` (Poly Haven/ambientCG shortlist; Poly Haven has no buildings/vehicles).
 - Note: the place is published, so Studio playtests load and save **Marcel's real club** from DataStore (it went from 34 to 36 matches, cash up, North stand +1 during testing). Backlog X1 proposes a Studio-only save key.
 
-### 2026-09-17 ~01:00 — Save lock wired (B3.2), depth of field (A3.1), town kit keepers
+### 2026-09-17 ~00:55 — Save lock wired (B3.2), depth of field (A3.1), town kit keepers
 - `Session` acquires the save lock before loading, heartbeats it in the autosave loop (kicks with "Your club was opened on another server." if another server takes it) and releases on stop. Fixed: SaveLock was missing from the per-plot module list; plot start/stop errors now free the plot. Tested: stop → restart Play reacquires instantly (lock released).
 - `src/client/Focus.luau`: DoF eases in behind the club office panel, match summary and season card; softer far blur during the walkout. Tested: panel open → FocusDoF enabled, far 0.55, office blurred (screenshot).
 - Free Creator Store hunt against `RiveremereWestdale.png` / `RivermereCenter.png`: kept Victorian terrace row (2974339114), church with spire (7976643711), Victorian gas lamp (8408243710) in `ServerStorage.Kit.Town`; rejected 5 (see MANIFEST). KitPlacer synced, RunAll 114/114.
 
-### 2026-09-17 ~01:30 — Plot picker (B2.2), go-home (B4.2), town greybox (C2.1), plot grounds (E8.1/H2/H3)
+### 2026-09-17 01:03 — Plot picker (B2.2), go-home (B4.2), town greybox (C2.1), plot grounds (E8.1/H2/H3)
 - Picker (subagent draft, fixed by lead): new players spawn in the square, the camera flies between free plots, Prev/Next/Build; Build claims, loads the club and puts the player in their office. Fixes: Toast remote created at start (picker hung), other SpawnLocations disabled (players appeared at the vertical slice), camera kept Scriptable while picking, iris closes before the camera swap. "GO TO MY CLUB" HUD button with 5 s cooldown.
 - `TownBuilder` greybox from TownLayout (reference `RivermereAImap.png`): roads + pavements + roundabouts, River Lune carved into terrain with water, 3 road bridges, rail with viaduct + ramps + station, district volumes, church spire tiers, 11 bus stops. 516 parts. Aerial screenshot compared to the map: layout reads right (river, ring road, centre, estates, industrial west, park east), but districts are far too sparse, the rail line barely shows and the terrain edge is bare (X5–X8).
 - `PlotGrounds`: boundary wall with gates, access road, car park with bays/lamps/pay machine/MATCHDAY PARKING sign, brick CLUB SHOP with club fascia, two fenced training pitches, footpath to the turnstiles. 254 parts per plot. Tested on plot 1 (yaw 270): all in place.
