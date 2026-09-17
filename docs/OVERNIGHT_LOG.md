@@ -1217,3 +1217,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 ### 2026-09-17 12:43 — Square and promenade strollers (X177/X182 done)
 - New `src/client/Strollers.client.luau` (4 parts a figure, off on Low). Five people stroll a ring round the market square between the planters (17) and the stalls (43), some each way, within 220 of the camera. Six walk up and down the riverside promenade: RiverDresser's 10-stud "Promenade" strips are chained into walks where they meet, and the stretch nearest the camera within 300 is used. The chain scan runs once, retrying at most every 20 s until the promenade has streamed in. New parts are parked out of sight so nothing sits at the origin under the clock tower before its first pose.
 - Checked in play: 5 square walkers at about radius 30 and 6 on the promenade by the Lune Bridge. Screenshots of both checked (the first promenade shot was blocked by a tree and retaken from over the path). RunAll 428 passed (client only).
+
+
+### 2026-09-17 12:44 — Client life part count
+- At the market square on High, about 12 s after arriving: client-made life parts total 514 of 20,039 workspace BaseParts. That's pedestrians 214, café sitters 80, bench sitters 64, strollers 44, traffic 50, stallholders 40, train 12, cruiser 6, swans 4 (the play-area, pond, training and kickabout scripts had nothing nearby). Every one of these scripts is capped and off on Low. A background review of the X142–X185 client scripts is running.
+- Suggested cap if phones struggle (for question 14): BenchSitters MAX_BENCHES 8 → 4 and café-sitter sets 5 → 3 would save about 70 parts at the square.
