@@ -324,3 +324,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Full-detail street trees (Mill Street and Weaver Street) swap the ball stacked on a ball for two offset lobes: one high and to one side, one lower on the other side, in slightly different greens. The 8 planter trees round the square get two lobes as well. Light-street, park and backdrop trees are unchanged.
 - **Budget:** the terrace streets' TEMP PART_BUDGET went from 1,200 to 1,240 so the extra lobes don't push a light street out. It's now 1,229 (showpiece 763), still 3 light streets. Forecourts are 646 parts.
 - **Screenshot** Trees_lobes_1: the Mill Street trees have lumpy crowns. They're still stylised next to the reference's loose leafy trees.
+
+### 2026-09-17 04:19 — Station windows (X49)
+- **Compared with `RivermereStation.png`:** our station already has the navy "RIVERMERE STATION" canopy, the gable clock and a "Next Trains" board, but its windows were flat dark blue rectangles.
+- **Change:** StationDresser gives every window a white mullion and transom standing just proud of the glass, a lighter glass colour, and a stone sill on the ground floor. About 40 parts.
+- **Screenshot** Station_windows_1: the brick front reads as a row of sash windows.
+- **Still different from the reference (new X50):** a grass strip between Station Road's pavement and the forecourt, which the reference has paved to the kerb. There's also no newsagent kiosk and no taxi or bus-stop road markings.
+- RunAll 331/331.

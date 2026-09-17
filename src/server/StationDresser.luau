@@ -56,6 +56,17 @@ local function slab(parent: Instance, frame: CFrame, name: string, x0: number, x
 	})
 end
 
+local GLASS = Color3.fromRGB(58, 74, 90)
+local SASH_WHITE = Color3.fromRGB(236, 234, 226)
+
+-- A vertical mullion and a horizontal transom across a window centred on x
+-- (half width hw, from y0 to y1), standing 0.1 proud of the glass (X49).
+local function glazingBars(parent: Instance, frame: CFrame, x: number, hw: number, y0: number, y1: number)
+	local yMid = y0 + (y1 - y0) * 0.55
+	slab(parent, frame, "Mullion", x - 0.12, x + 0.12, y0 + 0.05, y1 - 0.05, 0.25, 0.4, SASH_WHITE) -- ends short of the glass edges: no shared planes
+	slab(parent, frame, "Transom", x - hw, x + hw, yMid - 0.12, yMid + 0.12, 0.3, 0.42, SASH_WHITE)
+end
+
 local function sign(target: BasePart, face: Enum.NormalId, text: string, colour: Color3, background: Color3?, font: Enum.Font?)
 	local gui = Instance.new("SurfaceGui")
 	gui.Face = face
@@ -387,11 +398,16 @@ function StationDresser.build(): string
 	for x = -halfLen + 10, halfLen - 10, 16 do
 		local clearOfEntrance = math.abs(x) > 34 and not (x > 26 and x < 46)
 		if clearOfEntrance and x > -halfLen + 38 then
-			slab(m, f, "Window", x - 3.5, x + 3.5, 3, 10.5, 0, 0.3, Color3.fromRGB(45, 55, 65), Enum.Material.Glass)
+			slab(m, f, "Window", x - 3.5, x + 3.5, 3, 10.5, 0, 0.3, GLASS, Enum.Material.Glass)
 			slab(m, f, "Lintel", x - 4.2, x + 4.2, 10.5, 11.5, 0, 0.6, Color3.fromRGB(215, 205, 185), Enum.Material.Limestone)
+			-- X49: white glazing bars and a stone sill, so the windows read as
+			-- sashes (RivermereStation.png) rather than dark blank panels
+			slab(m, f, "Sill", x - 4, x + 4, 2.6, 3.05, 0, 0.7, Color3.fromRGB(215, 205, 185), Enum.Material.Limestone)
+			glazingBars(m, f, x, 3.5, 3, 10.5)
 		end
 		if math.abs(x) > 30 then
-			slab(m, f, "UpperWindow", x - 3, x + 3, 16.5, 21, 0, 0.3, Color3.fromRGB(45, 55, 65), Enum.Material.Glass)
+			slab(m, f, "UpperWindow", x - 3, x + 3, 16.5, 21, 0, 0.3, GLASS, Enum.Material.Glass)
+			glazingBars(m, f, x, 3, 16.5, 21)
 		end
 	end
 
