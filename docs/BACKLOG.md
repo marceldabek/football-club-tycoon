@@ -239,4 +239,5 @@
 - [x] X124 (09:59 warm block paving (Pavement material, sandstone colour) on the stadium forecourt instead of flat grey concrete) RivermereTurnstileEntrance.png's paved approach `[studio]` S
 - [x] X125 (10:06 four supporters with pints huddle on the supporters' bar patio while the crowd is out, visible to everyone; 5 parts each) Matchday life at the X97 bar `[studio]` S
 - [x] X126 (10:07 three fans queue at the snack kiosk hatch while the crowd is out; 3-4 parts each) Matchday life at the X95 kiosk `[studio]` S
+- [x] X127 (10:10 matchday car park cars are the town's one-mesh hatchbacks, published to ReplicatedStorage.ClientKit.Cars by the new ClientKit server module and scaled 0.85 to fit the bays; 1 part per car instead of 2 grey blocks) `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

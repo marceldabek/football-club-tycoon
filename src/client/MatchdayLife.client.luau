@@ -309,6 +309,7 @@ local CAR_COLOURS = {
 	Color3.fromRGB(60, 90, 70),
 }
 local ASPHALT_TOP = 0.2 -- PlotGrounds car park asphalt
+local KIT_CAR_SCALE = 0.85 -- kit hatchbacks are 9.4-9.8 wide; bays are 9
 
 local function buildCars(crowd: PlotCrowd)
 	local count = MatchdayRoutes.parkedCars(numberAttribute(crowd.folder, "Attendance"), #BAYS)
@@ -322,14 +323,30 @@ local function buildCars(crowd: PlotCrowd)
 		local j = rng:NextInteger(1, i)
 		order[i], order[j] = order[j], order[i]
 	end
+	-- X127: the town's one-mesh hatchbacks (ServerStorage copies published by
+	-- ClientKit) when they're there, scaled to fit a 9-wide bay; blocks otherwise
+	local clientKit = ReplicatedStorage:FindFirstChild("ClientKit")
+	local kitFolder = clientKit and clientKit:FindFirstChild("Cars")
+	local kitCars = if kitFolder then kitFolder:GetChildren() else {}
 	for k = 1, count do
 		local bay = BAYS[order[k]]
-		local model = Instance.new("Model")
-		model.Name = "ParkedCar"
 		local base = crowd.plotCFrame * CFrame.new(bay.X + rng:NextNumber(-0.6, 0.6), ASPHALT_TOP + 0.02, bay.Z)
-		local colour = CAR_COLOURS[rng:NextInteger(1, #CAR_COLOURS)]
-		part("Body", Vector3.new(8.4, 1.9, 4.2), colour, model).CFrame = base * CFrame.new(0, 0.95 + 0.35, 0)
-		part("Cabin", Vector3.new(4.6, 1.5, 3.8), Color3.fromRGB(34, 40, 48), model).CFrame = base * CFrame.new(-0.4, 1.9 + 0.35 + 0.7, 0)
+		local model: Model
+		if #kitCars > 0 then
+			model = (kitCars[rng:NextInteger(1, #kitCars)] :: Model):Clone()
+			model.Name = "ParkedCar"
+			model:ScaleTo(model:GetScale() * KIT_CAR_SCALE)
+			local _, size = model:GetBoundingBox()
+			-- the kit car's length runs along its pivot Z; a bay's along local X
+			local flip = if rng:NextNumber() < 0.5 then 0 else math.pi
+			model:PivotTo(base * CFrame.Angles(0, math.pi / 2 + flip, 0) * CFrame.new(0, size.Y / 2, 0))
+		else
+			model = Instance.new("Model")
+			model.Name = "ParkedCar"
+			local colour = CAR_COLOURS[rng:NextInteger(1, #CAR_COLOURS)]
+			part("Body", Vector3.new(8.4, 1.9, 4.2), colour, model).CFrame = base * CFrame.new(0, 0.95 + 0.35, 0)
+			part("Cabin", Vector3.new(4.6, 1.5, 3.8), Color3.fromRGB(34, 40, 48), model).CFrame = base * CFrame.new(-0.4, 1.9 + 0.35 + 0.7, 0)
+		end
 		model.Parent = crowd.model
 		table.insert(crowd.cars, model)
 	end
