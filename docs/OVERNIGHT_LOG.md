@@ -628,3 +628,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 ### 2026-09-17 06:51 — Part count after the dressing batch (X61)
 - The town is now 18,073 BaseParts, up 926 since the X61 measurement. Most of that is estates (street trees, beds, forklifts), the sports centre (154), the promenade (bins, banners) and Weir Road (216). The server workspace holds 20,802 before any club is built. A Studio client sitting at the plot picker near plot 1 streams 13,955 parts at about 57 fps on this PC.
 - These are Studio desktop numbers only. X61 and X28 still need a mid-range phone, and question 9's Weir Road reserve is the first thing to drop if phones struggle.
+
+### 2026-09-17 06:53 — Mini roundabout at the estate entrance (X55 part)
+- Added `Foundry Way Roundabout` (radius 16) to `TownLayout.ROUNDABOUTS` where Foundry Way crosses Estate Road, like the planted roundabout at the estate entrance in rivermer.industrialestate.png. TownBuilder builds its asphalt disc and grass island, and pavements cut around it. The TownLayoutTest block-clearance checks pass.
+- I first held back because client traffic has no roundabout logic. It turns out cars already drive straight over the islands of all nine existing roundabouts, so this one is no worse. That limitation belongs in a traffic follow-up, not in this layout item.
+- **Screenshot** FoundryRoundabout_1.
+- RunAll 364/364.

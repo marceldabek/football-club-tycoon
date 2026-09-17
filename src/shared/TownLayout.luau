@@ -75,6 +75,8 @@ TownLayout.ROUNDABOUTS = {
 	{ name = "Westdale Roundabout", centre = Vector3.new(-1100, 0, 700), radius = 40 },
 	{ name = "High Street Roundabout", centre = Vector3.new(-1250, 0, -100), radius = 40 },
 	{ name = "Mapleford Roundabout", centre = Vector3.new(-1350, 0, -400), radius = 40 },
+	-- X55: a small planted roundabout at the industrial estate entrance (Foundry Way x Estate Road)
+	{ name = "Foundry Way Roundabout", centre = Vector3.new(-1480, 0, -102), radius = 16 },
 } :: { Roundabout }
 
 TownLayout.PLOTS = {
