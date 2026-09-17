@@ -377,14 +377,41 @@ local function buildPlanter(parent: Instance, cf: CFrame, rng: Random)
 	Planting.bloom(m, f * CFrame.new(0, 3.3, 0), 8.6, 3.6, FLOWERS[rng:NextInteger(1, #FLOWERS)], rng)
 end
 
-local function buildStall(parent: Instance, cf: CFrame, colour: Color3)
+-- X138 (RivermereCenter.png market): three produce crates on each counter,
+-- each heaped with round fruit or veg, a different mix per stall
+local PRODUCE = {
+	{ Color3.fromRGB(200, 40, 40), Color3.fromRGB(240, 150, 40), Color3.fromRGB(110, 170, 60) }, -- apples, oranges, greens
+	{ Color3.fromRGB(230, 200, 60), Color3.fromRGB(120, 60, 110), Color3.fromRGB(180, 40, 60) }, -- lemons, plums, tomatoes
+	{ Color3.fromRGB(170, 120, 70), Color3.fromRGB(90, 150, 60), Color3.fromRGB(240, 220, 200) }, -- potatoes, cabbage, onions
+}
+
+local function buildStall(parent: Instance, cf: CFrame, colour: Color3, index: number)
 	local m = Instance.new("Model")
 	m.Name = "MarketStall"
 	m.Parent = parent
 	-- local -Z faces the centre of the square (the shoppers' side)
 	local f = cf * CFrame.new(0, TOP, 0)
 	slab(m, f, "Counter", -5, 5, 0, 3.2, -2, 1, Color3.fromRGB(150, 110, 70), Enum.Material.WoodPlanks)
-	slab(m, f, "Goods", -4.5, 4.5, 3.2, 3.8, -1.8, 0.6, Color3.fromRGB(210, 150, 60), Enum.Material.SmoothPlastic)
+	local mix = PRODUCE[(index - 1) % #PRODUCE + 1]
+	for c = 1, 3 do
+		local cx = -3 + (c - 1) * 3
+		slab(m, f, "Crate", cx - 1.3, cx + 1.3, 3.2, 3.8, -1.7, 0.5, Color3.fromRGB(176, 136, 90), Enum.Material.WoodPlanks)
+		-- produce balls sit in the crate, tops just proud of its rim
+		for k = 0, 3 do
+			local px = cx - 0.6 + (k % 2) * 1.2
+			local pz = -1.15 + math.floor(k / 2) * 1.1
+			part({
+				Name = "Goods",
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.one * 1.1,
+				CFrame = f * CFrame.new(px, 3.75, pz),
+				Color = mix[c],
+				Material = Enum.Material.SmoothPlastic,
+				CastShadow = false,
+				Parent = m,
+			})
+		end
+	end
 	for _, x in { -4.8, 4.8 } do
 		slab(m, f, "Pole", x - 0.15, x + 0.15, 0, 8, 1.6, 1.9, Color3.fromRGB(220, 220, 220), Enum.Material.Metal)
 	end
@@ -480,7 +507,7 @@ function SquareDresser.build(): string
 	end
 
 	for i, cf in SquareDresser.ring(centre, STALL_RING, STALL_COUNT, math.pi / STALL_COUNT) do
-		buildStall(square, cf, STALL_COLOURS[(i - 1) % #STALL_COLOURS + 1])
+		buildStall(square, cf, STALL_COLOURS[(i - 1) % #STALL_COLOURS + 1], i)
 	end
 
 	for _, cf in SquareDresser.ring(centre, BOLLARD_RING, BOLLARD_COUNT, 0) do
