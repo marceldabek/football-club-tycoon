@@ -1178,6 +1178,120 @@ local function buildOffice(parent: Instance)
 	spawn.Parent = office
 end
 
+-- X291: the office only ever showed league titles, so a club promoted four
+-- times without winning a division had a bare wall and nothing at all for the
+-- players who got it there. A pennant per promotion along the wall above the
+-- shelf, and a framed shirt for the club servant with the most appearances
+-- (X288). TEMP cap of six pennants, which is one per division in the pyramid.
+local PENNANTS_SHOWN = 6
+
+function WorldBuilder.buildHonours(promotions: number, servant: { [string]: any }?)
+	local club = PlotContext.clubModel()
+	local office = club and club:FindFirstChild("Office")
+	if not office then
+		return
+	end
+	local old = office:FindFirstChild("Honours")
+	if old then
+		old:Destroy()
+	end
+	local shown = math.clamp(math.floor(promotions), 0, PENNANTS_SHOWN)
+	if shown == 0 and not servant then
+		return
+	end
+	local model = Instance.new("Model")
+	model.Name = "Honours"
+	model.Parent = office
+
+	local state = PlotContext.stateFolder()
+	local name = (state and state:GetAttribute("ClubName") :: string?) or Config.ClubName
+	local kit, accent = Config.clubCrest(name, true)
+
+	-- pennants: a little cloth triangle each, hung in a row on the north wall
+	-- above the trophy shelf
+	local wallZ = OFFICE_CZ - OFFICE_D / 2 + 0.9
+	local startX = OFFICE_CX - (shown - 1) * 3 / 2
+	for i = 1, shown do
+		local x = startX + (i - 1) * 3
+		local cloth = box(("Pennant%d"):format(i), Vector3.new(2, 3, 0.2), Vector3.new(x, OFFICE_Y + 10.4, wallZ),
+			kit, Enum.Material.Fabric, model)
+		-- the point of the pennant: a smaller part below, so it reads as cloth
+		box(("PennantTip%d"):format(i), Vector3.new(0.9, 1, 0.2), Vector3.new(x, OFFICE_Y + 8.6, wallZ),
+			kit, Enum.Material.Fabric, model)
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = "Year"
+		gui.Face = Enum.NormalId.Back
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.LightInfluence = 0.5
+		gui.Parent = cloth
+		local label = Instance.new("TextLabel")
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(0.9, 0.5)
+		label.Position = UDim2.fromScale(0.05, 0.2)
+		label.Font = Enum.Font.GothamBlack
+		label.TextScaled = true
+		label.TextColor3 = accent
+		label.Text = "UP"
+		label.Parent = gui
+	end
+
+	if not servant then
+		PlotContext.place(model)
+		return
+	end
+
+	-- the framed shirt: a frame, the shirt itself in the club's colour, and the
+	-- number and name of the man who played more matches than anyone
+	-- on the same wall as the pennants, past the end of the row: the other
+	-- walls are the doorway, the fixtures notice and (at tier 4) the crest
+	local frame = box("ShirtFrame", Vector3.new(6, 8, 0.4), Vector3.new(OFFICE_CX + 10, OFFICE_Y + 8, wallZ),
+		Color3.fromRGB(70, 50, 32), Enum.Material.Wood, model)
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "Shirt"
+	gui.Face = Enum.NormalId.Back
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 34
+	gui.LightInfluence = 0.35
+	gui.Parent = frame
+	local mount = Instance.new("Frame")
+	mount.Name = "Mount"
+	mount.Size = UDim2.fromScale(0.9, 0.9)
+	mount.Position = UDim2.fromScale(0.05, 0.05)
+	mount.BackgroundColor3 = Color3.fromRGB(238, 234, 226)
+	mount.BorderSizePixel = 0
+	mount.Parent = gui
+	local shirt = Instance.new("Frame")
+	shirt.Name = "Cloth"
+	shirt.Size = UDim2.fromScale(0.7, 0.52)
+	shirt.Position = UDim2.fromScale(0.15, 0.08)
+	shirt.BackgroundColor3 = kit
+	shirt.BorderSizePixel = 0
+	shirt.Parent = mount
+	local number = Instance.new("TextLabel")
+	number.Name = "Number"
+	number.BackgroundTransparency = 1
+	number.Size = UDim2.fromScale(1, 0.8)
+	number.Position = UDim2.fromScale(0, 0.1)
+	number.Font = Enum.Font.GothamBlack
+	number.TextScaled = true
+	number.TextColor3 = accent
+	number.Text = tostring(servant.number or "")
+	number.Parent = shirt
+	local caption = Instance.new("TextLabel")
+	caption.Name = "Caption"
+	caption.BackgroundTransparency = 1
+	caption.Size = UDim2.fromScale(0.9, 0.3)
+	caption.Position = UDim2.fromScale(0.05, 0.64)
+	caption.Font = Enum.Font.GothamBold
+	caption.TextScaled = true
+	caption.TextColor3 = Color3.fromRGB(40, 44, 52)
+	caption.Text = ("%s\n%d appearances"):format(tostring(servant.name or "Club servant"), math.floor(servant.apps or 0))
+	caption.Parent = mount
+
+	PlotContext.place(model)
+end
+
 -- X296: a Premier Division pitch was identical to a Sunday Parks pitch - the
 -- same fourteen even stripes and the same crisp white lines - so the one
 -- surface the player stares at for ninety seconds never grew with the club.
@@ -1339,11 +1453,13 @@ function WorldBuilder.dressOffice(tier: number)
 
 	if level >= OFFICE_TIER_SCREEN then
 		-- a tactics board on the north wall, with a pitch and a 4-4-2 on it
-		local board = box("TacticsBoard", Vector3.new(10, 6, 0.3), Vector3.new(cx + 2, OFFICE_Y + h - 5, cz - d / 2 + 0.6),
+		-- the far end of the long wall: the wall opposite carries the trophy
+		-- shelf, the promotion pennants and the framed shirt (X291)
+		local board = box("TacticsBoard", Vector3.new(10, 6, 0.3), Vector3.new(cx - 11, OFFICE_Y + h - 5, cz + d / 2 - 0.6),
 			Color3.fromRGB(28, 70, 40), Enum.Material.SmoothPlastic, fittings)
 		local gui = Instance.new("SurfaceGui")
 		gui.Name = "Tactics"
-		gui.Face = Enum.NormalId.Back
+		gui.Face = Enum.NormalId.Front
 		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 		gui.PixelsPerStud = 24
 		gui.LightInfluence = 0.4
@@ -1421,9 +1537,10 @@ function WorldBuilder.dressOffice(tier: number)
 		label.Text = string.upper(name)
 		label.Parent = gui
 		-- and something alive in the corner
-		box("PlantPot", Vector3.new(2, 2, 2), Vector3.new(cx + w / 2 - 4, OFFICE_Y + 1, cz - d / 2 + 4),
+		-- the far corner: the near one is where the framed shirt hangs (X291)
+		box("PlantPot", Vector3.new(2, 2, 2), Vector3.new(cx - w / 2 + 4, OFFICE_Y + 1, cz - d / 2 + 4),
 			Color3.fromRGB(150, 90, 60), Enum.Material.Slate, fittings)
-		box("Plant", Vector3.new(3, 5, 3), Vector3.new(cx + w / 2 - 4, OFFICE_Y + 4.5, cz - d / 2 + 4),
+		box("Plant", Vector3.new(3, 5, 3), Vector3.new(cx - w / 2 + 4, OFFICE_Y + 4.5, cz - d / 2 + 4),
 			Color3.fromRGB(60, 120, 60), Enum.Material.Grass, fittings)
 	end
 

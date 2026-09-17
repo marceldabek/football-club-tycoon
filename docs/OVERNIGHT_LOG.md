@@ -1680,3 +1680,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Verified in play: tier 4 = no wear, lines and crossbar pure white; tier 1 = 5 wear parts with lines at 0.886 grey and the crossbar at 0.91; back to tier 3 = clean again. Screenshot from behind the goal at tier 1 shows the bare centre circle and both goalmouths.
 - RunAll 464 passed.
 
+### 2026-09-17 18:20 — Pennants and a framed shirt (X291)
+- The office only ever showed league titles, so a club promoted four times without winning a division had a bare wall - and nothing anywhere for the players who got it there.
+- A cloth pennant per promotion now hangs above the trophy shelf (club colour, "UP" in the accent, capped at six - one per division in the pyramid), and beside them a **framed shirt** for the club servant with the most appearances (X288): the shirt in the club's colour with their number on it and "<name> / N appearances" underneath. Rebuilt whenever a season is recorded or somebody retires, since either can change it.
+- Verified in play on the debug save (4 promotions, 2 titles, 8 servants): four pennants at the right spacing, the two existing trophies still on the shelf below them, and the frame reading "Bartek Sowerby / 27 appearances". Screenshot taken.
+- Three placement fixes on the way: the frame first hung across the doorway, the pennants sat on top of the trophies, and the tier-3 tactics board shared the wall with all of it - the board moved to the long wall opposite (past the tier-4 crest panel) and the tier-4 plant to the far corner, so each wall now carries one thing.
+- RunAll 464 passed.
+

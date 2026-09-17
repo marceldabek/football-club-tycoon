@@ -29,6 +29,7 @@ export type Servant = {
 	apps: number,
 	goals: number,
 	season: number, -- the season they retired at the end of
+	number: number?, -- their shirt, for the framed shirt on the wall (X291)
 }
 
 export type History = { seasons: { SeasonRecord }, servants: { Servant } }
@@ -84,6 +85,18 @@ end
 
 function History.recordSeason(history: History, record: SeasonRecord)
 	table.insert(history.seasons, table.clone(record))
+end
+
+-- X291: the club servant with the most appearances, for the framed shirt on the
+-- office wall. Retired players only: the ones whose career here is finished.
+function History.topServant(history: History): Servant?
+	local best: Servant? = nil
+	for _, s in history.servants do
+		if not best or s.apps > (best :: Servant).apps then
+			best = s
+		end
+	end
+	return best
 end
 
 function History.honours(history: History): Honours

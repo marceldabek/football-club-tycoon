@@ -89,6 +89,7 @@ function HistoryService.recordRetirements(retired: { any }, season: number)
 	if #retired == 0 then
 		return
 	end
+	-- X291: a retirement can change who the framed shirt belongs to
 	for _, p in retired do
 		History.recordRetirement(history, {
 			name = p.name,
@@ -96,17 +97,18 @@ function HistoryService.recordRetirements(retired: { any }, season: number)
 			apps = p.apps or 0,
 			goals = p.goals or 0,
 			season = season,
+			number = p.number, -- X291: the shirt the framed one shows
 		})
 	end
 	publish()
+	HistoryService.rebuildTrophies()
 end
 
 function HistoryService.record(record: History.SeasonRecord)
 	History.recordSeason(history, record)
 	publish()
-	if History.isTitle(record) then
-		HistoryService.rebuildTrophies()
-	end
+	-- X291: a promotion changes the wall too, not just a title
+	HistoryService.rebuildTrophies()
 end
 
 function HistoryService.honours(): History.Honours
@@ -114,7 +116,11 @@ function HistoryService.honours(): History.Honours
 end
 
 function HistoryService.rebuildTrophies()
-	WorldBuilder.buildTrophies(History.honours(history).titles)
+	local honours = History.honours(history)
+	WorldBuilder.buildTrophies(honours.titles)
+	-- X291: the shelf only counted titles, so a club promoted four times with no
+	-- division win had a bare office and nothing for the players who got it there
+	WorldBuilder.buildHonours(honours.promotions, History.topServant(history))
 end
 
 return HistoryService
