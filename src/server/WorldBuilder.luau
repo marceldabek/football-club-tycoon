@@ -1404,8 +1404,9 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 			-- cantilever roof over the seats, held by pillars along the back wall
 			local roofY = DECK_Y + stepHeight * rows + 8
 			local roofDepth = depth + 4
+			-- X134: slate-grey steel sheeting (ridged DiamondPlate), dark steel pillars
 			lbox("Roof", Vector3.new(roofDepth, 0.8, length + 4), Vector3.new(roofDepth / 2 - 2, roofY, 0),
-				Color3.fromRGB(168, 172, 178), Enum.Material.Metal)
+				Color3.fromRGB(88, 94, 102), Enum.Material.DiamondPlate)
 			-- fascia across the front of the roof: the obvious place for the club name
 			local fascia = lbox("Fascia", Vector3.new(0.7, 2.6, length + 4), Vector3.new(roofDepth - 2, roofY + 1.7, 0),
 				Config.HomeKit, Enum.Material.SmoothPlastic)
@@ -1435,7 +1436,7 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 					continue -- the tunnel corridor comes out here
 				end
 				lbox("Pillar", Vector3.new(1.5, roofY - DECK_Y, 1.5), Vector3.new(backX + 1.5, DECK_Y + (roofY - DECK_Y) / 2, z),
-					Color3.fromRGB(120, 120, 130), Enum.Material.Metal)
+					Color3.fromRGB(58, 62, 68), Enum.Material.Metal)
 			end
 		end
 	end
