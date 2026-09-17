@@ -470,4 +470,18 @@ function T.shedFitKeepsTheYardInsideTheBlock()
 	assert(bodyDepth == 10, "a tiny block still gets a 10-deep body")
 end
 
+function T.ballPartsInShedsAreRound()
+	-- X70: a Ball renders at its smallest axis, so a non-uniform size is a bug
+	local holder = Instance.new("Folder")
+	for unit = 1, 3 do
+		local shed = EstateBuilder.shed(CFrame.new(), Vector3.new(30, 16, 30), holder, Random.new(unit), "builders yard", unit)
+		for _, d in shed:GetDescendants() do
+			if d:IsA("Part") and d.Shape == Enum.PartType.Ball then
+				assert(math.abs(d.Size.X - d.Size.Y) < 1e-3 and math.abs(d.Size.Y - d.Size.Z) < 1e-3, d.Name .. " is not round: " .. tostring(d.Size))
+			end
+		end
+	end
+	holder:Destroy()
+end
+
 return T

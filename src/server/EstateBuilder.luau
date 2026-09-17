@@ -666,7 +666,9 @@ function EstateBuilder.shed(cframe: CFrame, size: Vector3, parent: Instance, rng
 	end
 
 	if kind == "builders yard" then
-		local heap = block("Part", "SandHeap", Vector3.new(6, 2.4, 6), cframe * CFrame.new(-depth / 2 - YARD_DEPTH + 5, 1.1, hw - 5), SAND_COLOUR, Enum.Material.Sand, model, false)
+		-- X70: a Ball's diameter is its smallest axis, so a 6 x 2.4 x 6 "mound" was a
+		-- 2.4 ball; a 5-stud ball sunk to y -0.5 shows a 4.8-wide heap, 1.8 above the yard
+		local heap = block("Part", "SandHeap", Vector3.new(5, 5, 5), cframe * CFrame.new(-depth / 2 - YARD_DEPTH + 5, -0.5, hw - 5), SAND_COLOUR, Enum.Material.Sand, model, false)
 		heap.Shape = Enum.PartType.Ball
 	end
 

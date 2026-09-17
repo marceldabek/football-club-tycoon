@@ -1360,7 +1360,9 @@ TownLayout.LANDMARKS = {
 
 TownLayout.BUS_STOPS = {
 	{ name = "Town Centre", position = Vector3.new(90, 0, -20), yaw = 0 },
-	{ name = "Station", position = Vector3.new(-740, 0, -355), yaw = 0 },
+	-- X71: on Station Road's station-side pavement west of the taxi lay-by, facing the road
+	-- (it stood on the forecourt over a planter and bench once the road moved, X51)
+	{ name = "Station", position = Vector3.new(-915, 0, -355), yaw = 180 },
 	{ name = "Riverside", position = Vector3.new(700, 0, 80), yaw = 0 },
 	{ name = "Riverside Park", position = Vector3.new(1180, 0, -40), yaw = 0 },
 	{ name = "Industrial Estate", position = Vector3.new(-1600, 0, -130), yaw = 0 },

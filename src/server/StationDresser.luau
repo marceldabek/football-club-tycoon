@@ -453,7 +453,8 @@ function StationDresser.build(): string
 	end
 	for _, x in { -36, 50, 80 } do
 		slab(m, f, "Planter", x - 3, x + 3, 0.3, 3, 12, 16, Color3.fromRGB(60, 64, 70), Enum.Material.Concrete)
-		part({ Name = "Flowers", Shape = Enum.PartType.Ball, Size = Vector3.new(6.4, 2.6, 4.4), CFrame = f * CFrame.new(x, 3.8, 14), Color = Color3.fromRGB(220, 90, 140), Material = Enum.Material.Grass, CastShadow = false, Parent = m })
+		-- X70: a planted bed, not a Ball (its diameter is the smallest axis: it showed as a 2.6 ball)
+		part({ Name = "Flowers", Size = Vector3.new(5.6, 1.2, 3.6), CFrame = f * CFrame.new(x, 3.5, 14), Color = Color3.fromRGB(220, 90, 140), Material = Enum.Material.LeafyGrass, CastShadow = false, Parent = m })
 	end
 	KitPlacer.place("UKSP__ParkBenches__ParkBench01", f * CFrame.new(64, 0.3, 14), m, { fallbackSize = Vector3.new(6, 3, 2), fallbackColor = Color3.fromRGB(120, 80, 50) })
 	KitPlacer.place("UKSP__LitterBin__LitterBin", f * CFrame.new(38, 0.3, 14), m, { fallbackSize = Vector3.new(2, 3.5, 2), fallbackColor = IRON })

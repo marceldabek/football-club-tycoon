@@ -535,3 +535,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - The square's planters showed a small ball of flowers in bare soil. The 8.4 × 2.6 × 3.8 Ball rendered 2.6 across, because a Ball's diameter is its smallest axis. They're now a planted bed covering the soil.
 - **Screenshots** Center_clock_1 (before), Center_clock_2 and Center_planters_2.
 - RunAll 355/355.
+
+### 2026-09-17 06:13 — Round balls (X70) and the Station bus stop (X71)
+- X69 made me sweep `src` for `PartType.Ball` parts with non-uniform sizes. A Ball renders at its smallest axis, so these came out small. Two real cases turned up. The builders-yard sand heap (6 × 2.4 × 6) is now a round 5-stud ball sunk to y -0.5, showing a 4.8-wide mound. The station forecourt planter flowers are now a planted bed. The other matches were cylinders, blocks or already uniform. New test `ballPartsInShedsAreRound`.
+- The screenshot of the station planter showed the Station bus shelter standing on the forecourt over a planter and the bench. The stop had been placed for the old diagonal road end. `TownLayout.BUS_STOPS` Station moves to (-915, -355), yaw 180, on the station-side pavement west of the taxi lay-by, with its back to the forecourt and open to the road. An overlap check finds only its own poster (ImperfectionDresser puts one on the back panel). It is about 18 studs from the road, so buses still pull up.
+- **Screenshots** SandHeap_1, StationPlanters_1 (before the move) and StationStop_1.
+- RunAll 356/356.
