@@ -608,3 +608,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - A pink hanging basket on an iron bracket off the station wall, beside the ONTRACK kiosk, as in RivermereStation.png. It's 2 parts and clear of the kiosk and the first window.
 - **Screenshot** KioskBasket_1. Also visible in it: the kiosk's cream hatch reads as a blank panel from this side.
 - RunAll 364/364.
+
+### 2026-09-17 06:47 — Station kiosk hatch label (X73 part)
+- The kiosk's cream serving hatch read as a blank panel. It now says "PAPERS · MAGAZINES / DRINKS · SNACKS" in the kiosk green. An earlier angled screenshot showed it blank only because the SurfaceGui hadn't drawn yet; front-on it renders (**KioskHatch_3**).
+- **Caught before commit:** a Python edit had written a real line break inside that Lua string on disk (a syntax error Studio never saw, because Studio was patched separately). Fixed, then scanned every `src` and `tests` file for lines with an odd number of quotes, and found no others.
+- RunAll 364/364.

@@ -495,7 +495,9 @@ function StationDresser.build(): string
 	slab(m, f, "Kiosk", -halfLen + 12, -halfLen + 34, 0.3, 10, 0.1, 9, Color3.fromRGB(30, 80, 60), Enum.Material.SmoothPlastic)
 	local kioskSign = slab(m, f, "KioskSign", -halfLen + 12, -halfLen + 34, 10, 12.5, 8.6, 9.2, Color3.fromRGB(30, 80, 60), Enum.Material.SmoothPlastic)
 	sign(kioskSign, Enum.NormalId.Back, "ONTRACK  NEWS · DRINKS · SNACKS", Color3.new(1, 1, 1))
-	slab(m, f, "Hatch", -halfLen + 16, -halfLen + 30, 3, 7.5, 9, 9.1, Color3.fromRGB(230, 220, 190), Enum.Material.SmoothPlastic)
+	local hatch = slab(m, f, "Hatch", -halfLen + 16, -halfLen + 30, 3, 7.5, 9, 9.1, Color3.fromRGB(230, 220, 190), Enum.Material.SmoothPlastic)
+	-- X73: the serving hatch reads as a blank panel; show what's on sale
+	sign(hatch, Enum.NormalId.Back, "PAPERS · MAGAZINES\nDRINKS · SNACKS", Color3.fromRGB(30, 80, 60), Color3.fromRGB(236, 228, 200), Enum.Font.GothamBold)
 	-- X73: a hanging flower basket off the wall beside the kiosk sign (RivermereStation.png)
 	slab(m, f, "BasketBracket", -halfLen + 35.8, -halfLen + 36.2, 11.4, 11.7, 0, 3.4, IRON, Enum.Material.Metal).CastShadow = false
 	part({
