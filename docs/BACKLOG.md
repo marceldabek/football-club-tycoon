@@ -20,16 +20,16 @@
 - [x] 0.2 Write this backlog `[disk]` S
 
 ## Phase A — Look & time
-- [ ] A1.1 Lighting moves to a client controller (`src/client/Sky.client.luau` + pure `src/shared/DayCycle.luau` presets); server `Scenery` no longer sets Lighting/ClockTime; hero afternoon look; floodlight on/off stays server (visible to all) `[studio]` M dep: DayCycle
-- [ ] A1.2 `DayCycle` pure module: named presets (hero afternoon, evening match, dusk, night, dawn, overcast), `lerp(a,b,t)`, `fastForward(kind)` keyframe track (short ~4 s, season ~10 s), with tests `[disk]` S
-- [ ] A1.3 Evening fixtures: TEMP 1 in 4 league matches is an evening kick-off (seeded by fixture index), match-start event carries `evening=true`; client tweens to the evening preset, floodlights on `[studio]` S dep: A1.1
-- [ ] A2.1 Post-match fast-forward: after the summary closes, client plays the ~4 s sweep (sun → sunset → lights → night → morning → hero afternoon); tap/click or key to skip `[studio]` S dep: A1.1
-- [ ] A2.2 Season-end long fast-forward (~10 s) hooked to the season rollover `[studio]` S dep: A2.1
+- [x] A1.1 Lighting moves to a client controller (`src/client/Sky.client.luau` + pure `src/shared/DayCycle.luau` presets); server `Scenery` no longer sets Lighting/ClockTime; hero afternoon look; floodlight on/off stays server (visible to all) `[studio]` M dep: DayCycle
+- [x] A1.2 `DayCycle` pure module: named presets (hero afternoon, evening match, dusk, night, dawn, overcast), `lerp(a,b,t)`, `fastForward(kind)` keyframe track (short ~4 s, season ~10 s), with tests `[disk]` S
+- [x] A1.3 Evening fixtures: TEMP 1 in 4 league matches is an evening kick-off (seeded by fixture index), match-start event carries `evening=true`; client tweens to the evening preset, floodlights on `[studio]` S dep: A1.1
+- [x] A2.1 Post-match fast-forward: after the summary closes, client plays the ~4 s sweep (sun → sunset → lights → night → morning → hero afternoon); tap/click or key to skip `[studio]` S dep: A1.1
+- [x] A2.2 (wired, not playtested yet: needs a season end) Season-end long fast-forward (~10 s) hooked to the season rollover `[studio]` S dep: A2.1
 - [ ] A3.1 DepthOfField hooks: on for club panel / lineup board / intro, off otherwise `[studio]` S dep: A1.1
 - [ ] A1.4 Before/after screenshots of the hero look saved in `assets/screenshots/overnight/` `[studio]` S
 
 ## Phase B — Clubs become plots
-- [ ] B1.1 `PlotRegistry` pure module: 4 plots, `claim(userId, plot)`, `release(userId)`, `freePlots()`, `plotOf(userId)`, picker cycling `next/prev` over free plots, with tests `[disk]` S
+- [x] B1.1 `PlotRegistry` pure module: 4 plots, `claim(userId, plot)`, `release(userId)`, `freePlots()`, `plotOf(userId)`, picker cycling `next/prev` over free plots, with tests `[disk]` S
 - [ ] B1.2 Plot-relative club: `WorldBuilder` builds the club into `workspace.Plots.PlotN.Club` then pivots it to the plot CFrame; everything that used world coordinates (presenter, crowd, cameras, spawn, scoreboard) goes through the plot CFrame; test at an offset **and** rotated plot; loop still works `[studio]` L → split:
   - [ ] B1.2a Server builds the club at plot 1's CFrame (offset, no rotation); spawn, prompts, crowd OK `[studio]` M
   - [ ] B1.2b Client presenter/camera/footballers read the plot CFrame attribute and transform Pitch coords `[studio]` M
@@ -41,7 +41,7 @@
   - [ ] B2.1d Two-client Studio test (Players = 2): both play a match at the same time `[studio]` M
 - [ ] B2.2 Plot picker on load: camera flies between free plots (for-sale lots), Prev / Next / Choose buttons; choosing claims the plot, builds the club, spawns the player in their office `[studio]` M dep: B1.1, B2.1b
 - [ ] B2.3 Despawn on leave: flush save, destroy the club model, release the plot, rebuild the for-sale lot `[studio]` S dep: B2.1b
-- [ ] B3.1 Save lock: session lock record (`lockedBy jobId`, `lockedAt`), new server waits (bounded, TEMP 30 s) then steals a stale lock; old server closes on a newer lock; pure lock logic tested against the memory backend `[disk]` M
+- [x] B3.1 Save lock: session lock record (`lockedBy jobId`, `lockedAt`), new server waits (bounded, TEMP 30 s) then steals a stale lock; old server closes on a newer lock; pure lock logic tested against the memory backend `[disk]` M
 - [ ] B3.2 Wire the lock into load/flush/leave; Studio memory-backend test `[studio]` S dep: B3.1, B2.1b
 - [ ] B4.1 For-sale lot: grass pad, "FOR SALE — Rivermere Borough Council" sign, a few trees and rocks, low fence posts; built from code per free plot `[studio]` S
 - [ ] B4.2 "Go to my club" HUD button: teleports the character to their office spawn (cooldown TEMP 5 s, blocked mid-match? no — allowed) `[studio]` S dep: B2.1c
