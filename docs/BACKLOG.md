@@ -42,7 +42,7 @@
 - [ ] B2.2 Plot picker on load: camera flies between free plots (for-sale lots), Prev / Next / Choose buttons; choosing claims the plot, builds the club, spawns the player in their office `[studio]` M dep: B1.1, B2.1b
 - [x] B2.3 Despawn on leave: flush save, destroy the club model, release the plot, rebuild the for-sale lot `[studio]` S dep: B2.1b
 - [x] B3.1 Save lock: session lock record (`lockedBy jobId`, `lockedAt`), new server waits (bounded, TEMP 30 s) then steals a stale lock; old server closes on a newer lock; pure lock logic tested against the memory backend `[disk]` M
-- [ ] B3.2 Wire the lock into load/flush/leave; Studio memory-backend test `[studio]` S dep: B3.1, B2.1b
+- [x] B3.2 Wire the lock into load/flush/leave; Studio memory-backend test `[studio]` S dep: B3.1, B2.1b
 - [x] B4.1 For-sale lot: grass pad, "FOR SALE — Rivermere Borough Council" sign, a few trees and rocks, low fence posts; built from code per free plot `[studio]` S
 - [ ] B4.2 "Go to my club" HUD button: teleports the character to their office spawn (cooldown TEMP 5 s, blocked mid-match? no — allowed) `[studio]` S dep: B2.1c
 
