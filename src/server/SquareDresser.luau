@@ -162,6 +162,62 @@ local function buildStall(parent: Instance, cf: CFrame, colour: Color3)
 	slab(m, f, "Valance", -5.6, 5.6, 7.2, 8, -3.2, -2.9, colour, Enum.Material.Fabric)
 end
 
+-- The church (backlog E9.1): the kit church with its broach spire replaces
+-- TownBuilder's greybox nave and tiered spire. Scaled so the spire tip sits
+-- at the landmark height; turned so the nave runs along the layout block.
+local CHURCH_KIT = "ChurchSpire" -- 163 x 202 x 77, nave along its local X (MANIFEST)
+local CHURCH_KIT_HEIGHT = 202
+
+local function dressChurch(town: Instance): number
+	local landmark = nil
+	for _, l in TownLayout.LANDMARKS do
+		if l.name:find("Church") then
+			landmark = l
+		end
+	end
+	if not landmark or not KitPlacer.find(CHURCH_KIT) then
+		return 0 -- keep the greybox church
+	end
+	local block = nil
+	for _, district in TownLayout.DISTRICTS do
+		for _, b in district.blocks do
+			if b.use == "church" then
+				block = b
+			end
+		end
+	end
+	local landmarks = town:FindFirstChild("Landmarks")
+	local spire = landmarks and landmarks:FindFirstChild(landmark.name)
+	if spire then
+		spire:Destroy()
+	end
+	local centre = if block then Vector3.new(block.centre.X, 0, block.centre.Z) else Vector3.new(landmark.position.X, 0, landmark.position.Z)
+	local districts = town:FindFirstChild("Districts")
+	if districts and block then
+		for _, d in districts:GetDescendants() do
+			if d:IsA("BasePart") and (d.Name == "church" or d.Name == "church roof") then
+				local p = d.Position
+				if math.abs(p.X - centre.X) < 0.5 and math.abs(p.Z - centre.Z) < 0.5 then
+					d:Destroy()
+				end
+			end
+		end
+	end
+	-- nave (kit local X) along the block's long side
+	local yaw = if block and block.size.Z > block.size.X then math.pi / 2 else 0
+	local model = KitPlacer.place(CHURCH_KIT, CFrame.new(centre) * CFrame.Angles(0, yaw, 0), town, {
+		scale = landmark.height / CHURCH_KIT_HEIGHT,
+	})
+	model.Name = "Church"
+	local parts = 0
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			parts += 1
+		end
+	end
+	return parts
+end
+
 -- Returns a summary line for the server log.
 function SquareDresser.build(): string
 	local town = workspace:FindFirstChild("Town")
@@ -222,7 +278,8 @@ function SquareDresser.build(): string
 			parts += 1
 		end
 	end
-	return ("square: %d parts"):format(parts)
+	local churchParts = dressChurch(town)
+	return ("square: %d parts, church: %d parts"):format(parts, churchParts)
 end
 
 return SquareDresser
