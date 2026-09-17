@@ -139,4 +139,24 @@ function T.postOfficeSignSitsPastTheBaskets()
 	end
 end
 
+-- X108: a pub table's parasol clears the facade (sets stand 2.3+ off it) and
+-- the chair backs, and ordinary sets have none.
+function T.pubParasolClearsTheFacadeAndChairs()
+	assert(ForecourtDresser.PARASOL_RADIUS < 2.3, "canopy would reach the facade")
+	local holder = Instance.new("Folder")
+	ForecourtDresser.cafeSet(holder, CFrame.new(), true)
+	ForecourtDresser.cafeSet(holder, CFrame.new(20, 0, 0))
+	local sets = holder:GetChildren()
+	local canopy = sets[1]:FindFirstChild("Parasol") :: BasePart?
+	assert(canopy, "pub set has a parasol")
+	assert(sets[2]:FindFirstChild("Parasol") == nil, "plain set has none")
+	local lowest = canopy.Position.Y - canopy.Size.X / 2
+	for _, d in sets[1]:GetChildren() do
+		if d:IsA("BasePart") and d.Name == "ChairBack" then
+			assert(d.Position.Y + d.Size.Y / 2 < lowest - 2, "canopy above head height over the chairs")
+		end
+	end
+	holder:Destroy()
+end
+
 return T

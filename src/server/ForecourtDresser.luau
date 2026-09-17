@@ -600,7 +600,13 @@ end
 -- planes: legs sit inside the seat outline and sink 0.05 into it and the
 -- ground, the back is narrower than the seat and pokes 0.03 past its edge.
 local CAFE_SET_PARTS = 10
-local function cafeSet(parent: Instance, base: CFrame)
+-- X108: a parasol over the table (RivermereCenter.png's pub tables). A set
+-- stands at least 2.5 off the body front, 2.3 off the 0.2-proud facade parts,
+-- so the canopy radius stays under that.
+local PARASOL_PARTS = 3
+local PARASOL_CREAM = Color3.fromRGB(236, 228, 204)
+ForecourtDresser.PARASOL_RADIUS = 2.2
+local function cafeSet(parent: Instance, base: CFrame, parasol: boolean?)
 	local m = Instance.new("Model")
 	m.Name = "CafeSet"
 	m.Parent = parent
@@ -614,6 +620,14 @@ local function cafeSet(parent: Instance, base: CFrame)
 		for _, lx in { -0.6, 0.6 } do
 			part(m, "ChairLeg", Vector3.new(0.15, 1.5, 1.3), base * CFrame.new(lx, 0.7, z), IRON, Enum.Material.Metal, false) -- y -0.05..1.45
 		end
+	end
+	if parasol then
+		local r = ForecourtDresser.PARASOL_RADIUS
+		part(m, "ParasolPole", Vector3.new(0.18, 5.2, 0.18), base * CFrame.new(0, 2.6 + 2.6, 0), IRON, Enum.Material.Metal, false) -- y 2.6..7.8
+		local canopy = part(m, "Parasol", Vector3.new(0.35, r * 2, r * 2), base * CFrame.new(0, 7.2, 0) * CFrame.Angles(0, 0, math.pi / 2), PARASOL_CREAM, Enum.Material.Fabric, false);
+		(canopy :: any).Shape = Enum.PartType.Cylinder
+		local peak = part(m, "ParasolPeak", Vector3.new(0.5, r, r), base * CFrame.new(0, 7.6, 0) * CFrame.Angles(0, 0, math.pi / 2), PARASOL_CREAM, Enum.Material.Fabric, false);
+		(peak :: any).Shape = Enum.PartType.Cylinder
 	end
 end
 
@@ -778,12 +792,13 @@ function ForecourtDresser.build(): string
 		local rowHasSet = false
 		for _, bay in bays do
 			local key = bay.key or (if rec.block.use == "pub" or rec.block.use == "pub and cafes" then "shop_front_pub" else nil)
-			if key and SEATING[key] and not rowHasSet and sets < SET_MAX and g >= 5 and room(CAFE_SET_PARTS) then
+			local withParasol = key == "shop_front_pub"
+			if key and SEATING[key] and not rowHasSet and sets < SET_MAX and g >= 5 and room(CAFE_SET_PARTS + (if withParasol then PARASOL_PARTS else 0)) then
 				local x = frontX - math.min(g / 2, 3.5)
 				local z = bay.z + bay.width * 0.18
 				local p = rec.frame * Vector3.new(x, 0, z)
 				if bay.width >= 10 and clearOfRoads(p, 3) and not nearBusStop(p) then
-					cafeSet(shopsModel, rec.frame * CFrame.new(x, ForecourtDresser.PAVE_TOP, z))
+					cafeSet(shopsModel, rec.frame * CFrame.new(x, ForecourtDresser.PAVE_TOP, z), withParasol)
 					sets += 1
 					rowHasSet = true
 				end
