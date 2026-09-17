@@ -139,6 +139,21 @@ function MatchdayRoutes.barDrinkerSpots(count: number): { CFrame }
 	return out
 end
 
+-- X126: a short line at the matchday snack kiosk (PlotGrounds X95: kiosk
+-- centred (-314, 8), 12 x 8, hatch and counter on its -Z face at z 4..2.8),
+-- stretching back toward the footpath (z -8 edge) and facing the hatch.
+MatchdayRoutes.KIOSK_HATCH = Vector3.new(-314, 0, 2.8)
+MatchdayRoutes.KIOSK_QUEUE_GAP = 2.3
+function MatchdayRoutes.kioskQueueSpots(count: number): { CFrame }
+	local out = {}
+	local h = MatchdayRoutes.KIOSK_HATCH
+	for i = 1, count do
+		local p = Vector3.new(h.X + (if i % 2 == 0 then 0.4 else -0.3), 0.05, h.Z - 1.4 - (i - 1) * MatchdayRoutes.KIOSK_QUEUE_GAP)
+		table.insert(out, CFrame.lookAt(p, Vector3.new(p.X, p.Y, h.Z)))
+	end
+	return out
+end
+
 -- X93 (roadmap H1 "media presence"): an outside-broadcast van on the forecourt
 -- on matchday once the club draws a crowd. Pitch-local ground CFrame, long axis
 -- along local X, clear of the team coach (x -160..-126, z -221..-213) and the

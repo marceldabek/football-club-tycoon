@@ -238,4 +238,5 @@
 - [x] X123 (09:56 a dark glazed walk-through door with a push bar in the club shop doorway) The shop doorway was an open hole; the reference shop is fully glazed `[studio]` S
 - [x] X124 (09:59 warm block paving (Pavement material, sandstone colour) on the stadium forecourt instead of flat grey concrete) RivermereTurnstileEntrance.png's paved approach `[studio]` S
 - [x] X125 (10:06 four supporters with pints huddle on the supporters' bar patio while the crowd is out, visible to everyone; 5 parts each) Matchday life at the X97 bar `[studio]` S
+- [x] X126 (10:07 three fans queue at the snack kiosk hatch while the crowd is out; 3-4 parts each) Matchday life at the X95 kiosk `[studio]` S
 - [ ] X4 Studio copies of new modules are condensed (comments trimmed); reconnect Rojo to overwrite them from disk `[studio]` S

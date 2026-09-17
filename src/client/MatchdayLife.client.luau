@@ -375,12 +375,34 @@ local function buildBarDrinkers(crowd: PlotCrowd)
 	end
 end
 
+-- X126: three fans queueing at the snack kiosk hatch (4 parts each)
+local KIOSK_QUEUE = 3
+local function buildKioskQueue(crowd: PlotCrowd)
+	for i, spot in MatchdayRoutes.kioskQueueSpots(KIOSK_QUEUE) do
+		local model = Instance.new("Model")
+		model.Name = "KioskFan" .. i
+		local kit = if i == 2 then Config.HomeKit else NEUTRAL_KITS[(i % #NEUTRAL_KITS) + 1]
+		local base = crowd.plotCFrame * spot
+		part("Legs", LEG, DARK_TROUSERS, model).CFrame = base * CFrame.new(0, LEG.Y / 2, 0)
+		part("Torso", TORSO, kit, model).CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y / 2, 0)
+		local head = part("Head", Vector3.new(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE), SKIN_TONES[((i + 1) % #SKIN_TONES) + 1], model)
+		head.Shape = Enum.PartType.Ball
+		head.CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y + HEAD_SIZE / 2, 0)
+		if i ~= 2 then
+			part("Scarf", SCARF, Config.HomeKit, model).CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y * 0.85, 0.1)
+		end
+		model.Parent = crowd.model
+		table.insert(crowd.stewards, model)
+	end
+end
+
 local function spawnCrowd(crowd: PlotCrowd)
 	crowd.plotCFrame = plotCFrameOf(crowd.folder)
 	buildStewards(crowd)
 	buildBarriers(crowd)
 	buildMediaVan(crowd)
 	buildBarDrinkers(crowd)
+	buildKioskQueue(crowd)
 	buildCars(crowd)
 	rebuildQueue(crowd)
 	adjustFanCount(crowd)

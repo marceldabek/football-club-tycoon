@@ -183,4 +183,23 @@ function T.barDrinkersStandOnThePatioClearOfBenches()
 	end
 end
 
+-- X126: the kiosk queue stands in the grass between the hatch counter and the
+-- footpath, clear of the pathside trees, facing the hatch.
+function T.kioskQueueStandsBetweenHatchAndPath()
+	local spots = MatchdayRoutes.kioskQueueSpots(3)
+	assert(#spots == 3, "three fans")
+	for i, cf in spots do
+		local p = cf.Position
+		assert(p.Z < 2.8 - 0.8, "fan " .. i .. " stands in the counter")
+		assert(p.Z > -8 + 0.8, "fan " .. i .. " stands on the footpath")
+		for _, tree in { Vector3.new(-326, 0, -2), Vector3.new(-302, 0, -2) } do
+			assert((Vector3.new(p.X, 0, p.Z) - tree).Magnitude > 3, "fan " .. i .. " in a pathside tree")
+		end
+		assert(cf.LookVector.Z > 0.99, "fan " .. i .. " faces the hatch")
+		if i > 1 then
+			assert((spots[i - 1].Position - p).Magnitude > 1.9, "fans too close")
+		end
+	end
+end
+
 return T
