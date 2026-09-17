@@ -56,9 +56,9 @@ function EstateDresser.frontSide(block: TownLayout.Box, roads: { TownLayout.Road
 	return bestName
 end
 
--- CFrame (with local -X turned to face the road) plus (width along the final
--- local Z, depth along the final local X).
-local function placementFor(block: TownLayout.Box, roads: { TownLayout.Road }): (CFrame, number, number)
+-- Pure: CFrame (with local -X turned to face the road) plus (width along the
+-- final local Z, depth along the final local X). Exported for ForecourtDresser.
+function EstateDresser.placement(block: TownLayout.Box, roads: { TownLayout.Road }): (CFrame, number, number)
 	local side = EstateDresser.frontSide(block, roads)
 	local base = CFrame.new(block.centre.X, 0, block.centre.Z) * CFrame.Angles(0, math.rad(block.yaw), 0)
 	if side == "-X" then
@@ -125,7 +125,7 @@ function EstateDresser.build(): string
 				continue
 			end
 			removeGreyboxFor(greybox, block)
-			local cf, width, depth = placementFor(block, TownLayout.ROADS)
+			local cf, width, depth = EstateDresser.placement(block, TownLayout.ROADS)
 
 			if block.use == "semis" then
 				local n = EstateBuilder.pairCount(width)
