@@ -59,6 +59,13 @@ Quality.DECOR_PART_NAMES = {
 	Bollard = true, -- SquareDresser / StationDresser
 	Hedge = true, -- EstateBuilder front gardens, Backdrop field hedgerows
 	CanopyTop = true, -- Backdrop tree second crown (far detail)
+	ForkliftBody = true, -- EstateBuilder shed yard forklift (X55)
+	ForkliftSeat = true, -- EstateBuilder shed yard forklift (X55)
+	ForkliftGuardPost = true, -- EstateBuilder shed yard forklift (X55)
+	ForkliftGuardRoof = true, -- EstateBuilder shed yard forklift (X55)
+	ForkliftMast = true, -- EstateBuilder shed yard forklift (X55)
+	ForkliftForks = true, -- EstateBuilder shed yard forklift (X55)
+	ForkliftWheels = true, -- EstateBuilder shed yard forklift (X55)
 } :: { [string]: boolean }
 
 -- Model names whose whole contents are decoration.

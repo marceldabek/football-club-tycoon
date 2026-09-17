@@ -87,7 +87,7 @@ end
 -- ------------------------------------------------------------ isDecorative
 
 function T.decorPartNamesAreDecorative()
-	for _, name in { "Pots", "Pots2", "Pallet1", "SandHeap", "Flowers", "Planter", "Bollard", "Hedge", "Soil", "CanopyTop" } do
+	for _, name in { "Pots", "Pots2", "Pallet1", "SandHeap", "Flowers", "Planter", "Bollard", "Hedge", "Soil", "CanopyTop", "ForkliftBody", "ForkliftWheels" } do
 		assert(Quality.isDecorative(part(name)), name .. " should be decorative")
 	end
 end
