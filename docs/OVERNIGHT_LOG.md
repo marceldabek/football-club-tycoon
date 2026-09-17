@@ -1369,3 +1369,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - 0 parts; 5 SurfaceGuis per fully built ground, `MaxDistance` 300. RunAll 437 passed.
 - Reference differences left: the reference's board is on a separate stand facing the street with a crest; ours has no crest here (the board is already busy at this size).
 
+### 2026-09-17 14:09 — Named firms on the industrial estate, mooring posts on the Lune (X245, X246 done)
+- X245 `EstateBuilder.shed`: the first trade counter or builders' yard gets a navy sign board reading "PINNACLE BUILDING SUPPLIES" with a yellow "TIMBER · PLASTER · TOOLS · TRADE & PUBLIC" line. The first workshop gets "DALETEK ENGINEERING / PRECISION ENGINEERING · FABRICATION" (matching the X156 pitch sponsor). Both come from `rivermer.industrialestate.png`. Only the first shed of each kind is named, so the estate doesn't read as one company; the rest keep their generic sign textures. The boards are SurfaceGuis on the existing Sign part, so 0 parts. Placed at (−1590, 24, −250) and (−2150, 21, −5); the Pinnacle board was screenshot-checked.
+- X246 `RiverDresser`: each river mooring pontoon has a tall dark timber post with a pale cap at both ends, on the boat side, as in `RivermereRiverside.png`. That's 4 parts per pontoon; this build rolled one pontoon, so +4 parts. Screenshot checked from the promenade at (845, 8, 290).
+- RunAll 437 passed.
+

@@ -595,6 +595,16 @@ end
 -- along local X), matching EstateDresser's placement.
 local PLINTH_BRICK = Color3.fromRGB(146, 82, 60)
 local UNIT_NAVY = Color3.fromRGB(28, 42, 74)
+
+-- X245: the named firms from rivermer.industrialestate.png. The first shed of a
+-- matching kind carries the name; the rest keep the generic sign textures, so
+-- the estate doesn't read as one company. DaleTek matches the pitch sponsor (X156).
+local NAMED_FIRMS: { [string]: { name: string, line: string } } = {
+	["trade counter"] = { name = "PINNACLE BUILDING SUPPLIES", line = "TIMBER · PLASTER · TOOLS · TRADE & PUBLIC" },
+	["builders yard"] = { name = "PINNACLE BUILDING SUPPLIES", line = "TIMBER · PLASTER · TOOLS · TRADE & PUBLIC" },
+	workshop = { name = "DALETEK ENGINEERING", line = "PRECISION ENGINEERING · FABRICATION" },
+}
+local firmsPlaced: { [string]: boolean } = {}
 EstateBuilder.BOLLARD_OUT = 1.2 -- X148: yard bollards this far out from the shed front
 
 -- Pure (X64): body depth and body-centre offset along local X (+ = away from
@@ -638,6 +648,43 @@ function EstateBuilder.shed(cframe: CFrame, size: Vector3, parent: Instance, rng
 	local sign = block("Part", "Sign", Vector3.new(0.3, signWidth * 0.25, signWidth), cframe * CFrame.new(-depth / 2 - 0.2, height * 0.8, 0), Color3.fromRGB(240, 240, 240), Enum.Material.SmoothPlastic, model, false)
 	sign.CastShadow = false
 	texture(sign, Enum.NormalId.Left, signName, signWidth, signWidth * 0.25)
+	local firm = kind and NAMED_FIRMS[kind]
+	if firm and not firmsPlaced[firm.name] then
+		firmsPlaced[firm.name] = true
+		local firmGui = Instance.new("SurfaceGui")
+		firmGui.Name = "FirmSign"
+		firmGui.Face = Enum.NormalId.Left
+		firmGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		firmGui.PixelsPerStud = 16
+		firmGui.LightInfluence = 0.9
+		firmGui.MaxDistance = 260
+		firmGui.Parent = sign
+		local panel = Instance.new("Frame")
+		panel.Size = UDim2.fromScale(1, 1)
+		panel.BackgroundColor3 = UNIT_NAVY
+		panel.BorderSizePixel = 0
+		panel.Parent = firmGui
+		local nameLabel = Instance.new("TextLabel")
+		nameLabel.Name = "Firm"
+		nameLabel.Position = UDim2.fromScale(0.04, 0.1)
+		nameLabel.Size = UDim2.fromScale(0.92, 0.5)
+		nameLabel.BackgroundTransparency = 1
+		nameLabel.Font = Enum.Font.GothamBlack
+		nameLabel.TextScaled = true
+		nameLabel.TextColor3 = Color3.new(1, 1, 1)
+		nameLabel.Text = firm.name
+		nameLabel.Parent = panel
+		local lineLabel = Instance.new("TextLabel")
+		lineLabel.Name = "Line"
+		lineLabel.Position = UDim2.fromScale(0.08, 0.64)
+		lineLabel.Size = UDim2.fromScale(0.84, 0.24)
+		lineLabel.BackgroundTransparency = 1
+		lineLabel.Font = Enum.Font.GothamBold
+		lineLabel.TextScaled = true
+		lineLabel.TextColor3 = Color3.fromRGB(242, 196, 60)
+		lineLabel.Text = firm.line
+		lineLabel.Parent = panel
+	end
 
 	-- X55: a brick plinth course round the sides and back (the front keeps its
 	-- full-height roller doors), 0.15 proud of the cladding, as in

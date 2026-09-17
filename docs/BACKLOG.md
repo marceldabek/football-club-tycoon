@@ -358,6 +358,6 @@
 - [x] X242 (14:07 done) The outside of the stand back walls has no club name or slogan (the reference paints both facing the street): SurfaceGui ClubName plus a TEMP motto on the BackWall runs from level 2, 0 parts `[studio]` S
 - [x] X243 (14:04 done) The lamp-post banner has no crest between the name and "OUR TOWN OUR GAME": add the X236 shield in GUI frames, 0 parts `[studio]` S
 - [x] X244 (14:04 done) The club shop fascia has no crest after "CLUB SHOP": add one badge at the right end, 0 parts `[studio]` S
-- [ ] X245 Industrial estate sheds all use random sign textures; the reference shows PINNACLE BUILDING SUPPLIES and DALETEK ENGINEERING: SurfaceGui signs by shed kind, 0 parts `[studio]` S
-- [ ] X246 River pontoons have no mooring posts (the reference has tall timber posts): 2 posts with caps per pontoon, ~16 parts `[studio]` S
+- [x] X245 (14:09 done) Industrial estate sheds all use random sign textures; the reference shows PINNACLE BUILDING SUPPLIES and DALETEK ENGINEERING: SurfaceGui signs by shed kind, 0 parts `[studio]` S
+- [x] X246 (14:09 done) River pontoons have no mooring posts (the reference has tall timber posts): 2 posts with caps per pontoon, ~16 parts `[studio]` S
 - [x] X247 (13:58 done) The club visit card counts the East Stand's starting level as an upgrade ("1 stand upgrade" on a brand-new club): count levels above each plot's start, 0 parts `[disk]` S

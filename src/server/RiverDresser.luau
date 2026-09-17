@@ -481,6 +481,27 @@ function RiverDresser.build(): string
 			Material = Enum.Material.WoodPlanks,
 			Parent = moorings,
 		})
+		-- X246: tall timber mooring posts with pale caps at both ends of the
+		-- pontoon, on the boat side (RivermereRiverside.png), 4 parts a pontoon
+		for _, along in { -12, 12 } do
+			local at = deck + dir * along - run.normal * 2.9
+			part({
+				Name = "MooringPost",
+				Size = Vector3.new(0.9, 7, 0.9),
+				CFrame = CFrame.new(at.X, -0.8, at.Z),
+				Color = Color3.fromRGB(62, 48, 36),
+				Material = Enum.Material.Wood,
+				Parent = moorings,
+			})
+			part({
+				Name = "MooringCap",
+				Size = Vector3.new(1.1, 0.3, 1.1),
+				CFrame = CFrame.new(at.X, 2.85, at.Z),
+				Color = Color3.fromRGB(214, 206, 188),
+				Material = Enum.Material.SmoothPlastic,
+				Parent = moorings,
+			})
+		end
 		local boat = mid - run.normal * 14
 		RiverDresser.buildBoat(moorings, CFrame.lookAt(Vector3.new(boat.X, -2.2, boat.Z), Vector3.new(boat.X, -2.2, boat.Z) + dir * (if rng:NextNumber() < 0.5 then 1 else -1)), rng)
 	end
