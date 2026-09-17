@@ -9,8 +9,10 @@
 --   ClockTower  ~14 parts, centre       Stalls  10 x 7 parts on a ring
 --   Planters    6 x 3 parts             Benches 6 kit benches (1 mesh each)
 --   Bollards    24 x 1 part on the rim  Lamps   4 kit lamps
+--   FingerPost  post + finial + 2 parts per blade, pointing at real places (X46)
 -- Layout (radius from the square centre; the square is 60):
---   0..7 tower base   14..20 planters + benches   38..48 stalls   57 bollards
+--   0..7 tower base   14..20 planters + benches   38..48 stalls   51 finger post
+--   57 bollards
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
@@ -77,6 +79,104 @@ function SquareDresser.ring(centre: Vector3, radius: number, count: number, offs
 		table.insert(out, CFrame.lookAt(pos, Vector3.new(centre.X, pos.Y, centre.Z)))
 	end
 	return out
+end
+
+-- The finger post (X46) stands between two stalls at angle 0 and points at
+-- these (a bus stop or landmark name from TownLayout); blades step down the post.
+local FINGER_RING = 51
+local FINGER_DESTINATIONS = { "Station", "Riverside", "Lune Bridge", "Church Spire" }
+local SIGN_WHITE = Color3.fromRGB(242, 242, 236)
+
+-- Where a finger post destination is: a bus stop or landmark position, or nil.
+function SquareDresser.destination(name: string): Vector3?
+	for _, stop in TownLayout.BUS_STOPS do
+		if stop.name == name then
+			return stop.position
+		end
+	end
+	for _, landmark in TownLayout.LANDMARKS do
+		if landmark.name == name then
+			return landmark.position
+		end
+	end
+	return nil
+end
+
+-- Pure: a blade `length` long at height `y`, starting at the post (`from`) and
+-- pointing flat at `to`. The CFrame is the blade centre, LookVector along it.
+function SquareDresser.bladeFrame(from: Vector3, to: Vector3, y: number, length: number): CFrame
+	local flat = Vector3.new(to.X - from.X, 0, to.Z - from.Z)
+	local dir = if flat.Magnitude > 1e-6 then flat.Unit else Vector3.new(0, 0, -1)
+	local centre = Vector3.new(from.X, y, from.Z) + dir * (length / 2 + 0.2)
+	return CFrame.lookAt(centre, centre + dir)
+end
+
+local function bladeLabel(blade: BasePart, face: Enum.NormalId, text: string)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = face
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 40
+	gui.Parent = blade
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.GothamBold
+	label.TextScaled = true
+	label.TextColor3 = Color3.fromRGB(20, 20, 24)
+	label.Text = text
+	label.Parent = gui
+end
+
+local function buildFingerPost(parent: Instance, at: Vector3)
+	local m = Instance.new("Model")
+	m.Name = "FingerPost"
+	m.Parent = parent
+	part({
+		Name = "Post",
+		Size = Vector3.new(0.5, 11, 0.5),
+		CFrame = CFrame.new(at.X, TOP + 5.5 - 0.05, at.Z),
+		Color = IRON,
+		Material = Enum.Material.Metal,
+		Parent = m,
+	})
+	part({
+		Name = "Finial",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.new(0.9, 0.9, 0.9),
+		CFrame = CFrame.new(at.X, TOP + 11.2, at.Z),
+		Color = IRON,
+		Material = Enum.Material.Metal,
+		Parent = m,
+	})
+	local length = 6
+	for i, name in FINGER_DESTINATIONS do
+		local target = SquareDresser.destination(name)
+		if not target then
+			continue
+		end
+		local y = TOP + 10 - (i - 1) * 1.15
+		local cf = SquareDresser.bladeFrame(at, target, y, length)
+		local blade = part({
+			Name = "Blade",
+			Size = Vector3.new(0.2, 0.9, length),
+			CFrame = cf,
+			Color = SIGN_WHITE,
+			Parent = m,
+		})
+		-- the blade reads from both sides; the pointed tip shows the way
+		bladeLabel(blade, Enum.NormalId.Left, name)
+		bladeLabel(blade, Enum.NormalId.Right, name)
+		local tip = Instance.new("WedgePart")
+		tip.Name = "Tip"
+		tip.Anchored = true
+		tip.Size = Vector3.new(0.2, 0.9, 0.8)
+		-- a wedge is full height at its local +Z (towards the blade here) and
+		-- slopes down to its -Z edge, which points onwards
+		tip.CFrame = cf * CFrame.new(0, 0, -length / 2 - 0.4)
+		tip.Color = SIGN_WHITE
+		tip.Material = Enum.Material.SmoothPlastic
+		tip.Parent = m
+	end
 end
 
 local function clockFace(target: BasePart, face: Enum.NormalId)
@@ -263,6 +363,8 @@ function SquareDresser.build(): string
 			Parent = square,
 		})
 	end
+
+	buildFingerPost(square, SquareDresser.ring(centre, FINGER_RING, 1, 0)[1].Position)
 
 	for _, cf in SquareDresser.ring(centre, BOLLARD_RING - 3, 4, math.pi / 4) do
 		KitPlacer.place("LampVictorian", cf * CFrame.new(0, TOP, 0), square, {

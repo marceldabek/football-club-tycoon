@@ -295,3 +295,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Counting parts by name showed the Mill Street and Weaver Street showpiece spent 426 of its 1,013 parts on six VanWhite kits (71 parts each). The one-mesh hatchback is 1 part, and the railing bars were only 241.
 - TerraceStreetDresser now picks a van 1 time in 6 instead of 1 in 3 (StreetDresser unchanged). The showpiece is 733 parts, and the budget now fits 3 light streets instead of 1: Weaver Street and Mill Street beyond the showpiece, plus Church Lane. The railings keep a bar every 2 studs.
 - **Screenshot** MillStreet_cars_1: still a lived-in terrace street, but the parked cars are almost all orange (new X45).
+
+### 2026-09-17 04:06 — Finger post in the market square (X46)
+- **Compared with `RivermereCenter.png`:** the reference has a black finger post with white blades (Station / Car Parks / Riverside). The square had nothing to guide a new player.
+- **New in SquareDresser:** a black post with a ball finial at the square's east rim (radius 51, between two stalls), with four white blades pointing flat at the Station bus stop, the Riverside bus stop, the Lune Bridge and the Church Spire. Each blade has its name on both faces and a wedge tip showing the way. `bladeFrame` and `destination` are pure; SquareDresserTest has 2 tests. 10 parts.
+- **Screenshot** FingerPost_1: the blades read clearly from the pavement, with the clock tower and spire behind.
+- **Biggest remaining differences from the reference (new X47):** bare concrete tree pits instead of flower planters, few hanging baskets, a bus shelter without an advert panel, and lollipop trees.
+- RunAll 330/330.
