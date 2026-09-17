@@ -658,11 +658,17 @@ function Presenter.playSequence(self: Presenter, ev: Event, shotAt: number)
 		task.wait(RESET_SECONDS)
 		self.holder = { team = opp, idx = 7 }
 	elseif ev.type == "SAVE" then
+		if team == "Home" then
+			MatchAudio.nearMiss() -- X183
+		end
 		task.wait(0.9)
 		keeper.busy = false
 		self.holder = { team = opp, idx = 1 }
 		task.wait(0.8)
 	else
+		if team == "Home" then
+			MatchAudio.nearMiss() -- X183
+		end
 		task.wait(1.2)
 		self.holder = { team = opp, idx = 1 }
 		task.wait(0.6)

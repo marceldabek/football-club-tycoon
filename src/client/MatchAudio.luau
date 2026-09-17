@@ -138,6 +138,25 @@ function MatchAudio.goalCheer()
 	oneShot(Config.Sounds.goalCheer, 0.6)
 end
 
+-- X183: a home chance saved or missed. No licensed "ooh" clip was found, so
+-- the goal cheer plays quieter and slowed into a groan-like swell (TEMP).
+function MatchAudio.nearMiss()
+	local sound = make(Config.Sounds.goalCheer, false, 0.28)
+	if not sound then
+		return
+	end
+	sound.PlaybackSpeed = 0.72
+	sound.Ended:Once(function()
+		sound:Destroy()
+	end)
+	sound:Play()
+	task.delay(1.6, function()
+		if sound.Parent then
+			TweenService:Create(sound, TweenInfo.new(0.6), { Volume = 0 }):Play()
+		end
+	end)
+end
+
 function MatchAudio.whistle()
 	oneShot(Config.Sounds.whistle, 0.5)
 end
