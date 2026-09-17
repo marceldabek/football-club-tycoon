@@ -357,4 +357,29 @@ function T.litWindowsAreStableAndInsideTheirBay()
 	end
 end
 
+-- X150: the cruiser's lap is continuous, stays on the water south of the
+-- centreline and keeps clear of the swans
+function T.cruiserLapsSmoothlyOnTheWater()
+	local a, b = TownLifeMath.CRUISER_FROM, TownLifeMath.CRUISER_TO
+	local dir = (b - a).Unit
+	local south = Vector3.new(-dir.Z, 0, dir.X)
+	if south.Z < 0 then
+		south = -south
+	end
+	local lap = (2 * (b - a).Magnitude + 2 * math.pi * TownLifeMath.CRUISER_TURN) / TownLifeMath.CRUISER_SPEED
+	local prev = TownLifeMath.cruiserPose(0)
+	for i = 1, 2000 do
+		local cf = TownLifeMath.cruiserPose(lap * i / 2000)
+		local step = (cf.Position - prev.Position).Magnitude
+		assert(step < 1, ("jump of %.2f at step %d"):format(step, i))
+		local lateral = (cf.Position - a):Dot(south)
+		assert(lateral > 8 and lateral < 30, ("lateral %.1f at step %d"):format(lateral, i))
+		for _, swan in TownLifeMath.SWAN_SPOTS do
+			local d = Vector3.new(cf.X - swan.centre.X, 0, cf.Z - swan.centre.Z).Magnitude
+			assert(d > swan.a + 3 or math.abs((cf.Position - swan.centre):Dot(Vector3.new(-swan.along.Z, 0, swan.along.X))) > swan.b + 4, "clear of the swans")
+		end
+		prev = cf
+	end
+end
+
 return T

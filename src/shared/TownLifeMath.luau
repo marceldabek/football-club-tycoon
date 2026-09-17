@@ -423,6 +423,47 @@ function TownLifeMath.swanPose(centre: Vector3, along: Vector3, a: number, b: nu
 	return CFrame.lookAt(pos, pos + dir)
 end
 
+-- X150: a motor cruiser on the Lune (RivermereRiverside.png). It laps a
+-- racetrack on the straight reach between the swans below the Lune Bridge and
+-- the marina: east in the lane CRUISER_OFFSET - CRUISER_TURN south of the
+-- centreline, a half-circle turn, then west in the outer lane. South of the
+-- centre keeps it clear of the swans and the north-bank moorings.
+TownLifeMath.CRUISER_FROM = Vector3.new(320, 0, 418)
+TownLifeMath.CRUISER_TO = Vector3.new(780, 0, 363)
+TownLifeMath.CRUISER_OFFSET = 19
+TownLifeMath.CRUISER_TURN = 7
+TownLifeMath.CRUISER_SPEED = 6 -- studs a second
+TownLifeMath.CRUISER_Y = -2.2 -- RiverDresser's moored boats sit here
+
+function TownLifeMath.cruiserPose(t: number): CFrame
+	local a, b = TownLifeMath.CRUISER_FROM, TownLifeMath.CRUISER_TO
+	local length = (b - a).Magnitude
+	local dir = (b - a).Unit
+	local south = Vector3.new(-dir.Z, 0, dir.X)
+	if south.Z < 0 then
+		south = -south
+	end
+	local r, off = TownLifeMath.CRUISER_TURN, TownLifeMath.CRUISER_OFFSET
+	local lap = 2 * length + 2 * math.pi * r
+	local s = (t * TownLifeMath.CRUISER_SPEED) % lap
+	local pos: Vector3, heading: Vector3
+	if s < length then
+		pos, heading = a + dir * s + south * (off - r), dir
+	elseif s < length + math.pi * r then
+		local th = (s - length) / r
+		pos = b + south * off + dir * (r * math.sin(th)) - south * (r * math.cos(th))
+		heading = dir * math.cos(th) + south * math.sin(th)
+	elseif s < 2 * length + math.pi * r then
+		pos, heading = b - dir * (s - length - math.pi * r) + south * (off + r), -dir
+	else
+		local th = (s - 2 * length - math.pi * r) / r
+		pos = a + south * off - dir * (r * math.sin(th)) + south * (r * math.cos(th))
+		heading = -dir * math.cos(th) - south * math.sin(th)
+	end
+	pos = Vector3.new(pos.X, TownLifeMath.CRUISER_Y, pos.Z)
+	return CFrame.lookAt(pos, pos + Vector3.new(heading.X, 0, heading.Z))
+end
+
 -- X137: which houses in a terrace row have an upstairs light on after dark.
 -- Stable per row (seeded from its position) so the same windows stay lit as
 -- rows stream in and out; about LIT_SHARE of houses, at least one.
