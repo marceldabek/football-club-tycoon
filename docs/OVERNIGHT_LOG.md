@@ -27,14 +27,13 @@ Nothing is sitting unmerged.
 **Reverted:** none.
 
 **Known bugs**
-1. Studio playtests use your real DataStore club (the place is published). Agent tests added matches, cash and one North-stand level to it.
+1. Up to 02:25 Studio playtests used your real DataStore club. Agent tests added matches, cash and one North-stand level to Dino FC (it went from 7 to 8 matches tonight). Since 02:25 Studio uses a separate store (see question 1).
 2. Studio holds condensed copies of the new modules (comments trimmed). Reconnect Rojo to overwrite them from disk.
 3. Season-end fast-forward is wired but not playtested.
-4. Every agent playtest match counts on your real club (known bug 1): Dino FC went from 7 to 8 matches played tonight.
-5. Studio shows "Assistant plugin version changed ... restart Roblox Studio" warnings; the MCP kept working, but restart Studio before trusting the Assistant.
+4. Studio shows "Assistant plugin version changed ... restart Roblox Studio" warnings; the MCP kept working, but restart Studio before trusting the Assistant.
 
 **Questions for Marcel**
-1. Should Studio playtests use a separate save key (e.g. `studio_u<id>`) so test sessions never touch your real club? *Rec: yes, with a Config switch to use the real save when you want it.*
+1. **Done as TEMP, please confirm:** Studio playtests now use the DataStore `ClubProfiles_Studio`, so Studio opens a fresh club and onboarding instead of Dino FC. To get your real club back in Studio, set `Config.Save.studioStoreSuffix = ""`. *Rec: keep it; live servers are unchanged.*
 2. Plot size 760 and river width 90 are TEMP (docs/TOWN_PLAN.md end list has 8 TEMP choices). *Rec: accept for the greybox, revisit after walking it.*
 3. Evening fixtures are every 4th match starting at match 3 (TEMP). *Rec: fine until the fixture list gets real kick-off times.*
 
@@ -136,3 +135,8 @@ Nothing is sitting unmerged.
   - **Riverside Park (E6.2, reference `RivermereAImap.png`; no park close-up exists):** loop and cross paths to a bandstand plaza, pond with rim and lilies, fenced playground (swings, slide, climbing frame, see-saw), 70 trees, benches, lamps, name board; 429 parts. One test tolerance was too tight for float32 Vector3s; loosened.
 - **Town part totals:** streets 8,371, shops 695, estates 1,284, forecourts 505, riverside 813, park 429, square+church 499, station 111, viaduct 56. Client-side extras: 24 cars, 30 walkers, up to 60 banners.
 - RunAll 232/232.
+
+### 2026-09-17 02:25 — Studio saves kept apart from the live club (X1)
+- `SaveService.storeNameFor` adds `Config.Save.studioStoreSuffix` (TEMP `"_Studio"`) to the DataStore name when `RunService:IsStudio()`, for both the profile and the save lock. Verified: Studio play created a new "MDino24 FC" profile (0 matches, onboarding) in the Studio store; the Dino FC save is untouched from now on. Question 1 updated with how to switch it back.
+- Four more worktree agents are running: bridge arches + station roof (X19/X21), marina basin + backdrop fields (X18/X16), imperfection pass (E10.1), forecourt/semis polish (X25–X27/X29).
+- RunAll 233/233.
