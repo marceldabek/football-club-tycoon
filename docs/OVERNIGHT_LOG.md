@@ -613,3 +613,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - The kiosk's cream serving hatch read as a blank panel. It now says "PAPERS · MAGAZINES / DRINKS · SNACKS" in the kiosk green. An earlier angled screenshot showed it blank only because the SurfaceGui hadn't drawn yet; front-on it renders (**KioskHatch_3**).
 - **Caught before commit:** a Python edit had written a real line break inside that Lua string on disk (a syntax error Studio never saw, because Studio was patched separately). Fixed, then scanned every `src` and `tests` file for lines with an odd number of quotes, and found no others.
 - RunAll 364/364.
+
+### 2026-09-17 06:48 — Litter bins on the promenade; X53 wall note
+- Each promenade bench now has a kit litter bin (one mesh, already Decor via `Quality.DECOR_KITS`) 4.5 studs along on the lamp side, clear of the bench end and the lamp base, as in RivermereRiverside.png. That's 23 bins. **Screenshot** PromenadeBins_1.
+- X53's boundary wall stays open. The only wall to face in brick is the outside of the perimeter wall by the turnstiles, which is where upgraded stands get built, so it needs a stand-clearance check or a design call. Noted on the backlog item.
+- RunAll 364/364.

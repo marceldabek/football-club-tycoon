@@ -337,6 +337,12 @@ function RiverDresser.build(): string
 				fallbackColor = TIMBER,
 				fallbackMaterial = Enum.Material.Wood,
 			})
+			-- a litter bin beside the bench, on the lamp side (RivermereRiverside.png)
+			local bin = along + run.normal * (QUAY_W + 2.2) - dir * 4.5
+			KitPlacer.place("UKSP__LitterBin__LitterBin", CFrame.lookAt(Vector3.new(bin.X, PROM_TOP, bin.Z), Vector3.new(bin.X, PROM_TOP, bin.Z) - run.normal), furniture, {
+				fallbackSize = Vector3.new(2, 3.5, 2),
+				fallbackColor = IRON,
+			})
 			local planter = along + run.normal * (QUAY_W + 2.5) + dir * 7
 			part({ Name = "Planter", Size = Vector3.new(4, 2.4, 4), CFrame = CFrame.new(planter.X, PROM_TOP + 1.2, planter.Z), Color = STONE, Material = Enum.Material.Limestone, Parent = furniture })
 			-- X65: a planted top sunk 0.2 into the planter (a ball read as a pink rock)
