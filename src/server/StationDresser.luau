@@ -154,6 +154,49 @@ function StationDresser.busBay(f: CFrame): { x0: number, x1: number, z0: number,
 	return nil
 end
 
+-- Pure (X73): double-yellow-line runs along Station Road's straight past the
+-- station, in the front frame. Each run is { x0, x1, kerb (local z of the kerb
+-- line), inward (+1 / -1 towards the road centre) }. The station-side kerb is
+-- the lay-by's outer edge; runs there skip the lay-by and the bus bay. Runs
+-- shorter than 2 are dropped.
+export type LineRun = { x0: number, x1: number, kerb: number, inward: number }
+function StationDresser.yellowLineRuns(f: CFrame, layby: { x0: number, x1: number, z0: number, z1: number }, bay: { x0: number, x1: number, z0: number, z1: number }?): { LineRun }
+	local road
+	for _, r in TownLayout.ROADS do
+		if r.name == "Station Road" then
+			road = r
+		end
+	end
+	if not road or #road.points < 2 then
+		return {}
+	end
+	-- the straight is the last segment
+	local a = f:PointToObjectSpace(road.points[#road.points - 1])
+	local b = f:PointToObjectSpace(road.points[#road.points])
+	local x0, x1 = math.min(a.X, b.X), math.max(a.X, b.X)
+	local nearKerb = layby.z1
+	local farKerb = layby.z1 + road.width
+	local runs: { LineRun } = { { x0 = x0, x1 = x1, kerb = farKerb, inward = -1 } }
+	local gaps = { { layby.x0, layby.x1 } }
+	if bay then
+		table.insert(gaps, { bay.x0, bay.x1 })
+	end
+	table.sort(gaps, function(p, q)
+		return p[1] < q[1]
+	end)
+	local cursor = x0
+	for _, gap in gaps do
+		if gap[1] - cursor >= 2 then
+			table.insert(runs, { x0 = cursor, x1 = math.min(gap[1], x1), kerb = nearKerb, inward = 1 })
+		end
+		cursor = math.max(cursor, gap[2])
+	end
+	if x1 - cursor >= 2 then
+		table.insert(runs, { x0 = cursor, x1 = x1, kerb = nearKerb, inward = 1 })
+	end
+	return runs
+end
+
 -- True if a TownBuilder pavement part covers this ground point.
 local function pavementAt(p: Vector3): boolean
 	for _, hit in workspace:GetPartBoundsInBox(CFrame.new(p.X, 0.2, p.Z), Vector3.new(0.5, 0.4, 0.5)) do
@@ -522,6 +565,15 @@ function StationDresser.build(): string
 		busWord.Transparency = 1
 		busWord.CastShadow = false
 		sign(busWord, Enum.NormalId.Top, "BUS STOP", MARKING_YELLOW, nil, Enum.Font.GothamBlack)
+	end
+
+	-- X73: double yellow lines inside both kerbs of the straight past the station,
+	-- broken for the bus bay and the lay-by mouth (RivermereStation.png)
+	for _, run in StationDresser.yellowLineRuns(f, layby, bay) do
+		for _, offset in { 0.35, 0.85 } do
+			local z = run.kerb + run.inward * offset
+			slab(m, f, "YellowLine", run.x0, run.x1, 0.225, 0.25, z - 0.12, z + 0.12, MARKING_YELLOW, Enum.Material.SmoothPlastic).CastShadow = false
+		end
 	end
 
 	-- X73: a finger post on the pavement between the stop and the taxi rank

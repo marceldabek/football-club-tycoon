@@ -138,4 +138,31 @@ function T.busBayIsOnTheCarriagewayInFrontOfTheStationStop()
 	end
 end
 
+function T.yellowLinesRunInsideTheKerbsAndSkipTheBayAndLayby()
+	local f = StationDresser.frontFrame()
+	local layby = StationDresser.laybyLocal(f)
+	local bay = StationDresser.busBay(f)
+	local runs = StationDresser.yellowLineRuns(f, layby, bay)
+	assert(#runs >= 2, "a far-side run and at least one station-side run")
+	local road
+	for _, r in TownLayout.ROADS do
+		if r.name == "Station Road" then
+			road = r
+		end
+	end
+	for _, run in runs do
+		assert(run.x1 - run.x0 >= 2, "no stubs")
+		for _, offset in { 0.35, 0.85 } do
+			local mid = f * Vector3.new((run.x0 + run.x1) / 2, 0, run.kerb + run.inward * offset)
+			local d = TownLayout.distanceToPolyline(mid, road.points)
+			assert(d < road.width / 2 and d > road.width / 2 - 1.2, ("line %.2f from the centreline, not just inside the kerb"):format(d))
+		end
+		if run.inward == 1 then
+			for _, gap in { { layby.x0, layby.x1 }, { bay.x0, bay.x1 } } do
+				assert(run.x1 <= gap[1] + 1e-3 or run.x0 >= gap[2] - 1e-3, "station-side run crosses the bay or lay-by")
+			end
+		end
+	end
+end
+
 return T

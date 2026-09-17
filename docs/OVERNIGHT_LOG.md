@@ -552,3 +552,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - The square's finger post is now `SquareDresser.fingerPost(parent, at, groundY?, destinations?)`, whose destinations can be names or `{ name, position }`. The square's call is unchanged (still 4 blades). `StationDresser` stands one on the pavement between the Station stop and the taxi rank. Its blades point to Town Centre, Car Park (the station car park block), Industrial Estate and Riverside, the same set as RivermereStation.png.
 - **Screenshot** StationFingerPost_1: the post beside the moved shelter and the BUS STOP bay.
 - RunAll 357/357.
+
+### 2026-09-17 06:19 — Double yellow lines on Station Road (X73 part)
+- New pure `StationDresser.yellowLineRuns(f, layby, bay)` (1 test: every line sits just inside a kerb, with no stubs, and station-side runs skip the bus bay and lay-by). It paints double yellow lines inside both kerbs of the straight past the station: one run on the far side, and three short ones on the station side around the bus bay and the lay-by mouth. That's 8 thin parts.
+- **Screenshot** StationYellowLines_1: looking west along Station Road with the lines on both kerbs, the taxi lay-by and the moved bus stop.
+- RunAll 358/358.
