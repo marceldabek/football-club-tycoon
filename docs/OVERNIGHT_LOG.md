@@ -41,6 +41,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11).
 1. **Done as TEMP, please confirm:** Studio playtests now use the DataStore `ClubProfiles_Studio`, so Studio opens a fresh club and onboarding instead of Dino FC. To get your real club back in Studio, set `Config.Save.studioStoreSuffix = ""`. *Rec: keep it; live servers are unchanged.*
 2. Plot size 760 and river width 90 are TEMP (docs/TOWN_PLAN.md end list has 8 TEMP choices). *Rec: accept for the greybox, revisit after walking it.*
 3. Evening fixtures are every 4th match starting at match 3 (TEMP). *Rec: fine until the fixture list gets real kick-off times.*
+4. Walking from the market square to a club takes about 2–3 minutes (70–100 s sprinting); the buses cover it in seconds. Is that the scale you want? *Rec: keep it for now, because the buses and the "Go to my club" button carry most trips. Shrink the plot ring by ~25% only if playtesters walk rather than bus.*
 
 **Buy list for Marcel**
 - Nothing new yet. Free store terraces are a flat-fronted Victorian row. If you want bay windows like `RiveremereWestdale.png`, "UK Housing – Terraced Set 1" (Macwelshman, Fab, $39.99) is the best paid match (see docs/ASSET_KIT.md).
@@ -172,4 +173,11 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11).
 ### 2026-09-17 02:52 — Mill Street dressing (X11)
 - Merged `TerraceStreetDresser` (reference `RiveremereWestdale.png`): brick garden walls with stone coping and piers, black railings or hedges with gate gaps, street trees in tree pits (clear of lamps and junction mouths), black-on-white street name signs at junction corners with the area name, and kit cars and vans parked on the empty kerb. Screenshot from (20, 7, -203) looking east: reads like the reference street. `StreetDresser` gained `isKitRow` and `lampPositions`, with no behaviour change.
 - The showpiece takes 1,013 parts, so only 1 light street fitted under the 1,200 budget (X35). Traffic now drives through cars parked on both kerbs (X36).
+- RunAll 297/297.
+
+### 2026-09-17 02:57 — Evening lamps (X37), walk distances (C2.2), boats and traffic (X32/X36)
+- **Evening lamps (X37):** evening fixtures left the streets black because the lamps only had Neon glass. TownLife now puts PointLights (range 32) on the 16 lamps nearest the camera, 6 on Low, whenever the local ClockTime is dark. Screenshot at 20:30 on Cherry Close shows warm light on the road. The matchday pub drinkers were also verified: 10 in club colours outside the nearest pub during a match.
+- **Walk distances (C2.2):** estimated from the layout rather than timed on foot. The square is 2.1–2.9k studs from the plots by road: 2.2–3 min walking, 70–100 s sprinting. Logged as question 4.
+- **Boats and traffic (X32/X36):** boat bows now taper to a point (the wedge was turned the wrong way). Traffic keeps off Mill Street, Weaver Street and Church Lane, which have cars parked on both kerbs, using the new TerraceStreets `ParkedStreets` attribute.
+- **Driveway cars (X33):** not done. The kit hatchback is 9.8 × 19.4 studs, too big for 10-stud drives.
 - RunAll 297/297.

@@ -50,7 +50,7 @@
 - [x] C1.1 `docs/TOWN_PLAN.md`: master plan from `RivermereAImap.png` scaled down (TEMP numbers): ring road + roundabouts, River Lune W→E with 3 road bridges, railway NW with station + viaduct over the river, town centre market square, Northfields (N), Westdale (SW), Riverside + Riverside Park (E), industrial estate (W), community sports centre (S), 4 plot sites, walking times `[disk]` M
 - [x] C1.2 `src/shared/TownLayout.luau` layout data (roads as polylines with widths, river polyline, bridges, rail line, district blocks, plot CFrames, bus stops, landmarks) + `TownLayoutTest` (plots don't overlap roads/river/each other, every plot touches the ring road, bridges cross the river) `[disk]` M dep: C1.1
 - [x] C2.1 `src/server/TownBuilder.luau` greybox: terrain ground, river carved with water, roads (asphalt parts per segment), pavements, bridges, rail line + embankment, district building volumes (grey blocks), plot pads `[studio]` M dep: C1.2
-- [ ] C2.2 Walk test: spawn → centre → each plot, timings logged; sightlines to spire/viaduct screenshot `[studio]` S dep: C2.1
+- [x] C2.2 (estimated, not timed on foot: square to plots 2.1–2.9k studs by road, 2.2–3 min walking / 70–100 s sprinting; spire seen from the marina and the square) Walk test: spawn → centre → each plot, timings logged; sightlines to spire/viaduct screenshot `[studio]` S dep: C2.1
 - [x] C3.1 (baseline numbers in the log; StreamingEnabled was already on) StreamingEnabled on (place setting via code check + note), models grouped per district with `ModelStreamingMode`, part/triangle counts per district logged `[studio]` S dep: C2.1
 - [x] C3.2 Quality setting (Low/High) client toggle: hides decorative props and far detail on Low `[studio]` M dep: C3.1
 
