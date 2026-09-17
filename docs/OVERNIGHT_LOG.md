@@ -652,3 +652,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - It's decorative: the stair towers are solid, so players can't climb to platform 2.
 - **Screenshot** StationPlatform_2.
 - RunAll 367/367.
+
+### 2026-09-17 07:05 — A train on the railway (X82)
+- The station, its two platforms and the Lune Viaduct had no train. New client script `Train.client.luau` runs one white three-carriage unit with a navy stripe (12 parts moved with BulkMoveTo). It runs the whole line on the left-hand track at TEMP 45 studs/s, dwells TEMP 10 s with its middle at Rivermere Station, and pauses 4 s at each end of the line before turning back.
+- New pure `TrainMath` (3 tests): `heightAt` follows TownBuilder's rail heights (1.1 on the bed, straight approach ramps up to 22.5 on the viaduct), and `carriageFrames` places carriages trailing the head with a pitch on ramps.
+- **Playtest:** the train left the station northbound and was on the viaduct at body height 27.3 (rail top 22.5). **Screenshot** TrainOnViaduct_1. TrainAtStation_1 was taken after it had already left.
+- Not done: it isn't hidden on Quality Low (12 parts), there's no sound, and it passes through the footbridge span's clearance without a check (the deck is at 16, the carriage roof at about 9).
+- RunAll 370/370.
