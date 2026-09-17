@@ -255,6 +255,14 @@ Config.SeatColor = Color3.fromRGB(200, 40, 50) -- TEMP: seat colour customisatio
 -- Fictional pitch-side sponsors for the ad boards. Purely decorative for now.
 -- X156: half are TEMP Rivermere businesses already seen round town (the
 -- industrial estate's shed signs, the high street café), half stay playful
+-- X309: the boards round the pitch were "purely decorative", so the second
+-- revenue CLAUDE.md s11 lists (sponsorship) did not exist and the FINANCE tab
+-- had one real income line. A sponsor pays per match, more in a higher
+-- division and more for a better-known club. TEMP numbers.
+Config.SponsorBase = 250
+Config.SponsorPerTier = 220
+Config.SponsorPopularityShare = 0.6 -- at 100 popularity the fee is 1.6x
+
 Config.Sponsors = {
 	{ text = "DALETEK ENGINEERING", bg = Color3.fromRGB(20, 60, 140), fg = Color3.new(1, 1, 1) },
 	{ text = "SUNDAY PIES", bg = Color3.fromRGB(230, 200, 60), fg = Color3.fromRGB(40, 30, 10) },

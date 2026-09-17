@@ -15,7 +15,7 @@ local Finance = {}
 -- `tradesIn` and `trades` are the two halves of the same thing: cash that came
 -- in with a player trade, and cash that went out with one. They are separate
 -- names because a category lives on one side of the ledger only.
-Finance.INCOME = { "gate", "concessions", "bonus", "prize", "sales", "friendly", "tradesIn" }
+Finance.INCOME = { "gate", "concessions", "bonus", "sponsor", "prize", "sales", "friendly", "tradesIn" }
 Finance.SPEND = { "transfers", "stands", "amenities", "staff", "trades" }
 
 export type MatchRow = { round: number, gate: number, concessions: number, bonus: number, total: number }

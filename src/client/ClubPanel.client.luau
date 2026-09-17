@@ -751,6 +751,7 @@ local FINANCE_LABELS: { [string]: string } = {
 	gate = "Tickets",
 	concessions = "Concessions",
 	bonus = "Result bonuses",
+	sponsor = "Shirt sponsor",
 	prize = "Season prizes",
 	sales = "Players sold",
 	friendly = "Friendlies",

@@ -15,6 +15,8 @@ export type Settlement = {
 	ticketRevenue: number,
 	concessionRevenue: number,
 	resultBonus: number,
+	sponsorFee: number, -- X309
+	sponsorName: string, -- X309: who paid it
 	total: number,
 	outcome: "Win" | "Draw" | "Loss",
 }
@@ -29,6 +31,9 @@ export type Inputs = {
 	winBonus: number,
 	drawBonus: number,
 	lossBonus: number,
+	tier: number, -- X309: the sponsor pays more in a higher division
+	popularity: number,
+	sponsorSeed: number, -- which of Config.Sponsors signed the deal
 }
 
 -- Fans who want to come. Grows with the division, popularity and amenities.
@@ -61,6 +66,22 @@ function Economy.popularityAfter(popularity: number, event: string): number
 	return math.clamp(popularity + delta, 0, 100)
 end
 
+-- X309: what the shirt sponsor pays for one match. Rounded to 10 so the
+-- summary reads like a fee and not a calculation.
+function Economy.sponsorFee(tier: number, popularity: number): number
+	local base = Config.SponsorBase + Config.SponsorPerTier * math.max(math.floor(tier) - 1, 0)
+	local known = 1 + Config.SponsorPopularityShare * math.clamp(popularity, 0, 100) / 100
+	return math.floor(base * known / 10 + 0.5) * 10
+end
+
+-- X309: the same sponsor every match of a season, picked from the boards that
+-- are already painted round the pitch.
+function Economy.sponsorName(seed: number): string
+	local list = Config.Sponsors
+	local index = (math.floor(math.abs(seed)) % #list) + 1
+	return list[index].text
+end
+
 function Economy.settle(inputs: Inputs): Settlement
 	local attendance = math.min(inputs.capacity, inputs.demand)
 	local turnedAway = math.max(inputs.demand - inputs.capacity, 0)
@@ -77,6 +98,7 @@ function Economy.settle(inputs: Inputs): Settlement
 		outcome, bonus = "Loss", inputs.lossBonus
 	end
 
+	local sponsorFee = Economy.sponsorFee(inputs.tier or 1, inputs.popularity or 0)
 	return {
 		demand = inputs.demand,
 		capacity = inputs.capacity,
@@ -85,7 +107,9 @@ function Economy.settle(inputs: Inputs): Settlement
 		ticketRevenue = ticketRevenue,
 		concessionRevenue = concessionRevenue,
 		resultBonus = bonus,
-		total = ticketRevenue + concessionRevenue + bonus,
+		sponsorFee = sponsorFee,
+		sponsorName = Economy.sponsorName(inputs.sponsorSeed or 0),
+		total = ticketRevenue + concessionRevenue + bonus + sponsorFee,
 		outcome = outcome,
 	}
 end

@@ -53,10 +53,31 @@ function T.settleIncludesConcessions()
 	local s = Economy.settle({
 		homeGoals = 2, awayGoals = 1, capacity = 100, demand = 250, ticketPrice = 8,
 		concessionPerFan = 2, winBonus = 400, drawBonus = 150, lossBonus = 0,
+		tier = 1, popularity = 0, sponsorSeed = 1,
 	})
 	assert(s.attendance == 100 and s.turnedAway == 150, "attendance capped by capacity")
 	assert(s.ticketRevenue == 800 and s.concessionRevenue == 200, "revenue wrong")
-	assert(s.total == 1400 and s.outcome == "Win", "total / outcome wrong")
+	-- X309: the shirt sponsor's fee is part of the takings
+	assert(s.sponsorFee == Economy.sponsorFee(1, 0), "the sponsor fee should be in the settlement")
+	assert(s.total == 1400 + s.sponsorFee and s.outcome == "Win", "total / outcome wrong")
+	assert(s.sponsorName ~= "", "the sponsor should be named")
+end
+
+-- X309: sponsorship is the second revenue CLAUDE.md s11 lists and it did not exist.
+function T.sponsorFeeGrowsWithTheDivisionAndTheClub()
+	local bottom = Economy.sponsorFee(1, 0)
+	local knownBottom = Economy.sponsorFee(1, 100)
+	local top = Economy.sponsorFee(5, 0)
+	assert(bottom > 0, "even a Sunday league club has a sponsor")
+	assert(knownBottom > bottom, "a better-known club is worth more")
+	assert(top > bottom, "a higher division is worth more")
+	assert(Economy.sponsorFee(1, 200) == knownBottom, "popularity past 100 should not keep paying")
+	assert(bottom % 10 == 0 and top % 10 == 0, "fees are rounded to ten")
+	-- the same seed always signs the same sponsor, and every seed names somebody
+	assert(Economy.sponsorName(3) == Economy.sponsorName(3), "deterministic")
+	for seed = 0, 12 do
+		assert(#Economy.sponsorName(seed) > 0, "a seed should always name a sponsor")
+	end
 end
 
 

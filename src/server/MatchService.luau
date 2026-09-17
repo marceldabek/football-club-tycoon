@@ -268,6 +268,10 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		winBonus = Config.WinBonus,
 		drawBonus = Config.DrawBonus,
 		lossBonus = Config.LossBonus,
+		-- X309: the shirt sponsor's match fee
+		tier = (ClubState.get("Tier") :: number?) or 1,
+		popularity = (ClubState.get("Popularity") :: number?) or 0,
+		sponsorSeed = ((ClubState.get("Season") :: number?) or 1) + #((ClubState.get("ClubName") :: string?) or ""),
 	})
 
 	local news, development, award = ClubService.finishMatch(played.scorerSlots, homeSquad, subsMade, result.awayGoals)
@@ -286,6 +290,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 	ClubState.addCash(settlement.ticketRevenue, "gate")
 	ClubState.addCash(settlement.concessionRevenue, "concessions")
 	ClubState.addCash(settlement.resultBonus, "bonus")
+	ClubState.addCash(settlement.sponsorFee, "sponsor") -- X309
 
 	ClubState.recordMatchFinance({
 		round = roundResult.round,
@@ -321,6 +326,8 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		ticketRevenue = settlement.ticketRevenue,
 		concessionRevenue = settlement.concessionRevenue,
 		resultBonus = settlement.resultBonus,
+		sponsorFee = settlement.sponsorFee, -- X309
+		sponsorName = settlement.sponsorName,
 		total = settlement.total,
 		cash = ClubState.get("Cash"),
 		scorers = scorers,

@@ -1706,3 +1706,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Not photographed:** Studio's screen capture does not include BillboardGuis - a deliberately garish magenta test version did not appear in a capture either - so this is verified from the live instance's properties (enabled, adornee, label text) rather than on camera. Worth an eyeball in the morning.
 - Two fixes on the way: the first hint is set before the beacon function exists, so the marker now runs on its own loop rather than off the hint refresh; and at +7 studs it was inside the office ceiling, now +3.5.
 
+### 2026-09-17 18:40 — Somebody is paying for those boards (X309)
+- Six sponsor boards have been on camera for every match since X156 and `Config.Sponsors` called them "purely decorative": the second revenue CLAUDE.md s11 lists did not exist, and the FINANCE tab that landed tonight had one real income line.
+- A shirt sponsor now pays a fee every match: TEMP £250 plus £220 a division, up to 60% more for a well-known club (popularity, capped at 100), rounded to ten so it reads like a fee. It is part of the settlement, so it shows in the takings, has its own Finance category, and the same sponsor signs for the whole season - picked from the boards already painted round the pitch.
+- The card names them under the earnings total: "includes £1,020 from DALETEK ENGINEERING" (screenshot), rather than squeezing a fourth column into the three-up breakdown.
+- Verified in play at tier 4 with popularity 20: £1,020 a match, recorded under `sponsor` in the ledger, and the matchday row's total includes it.
+- RunAll 465 passed, with a new Economy test (a fee for every division, more for a better-known club, capped past 100 popularity, rounded to ten, and a deterministic sponsor name for every seed) and the existing settle test updated to expect the fee in the total.
+

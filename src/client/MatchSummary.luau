@@ -319,6 +319,15 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		TextSize = 46,
 		TextYAlignment = Enum.TextYAlignment.Center,
 	})
+	-- X309: the sponsor's fee is part of the total, named under it rather than
+	-- squeezed in as a fourth column
+	local sponsorLine = Theme.text(earnings, "", "muted", {
+		Name = "Sponsor",
+		Size = UDim2.new(1, -32, 0, 18),
+		Position = UDim2.fromOffset(16, 70),
+		TextSize = 13,
+		TextColor3 = C.cash,
+	})
 	local columns: { [string]: TextLabel } = {}
 	local columnTitles: { [string]: TextLabel } = {}
 	for i, spec in { { "Tickets", "tickets" }, { "Concessions", "concessions" }, { "Result bonus", "bonus" } } do
@@ -627,6 +636,12 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		columnTitles.tickets.Text = if data.friendly then "Gate share" else "Tickets"
 		columns.concessions.Text = money(data.concessionRevenue or 0)
 		columns.bonus.Text = money(data.resultBonus or 0)
+		-- X309
+		local fee = data.sponsorFee or 0
+		sponsorLine.Visible = fee > 0
+		sponsorLine.Text = if fee > 0
+			then ("includes %s from %s"):format(money(fee), tostring(data.sponsorName or "the shirt sponsor"))
+			else ""
 
 		local capacity = math.max(data.capacity or 1, 1)
 		local att = data.attendance or 0
