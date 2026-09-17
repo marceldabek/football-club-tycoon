@@ -21,6 +21,7 @@ local summaryEvent = remotes:WaitForChild("MatchSummary") :: RemoteEvent
 local toastEvent = remotes:WaitForChild("Toast") :: RemoteEvent
 local tacticEvent = remotes:WaitForChild("Tactic") :: RemoteEvent
 local playMatchEvent = remotes:WaitForChild("PlayMatch") :: RemoteEvent
+local goHomeEvent = remotes:WaitForChild("GoHome") :: RemoteEvent
 
 local money, ordinal, rich = Theme.money, Theme.ordinal, Theme.rich
 local C = Theme.colors
@@ -43,6 +44,19 @@ local cashLabel = Theme.pill(gui, "Cash", {
 })
 
 -- (the CLUB button lives in ClubPanel at y = 96)
+
+-- GO TO MY CLUB (B4.2): teleports the owner home from anywhere in town.
+-- Sits under the CLUB OFFICE button; the season line below it is wide, so
+-- this row sits below that instead of squeezing beside it.
+local goHomeButton = Theme.button(gui, "GO TO MY CLUB", "info", {
+	Name = "GoHome",
+	Size = UDim2.fromOffset(140, 34),
+	Position = UDim2.fromOffset(20, 164),
+	TextSize = 14,
+})
+goHomeButton.Activated:Connect(function()
+	goHomeEvent:FireServer()
+end)
 
 local seasonLabel = Theme.text(gui, "", "muted", {
 	Name = "Season",
@@ -476,6 +490,7 @@ local function refreshLoading()
 	cashLabel.Visible = not loading
 	seasonLabel.Visible = not loading
 	musicButton.Visible = not loading
+	goHomeButton.Visible = not loading
 	if not loading then
 		maybeWelcome()
 	end
