@@ -332,7 +332,8 @@ function PlotService.claim(player: Player, plot: number): (boolean, string?)
 		PlotService.release(player)
 		return false, "load failed"
 	end
-	-- office spawns are not random spawn points; owners are placed by hand
+	-- office spawns are not random spawn points; owners are placed by hand.
+	-- WorldBuilder now creates it disabled (X278); this stays as a belt and braces.
 	local spawn = officeSpawn(plot)
 	if spawn then
 		spawn.Enabled = false

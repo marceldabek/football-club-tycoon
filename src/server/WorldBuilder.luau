@@ -1162,6 +1162,11 @@ local function buildOffice(parent: Instance)
 	spawn.CanCollide = false
 	spawn.Neutral = true
 	spawn.Duration = 0
+	-- X278: born disabled. Owners are always placed by PlotService.sendHome, and
+	-- an enabled neutral spawn during the club's load (a yielding store read plus
+	-- the world build) dropped anyone joining or respawning into a stranger's
+	-- office; a later rebuild (reload/wipe) used to re-enable it for good.
+	spawn.Enabled = false
 	spawn.Parent = office
 end
 

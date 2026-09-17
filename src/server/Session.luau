@@ -196,6 +196,11 @@ function Session.refreshPromptLock()
 	Scenery.setMatchday(phase == "PreMatch" or phase == "Match", ClubState.get("Evening") == true)
 end
 
+-- X274: a store that refuses every write used to be invisible. After this many
+-- flushes in a row fail, the owner is told rather than finding out on rejoin.
+local FAILED_SAVES_BEFORE_WARNING = 2
+local failedSaves = 0
+
 -- Every save goes through here so the stamps the saver writes stay in step.
 local function flush(force: boolean): boolean
 	if not loaded or stopped or lockStolen then
@@ -206,6 +211,24 @@ local function flush(force: boolean): boolean
 		saveCount += 1
 		updatedAt = os.time()
 		print(("[FCT] saved (%s, #%d)"):format(backendKind, saveCount))
+		if failedSaves >= FAILED_SAVES_BEFORE_WARNING then
+			local owner = Players:GetPlayerByUserId(ownerId)
+			if owner then
+				toast(owner, "Saving again. Your club is safe.", true)
+			end
+		end
+		failedSaves = 0
+	elseif saver:isDirty() then
+		-- isDirty means there was something to write, so this really failed
+		-- rather than "nothing to do"
+		failedSaves += 1
+		if failedSaves == FAILED_SAVES_BEFORE_WARNING then
+			local owner = Players:GetPlayerByUserId(ownerId)
+			if owner then
+				toast(owner, "Your club isn't saving right now. Recent progress may be lost.")
+			end
+			warn(("[FCT] %d saves in a row failed for %d"):format(failedSaves, ownerId))
+		end
 	end
 	return ok
 end
@@ -428,11 +451,11 @@ function Session.start(owner: Player): boolean
 	end
 	task.spawn(function()
 		local lastAutosave = os.clock()
-		while not stopped do
-			task.wait(Config.Save.heartbeatSeconds)
-			if stopped then
-				break
-			end
+		-- X275: the loop body is pcall'd. It used to call Session.snapshot outside
+		-- any pcall, so one serialize error killed the thread for the rest of the
+		-- session: no autosave and, worse, no lock heartbeat, so another server
+		-- took the stale lock and quietly won.
+		local function tick(): boolean
 			if haveLock then
 				-- Another server took (or is requesting) this owner's lock:
 				-- decided behaviour is the new server always wins, so this one
@@ -455,12 +478,25 @@ function Session.start(owner: Player): boolean
 						ownerPlayer:Kick("Your club was opened on another server.")
 					end
 					Session.stop()
-					break
+					return false
 				end
 			end
 			if not stopped and saver:isDirty() and os.clock() - lastAutosave >= Config.Save.autosaveSeconds then
 				lastAutosave = os.clock()
 				flush(false)
+			end
+			return true
+		end
+		while not stopped do
+			task.wait(Config.Save.heartbeatSeconds)
+			if stopped then
+				break
+			end
+			local ok, result = pcall(tick)
+			if not ok then
+				warn("[FCT] autosave/heartbeat tick failed (continuing): " .. tostring(result))
+			elseif result == false then
+				break -- the tick asked us to stop (the lock went to another server)
 			end
 		end
 	end)
