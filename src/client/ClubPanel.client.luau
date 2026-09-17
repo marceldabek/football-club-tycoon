@@ -754,6 +754,48 @@ local function renderHistory()
 		note("Every title puts a trophy on the office shelf.", GREY)
 	end
 
+	-- X288: who played for the club. Retired players (X277) plus the current
+	-- squad, so the appearance record does not vanish with the man who set it.
+	local servants = data.servants or {}
+	local club = loadClub()
+	local topApps, topGoals = nil, nil
+	local function consider(name: string, apps: number, goals: number)
+		if not topApps or apps > topApps.n then
+			topApps = { name = name, n = apps }
+		end
+		if not topGoals or goals > topGoals.n then
+			topGoals = { name = name, n = goals }
+		end
+	end
+	for _, s in servants do
+		consider(s.name, s.apps or 0, s.goals or 0)
+	end
+	for _, p in (club and club.players or {}) do
+		consider(p.name, p.apps or 0, p.goals or 0)
+	end
+	if topApps and topApps.n > 0 then
+		note(("Most appearances: %s (%d)  ·  Most goals: %s (%d)"):format(
+			topApps.name, topApps.n, (topGoals :: any).name, (topGoals :: any).n))
+	end
+
+	if #servants > 0 then
+		section(("CLUB SERVANTS (%d)"):format(#servants))
+		note("Players who saw out their career here.", GREY)
+		local shead = row(false)
+		shead.BackgroundColor3 = PANEL_BG
+		cell(shead, "Player", 10, 180, { TextColor3 = GREY })
+		cell(shead, "Retired", 195, 90, { TextColor3 = GREY })
+		cell(shead, "Apps", 290, 60, { TextColor3 = GREY })
+		cell(shead, "Goals", 355, 60, { TextColor3 = GREY })
+		for i, s in servants do
+			local f = row(i % 2 == 0)
+			cell(f, s.name, 10, 180, { Font = Enum.Font.GothamBold })
+			cell(f, ("S%d, aged %d"):format(s.season, s.age), 195, 90, { TextColor3 = GREY })
+			cell(f, tostring(s.apps), 290, 60)
+			cell(f, tostring(s.goals), 355, 60)
+		end
+	end
+
 	section(("PAST SEASONS (%d)"):format(#seasons))
 	if #seasons == 0 then
 		note("Nothing yet. Finish a season and it goes in the book.", GREY)

@@ -57,4 +57,38 @@ function T.emptyHonours()
 	assert(honours.seasons == 0 and honours.titles == 0 and honours.bestTier == 0, "all zero")
 end
 
+local function servant(name: string, apps: number, goals: number, season: number)
+	return { name = name, age = 36, apps = apps, goals = goals, season = season }
+end
+
+function T.servantsAreKeptByAppearances()
+	local h = History.new()
+	History.recordRetirement(h, servant("Ten", 10, 1, 2))
+	History.recordRetirement(h, servant("Ninety", 90, 4, 3))
+	History.recordRetirement(h, servant("Fifty", 50, 20, 4))
+	assert(#h.servants == 3, "three servants")
+	assert(h.servants[1].name == "Ninety", "most appearances first")
+	assert(h.servants[3].name == "Ten", "fewest appearances last")
+end
+
+function T.servantsAreCapped()
+	local h = History.new()
+	for i = 1, History.MAX_SERVANTS + 4 do
+		History.recordRetirement(h, servant("P" .. i, i, 0, 1))
+	end
+	assert(#h.servants == History.MAX_SERVANTS, "the list should be capped")
+	assert(h.servants[1].apps == History.MAX_SERVANTS + 4, "the best record should survive")
+	for _, s in h.servants do
+		assert(s.apps > 4, "a short career displaced a long one")
+	end
+end
+
+function T.servantRecordIsACopy()
+	local h = History.new()
+	local s = servant("Kept", 30, 3, 5)
+	History.recordRetirement(h, s)
+	s.apps = 0
+	assert(h.servants[1].apps == 30, "the history holds its own copy")
+end
+
 return T

@@ -411,8 +411,8 @@ end
 
 -- X277: the end of a career. Called right after ageAll, so a player who has
 -- just turned RetireAge can go in the same summer. Removes the retirees from
--- `players` (which frees their shirt number, see smallestFreeNumber) and
--- returns them, oldest first.
+-- `players` (which frees their shirt number, see Squad.freeNumber) and returns
+-- them, oldest first.
 --
 -- The first version stopped at Config.SquadMin, which looked safe and was
 -- actually worse: a squad already down to 14 veterans froze, everybody kept
@@ -464,7 +464,9 @@ function Squad.retireVeterans(players: { Player }, rng: Random): { Player }
 	return retired
 end
 
-local function freeNumber(players: { Player }): number
+-- Smallest unused shirt number. A retirement frees one, and the next arrival
+-- (academy or signing) takes it, so numbers stay low and stable.
+function Squad.freeNumber(players: { Player }): number
 	local used: { [number]: boolean } = {}
 	for _, p in players do
 		used[p.number] = true
@@ -503,12 +505,25 @@ end
 -- and carry real headroom, so a club that never signs anyone still renews
 -- itself instead of silting up. `firstId` is the club's next free id; the
 -- graduates are appended to `players` and returned.
-function Squad.promoteYouth(players: { Player }, rng: Random, firstId: number): { Player }
+-- Review of X277: refilling to Config.SquadMin (14) left a matchday two short.
+-- Retirement is unconditional, so 14 became the squad's resting size, and an XI
+-- plus a full bench is 16 — the bench emptied and matchSquad started handing
+-- trialists a place in the XI. The academy refills to a matchday squad.
+local function matchdaySquadSize(): number
+	return math.max(Config.SquadMin, #Pitch.ROLES + Config.BenchSize)
+end
+
+-- X277: the academy. Retirement is unconditional, so something has to keep the
+-- squad playable: after the veterans go, young players come up until there is a
+-- full XI and bench again. They are free, a little below the squad's level and
+-- carry real headroom, so a club that never signs anyone still renews itself
+-- instead of silting up. `firstId` is the club's next free id; `avoidNames`
+-- covers names the club is still showing elsewhere (the players who have just
+-- retired, and the scout's shortlist). The graduates are appended to `players`
+-- and returned.
+function Squad.promoteYouth(players: { Player }, rng: Random, firstId: number, avoidNames: { [string]: boolean }?): { Player }
 	local graduates: { Player } = {}
-	if #players >= Config.SquadMin then
-		return graduates
-	end
-	local taken: { [string]: boolean } = {}
+	local taken: { [string]: boolean } = if avoidNames then table.clone(avoidNames) else {}
 	for _, p in players do
 		taken[p.name] = true
 	end
@@ -518,12 +533,30 @@ function Squad.promoteYouth(players: { Player }, rng: Random, firstId: number): 
 	-- floor, with the club unable to win anything. The academy is a grassroots
 	-- club's own level, so it never drops below where a new club starts.
 	local avg = math.max(Squad.average(players) - 6, Config.StartingSquadOverall - 5)
-	while #players < Config.SquadMin do
+	local function promote(role: Pitch.Role)
 		local name = TeamGen.generateNames(rng, 1, taken)[1]
 		taken[name] = true
-		local p = makePlayer(rng, firstId + #graduates, name, freeNumber(players), neediestRole(players), avg, 8, 19)
+		local p = makePlayer(rng, firstId + #graduates, name, Squad.freeNumber(players), role, avg, 8, 19)
 		table.insert(players, p)
 		table.insert(graduates, p)
+	end
+
+	while #players < matchdaySquadSize() do
+		promote(neediestRole(players))
+	end
+
+	-- Review of X277: retireVeterans never retires the last goalkeeper, so
+	-- without this he plays for ever — the squad is up to size, so nothing else
+	-- would promote his replacement. One comes up, and he can go next season.
+	local keeperToCome = false
+	for _, p in players do
+		if p.role == "GK" and p.age < Config.RetireMaxAge then
+			keeperToCome = true
+			break
+		end
+	end
+	if not keeperToCome and #players < Config.SquadMax then
+		promote("GK")
 	end
 	return graduates
 end

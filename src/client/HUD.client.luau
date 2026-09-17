@@ -348,21 +348,40 @@ local function showSeason(data)
 		"Every player is a year older. New fixtures are ready.",
 	}
 	-- X277: a retirement takes a shirt number out of the squad, so say it here
-	-- rather than leaving the player to find the gap in the squad screen.
-	local retiring = if type(data.retirements) == "table" then data.retirements else {}
-	if #retiring > 0 then
-		table.insert(lines, "")
-		for i = 1, math.min(#retiring, 3) do
-			table.insert(lines, rich(retiring[i], C.muted))
-		end
-		if #retiring > 3 then
-			table.insert(lines, rich(("+%d more retired."):format(#retiring - 3), C.muted))
-		end
-		table.insert(lines, rich("Their shirt numbers are free again.", C.muted))
+	-- rather than leaving the player to find the gap in the squad screen. The
+	-- review caught the first version counting the academy arrivals as
+	-- retirements ("+4 more retired." when four players had arrived), so the two
+	-- lists are separate and each says what it is.
+	local function count(list: any): number
+		return if type(list) == "table" then #list else 0
 	end
-	seasonCard.body.Text = table.concat(lines, "\n")
-	-- the card is sized for the five base lines; grow it for the rest
-	seasonCard.frame.Size = UDim2.fromOffset(480, 330 + 22 * math.max(#lines - 5, 0))
+	-- Both blocks at three names each would overflow even the tallest card the
+	-- phone can take, so they share the room when there are two of them.
+	local perBlock = if count(data.retirements) > 0 and count(data.arrivals) > 0 then 2 else 3
+	local function block(list: any, more: string)
+		local items = if type(list) == "table" then list else {}
+		if #items == 0 then
+			return
+		end
+		table.insert(lines, "")
+		for i = 1, math.min(#items, perBlock) do
+			table.insert(lines, rich(items[i], C.muted))
+		end
+		if #items > perBlock then
+			table.insert(lines, rich((more):format(#items - perBlock), C.muted))
+		end
+	end
+	block(data.retirements, "+%d more retired.")
+	block(data.arrivals, "+%d more came up from the academy.")
+	local text = table.concat(lines, "\n")
+	seasonCard.body.Text = text
+	-- The card has to grow, and a line like "Ezra Hartigan (18) comes up from
+	-- the academy, shirt 12." wraps to two rendered lines, so measure the text
+	-- rather than counting entries (the review had the card clipping its last
+	-- line). 40 = Theme.card's body inset, 136 = title + footer.
+	local plain = (text:gsub("<[^>]->", ""))
+	local measured = TextService:GetTextSize(plain, 17, Theme.fonts.body, Vector2.new(480 - 40, math.huge))
+	seasonCard.frame.Size = UDim2.fromOffset(480, math.clamp(measured.Y + 150, 330, 520))
 	seasonCard.frame.Visible = true
 end
 summaryContinue.Activated:Connect(function()

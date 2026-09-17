@@ -357,8 +357,12 @@ function T.academyRefillsTheSquadAfterRetirements()
 	end
 	Squad.retireVeterans(players, Random.new(7))
 	local graduates = Squad.promoteYouth(players, Random.new(8), 100)
-	assert(#players == Config.SquadMin, "the academy did not refill the squad")
-	assert(#graduates == Config.SquadMin - 1, "wrong number of graduates")
+	-- a matchday needs an XI and a full bench, not Config.SquadMin (review of
+	-- X277), and the 40-year-old keeper who could not retire gets a successor
+	-- the refill itself covers the missing keeper: neediestRole puts GK first
+	local matchday = #Pitch.ROLES + Config.BenchSize
+	assert(#players == matchday, "the academy did not refill to a matchday squad")
+	assert(#graduates == matchday - 1, "wrong number of graduates")
 	local used, names = {}, {}
 	local keepers = 0
 	for _, p in players do
@@ -386,7 +390,7 @@ function T.academyDoesNotSpiralDownwards()
 		end
 		Squad.retireVeterans(players, rng)
 		Squad.promoteYouth(players, rng, generation * 100)
-		assert(#players == Config.SquadMin, "the squad did not refill in generation " .. generation)
+		assert(#players >= #Pitch.ROLES + Config.BenchSize, "the squad did not refill in generation " .. generation)
 	end
 	local avg = Squad.average(players)
 	assert(avg > Squad.MIN_OVERALL + 5, ("twenty academy generations decayed the squad to %d OVR"):format(avg))
@@ -396,6 +400,46 @@ function T.academyDoesNothingForAFullSquad()
 	local players = Squad.generate(15, 45)
 	assert(#Squad.promoteYouth(players, Random.new(9), 100) == 0, "promoted into a full squad")
 	assert(#players == 16, "squad changed")
+end
+
+-- Review of X277: the academy also has to cover the one player retirement
+-- cannot take, and must not hand a graduate a name the club is still showing.
+function T.academyReplacesTheAgeingLastKeeper()
+	local players = Squad.generate(16, 45)
+	for i = #players, 1, -1 do
+		if players[i].role == "GK" then
+			table.remove(players, i)
+			break
+		end
+	end
+	for _, p in players do
+		if p.role == "GK" then
+			p.age = Config.RetireMaxAge + 3 -- the only keeper, past the window
+		end
+	end
+	local before = #players
+	local graduates = Squad.promoteYouth(players, Random.new(10), 200)
+	assert(#graduates > 0 and #players > before, "nobody came up for the old keeper")
+	local youngKeepers = 0
+	for _, p in players do
+		if p.role == "GK" and p.age < Config.RetireMaxAge then
+			youngKeepers += 1
+		end
+	end
+	assert(youngKeepers >= 1, "the academy left the club with only an over-age keeper")
+end
+
+function T.academyAvoidsNamesTheClubIsStillShowing()
+	local players = Squad.generate(17, 45)
+	while #players > Config.SquadMin do
+		table.remove(players)
+	end
+	local avoid = { ["Rafa Retiree"] = true, ["Kit Prospect"] = true }
+	local graduates = Squad.promoteYouth(players, Random.new(11), 300, avoid)
+	assert(#graduates > 0, "nobody came up")
+	for _, p in graduates do
+		assert(not avoid[p.name], "a graduate took a name the club is still showing")
+	end
 end
 
 function T.nobodyRetiresBeforeTheWindow()

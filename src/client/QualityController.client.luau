@@ -147,31 +147,46 @@ end
 -- VisitorOverlay.
 task.spawn(function()
 	local playerGui = player:WaitForChild("PlayerGui")
-	local host: Instance? = nil
-	while not host do
-		host = playerGui:FindFirstChild("TycoonHUD") or playerGui:FindFirstChild("VisitorOverlay")
-		if not host then
-			task.wait(0.5)
+	local button: TextButton? = nil
+	local function refresh()
+		local b = button
+		if b then
+			b.Text = "Quality: " .. level
+			b.TextColor3 = if level == "High" then Theme.colors.text else Theme.colors.muted
 		end
 	end
-	local button = Theme.button(host :: Instance, "", "ghost", {
-		Name = "QualityToggle",
-		Size = UDim2.fromOffset(130, 34),
-		Position = UDim2.new(1, -20, 0, 92),
-		AnchorPoint = Vector2.new(1, 0),
-	})
-	local function refresh()
-		button.Text = "Quality: " .. level
-		button.TextColor3 = if level == "High" then Theme.colors.text else Theme.colors.muted
-	end
-	-- X279: a visitor has no club to read a saved choice from, so don't wait for one
-	if not player:GetAttribute("ClubPlot") and host and host.Name == "VisitorOverlay" then
-		button.Activated:Connect(function()
+	-- Review of X279: a visitor's toggle lives on their VisitorOverlay, which is
+	-- destroyed the moment they claim a ground — and the code returned here, so
+	-- the player who most needs the switch lost it for the rest of the session.
+	-- Build on whichever screen exists, and when a visitor's screen goes away,
+	-- build again on the club HUD that replaced it.
+	local host: Instance
+	while true do
+		local found: Instance? = nil
+		while not found do
+			found = playerGui:FindFirstChild("TycoonHUD") or playerGui:FindFirstChild("VisitorOverlay")
+			if not found then
+				task.wait(0.5)
+			end
+		end
+		host = found :: Instance
+		button = Theme.button(host, "", "ghost", {
+			Name = "QualityToggle",
+			Size = UDim2.fromOffset(130, 34),
+			Position = UDim2.new(1, -20, 0, 92),
+			AnchorPoint = Vector2.new(1, 0),
+		})
+		if host.Name ~= "VisitorOverlay" then
+			break -- the club HUD: the owner path below owns this button
+		end
+		-- X279: a visitor has no club to read a saved choice from
+		local visitorButton = button :: TextButton
+		visitorButton.Activated:Connect(function()
 			setLevel(Quality.other(level))
 			refresh()
 		end)
 		refresh()
-		return
+		host.Destroying:Wait()
 	end
 	local state = require(script.Parent.ClubRef).waitState()
 	local savedApplied = false
@@ -196,7 +211,8 @@ task.spawn(function()
 	end
 	state:GetAttributeChangedSignal("SettingQuality"):Connect(applySaved)
 	applySaved()
-	button.Activated:Connect(function()
+	local toggle = button :: TextButton
+	toggle.Activated:Connect(function()
 		setLevel(Quality.other(level))
 		refresh()
 		savedApplied = true

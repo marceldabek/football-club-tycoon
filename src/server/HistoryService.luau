@@ -16,6 +16,7 @@ local history: History.History = History.new()
 local function publish()
 	ClubState.set("History", HttpService:JSONEncode({
 		seasons = history.seasons,
+		servants = history.servants,
 		honours = History.honours(history),
 	}))
 	ClubState.markDirty()
@@ -44,6 +45,16 @@ local function validRecord(r: any): boolean
 	return true
 end
 
+local function validServant(s: any): boolean
+	return type(s) == "table"
+		and type(s.name) == "string"
+		and s.name ~= ""
+		and type(s.age) == "number"
+		and type(s.apps) == "number"
+		and type(s.goals) == "number"
+		and type(s.season) == "number"
+end
+
 -- nil = fresh history. Invalid records are dropped, not fatal.
 function HistoryService.restore(data: any?)
 	history = History.new()
@@ -56,12 +67,38 @@ function HistoryService.restore(data: any?)
 			end
 		end
 	end
+	if type(data) == "table" and type(data.servants) == "table" then
+		for _, s in ipairs(data.servants) do
+			if validServant(s) then
+				History.recordRetirement(history, s)
+			else
+				warn("[FCT] dropping invalid club servant")
+			end
+		end
+	end
 	publish()
 	HistoryService.rebuildTrophies()
 end
 
 function HistoryService.serialize(): History.History
-	return { seasons = table.clone(history.seasons) }
+	return { seasons = table.clone(history.seasons), servants = table.clone(history.servants) }
+end
+
+-- X288: the players who retired at the end of `season` (X277).
+function HistoryService.recordRetirements(retired: { any }, season: number)
+	if #retired == 0 then
+		return
+	end
+	for _, p in retired do
+		History.recordRetirement(history, {
+			name = p.name,
+			age = p.age,
+			apps = p.apps or 0,
+			goals = p.goals or 0,
+			season = season,
+		})
+	end
+	publish()
 end
 
 function HistoryService.record(record: History.SeasonRecord)

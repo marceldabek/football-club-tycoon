@@ -110,6 +110,7 @@ task.spawn(function()
 	while true do
 		if hasGround() then
 			teardown()
+			break -- the club's own HUD owns the screen from here on
 		elseif not player.PlayerGui:FindFirstChild("PlotPicker") then
 			build()
 		end

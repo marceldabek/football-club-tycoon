@@ -82,16 +82,7 @@ local function benchIndexOf(id: number): number?
 end
 
 local function smallestFreeNumber(): number
-	local used: { [number]: boolean } = {}
-	for _, p in players do
-		used[p.number] = true
-	end
-	for n = 1, 99 do
-		if not used[n] then
-			return n
-		end
-	end
-	return 99
+	return Squad.freeNumber(players) -- one rule, shared with the academy (X277)
 end
 
 local function refreshShortlist()
@@ -522,8 +513,10 @@ function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.Ma
 end
 
 -- New season housekeeping (Milestone 4 calls this).
--- Returns the retirement lines for the season card (X277).
-function ClubService.newSeason(): { string }
+-- Returns the season card's two lists — who retired (X277) and who came up to
+-- replace them — and the retired players themselves, so the club can keep them
+-- in its history (X288).
+function ClubService.newSeason(): ({ string }, { string }, { Squad.Player })
 	Squad.ageAll(players)
 	local retired = Squad.retireVeterans(players, rng)
 	local news: { string } = {}
@@ -537,14 +530,25 @@ function ClubService.newSeason(): { string }
 			if p.goals == 1 then "" else "s"
 		))
 	end
-	local graduates = Squad.promoteYouth(players, rng, nextId)
+	-- Review of X277: a graduate used to be able to draw a name the club was
+	-- still showing — the man retiring in the same breath, or a prospect on the
+	-- shortlist (which now survives a season, X276).
+	local spoken: { [string]: boolean } = {}
+	for _, p in retired do
+		spoken[p.name] = true
+	end
+	for _, p in shortlist do
+		spoken[p.name] = true
+	end
+	local arrivals: { string } = {}
+	local graduates = Squad.promoteYouth(players, rng, nextId, spoken)
 	nextId += #graduates
 	for _, p in graduates do
-		table.insert(news, ("%s (%d) comes up from the academy, shirt %d."):format(p.name, p.age, p.number))
+		table.insert(arrivals, ("%s (%d) comes up from the academy, shirt %d."):format(p.name, p.age, p.number))
 	end
 	recomputeLineup()
 	publish()
-	return news
+	return news, arrivals, retired
 end
 
 function ClubService.coachLevel(): number

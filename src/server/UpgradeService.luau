@@ -24,6 +24,17 @@ end
 function UpgradeService.refreshPrompt()
 	local managing = ClubState.get("Phase") == "Manage"
 
+	-- X293: a stand was priced but never valued — "Main Stand (400 seats) —
+	-- £1,500" says nothing about what those seats earn, so choosing between a
+	-- stand, a scout and a striker was blind. Seats only pay while there are
+	-- fans being turned away, so the figure is the fans this build would let in
+	-- at today's demand, at today's takings per fan.
+	local capacity = ClubState.capacity()
+	local demand = (ClubState.get("Demand") :: number?) or 0
+	local queue = math.max(demand - capacity, 0)
+	local amenityNow = Config.AmenityLevels[((ClubState.get("AmenityLevel") :: number?) or 0) + 1]
+	local perFan = Config.TicketPrice + (if amenityNow then amenityNow.perFan else 0)
+
 	for _, plot in Config.StandPlots do
 		local prompt = standPrompts[plot.key]
 		if not prompt then
@@ -36,7 +47,10 @@ function UpgradeService.refreshPrompt()
 			local verb = if level == 0 then "Build" else "Expand to"
 			-- X228: the first build on an empty plot costs nothing (TEMP, question 18); say so
 			local price = if nextLevel.cost <= 0 then "Free" else money(nextLevel.cost)
-			prompt.ActionText = ("%s %s (%d seats) — %s"):format(verb, nextLevel.name, seats, price)
+			local extraFans = math.min(queue, seats - Config.plotCapacity(plot, level))
+			prompt.ActionText = if extraFans > 0
+				then ("%s %s (%d seats, +%s a match) — %s"):format(verb, nextLevel.name, seats, money(extraFans * perFan), price)
+				else ("%s %s (%d seats, ground isn't full yet) — %s"):format(verb, nextLevel.name, seats, price)
 			prompt.Enabled = managing
 		else
 			prompt.ActionText = "Fully expanded"
@@ -54,8 +68,6 @@ function UpgradeService.refreshPrompt()
 		-- X280: demand runs ahead of capacity for most of the game, so the extra
 		-- fans the bonus brings are turned away and earn nothing. Only sell the
 		-- demand when there is room for it.
-		local capacity = ClubState.capacity()
-		local demand = (ClubState.get("Demand") :: number?) or 0
 		local roomToGrow = capacity > demand
 		amenityPrompt.ActionText = if roomToGrow
 			then ("Build %s (+%s per fan, +%d%% demand) — %s"):format(

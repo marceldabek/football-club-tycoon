@@ -20,7 +20,18 @@ export type SeasonRecord = {
 	prize: number,
 }
 
-export type History = { seasons: { SeasonRecord } }
+-- X288: a retirement (X277) used to be announced once on the season card and
+-- then be gone for ever, so a twelve-season favourite with 300 appearances left
+-- no trace anywhere in the club. The club keeps its servants.
+export type Servant = {
+	name: string,
+	age: number, -- the age they retired at
+	apps: number,
+	goals: number,
+	season: number, -- the season they retired at the end of
+}
+
+export type History = { seasons: { SeasonRecord }, servants: { Servant } }
 
 export type Honours = {
 	seasons: number,
@@ -30,8 +41,29 @@ export type Honours = {
 	bestTier: number,
 }
 
+-- TEMP cap: the list goes in the save, so keep it to the ones worth remembering.
+History.MAX_SERVANTS = 8
+
 function History.new(): History
-	return { seasons = {} }
+	return { seasons = {}, servants = {} }
+end
+
+-- Most appearances first; a tie goes to goals, then to the later season, so a
+-- new arrival never displaces an equal servant who came before.
+function History.recordRetirement(history: History, servant: Servant)
+	table.insert(history.servants, table.clone(servant))
+	table.sort(history.servants, function(a, b)
+		if a.apps ~= b.apps then
+			return a.apps > b.apps
+		end
+		if a.goals ~= b.goals then
+			return a.goals > b.goals
+		end
+		return a.season > b.season
+	end)
+	while #history.servants > History.MAX_SERVANTS do
+		table.remove(history.servants)
+	end
 end
 
 -- A title is finishing first in any division. TEMP decision (M5 spec).
