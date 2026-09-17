@@ -105,7 +105,7 @@ function T.placementRunsAlongTheBlocksLongSide()
 end
 
 function T.dresserHandlesOnlyShopFlatsAndCivicUses()
-	for _, use in { "shops", "shops with flats", "pub", "pub and cafes", "corner shop", "supermarket", "park cafe", "flats", "town hall", "school" } do
+	for _, use in { "shops", "shops with flats", "pub", "pub and cafes", "corner shop", "supermarket", "park cafe", "flats", "waterfront flats", "town hall", "school" } do
 		assert(ShopDresser.handles(use), use .. " should be handled")
 	end
 	for _, use in { "terraced row", "church", "warehouse", "park lawn" } do

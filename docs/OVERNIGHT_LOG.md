@@ -588,3 +588,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshots** SportsCentre_before and SportsCentre_after.
 - Logged X77: a car park, paths, and floodlight tags for evening games.
 - RunAll 363/363.
+
+### 2026-09-17 06:37 — Riverside waterfront flats built (X78)
+- The Studio Districts folder showed the Riverside "waterfront flats" block (140 × 40 at (620, 230)) still as a greybox box, because no dresser handled that use. `ShopDresser.FLATS_USES` now includes it, so `ShopBuilder.flats` builds it as a three-storey brick block. The Riverside greybox folder is now empty. The handles test covers the new use.
+- **Screenshot** WaterfrontFlats_1.
+- Remaining greybox after X76 and X78: the Riverside Park lawn and the station car park, both flat surfaces that other dressers build on.
+- RunAll 363/363.

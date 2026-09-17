@@ -28,7 +28,7 @@ ShopDresser.SHOP_USES = {
 	supermarket = true,
 	["park cafe"] = true,
 } :: { [string]: boolean }
-ShopDresser.FLATS_USES = { flats = true } :: { [string]: boolean }
+ShopDresser.FLATS_USES = { flats = true, ["waterfront flats"] = true } :: { [string]: boolean } -- X78: the Riverside block was left greybox
 ShopDresser.CIVIC_USES = { ["town hall"] = true, school = true } :: { [string]: boolean }
 
 local SQUARE_RATIO = 1.3 -- blocks closer to square than this may face any side
