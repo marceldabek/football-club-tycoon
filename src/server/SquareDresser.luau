@@ -83,6 +83,13 @@ end
 
 -- The finger post (X46) stands between two stalls at angle 0 and points at
 -- these (a bus stop or landmark name from TownLayout); blades step down the post.
+-- X112: a red K6 phone box on the square (free Creator Store model, MANIFEST),
+-- between the stalls at 54 and 90 degrees and inside the bollards, clear of
+-- Bridge Street's mouth at 90 degrees. Scaled from 11.4 to about 7 studs tall.
+SquareDresser.PHONE_BOX_RING = 50
+SquareDresser.PHONE_BOX_ANGLE = math.rad(72)
+local PHONE_BOX_SCALE = 0.62
+
 local FINGER_RING = 51
 local FINGER_DESTINATIONS = { "Station", "Riverside", "Lune Bridge", "Church Spire" }
 local SIGN_WHITE = Color3.fromRGB(242, 242, 236)
@@ -502,6 +509,13 @@ function SquareDresser.build(): string
 			fallbackColor = IRON,
 		})
 	end
+
+	local phone = SquareDresser.ring(centre, SquareDresser.PHONE_BOX_RING, 1, SquareDresser.PHONE_BOX_ANGLE)[1]
+	KitPlacer.place("PhoneBoxK6", phone * CFrame.new(0, TOP, 0), square, {
+		scale = PHONE_BOX_SCALE,
+		fallbackSize = Vector3.new(3, 7, 3),
+		fallbackColor = Color3.fromRGB(190, 20, 24),
+	})
 
 	square.Parent = town
 	local baskets = dressLampBaskets(town, square, centre, rng)
