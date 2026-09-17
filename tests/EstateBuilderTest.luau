@@ -324,4 +324,25 @@ function T.realEstateTotemSpotExists()
 	end
 end
 
+function T.districtSignsHaveAGatewayAndAVerge()
+	local blocks = {}
+	for _, district in TownLayout.DISTRICTS do
+		for _, block in district.blocks do
+			table.insert(blocks, block)
+		end
+	end
+	for _, name in { "Northfields", "Westdale", "Riverside" } do
+		local found = false
+		for _, district in TownLayout.DISTRICTS do
+			if district.name == name then
+				found = true
+				local gateway = EstateDresser.gatewayBlock(district, TownLayout.SQUARE.centre)
+				assert(gateway, name .. " has blocks")
+				assert(EstateDresser.totemSpot(gateway.centre, TownLayout.ROADS, blocks, 120) ~= nil, name .. " has a clear verge near its gateway block")
+			end
+		end
+		assert(found, name .. " district exists")
+	end
+end
+
 return T

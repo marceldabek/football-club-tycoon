@@ -374,3 +374,10 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Warehouses at least 40 studs wide (4 of them) get an articulated lorry parked along the front yard: a white trailer with a navy "RIVERSIDE LOGISTICS" panel on both sides, a navy cab with windscreen, and a chassis with three wheel axles. It's about 9 parts, replacing those yards' pallets, and is modelled on the reference's Riverside Logistics lorry.
 - **Screenshot** Lorry_1 (the camera sat under a neighbouring roof edge, so it's dim): the lorry in front of Rivermere Plant Hire.
 - RunAll 334/334.
+
+### 2026-09-17 04:41 — District name stones (X56)
+- **Compared with `RivermereNorthfields.png`:** the reference has a carved "NORTHFIELDS" stone at the estate entrance.
+- **Change:** EstateDresser picks the Northfields, Westdale and Riverside block nearest the market square (the "gateway" block). It searches for a clear verge near it, using the same finder as the estate totem with a wider radius, and places a limestone slab on a slate base there, carved with the district name in a serif font on both faces, facing the road. `gatewayBlock` is pure; the test checks all three districts get a spot. 2 parts per stone.
+- **Screenshot** District_sign_1: "NORTHFIELDS" in front of the terraces at (-137, -420). Riverside's stone is at (-11, 280), Westdale's at (-673, 538).
+- **Still missing from the reference (new X57):** the play area, porch canopies, and front-garden flower borders.
+- RunAll 335/335.

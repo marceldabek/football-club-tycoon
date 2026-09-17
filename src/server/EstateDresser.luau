@@ -117,8 +117,8 @@ end
 -- Pure: a spot on grass near `stop` (not on a road or pavement, but within a
 -- few studs of one, clear of every block and at least 10 from the stop), plus
 -- the road point it should face. nil if nothing nearby is clear.
-function EstateDresser.totemSpot(stop: Vector3, roads: { TownLayout.Road }, blocks: { TownLayout.Box }): (Vector3?, Vector3?)
-	for radius = 12, 48, 4 do
+function EstateDresser.totemSpot(stop: Vector3, roads: { TownLayout.Road }, blocks: { TownLayout.Box }, maxRadius: number?): (Vector3?, Vector3?)
+	for radius = 12, maxRadius or 48, 4 do
 		for k = 0, 23 do
 			local a = k / 24 * math.pi * 2
 			local p = stop + Vector3.new(math.cos(a) * radius, 0, math.sin(a) * radius)
@@ -218,6 +218,65 @@ local function buildTotem(parent: Instance, at: Vector3, facing: Vector3)
 			line.Parent = list
 		end
 	end
+end
+
+-- X56: carved stone name signs where the housing districts meet the town,
+-- like the NORTHFIELDS stone in RivermereNorthfields.png. Searched from the
+-- district block nearest the market square.
+local DISTRICT_SIGNS = { "Northfields", "Westdale", "Riverside" }
+local SIGN_STONE = Color3.fromRGB(214, 206, 188)
+
+local function buildDistrictSign(parent: Instance, name: string, at: Vector3, facing: Vector3)
+	local m = Instance.new("Model")
+	m.Name = "DistrictSign"
+	m:SetAttribute("District", name)
+	m.Parent = parent
+	local cf = CFrame.lookAt(at, Vector3.new(facing.X, 0, facing.Z))
+	local base = Instance.new("Part")
+	base.Name = "Base"
+	base.Anchored = true
+	base.Size = Vector3.new(8, 0.6, 1.6)
+	base.CFrame = cf * CFrame.new(0, 0.2, 0)
+	base.Color = Color3.fromRGB(150, 146, 136)
+	base.Material = Enum.Material.Slate
+	base.Parent = m
+	local stone = Instance.new("Part")
+	stone.Name = "Stone"
+	stone.Anchored = true
+	stone.Size = Vector3.new(7.2, 3.2, 0.9)
+	stone.CFrame = cf * CFrame.new(0, 0.45 + 1.6, 0)
+	stone.Color = SIGN_STONE
+	stone.Material = Enum.Material.Limestone
+	stone.Parent = m
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.LightInfluence = 1
+		gui.Parent = stone
+		local label = Instance.new("TextLabel")
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(0.86, 0.46)
+		label.Position = UDim2.fromScale(0.07, 0.27)
+		label.Font = Enum.Font.Merriweather
+		label.TextScaled = true
+		label.TextColor3 = Color3.fromRGB(58, 58, 54)
+		label.Text = string.upper(name)
+		label.Parent = gui
+	end
+end
+
+-- Pure: the block of `district` nearest `centre` (where the district meets town), or nil.
+function EstateDresser.gatewayBlock(district: TownLayout.District, centre: Vector3): TownLayout.Box?
+	local best, bestDistance = nil, math.huge
+	for _, block in district.blocks do
+		local d = Vector3.new(block.centre.X - centre.X, 0, block.centre.Z - centre.Z).Magnitude
+		if d < bestDistance then
+			best, bestDistance = block, d
+		end
+	end
+	return best
 end
 
 -- Removes the greybox body + roof for this exact block (matched by name and
@@ -327,6 +386,25 @@ function EstateDresser.build(): string
 			local spot, facing = EstateDresser.totemSpot(stop.position, TownLayout.ROADS, blocks)
 			if spot and facing then
 				buildTotem(estates, spot, facing)
+			end
+		end
+	end
+
+	-- X56: district name stones
+	local allBlocks: { TownLayout.Box } = {}
+	for _, district in TownLayout.DISTRICTS do
+		for _, block in district.blocks do
+			table.insert(allBlocks, block)
+		end
+	end
+	for _, district in TownLayout.DISTRICTS do
+		if table.find(DISTRICT_SIGNS, district.name) then
+			local gateway = EstateDresser.gatewayBlock(district, TownLayout.SQUARE.centre)
+			if gateway then
+				local spot, facing = EstateDresser.totemSpot(gateway.centre, TownLayout.ROADS, allBlocks, 120)
+				if spot and facing then
+					buildDistrictSign(estates, district.name, spot, facing)
+				end
 			end
 		end
 	end
