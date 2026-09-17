@@ -1733,3 +1733,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - Verified in play by watching `CrowdCount`: 230 before kick-off, 644 during the match, 205 at full time, 0 forty seconds later.
 - RunAll 465 passed.
 
+### 2026-09-17 18:58 — The pegs have names on them (X317)
+- Both dressing rooms hung blank kit-colour slabs: the home room named nobody in the starting XI, and the away room was a fixed grey however the visitors play - even though the crest colours (X263/X297) were already known and X301 had shown the world can read live club data.
+- The home shirts now carry a shirt number and a surname in the club's accent colour, taken from the published XI and re-hung whenever the lineup changes. The away room wears the visitors' colour on matchday and their club name goes on its tactics board; between matches it goes back to grey and "AWAY".
+- Verified in play: nine home pegs read "5 FAIRBANKS, 11 VOSS, 2 INGS, 10 YARROW, 1 RASHFORD-LEE, 7 ABBOTT, 8 XU, 15 THORNE, 9 YARROW" (nine pegs a room, so the last two of the XI are not hung), and during a match against Marlow Park the away shirts turned their green with "MARLOW PARK FC" on the board. A peg's number and name are visible in the screenshot behind the summary card.
+- RunAll 465 passed.
+

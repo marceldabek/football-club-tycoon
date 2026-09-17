@@ -20,6 +20,7 @@
 -- Scale: ~2.75 studs per metre, so a 105m x 68m pitch is 290 x 190 studs.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService") -- X317: the XI on the pegs
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local CrestBadge = require(ReplicatedStorage.Shared.CrestBadge)
@@ -1183,6 +1184,134 @@ local function buildOffice(parent: Instance)
 	-- office; a later rebuild (reload/wipe) used to re-enable it for good.
 	spawn.Enabled = false
 	spawn.Parent = office
+end
+
+-- X317: the peg rails hung blank kit-colour slabs. The home room named nobody
+-- in the starting XI and the away room was a fixed grey, even though X263/X297
+-- already know the visitors' colour and X301 proved the world can read live
+-- club data. The shirts carry a number and a surname now, and the away room
+-- wears the visitors' colour on matchday.
+local function shirtLabel(shirt: BasePart, number: number?, name: string?, accent: Color3)
+	local existing = shirt:FindFirstChild("Peg")
+	if existing then
+		existing:Destroy()
+	end
+	if not number then
+		return
+	end
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "Peg"
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 34
+	gui.LightInfluence = 0.4
+	gui.MaxDistance = 90
+	gui.Parent = shirt
+	local num = Instance.new("TextLabel")
+	num.Name = "Number"
+	num.BackgroundTransparency = 1
+	num.Size = UDim2.fromScale(1, 0.55)
+	num.Position = UDim2.fromScale(0, 0.08)
+	num.Font = Enum.Font.GothamBlack
+	num.TextScaled = true
+	num.TextColor3 = accent
+	num.Text = tostring(number)
+	num.Parent = gui
+	local who = Instance.new("TextLabel")
+	who.Name = "Name"
+	who.BackgroundTransparency = 1
+	who.Size = UDim2.fromScale(1, 0.24)
+	who.Position = UDim2.fromScale(0, 0.66)
+	who.Font = Enum.Font.GothamBold
+	who.TextScaled = true
+	who.TextColor3 = accent
+	who.Text = string.upper(tostring(name or ""))
+	who.Parent = gui
+end
+
+local function surname(full: string): string
+	local last = string.match(full, "([^%s]+)$")
+	return last or full
+end
+
+-- `xi` is the starting eleven in shirt order; `visitors` is the away club's
+-- name and colour on matchday, or nil between matches.
+function WorldBuilder.dressDressingRooms(xi: { { number: number, name: string } }, visitors: { name: string, kit: Color3 }?)
+	local club = PlotContext.clubModel()
+	local rooms = club and club:FindFirstChild("DressingRooms")
+	if not rooms then
+		return
+	end
+	local state = PlotContext.stateFolder()
+	local ourName = (state and state:GetAttribute("ClubName") :: string?) or Config.ClubName
+	local _, ourAccent = Config.clubCrest(ourName, true)
+
+	local home = rooms:FindFirstChild("Home")
+	local slot = 0
+	for _, shirt in (home and home:GetChildren() or {}) do
+		if shirt:IsA("BasePart") and shirt.Name == "Shirt" then
+			slot += 1
+			local p = xi[slot]
+			shirtLabel(shirt, if p then p.number else nil, if p then surname(p.name) else nil, ourAccent)
+		end
+	end
+
+	local away = rooms:FindFirstChild("Away")
+	local kit = if visitors then visitors.kit else Color3.fromRGB(150, 150, 155)
+	local accent = if visitors then select(2, Config.clubCrest(visitors.name)) else Color3.fromRGB(230, 230, 235)
+	for _, shirt in (away and away:GetChildren() or {}) do
+		if shirt:IsA("BasePart") and shirt.Name == "Shirt" then
+			shirt.Color = kit
+			shirtLabel(shirt, nil, nil, accent)
+		end
+	end
+	local board = away and away:FindFirstChild("TacticsBoard")
+	local label = board and board:FindFirstChild("Text", true)
+	if label and label:IsA("TextLabel") then
+		label.Text = if visitors then string.upper(visitors.name) else "AWAY"
+	end
+end
+
+local roomsBound = false
+
+local function bindDressingRooms()
+	local state = PlotContext.stateFolder()
+	if roomsBound or not state then
+		return
+	end
+	roomsBound = true
+	local function refresh()
+		local xi = {}
+		local raw = state:GetAttribute("Club")
+		if type(raw) == "string" and raw ~= "" then
+			local ok, club = pcall(function()
+				return HttpService:JSONDecode(raw)
+			end)
+			if ok and type(club) == "table" and type(club.players) == "table" and type(club.lineup) == "table" then
+				local byId = {}
+				for _, p in club.players do
+					byId[p.id] = p
+				end
+				for _, id in club.lineup.xi do
+					local p = byId[id]
+					if p then
+						table.insert(xi, { number = p.number, name = p.name })
+					end
+				end
+			end
+		end
+		local phase = state:GetAttribute("Phase")
+		local onMatchday = phase == "PreMatch" or phase == "Match"
+		local opponent = (state:GetAttribute("Opponent") :: string?) or ""
+		local visitors = if onMatchday and opponent ~= ""
+			then { name = opponent, kit = Config.pitchKit(Config.clubCrest(opponent)) }
+			else nil
+		WorldBuilder.dressDressingRooms(xi, visitors)
+	end
+	for _, key in { "Club", "Phase", "Opponent" } do
+		state:GetAttributeChangedSignal(key):Connect(refresh)
+	end
+	task.defer(refresh)
 end
 
 -- X312: a new player spawns at the office desk facing a wall. Nothing in the
@@ -2517,6 +2646,7 @@ function WorldBuilder.build(standLevels: { [string]: number }, amenityLevel: num
 	bindScoreboard()
 	bindOffice() -- X290
 	bindPitch() -- X296
+	bindDressingRooms() -- X317
 
 	return {
 		model = club,
