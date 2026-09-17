@@ -23,8 +23,8 @@
 -- uploaded with tools/upload_kit.py --images). While an id is still
 -- rbxassetid://0 that Texture is simply skipped and the plain material shows.
 --
--- Part budget: semiPair <= 14 (body 1, attic wedges 2, roof slabs 2, ridge 1,
--- chimney 2, garden wall <= 3 segments, hedge <= 3 segments) against a
+-- Part budget: semiPair <= 16 (body 1, attic wedges 2, roof slabs 2, ridge 1,
+-- chimney 2, garden wall <= 3 segments, hedge <= 3 segments, porch hoods 2) against a
 -- target of <= 16. driveway <= 3 (slab 1, optional parked car body + cabin 2).
 -- shed ~15-16 (body 1, roof 2, sign 1, yard 1, fence 7, pallets 2-3, +1 sand
 -- heap for "builders yard") against <= 25.
@@ -104,6 +104,11 @@ end
 -- image's left edge is the -Z end of each tile. Fraction across one house.
 EstateBuilder.DOOR_U = { semi_front_a = 83 / 512, semi_front_b = 1 - 83 / 512 } :: { [string]: number }
 EstateBuilder.GATE_WIDTH = 4 -- gap in the garden wall per door (front paths are 3 wide)
+-- door head height as a share of the front wall and door width as a share of
+-- one house: make_buildings.py draws the door at y 290..490 of 512 (top down)
+-- and x 40..126 (X57)
+EstateBuilder.DOOR_TOP_SHARE = (512 - 290) / 512
+EstateBuilder.DOOR_WIDTH_SHARE = 86 / 512
 EstateBuilder.GARDEN_OUT = 6 -- garden wall (centre line) distance out from the front wall
 -- how far the front garden reaches out from the front wall: the wall's outer
 -- face (the hedge stands behind the wall, on the house side)
@@ -379,6 +384,15 @@ function EstateBuilder.semiPair(cframe: CFrame, width: number, depth: number, he
 	for _, seg in EstateBuilder.splitAroundGaps(-width / 2 + 1, width / 2 - 1, doors, EstateBuilder.GATE_WIDTH + HEDGE_GAP_EXTRA, MIN_SEGMENT) do
 		local hedge = block("Part", "Hedge", Vector3.new(1.4, 1.8, seg.z1 - seg.z0), cframe * CFrame.new(wallX + 1, 0.9, (seg.z0 + seg.z1) / 2), HEDGE_GREEN, Enum.Material.Grass, model, false)
 		hedge.CastShadow = false
+	end
+
+	-- X57: a porch hood over each front door (RivermereNorthfields.png): a thin
+	-- slate slab standing off the front wall
+	local hoodW = EstateBuilder.DOOR_WIDTH_SHARE * width / 2 + 1
+	for _, z in doors do
+		local hoodY = wallH * EstateBuilder.DOOR_TOP_SHARE + 0.35
+		-- one part per door keeps the pair inside its 16-part budget (brackets cost 4 more)
+		block("Part", "PorchHood", Vector3.new(1.8, 0.3, hoodW), cframe * CFrame.new(-depth / 2 - 0.9, hoodY, z), ROOF_RED, Enum.Material.Slate, model, false)
 	end
 
 	model.Parent = parent

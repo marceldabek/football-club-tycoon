@@ -381,3 +381,9 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Screenshot** District_sign_1: "NORTHFIELDS" in front of the terraces at (-137, -420). Riverside's stone is at (-11, 280), Westdale's at (-673, 538).
 - **Still missing from the reference (new X57):** the play area, porch canopies, and front-garden flower borders.
 - RunAll 335/335.
+
+### 2026-09-17 04:44 — Porch hoods on the semis (X57, part)
+- Every semi front door gets a slate porch hood, 1.8 deep and door width plus 1, standing off the front wall. The door head height (0.43 of the front wall) and door width (86/512 of a house) are read from the door `tools/kit/make_buildings.py` draws on the semi_front textures. The first version had wooden brackets, which took a pair to 19 parts against the 16-part budget test, so it's one part per door.
+- **Screenshot** Porch_1: red-slate hoods over the red doors of a Northfields pair.
+- X57 still has the play area and front-garden flower borders to do.
+- RunAll 335/335.
