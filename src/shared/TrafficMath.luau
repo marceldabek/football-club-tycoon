@@ -187,4 +187,41 @@ function TrafficMath.connections(roads: { RoadLike }, roadIndex: number, atEnd: 
 	return out
 end
 
+-- F2.2 bus stops: distances along a road's polyline where a bus should pull
+-- up, for every stop within `maxOffset` studs of the road. Sorted ascending.
+function TrafficMath.stopDistances(points: { Vector3 }, stops: { Vector3 }, maxOffset: number): { number }
+	local out = {}
+	if #points < 2 then
+		return out
+	end
+	for _, stop in stops do
+		local along, _, offset = nearestOnPolyline(points, stop)
+		if offset <= maxOffset then
+			table.insert(out, along)
+		end
+	end
+	table.sort(out)
+	return out
+end
+
+-- Pure: the stop distance a bus passed moving from `from` to `to` along the
+-- road (either direction), or nil. Only one per step: the first reached.
+function TrafficMath.passedStop(from: number, to: number, stops: { number }): number?
+	if to >= from then
+		for _, d in stops do
+			if d > from and d <= to then
+				return d
+			end
+		end
+	else
+		for i = #stops, 1, -1 do
+			local d = stops[i]
+			if d < from and d >= to then
+				return d
+			end
+		end
+	end
+	return nil
+end
+
 return TrafficMath

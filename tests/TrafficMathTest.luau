@@ -199,4 +199,22 @@ function T.kerbOffsetRidesOnTheDrivingSideNearTheKerb()
 	assert(TrafficMath.kerbOffset(dir, 3, 2.2).Magnitude == 0, "never past the centre line")
 end
 
+function T.busStopsProjectOntoTheirRoad()
+	local road = { Vector3.new(0, 0, 0), Vector3.new(100, 0, 0), Vector3.new(100, 0, 100) }
+	local stops = { Vector3.new(40, 0, 18), Vector3.new(118, 0, 60), Vector3.new(50, 0, 80) }
+	local ds = TrafficMath.stopDistances(road, stops, 20)
+	assert(#ds == 2, "the far stop is ignored, got " .. #ds)
+	assert(math.abs(ds[1] - 40) < 1e-4 and math.abs(ds[2] - 160) < 1e-4, "distances along the polyline, sorted")
+	assert(#TrafficMath.stopDistances({ Vector3.zero }, stops, 20) == 0, "degenerate road")
+end
+
+function T.passedStopWorksBothWays()
+	local stops = { 40, 160 }
+	assert(TrafficMath.passedStop(30, 45, stops) == 40, "forward across a stop")
+	assert(TrafficMath.passedStop(41, 60, stops) == nil, "forward, nothing crossed")
+	assert(TrafficMath.passedStop(170, 150, stops) == 160, "backward across a stop")
+	assert(TrafficMath.passedStop(30, 170, stops) == 40, "first reached wins going forward")
+	assert(TrafficMath.passedStop(170, 30, stops) == 160, "first reached wins going backward")
+end
+
 return T

@@ -452,3 +452,8 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - **Bug found while filming a bike (X62):** some cars and bikes were driving over grass. Each carriageway is one long part per polyline segment (Northfields Avenue is a 2,665-stud part), and streaming places a part by its centre, so near the west end of town a client had only 43 of 80 carriageways. TownBuilder now marks every road model Persistent (about 360 parts). After the fix the client held 80 of 80, and 23 of 24 vehicles raycast onto a road; the last was at a junction gap.
 - **Screenshot** Cyclist_2: a rider on a red bike by the kerb in Northfields, with a post box outside Northfields Stores.
 - RunAll 345/345.
+
+### 2026-09-17 05:25 — Buses stop at the bus stops (F2.2)
+- **Roadmap F2 ("… buses, bus brakes"):** a traffic bus now pulls up for TEMP 4 s when it reaches the point on its road nearest a bus stop. Stops within 40 studs of the road's centreline count; the Station stop sits 36 out, so the first reach of 26 missed four stops. It won't stop twice in a row at the same stop. A dwelling bus counts as stopped before the leader-gap pass, so cars behind it queue rather than drive through. `TrafficMath.stopDistances` and `passedStop` are pure, with 2 new tests.
+- **Playtest:** a bus sat still for more than 2 s, 25 studs from the Riverside Park stop sign, then drove on. BusAtStop_1 shows the stop just after it left.
+- RunAll 347/347.

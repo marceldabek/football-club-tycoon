@@ -78,6 +78,7 @@
 ## Phase F — Life & sound
 - [x] F1.1 Ambient audio zones (town, river, station, park) from the Roblox library `[studio]` M
 - [x] F2.1 Client-side traffic on road polylines, distance-budgeted `[studio]` M
+- [x] F2.2 (buses pull up 4 s at every bus stop within 40 studs of their road; traffic behind queues) Buses stop at bus stops `[studio]` S
 - [x] F3.1 Client-side pedestrians on pavements, distance-budgeted `[studio]` M
 - [x] F3.2 (seated figures at the 5 nearest cafe sets within 200 studs, 8 parts each; off on Low) Cafe sitters `[studio]` S
 - [x] F3.3 (1 in 5 traffic spawns on residential streets is a bike, 7 parts, 11 studs/s by the kerb; cars pass them) Cyclists `[studio]` S

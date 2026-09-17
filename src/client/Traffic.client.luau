@@ -32,6 +32,9 @@ local function maxCars(): number
 	return if player and player:GetAttribute("Quality") == "Low" then MAX_CARS_LOW else MAX_CARS
 end
 local BUS_EVERY = 8 -- 1 in 8 spawns is a bus
+-- F2.2: buses pull up at the TownLayout bus stops on their road
+local BUS_STOP_DWELL = 4 -- TEMP seconds stopped
+local BUS_STOP_REACH = 40 -- a stop this close to the road centreline serves it (the Station stop is 36 out)
 -- F3.3 cyclists: on residential streets only (lanes are too narrow to pass), by the kerb.
 -- Cars don't queue behind them (they're left out of the leader-gap check).
 local BIKE_EVERY = 5 -- TEMP: 1 in 5 spawns on a quiet street is a bike
@@ -131,6 +134,8 @@ type Car = {
 	jitter: number, -- per-car multiplier on its kind's base speed
 	speed: number, -- this frame's effective speed (after the leader check)
 	lastPos: Vector3, -- last computed world XZ position (Y = road/deck top), for despawn checks
+	dwell: number, -- seconds left stopped at a bus stop
+	lastStop: number?, -- distance of the stop it last pulled up at on this road (not twice in a row)
 }
 
 -- ------------------------------------------------------------------ state
@@ -288,6 +293,8 @@ local function spawnCar(roadIndex: number, distance: number, direction: number)
 		jitter = 1 + (math.random() * 2 - 1) * SPEED_JITTER,
 		speed = 0,
 		lastPos = Vector3.zero,
+		dwell = 0,
+		lastStop = nil,
 	}
 	table.insert(cars, car)
 end
@@ -416,6 +423,22 @@ local function applyLeaderGaps()
 	end
 end
 
+-- ------------------------------------------------------------------ bus stops
+
+local stopPositions: { Vector3 } = {}
+for _, stop in TownLayout.BUS_STOPS do
+	table.insert(stopPositions, stop.position)
+end
+local stopsByRoad: { [number]: { number } } = {}
+local function stopsOn(roadIndex: number): { number }
+	local cached = stopsByRoad[roadIndex]
+	if not cached then
+		cached = TrafficMath.stopDistances(TownLayout.ROADS[roadIndex].points, stopPositions, BUS_STOP_REACH)
+		stopsByRoad[roadIndex] = cached
+	end
+	return cached
+end
+
 -- ------------------------------------------------------------------ movement
 
 local function switchRoad(car: Car, connection: TrafficMath.Connection, leftover: number)
@@ -425,6 +448,7 @@ local function switchRoad(car: Car, connection: TrafficMath.Connection, leftover
 	car.kind = road.kind
 	car.length = TrafficMath.polylineLength(road.points)
 	car.distance = math.clamp(connection.distance + connection.direction * leftover, 0, car.length)
+	car.lastStop = nil
 end
 
 local function moveCar(car: Car, dt: number)
@@ -433,7 +457,19 @@ local function moveCar(car: Car, dt: number)
 		return
 	end
 
+	if car.dwell > 0 then
+		car.dwell -= dt
+		car.speed = 0
+	end
 	local newDistance = car.distance + car.direction * car.speed * dt
+	if car.isBus and car.speed > 0 then
+		local stop = TrafficMath.passedStop(car.distance, newDistance, stopsOn(car.roadIndex))
+		if stop and stop ~= car.lastStop then
+			newDistance = stop
+			car.dwell = BUS_STOP_DWELL
+			car.lastStop = stop
+		end
+	end
 	if TrafficMath.isClosed(road.points, 1e-3) then
 		local length = math.max(car.length, 1e-6)
 		car.distance = newDistance % length
@@ -495,7 +531,11 @@ RunService.RenderStepped:Connect(function(dt: number)
 	end
 
 	for _, car in cars do
-		car.speed = if car.isBike then BIKE_SPEED * car.jitter else (SPEED_BY_KIND[car.kind] or SPEED_BY_KIND.lane) * car.jitter
+		-- a bus dwelling at a stop counts as stopped before the leader-gap pass,
+		-- so the cars behind it queue instead of driving through it
+		car.speed = if car.dwell > 0 then 0
+			elseif car.isBike then BIKE_SPEED * car.jitter
+			else (SPEED_BY_KIND[car.kind] or SPEED_BY_KIND.lane) * car.jitter
 	end
 	applyLeaderGaps()
 
