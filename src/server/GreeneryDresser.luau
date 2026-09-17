@@ -21,7 +21,7 @@ GreeneryDresser.DISTRICT_KINDS = { terraced = true, estate = true }
 GreeneryDresser.STEP = 26
 GreeneryDresser.KEEP = 0.55 -- share of clear grid spots that get something (TEMP)
 GreeneryDresser.MAX_PER_DISTRICT = 120 -- TEMP part-budget cap, thinned evenly across the district
-GreeneryDresser.MAX = 420 -- TEMP overall cap
+GreeneryDresser.MAX = 520 -- TEMP overall cap
 GreeneryDresser.ROAD_CLEAR = 5 -- past the pavement's outer edge
 GreeneryDresser.BLOCK_CLEAR = 10
 GreeneryDresser.RIVER_CLEAR = 15
@@ -101,7 +101,9 @@ function GreeneryDresser.spots(): { Vector3 }
 			end
 		end
 		-- thin evenly rather than stopping part-way across the district
-		local take = math.min(#found, GreeneryDresser.MAX_PER_DISTRICT)
+		-- X117: big districts (Northfields) get a bigger share, up to double the cap
+		local cap = math.clamp(math.floor(#found * 0.5), GreeneryDresser.MAX_PER_DISTRICT, GreeneryDresser.MAX_PER_DISTRICT * 2)
+		local take = math.min(#found, cap)
 		for k = 1, take do
 			if #out >= GreeneryDresser.MAX then
 				break
