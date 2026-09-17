@@ -573,3 +573,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 - After tonight's X44–X75 dressing and layout work, I played one match on Plot 1 (DebugRun `playMatch|15|0`). It finished and saved: HUD cash went from £51,200 to £52,800, and the summary showed +£1,600 (tickets £1,200 and a £400 bonus).
 - All seven Plot 1 prompts are present and enabled: Club Office, Play Match, East Stand "Expand to Main Stand (400 seats) — £1,500", the West, North and South stands, and the Snack Bar.
 - Server boot summary: estates 2,373 parts (66 semis pairs, 52 street trees, 43 sheds); terrace streets 1,445; riverside 848; station 203.
+
+### 2026-09-17 06:31 — X67 attempt reverted (river-facing cafes)
+- I tried café tables and an A-board wherever a building backs onto the promenade, using a pure `cafeSpot` and ForecourtDresser's café set. In Studio the only match was the marina block (café tables in front of a hedge). After restricting it to pub, shop and flats blocks, nothing matched: the riverside flats stand 40+ studs behind the promenade with the marina gardens between, and "waterfront flats" and "pub and cafes" are 70+ away. I reverted it on disk and in Studio (RunAll back to 360/360) and noted on X67 that it needs a layout change to bring a pub or café block to the promenade.
+- **Screenshot** PromenadeCafe_1 shows the rejected marina-hedge placement.
