@@ -755,7 +755,11 @@ end
 -- Retirement is unconditional, so 14 became the squad's resting size, and an XI
 -- plus a full bench is 16 — the bench emptied and matchSquad started handing
 -- trialists a place in the XI. The academy refills to a matchday squad.
-local function matchdaySquadSize(): number
+-- X363: exported, because the academy was the only thing that knew it. Three
+-- separate refusals - releasing, accepting a bid and trading - stopped at
+-- `Config.SquadMin` (14) instead, two below a matchday, so the club could sell
+-- its way into the exact hole X277's review had just filled.
+function Squad.matchdaySquadSize(): number
 	return math.max(Config.SquadMin, #Pitch.ROLES + Config.BenchSize)
 end
 
@@ -787,7 +791,7 @@ function Squad.promoteYouth(players: { Player }, rng: Random, firstId: number, a
 		table.insert(graduates, p)
 	end
 
-	while #players < matchdaySquadSize() do
+	while #players < Squad.matchdaySquadSize() do
 		promote(neediestRole(players))
 	end
 

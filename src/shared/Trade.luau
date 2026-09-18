@@ -7,7 +7,9 @@
 -- TEMP rules (question logged for Marcel):
 --   * up to MAX_PLAYERS_PER_SIDE players each way
 --   * cash goes one way only, and only alongside at least one player
---   * both squads stay within Config.SquadMin..SquadMax and keep a goalkeeper
+--   * both squads stay within the caller's limits and keep a goalkeeper
+--     (X363: TradeService passes Squad.matchdaySquadSize(), an XI and a full
+--     bench, as the floor - it used to pass Config.SquadMin, two men short)
 --   * an offer lasts OFFER_SECONDS; one outgoing offer per player
 --   * traded players keep age, ratings, injuries, apps and goals, and get a
 --     new id and the lowest free shirt number at the new club

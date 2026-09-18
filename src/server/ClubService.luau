@@ -550,8 +550,10 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 		if not p then
 			return false, "Unknown player"
 		end
-		if #players <= Config.SquadMin then
-			return false, ("Squad cannot go below %d players"):format(Config.SquadMin)
+		-- X363: the matchday squad, not Config.SquadMin - see Squad.matchdaySquadSize
+		local floor = Squad.matchdaySquadSize()
+		if #players <= floor then
+			return false, ("You need %d players for an XI and a full bench"):format(floor)
 		end
 		if xiSlotOf(p.id) then
 			-- X203: with Auto Squad on, swaps are refused, so say how to get there

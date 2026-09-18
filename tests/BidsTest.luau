@@ -152,7 +152,10 @@ function T.theTopDivisionStillGetsApproaches()
 end
 
 function T.sellingCannotBreakTheSquad()
+	-- X363: `squad()` is exactly a matchday squad, so one more man is what
+	-- makes a sale possible at all
 	local players = squad()
+	table.insert(players, player(17, 58, 60, 25))
 	assert(Bids.blocker(players, 3) == nil, "a reserve can be sold")
 	-- review of X323: the man being bid for is nearly always in the XI (the
 	-- approach picks the best player, and Auto Squad starts the best players),
@@ -165,6 +168,29 @@ function T.sellingCannotBreakTheSquad()
 		table.insert(thin, player(i, 70, 74, 24))
 	end
 	assert(Bids.blocker(thin, 2) ~= nil, "not down to fewer than the minimum")
+end
+
+-- X363 ----------------------------------------------------------------------
+
+function T.aSaleMayNotEmptyTheBench()
+	-- The floor used to be Config.SquadMin (14), two below a matchday, so a
+	-- club could accept two bids and find itself naming a bench of three.
+	local floor = Squad.matchdaySquadSize()
+	assert(floor == 11 + Config.BenchSize, ("the floor should be an XI and a bench, got %d"):format(floor))
+	local players = squad()
+	while #players < floor + 1 do
+		table.insert(players, player(#players + 1, 58, 60, 25))
+	end
+	assert(Bids.blocker(players, 3) == nil, "one man spare, so the sale can go through")
+	while #players > floor do
+		table.remove(players)
+	end
+	local reason = Bids.blocker(players, 3)
+	assert(reason ~= nil, "a sale that empties a bench place should be refused")
+	assert((reason :: string):find("bench"), ("the refusal should name the bench: %s"):format(tostring(reason)))
+	-- and the squad it refused to break still names a full bench of its own
+	local lineup = Squad.autoLineup(players)
+	assert(#lineup.bench == Config.BenchSize, "the squad on the floor should still fill the bench")
 end
 
 function T.onlyAWellFormedBidIsWorthRestoring()

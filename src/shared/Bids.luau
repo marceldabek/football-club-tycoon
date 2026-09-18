@@ -138,8 +138,10 @@ function Bids.blocker(players: { Squad.Player }, playerId: number): string?
 	if not player then
 		return "That player has already gone."
 	end
-	if #players <= Config.SquadMin then
-		return ("Squad cannot go below %d players"):format(Config.SquadMin)
+	-- X363: an XI and a full bench, not Config.SquadMin, which is two short
+	local floor = Squad.matchdaySquadSize()
+	if #players <= floor then
+		return ("You need %d players for an XI and a full bench"):format(floor)
 	end
 	if (player :: Squad.Player).role == "GK" then
 		local keepers = 0

@@ -123,4 +123,24 @@ function T.offerLinesFromReceiverView()
 	assert(#buy == 2 and buy[1]:sub(1, 9) == "You give:" and buy[2] == "You pay them £900", table.concat(buy, " / "))
 end
 
+-- X363 ----------------------------------------------------------------------
+
+function T.aTradeMayNotLeaveEitherClubShortOfABench()
+	-- TradeService passes Squad.matchdaySquadSize() as the floor, so the rule
+	-- is checked here with the real number rather than this file's LIMITS of 3
+	local Squad = require(ReplicatedStorage.Shared.Squad)
+	local Config = require(ReplicatedStorage.Shared.Config)
+	local floor = Squad.matchdaySquadSize()
+	assert(floor == 11 + Config.BenchSize, ("the floor should be an XI and a bench, got %d"):format(floor))
+	local limits = { squadMin = floor, squadMax = Config.SquadMax }
+	-- two out, one in leaves the seller a man short of a matchday
+	local mine, theirs = squad(10, floor), squad(20, floor + 2)
+	local ok, reason = Trade.validate(offer({ 12, 13 }, { 22 }), mine, theirs, 0, 0, limits)
+	assert(not ok, "a trade that empties a bench place should be refused")
+	assert(reason and reason:find(tostring(floor)), ("the refusal should say how many: %s"):format(tostring(reason)))
+	-- and the same trade is fine once the seller has the depth for it
+	assert(Trade.validate(offer({ 12, 13 }, { 22 }), squad(10, floor + 1), theirs, 0, 0, limits),
+		"one man spare and the trade goes through")
+end
+
 return T

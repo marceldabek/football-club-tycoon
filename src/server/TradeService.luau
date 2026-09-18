@@ -14,13 +14,15 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Squad = require(ReplicatedStorage.Shared.Squad)
 local Trade = require(ReplicatedStorage.Shared.Trade)
 local PlotService = require(script.Parent.PlotService)
 
 local TradeService = {}
 
 local book = Trade.newBook()
-local LIMITS: Trade.Limits = { squadMin = Config.SquadMin, squadMax = Config.SquadMax }
+-- X363: a trade may not leave either club short of an XI and a full bench
+local LIMITS: Trade.Limits = { squadMin = Squad.matchdaySquadSize(), squadMax = Config.SquadMax }
 
 local function findOrCreate(parent: Instance, name: string, className: string): Instance
 	local existing = parent:FindFirstChild(name)
