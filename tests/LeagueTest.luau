@@ -136,6 +136,16 @@ function T.prizeScalesWithTierAndPosition()
 	assert(League.prizeFor(1, 1) > League.prizeFor(1, 2), "first should pay more than second")
 	assert(League.prizeFor(2, 1) > League.prizeFor(1, 1), "higher tier should pay more")
 	assert(League.prizeFor(1, 99) > 0, "unknown position still pays something")
+	-- X272: a title should be worth about the same share of a division's own
+	-- money wherever you are in the pyramid
+	local bottomShare = League.prizeFor(1, 1) / Config.Divisions[1].demandBase
+	for tier = 2, #Config.Divisions do
+		local share = League.prizeFor(tier, 1) / Config.Divisions[tier].demandBase
+		assert(math.abs(share - bottomShare) < bottomShare * 0.05,
+			("a title in tier %d is worth %.2f per demand, against %.2f at the bottom"):format(tier, share, bottomShare))
+	end
+	assert(League.prizeFor(#Config.Divisions, 1) >= 100000, "a top-flight title should be worth six figures, got " .. League.prizeFor(#Config.Divisions, 1))
+	assert(League.prizeFor(1, 1) % 50 == 0, "prizes are rounded to 50")
 end
 
 function T.isValidAcceptsSeasonsAndRejectsGarbage()

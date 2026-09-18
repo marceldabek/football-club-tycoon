@@ -307,10 +307,22 @@ function League.outcome(season: Season): (Outcome, number)
 	return "Stayed", pos
 end
 
+-- X272: the prize is a share of the division's own money rather than a
+-- hand-set multiplier, so a title is worth about the same fraction of a
+-- season's takings in the Sunday Parks League as in the Premier Division.
+function League.divisionFactor(tier: number): number
+	local division = Config.Divisions[tier]
+	local bottom = Config.Divisions[1]
+	if not division or not bottom or bottom.demandBase <= 0 then
+		return 1
+	end
+	return division.demandBase / bottom.demandBase
+end
+
 function League.prizeFor(tier: number, position: number): number
 	local base = Config.PrizeByPosition[position] or Config.PrizeByPosition[#Config.PrizeByPosition]
-	local division = Config.Divisions[tier]
-	return math.floor(base * (if division then division.prizeMultiplier else 1))
+	-- rounded to £50, like every other money figure the player is quoted
+	return math.floor(base * League.divisionFactor(tier) / 50) * 50
 end
 
 -- Ordinal helper for UI text: 1st, 2nd, 3rd...

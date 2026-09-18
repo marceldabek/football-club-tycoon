@@ -39,17 +39,26 @@ Config.FormDemandCap = 0.15
 -- The fictional pyramid, bottom to top. TEMP names and numbers (CLAUDE.md §25).
 -- baseStrength is what the squad's average overall has to keep up with.
 Config.Divisions = {
-	{ name = "Sunday Parks League", baseStrength = 44, demandBase = 600, prizeMultiplier = 1 },
-	{ name = "County League", baseStrength = 52, demandBase = 1400, prizeMultiplier = 2 },
-	{ name = "Regional Premier", baseStrength = 60, demandBase = 3000, prizeMultiplier = 4 },
-	{ name = "National League", baseStrength = 68, demandBase = 6000, prizeMultiplier = 8 },
-	{ name = "Premier Division", baseStrength = 76, demandBase = 12000, prizeMultiplier = 16 },
+	-- X272: `prizeMultiplier` used to be a hand-set 1/2/4/8/16 while the money a
+	-- division actually generates goes 1/2.3/5/10/20 with `demandBase`, so a
+	-- title was worth less and less the higher the club climbed. League.prizeFor
+	-- derives the multiplier from demandBase now; the field is gone.
+	{ name = "Sunday Parks League", baseStrength = 44, demandBase = 600 },
+	{ name = "County League", baseStrength = 52, demandBase = 1400 },
+	{ name = "Regional Premier", baseStrength = 60, demandBase = 3000 },
+	{ name = "National League", baseStrength = 68, demandBase = 6000 },
+	{ name = "Premier Division", baseStrength = 76, demandBase = 12000 },
 }
 Config.TeamsPerDivision = 6 -- double round robin = 10 matches
 Config.PromotionSpots = 2
 Config.RelegationSpots = 2
--- End-of-season prize by final position, times the division multiplier.
-Config.PrizeByPosition = { 3000, 2000, 1200, 600, 500, 400 }
+-- End-of-season prize by final position, times the division's own money (see
+-- League.prizeFor). TEMP, and raised by about two thirds in X272: at the top
+-- the old schedule paid £48,000 for a title against roughly £600,000 of gate
+-- income and a £60,000-£150,000 stand, so winning a league changed nothing.
+-- A champion now takes £5,000 in the Sunday Parks League and £100,000 in the
+-- Premier Division. See Questions for Marcel.
+Config.PrizeByPosition = { 5000, 3000, 1800, 900, 700, 500 }
 
 -- TEMP fictional opponent pools, one per division. 5 are drawn each season.
 --
