@@ -247,4 +247,49 @@ function T.roundResultsReadsBackEveryScore()
 	assert(#League.roundResults(season, 2) == 0, "an unplayed round has no results")
 end
 
+-- X355 ----------------------------------------------------------------------
+
+function T.aDivisionAimsAtTheClubItIsGoingToFace()
+	local base = Config.Divisions[1].baseStrength
+	-- a club below the standard never makes the division softer
+	assert(League.rivalTarget(1, 0) == base, "no squad yet: the division is itself")
+	assert(League.rivalTarget(1, base - 20) == base, "a poor club does not drag the division down")
+	-- a strong club pulls it up, to a point
+	local strong = League.rivalTarget(1, base + 8)
+	assert(strong > base, ("a strong club should be met by better rivals, got %d against %d"):format(strong, base))
+	assert(League.rivalTarget(1, base + 100) == base + League.RIVAL_MAX_OVER, "and it stops climbing")
+	-- promotion is still the step up: the next division starts above anything
+	-- this one can drift to
+	for tier = 1, #Config.Divisions - 1 do
+		local ceiling = Config.Divisions[tier].baseStrength + League.RIVAL_MAX_OVER
+		assert(Config.Divisions[tier + 1].baseStrength >= ceiling - 2,
+			("tier %d can drift to %d, but tier %d only starts at %d"):format(
+				tier, ceiling, tier + 1, Config.Divisions[tier + 1].baseStrength))
+	end
+end
+
+function T.tenSeasonsInOneDivisionGetHarder()
+	-- the club improves every season; the division should notice
+	local base = Config.Divisions[1].baseStrength
+	local first, last = nil, nil
+	for season = 1, 10 do
+		local playerStrength = base - 4 + season * 2
+		local s = League.newSeason(1, 100 + season, "Test FC", 1, playerStrength)
+		local total, count = 0, 0
+		for _, team in s.teams do
+			if not team.isPlayer then
+				total += team.strength
+				count += 1
+			end
+		end
+		local average = total / count
+		if season == 1 then
+			first = average
+		end
+		last = average
+	end
+	assert(last > first + 4, ("rivals should have moved: %.1f then %.1f"):format(first, last))
+	assert(last <= base + League.RIVAL_MAX_OVER + 4, ("and not run away: %.1f"):format(last))
+end
+
 return T

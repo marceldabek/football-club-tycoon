@@ -80,7 +80,28 @@ local function buildFixtures(n: number): { Fixture }
 	return fixtures
 end
 
-function League.newSeason(tier: number, seed: number, clubName: string, playerSeed: number): Season
+-- X355: the other five clubs were built from `division.baseStrength` every
+-- season and nothing ever moved them, so a club that stayed in one division
+-- met 44/52/60/68/76-rated opposition for ever while its own players improved
+-- every match (Squad.afterMatch) - the tenth Sunday Parks League season was
+-- exactly as easy as the first, against Milestone 4's "difficulty scaling".
+-- Rivals now aim just below the club they keep meeting, but never far above
+-- the division's own standard, so promotion is still the real step up. TEMP.
+League.RIVAL_GAP = 4 -- how far below the player's XI the division aims
+League.RIVAL_MAX_OVER = 10 -- and never more than this above its own standard
+
+-- Pure: what this division's rivals are built around, given the club they are
+-- up against. A weak club never makes the division weaker than it is.
+function League.rivalTarget(tier: number, playerStrength: number?): number
+	local division = Config.Divisions[tier] or Config.Divisions[1]
+	local base = division.baseStrength
+	if not playerStrength or playerStrength <= 0 then
+		return base
+	end
+	return math.clamp(playerStrength - League.RIVAL_GAP, base, base + League.RIVAL_MAX_OVER)
+end
+
+function League.newSeason(tier: number, seed: number, clubName: string, playerSeed: number, playerStrength: number?): Season
 	local rng = Random.new(seed)
 	local division = Config.Divisions[tier]
 	local n = Config.TeamsPerDivision
@@ -106,7 +127,7 @@ function League.newSeason(tier: number, seed: number, clubName: string, playerSe
 	table.insert(teams, newTeam(clubName, 0, colorToJson(Config.HomeKit), true, playerSeed))
 	for i = 2, n do
 		local pick = table.remove(pool, rng:NextInteger(1, #pool)) :: Config.Club
-		local strength = division.baseStrength + rng:NextInteger(-4, 4)
+		local strength = League.rivalTarget(tier, playerStrength) + rng:NextInteger(-4, 4)
 		-- The club's own kit, not a per-slot colour: the shirt in the 3D match
 		-- has to agree with the crest drawn beside its name in the table.
 		table.insert(teams, newTeam(pick.name, strength, table.clone(pick.kit), false, seed * 10 + i))

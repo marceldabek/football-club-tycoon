@@ -703,6 +703,16 @@ function ClubService.squadSize(): number
 	return #players
 end
 
+-- X355: the strength of the XI as the match sim sees it, so a new season can
+-- build its rivals around the club they are actually going to play. 0 for a
+-- club that has no squad yet.
+function ClubService.squadStrength(): number
+	if #players == 0 then
+		return 0
+	end
+	return Squad.strength(players, lineup.xi)
+end
+
 -- Trades (I4.1). A copy of the squad for validation; changing it changes nothing.
 function ClubService.squadCopy(): { Squad.Player }
 	local out = {}
