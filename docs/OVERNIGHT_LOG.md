@@ -1888,3 +1888,9 @@ A second read-only review agent went over tonight's later commits. Nine findings
 - **This is a balance change, so it is TEMP and it is question 23**, with the recommendation that the top number gets settled together with question 19 (how much the bigger stands cost) - how much a title is worth and how much a stand costs are the same decision.
 - RunAll 499 passed.
 
+### 2026-09-17 21:19 — The last bit of the entrance (X53)
+- X53 has been open since 04:28 with one thing left on it: the brick boundary wall that runs off either side of the gates in RivermereTurnstileEntrance.png. It was parked because the corner beside the turnstiles carries the walkway and the fans' routes, and because an upgraded stand might be built into it - "needs a stand-clearance check or a design call".
+- **The clearance check, done by measuring rather than guessing.** With all four stands at their current levels, five probes across the corner between the turnstile block and the end wall (at club-local (-113,-179), (-113,-172), (-117,-186), (-105,-179), (-121,-186)) all came back clear. So the wall is unconditional: south of the gates the perimeter wall already picks the line up 0.3 further on, and on the north side a 20-stud brick wall with a stone coping now closes the corner, with a pier and cap where it meets the turnstile block.
+- That corner was an open gap you could walk through beside the gates, which is also why it mattered beyond looks.
+- Verified in play: `BoundaryWall 20 long ... touching: nothing`, and the same for the coping, the pier and its cap. 4 parts. Screenshot of the entrance with the statue, the lamp banner and the gates.
+

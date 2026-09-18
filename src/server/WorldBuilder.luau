@@ -951,6 +951,24 @@ local function buildTurnstiles(parent: Instance)
 		plaqueText.Parent = plaqueGui
 		CrestBadge.draw(plaqueGui, SIGN_DARK:Lerp(Color3.new(1, 1, 1), 0.12), UDim2.fromScale(0.5, 0.26), UDim2.fromScale(0.5, 0.68), Vector2.new(0.5, 0))
 	end
+	-- X53: RivermereTurnstileEntrance.png has a brick boundary wall running off
+	-- either side of the gates. South of the block the perimeter wall already
+	-- picks the line up (it starts 0.3 further on), but the north side left an
+	-- open corner between the turnstiles and the end wall - you could walk
+	-- straight into the ground beside the gates. Measured in play with all four
+	-- stands built: that corner is clear, so the wall is unconditional.
+	local wallZ = -END_EDGE
+	local wallFrom, wallTo = x - 1 - 3.5, -CORNER_X
+	if wallTo > wallFrom + 2 then
+		local mid = (wallFrom + wallTo) / 2
+		local span = wallTo - wallFrom
+		box("BoundaryWall", Vector3.new(span, 3.4, 1.2), Vector3.new(mid, DECK_Y + 1.7, wallZ), brick, Enum.Material.Brick, gate)
+		box("BoundaryCoping", Vector3.new(span + 0.4, 0.4, 1.6), Vector3.new(mid, DECK_Y + 3.6, wallZ), stone, Enum.Material.Limestone, gate)
+		-- a pier where it meets the turnstile block, like the piers on the gates
+		box("BoundaryPier", Vector3.new(2, 4.2, 2), Vector3.new(wallFrom + 1, DECK_Y + 2.1, wallZ), brick, Enum.Material.Brick, gate)
+		box("BoundaryPierCap", Vector3.new(2.4, 0.4, 2.4), Vector3.new(wallFrom + 1, DECK_Y + 4.4, wallZ), stone, Enum.Material.Limestone, gate)
+	end
+
 	-- out beside the plaque (x - 3.9 .. x - 0.5), not in front of it
 	local planterX, planterZ = x - 7.5, TURNSTILE_Z + total / 2 + 2.5
 	box("Planter", Vector3.new(3, 2.2, 3), Vector3.new(planterX, DECK_Y + 1.1, planterZ), Color3.fromRGB(58, 60, 64), Enum.Material.Concrete, gate)
