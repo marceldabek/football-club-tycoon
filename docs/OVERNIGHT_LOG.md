@@ -1912,3 +1912,9 @@ A second read-only review agent went over tonight's later commits. Nine findings
 - Verified in play by flipping `NeedsName` on the live club: **clubPrompt=false, boardPrompt=false, standPrompt=false, CLUB OFFICE button visible=false, panel visible=false**, and everything back on when it was set false again.
 - RunAll 499 passed.
 
+### 2026-09-17 21:37 — One picker, one bench (X338)
+- The two lineup paths disagreed about who fills a hole. Auto Squad's second pass prefers a player of the same kind - keeper or outfield - so it never puts the reserve goalkeeper at right back. The manual repair in `ClubService` (used whenever Auto Squad is off) scored candidates on role, then rating, with no such guard: in a squad where the spare keeper is rated higher than the spare defender, a gap in the back four was filled with a goalkeeper. It also topped the bench up in raw squad order while Auto Squad sorted it by rating - and `Squad.nextSub` brings on the first name it can use, so the substitute you got depended on which path had last touched the lineup.
+- Both now share `Squad.fillSlot` (in role, then the same kind, then anyone, best rating within each) and `Squad.benchOrder` (fit, unused, best first, capped at the bench size). `Squad.autoLineup` uses them too, so there is one implementation rather than three.
+- 5 new tests: the picker never reaches for the spare keeper to fill an outfield slot, it does put a keeper in goal (and the reserve when the first is taken), it skips the injured and the already-used, the bench comes back best-first and no longer than `BenchSize`, and it skips the injured and anyone in the XI.
+- RunAll 504 passed.
+

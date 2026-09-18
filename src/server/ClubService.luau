@@ -163,46 +163,28 @@ local function repairLineup()
 	end
 	lineup.bench = newBench
 
-	-- fill empty XI slots from the best fit players not in use, in-role first
-	local function pickFor(slot: number): number?
-		local role = Pitch.ROLES[slot]
-		local best: Squad.Player? = nil
-		for _, p in players do
-			if p.injured > 0 or inUse[p.id] then
-				continue
-			end
-			if best == nil then
-				best = p
-			else
-				local b = best :: Squad.Player
-				local pIn, bIn = p.role == role, b.role == role
-				if (pIn and not bIn) or (pIn == bIn and p.overall > b.overall) then
-					best = p
-				end
-			end
-		end
-		return if best then (best :: Squad.Player).id else nil
-	end
+	-- X338: fill empty XI slots with the same picker Auto Squad uses, so a hole
+	-- is never plugged with the reserve goalkeeper
 	for slot = 1, #Pitch.ROLES do
 		if not lineup.xi[slot] then
 			-- nil when every fit player is already used: the slot stays empty and
 			-- Squad.matchSquad puts a trialist there (the auto XI fallback here
 			-- used to name a player already in the XI or on the bench)
-			local id = pickFor(slot)
+			local id = Squad.fillSlot(players, slot, inUse)
 			if id then
 				lineup.xi[slot] = id
 				inUse[id] = true
 			end
 		end
 	end
-	for _, p in players do
+	-- X338: and top the bench up in rating order, like Auto Squad, because
+	-- Squad.nextSub brings on the first name it can use
+	for _, id in Squad.benchOrder(players, inUse) do
 		if #lineup.bench >= Config.BenchSize then
 			break
 		end
-		if p.injured == 0 and not inUse[p.id] then
-			inUse[p.id] = true
-			table.insert(lineup.bench, p.id)
-		end
+		inUse[id] = true
+		table.insert(lineup.bench, id)
 	end
 end
 

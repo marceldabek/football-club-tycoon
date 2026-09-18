@@ -162,44 +162,88 @@ function Squad.autoLineup(players: { Player }): Lineup
 			end
 		end
 	end
-	-- second pass: fill gaps. Prefer same kind (keeper / outfield), else anyone.
-	for slot, role in Pitch.ROLES do
+	-- second pass: fill gaps with the shared picker (X338), which prefers the
+	-- same kind - keeper or outfield - before it reaches for anybody
+	for slot = 1, #Pitch.ROLES do
 		if xi[slot] then
 			continue
 		end
-		local wantKeeper = role == "GK"
-		local best: Player? = nil
-		for _, p in fit do
-			if taken[p.id] then
-				continue
-			end
-			local sameKind = (p.role == "GK") == wantKeeper
-			if best == nil then
-				best = p
-			elseif sameKind and (best.role == "GK") ~= wantKeeper then
-				best = p
-			end
-			if best == p and sameKind then
-				break
-			end
-		end
-		if best then
-			taken[best.id] = true
-			xi[slot] = best.id
+		local id = Squad.fillSlot(players, slot, taken)
+		if id then
+			taken[id] = true
+			xi[slot] = id
 		end
 	end
 
+	local bench = Squad.benchOrder(players, taken)
+	for _, id in bench do
+		taken[id] = true
+	end
+	return { xi = xi, bench = bench }
+end
+
+-- X338: the two lineup paths had their own idea of who fills a hole. Auto
+-- Squad's second pass prefers a player of the same kind (keeper or outfield),
+-- so it never puts the reserve goalkeeper at right back; the manual repair in
+-- ClubService scored on role-then-overall only, so with Auto Squad off a hole
+-- in the XI could be filled by the spare keeper - and it filled the bench in
+-- raw squad order while Auto Squad sorted it by rating, which then decided who
+-- came on as a substitute. Both paths use these now.
+
+-- The best available player for `slot`: in role first, then the same kind
+-- (keeper or outfield), then anyone, and the higher rating within each of
+-- those. `taken` is the set of ids already used.
+function Squad.fillSlot(players: { Player }, slot: number, taken: { [number]: boolean }): number?
+	local role = Pitch.ROLES[slot]
+	local wantKeeper = role == "GK"
+	local best: Player? = nil
+	local function rank(p: Player): number
+		if p.role == role then
+			return 2
+		end
+		return if (p.role == "GK") == wantKeeper then 1 else 0
+	end
+	for _, p in players do
+		if p.injured > 0 or taken[p.id] then
+			continue
+		end
+		if best == nil then
+			best = p
+		else
+			local b = best :: Player
+			local pr, br = rank(p), rank(b)
+			if pr > br or (pr == br and (p.overall > b.overall or (p.overall == b.overall and p.id < b.id))) then
+				best = p
+			end
+		end
+	end
+	return if best then (best :: Player).id else nil
+end
+
+-- Who sits on the bench: the fittest available players by rating, best first,
+-- up to Config.BenchSize. The order matters because Squad.nextSub takes the
+-- first one it can use.
+function Squad.benchOrder(players: { Player }, taken: { [number]: boolean }): { number }
+	local spare: { Player } = {}
+	for _, p in players do
+		if p.injured == 0 and not taken[p.id] then
+			table.insert(spare, p)
+		end
+	end
+	table.sort(spare, function(a, b)
+		if a.overall ~= b.overall then
+			return a.overall > b.overall
+		end
+		return a.id < b.id
+	end)
 	local bench: { number } = {}
-	for _, p in fit do
+	for _, p in spare do
 		if #bench >= Config.BenchSize then
 			break
 		end
-		if not taken[p.id] then
-			taken[p.id] = true
-			table.insert(bench, p.id)
-		end
+		table.insert(bench, p.id)
 	end
-	return { xi = xi, bench = bench }
+	return bench
 end
 
 -- Team strength for the hidden sim: mean overall of the XI with a penalty

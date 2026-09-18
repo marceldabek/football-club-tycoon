@@ -548,4 +548,107 @@ function T.aTrialistCanWinTheAwardAndTheirGoalsAreAdmitted()
 	assert(string.find(joined, "A trialist scored 2", 1, true), "the goals should be admitted: " .. joined)
 end
 
+-- X338: one picker and one bench order, shared by Auto Squad and the manual repair
+
+local function squadFor338(): { Squad.Player }
+	local out = {}
+	local function add(id, role, overall, injured)
+		table.insert(out, {
+			id = id, name = "P" .. id, number = id, role = role, age = 24,
+			overall = overall, potential = overall + 5, injured = injured or 0, apps = 0, goals = 0, look = id,
+		})
+	end
+	add(1, "GK", 60)
+	add(2, "GK", 58) -- the reserve keeper: must never fill an outfield hole
+	for i = 3, 14 do
+		add(i, if i < 7 then "DEF" elseif i < 11 then "MID" else "FWD", 40 + i)
+	end
+	return out
+end
+
+function T.fillSlotNeverReachesForTheSpareKeeper()
+	local players = squadFor338()
+	local taken = { [1] = true } -- the first keeper is already in goal
+	-- a defender's slot: the reserve keeper (58) outranks every outfielder here,
+	-- so a rating-only picker would put him at the back
+	local slot = nil
+	for i, role in Pitch.ROLES do
+		if role == "DEF" then
+			slot = i
+			break
+		end
+	end
+	assert(slot, "the formation should have a defender")
+	local id = Squad.fillSlot(players, slot :: number, taken)
+	assert(id ~= 2, "the reserve goalkeeper should not fill an outfield slot")
+	local picked = nil
+	for _, p in players do
+		if p.id == id then
+			picked = p
+		end
+	end
+	assert(picked and picked.role == "DEF", "it should be a defender, got " .. tostring(picked and picked.role))
+end
+
+function T.fillSlotPrefersAKeeperInGoal()
+	local players = squadFor338()
+	local slot = nil
+	for i, role in Pitch.ROLES do
+		if role == "GK" then
+			slot = i
+		end
+	end
+	assert(Squad.fillSlot(players, slot :: number, {}) == 1, "the better keeper goes in goal")
+	assert(Squad.fillSlot(players, slot :: number, { [1] = true }) == 2, "and the reserve keeper when he is taken")
+end
+
+function T.fillSlotSkipsTheInjuredAndTheTaken()
+	local players = squadFor338()
+	players[3].injured = 2
+	local taken = {}
+	for i = 4, 14 do
+		taken[players[i].id] = true
+	end
+	local slot = nil
+	for i, role in Pitch.ROLES do
+		if role == "DEF" then
+			slot = i
+			break
+		end
+	end
+	local id = Squad.fillSlot(players, slot :: number, taken)
+	assert(id ~= players[3].id, "an injured player should not be picked")
+end
+
+function T.benchComesBackBestFirst()
+	local players = squadFor338()
+	local bench = Squad.benchOrder(players, {})
+	assert(#bench > 0, "there should be a bench")
+	local best = nil
+	for i, id in bench do
+		local p = nil
+		for _, q in players do
+			if q.id == id then
+				p = q
+			end
+		end
+		assert(p, "bench ids should be real players")
+		if best then
+			assert(p.overall <= best, ("bench should be best first: %d after %d"):format(p.overall, best))
+		end
+		best = p.overall
+		assert(i <= Config.BenchSize, "and no longer than the bench")
+	end
+end
+
+function T.benchSkipsTheInjuredAndTheTaken()
+	local players = squadFor338()
+	players[5].injured = 1
+	local bench = Squad.benchOrder(players, { [players[6].id] = true })
+	for _, id in bench do
+		assert(id ~= players[5].id, "an injured player should not be benched")
+		assert(id ~= players[6].id, "nor one already in the XI")
+	end
+end
+
 return T
