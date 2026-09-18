@@ -618,11 +618,19 @@ local FAN_PART_OFFSETS: { [string]: Vector3 } = {
 -- X297: `away` hops the visiting end instead of the home stands. An away goal
 -- used to be met by a still, silent ground; now the one pocket wearing their
 -- colours goes up while the rest of the ground sits.
-local function crowdReact(away: boolean?)
-	if away then
-		MatchAudio.nearMiss() -- the home groan still carries the moment
-	else
-		MatchAudio.goalCheer()
+-- X335: the ground reacted to exactly one thing, a goal. A save at the other
+-- end, a shot that flies over, kick-off and the final whistle all passed in
+-- silence, with nobody moving - against CLAUDE.md s10's crowd that reflects
+-- the match. `strength` scales the hop (1 = a goal); `sound` is off for the
+-- small ones so the audio does not turn into a wall.
+local function crowdReact(away: boolean?, strength: number?, sound: boolean?)
+	local size = strength or 1
+	if sound ~= false then
+		if away then
+			MatchAudio.nearMiss() -- the home groan still carries the moment
+		else
+			MatchAudio.goalCheer()
+		end
 	end
 	local club = ClubRef.presentModel()
 	local stands = club and club:FindFirstChild("Stands")
@@ -663,7 +671,7 @@ local function crowdReact(away: boolean?)
 			task.delay(delay, function()
 				fan.Position = restPos
 				TweenService:Create(fan, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 2, true),
-					{ Position = restPos + Vector3.new(0, 1.5, 0) }):Play()
+					{ Position = restPos + Vector3.new(0, 1.5 * size, 0) }):Play()
 			end)
 		end
 	end
@@ -810,6 +818,9 @@ function Presenter.playSequence(self: Presenter, ev: Event, shotAt: number)
 		if team == "Home" then
 			MatchAudio.nearMiss() -- X183
 		end
+		-- X335: our keeper tipping one over is worth a noise from the end that
+		-- was watching it, and their keeper saving from us deflates ours
+		crowdReact(team == "Home", 0.45, false)
 		task.wait(0.9)
 		keeper.busy = false
 		self.holder = { team = opp, idx = 1 }
@@ -818,6 +829,7 @@ function Presenter.playSequence(self: Presenter, ev: Event, shotAt: number)
 		if team == "Home" then
 			MatchAudio.nearMiss() -- X183
 		end
+		crowdReact(team ~= "Home", 0.35, false) -- X335: the near miss
 		task.wait(1.2)
 		self.holder = { team = opp, idx = 1 }
 		task.wait(0.6)
@@ -838,6 +850,7 @@ function Presenter.start(self: Presenter, kickoffAt: number)
 	self:resetToFormation()
 	self:placeBall(centre())
 	self.holder = { team = self.swapped and "Away" or "Home", idx = 7 }
+	crowdReact(false, 0.6, false) -- X335: the ground gets up for kick-off
 
 	task.spawn(function()
 		local secondsPerMinute = self.duration / 90
@@ -928,6 +941,7 @@ end
 
 -- Full time: everyone heads for the tunnel, then the visuals are removed.
 function Presenter.finish(self: Presenter)
+	crowdReact(false, 0.5, false) -- X335: and again at the final whistle
 	self.mode = "ended"
 	self.holder = nil
 	self.flight = nil
