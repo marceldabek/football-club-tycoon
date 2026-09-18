@@ -226,15 +226,20 @@ Config.CoachLevels = {
 -- an hour in, then the last twenty, then the last ten.
 Config.AutoSubMinutes = { 60, 72, 82 }
 -- Level 0 = no scout. Index = level (no zero entry). Shortlist refreshes every match.
+-- X337: `potentialDoubt` is how wide a band the scout will commit a player's
+-- ceiling to, in potential points. A 600 pound local man was exactly as
+-- truthful as a 60,000 pound continental network, against CLAUDE.md s8's
+-- "accuracy of information later", so the top levels only bought quantity.
+-- TEMP: ten points of doubt down to none at the top.
 Config.ScoutLevels = {
-	{ name = "Local Scout", cost = 600, prospects = 3, overallBonus = 2, potentialBoost = 3 },
-	{ name = "Regional Scout", cost = 3000, prospects = 4, overallBonus = 4, potentialBoost = 6 },
-	{ name = "Scouting Network", cost = 8000, prospects = 5, overallBonus = 6, potentialBoost = 10 },
+	{ name = "Local Scout", cost = 600, prospects = 3, overallBonus = 2, potentialBoost = 3, potentialDoubt = 10 },
+	{ name = "Regional Scout", cost = 3000, prospects = 4, overallBonus = 4, potentialBoost = 6, potentialDoubt = 7 },
+	{ name = "Scouting Network", cost = 8000, prospects = 5, overallBonus = 6, potentialBoost = 10, potentialDoubt = 5 },
 	-- The top two exist so a club with five figures spare has something worth
 	-- buying: prospects are generated around the squad's own average, so a bigger
 	-- overallBonus is the only way cash turns into a genuinely better XI.
-	{ name = "National Network", cost = 22000, prospects = 5, overallBonus = 9, potentialBoost = 14 },
-	{ name = "Continental Network", cost = 60000, prospects = 6, overallBonus = 12, potentialBoost = 18 },
+	{ name = "National Network", cost = 22000, prospects = 5, overallBonus = 9, potentialBoost = 14, potentialDoubt = 3 },
+	{ name = "Continental Network", cost = 60000, prospects = 6, overallBonus = 12, potentialBoost = 18, potentialDoubt = 0 },
 }
 
 -- Stand chain, shared by every plot. Level 0 is an empty plot: open

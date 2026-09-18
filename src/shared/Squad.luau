@@ -25,7 +25,10 @@ export type Player = {
 	look: number, -- appearance seed, see Appearance.luau
 }
 
-export type Prospect = Player & { fee: number }
+-- X337: a prospect's ceiling reaches the player as the band his scout will
+-- commit to, not as a fact. The exact `potential` stays on the server until he
+-- signs.
+export type Prospect = Player & { fee: number, potentialLow: number?, potentialHigh: number? }
 
 export type Lineup = { xi: { number }, bench: { number } }
 
@@ -765,6 +768,40 @@ function Squad.value(p: Player): number
 	return math.max(math.floor((Squad.fee(p) * ageFactor) / 50) * 50, 100)
 end
 
+-- X337: how wide a band this scout reports a ceiling in. 0 means he names it.
+function Squad.scoutDoubt(scoutLevel: number): number
+	local level = Config.ScoutLevels[scoutLevel]
+	return if level then (level.potentialDoubt or 0) else 0
+end
+
+-- X337: the band a scout will commit a ceiling to. The truth is always inside
+-- it, but the band is deliberately *not* centred on it, so a player cannot
+-- read the midpoint and know the number anyway. `seed` makes it stable: the
+-- same prospect is reported the same way every time the panel is rebuilt.
+-- `floor` is the lowest the band is allowed to start: pass a prospect's
+-- current overall, because no scout would suggest a player's ceiling is below
+-- what he already is.
+function Squad.potentialBand(potential: number, width: number, seed: number, floor: number?): (number, number)
+	if width <= 0 then
+		return potential, potential
+	end
+	local bottom = math.max(floor or Squad.MIN_OVERALL, Squad.MIN_OVERALL)
+	local rng = Random.new(seed)
+	local low = potential - rng:NextInteger(0, width)
+	local high = low + width
+	-- a band that runs past the ratings the game uses, or below what the player
+	-- already is, slides back inside without ever leaving the truth out of it
+	if low < bottom then
+		low = bottom
+		high = math.max(low + width, potential)
+	end
+	if high > Squad.MAX_OVERALL then
+		high = Squad.MAX_OVERALL
+		low = math.min(high - width, potential)
+	end
+	return low, high
+end
+
 -- Scout shortlist. Better scouts find more and higher-ceiling players.
 -- Ids are negative and unique per seed so they never clash with squad ids.
 function Squad.prospects(seed: number, avgOverall: number, scoutLevel: number, avoidNames: { [string]: boolean }?): { Prospect }
@@ -784,6 +821,8 @@ function Squad.prospects(seed: number, avgOverall: number, scoutLevel: number, a
 		local p = makePlayer(rng, -(seed * 100 + i), names[i], 0, role, avgOverall + level.overallBonus, level.potentialBoost, 27)
 		local prospect = p :: any
 		prospect.fee = Squad.fee(p)
+		-- X337: what the scout will actually say about his ceiling
+		prospect.potentialLow, prospect.potentialHigh = Squad.potentialBand(p.potential, level.potentialDoubt or 0, p.id, p.overall)
 		table.insert(list, prospect)
 	end
 	return list

@@ -737,4 +737,96 @@ function T.aForcedSubRespectsTheMatchLimitAndAManAlreadyOff()
 	assert(Squad.forcedSub(squad, { made[1] }, made[1].out) == nil, "and a man already off cannot go off again")
 end
 
+-- X337 ----------------------------------------------------------------------
+
+function T.aScoutsBandAlwaysHoldsTheTruth()
+	for width = 1, 12 do
+		for potential = Squad.MIN_OVERALL, Squad.MAX_OVERALL, 7 do
+			for seed = 1, 6 do
+				local low, high = Squad.potentialBand(potential, width, seed)
+				assert(low <= potential and potential <= high,
+					("%d is outside %d-%d (width %d)"):format(potential, low, high, width))
+				assert(high - low == width, ("%d-%d should be %d wide"):format(low, high, width))
+			end
+		end
+	end
+end
+
+function T.aBandNeverLeavesTheRatingsTheGameUses()
+	for _, potential in { Squad.MIN_OVERALL, Squad.MIN_OVERALL + 1, Squad.MAX_OVERALL - 1, Squad.MAX_OVERALL } do
+		for seed = 1, 20 do
+			local low, high = Squad.potentialBand(potential, 10, seed)
+			assert(low >= Squad.MIN_OVERALL, ("low %d under the floor"):format(low))
+			assert(high <= Squad.MAX_OVERALL, ("high %d over the ceiling"):format(high))
+			assert(low <= potential and potential <= high, ("%d is outside %d-%d"):format(potential, low, high))
+		end
+	end
+end
+
+function T.theBestScoutNamesTheNumber()
+	local low, high = Squad.potentialBand(72, 0, 5)
+	assert(low == 72 and high == 72, ("got %d-%d"):format(low, high))
+	local levels = Config.ScoutLevels
+	assert(Squad.scoutDoubt(#levels) == 0, "the top scouting network deals in facts")
+	assert(Squad.scoutDoubt(0) == 0 and Squad.scoutDoubt(#levels + 1) == 0, "and no scout at all cannot be wrong")
+	local previous = math.huge
+	for i, level in levels do
+		local doubt = level.potentialDoubt or 0
+		assert(doubt <= previous, ("level %d (%s) is vaguer than the one below it"):format(i, level.name))
+		previous = doubt
+	end
+end
+
+function T.theMidpointIsNotAShortcutToTheRealNumber()
+	-- the band is deliberately not centred on the truth
+	local same, total = 0, 0
+	for seed = 1, 300 do
+		local low, high = Squad.potentialBand(70, 10, seed)
+		total += 1
+		if (low + high) / 2 == 70 then
+			same += 1
+		end
+	end
+	assert(same < total / 2, ("the midpoint gave it away %d times in %d"):format(same, total))
+end
+
+function T.aBandNeverStartsBelowWhatThePlayerAlreadyIs()
+	for seed = 1, 30 do
+		local low, high = Squad.potentialBand(60, 10, seed, 58)
+		assert(low >= 58, ("band %d-%d starts under the floor"):format(low, high))
+		assert(low <= 60 and 60 <= high, ("60 is outside %d-%d"):format(low, high))
+		assert(high - low == 10, ("%d-%d should be 10 wide"):format(low, high))
+	end
+	-- a floor under the game's own minimum changes nothing
+	local low = Squad.potentialBand(60, 10, 3, 5)
+	assert(low >= Squad.MIN_OVERALL, "the ratings floor still applies")
+end
+
+function T.theSameProspectIsReportedTheSameWay()
+	for seed = 1, 10 do
+		local lowA, highA = Squad.potentialBand(64, 7, seed)
+		local lowB, highB = Squad.potentialBand(64, 7, seed)
+		assert(lowA == lowB and highA == highB, "a rebuilt panel must not re-roll the band")
+	end
+end
+
+function T.everyProspectCarriesHisScoutsBand()
+	for scoutLevel = 1, #Config.ScoutLevels do
+		local list = Squad.prospects(1234, 55, scoutLevel)
+		assert(#list > 0, "the scout found nobody")
+		local width = Config.ScoutLevels[scoutLevel].potentialDoubt or 0
+		for _, p in list do
+			local low, high = (p :: any).potentialLow, (p :: any).potentialHigh
+			assert(type(low) == "number" and type(high) == "number", "no band on a prospect")
+			assert(low <= p.potential and p.potential <= high,
+				("%s: %d outside %d-%d"):format(p.name, p.potential, low, high))
+			-- no scout suggests a ceiling below what the player already is
+			assert(low >= p.overall, ("%s: band %d-%d starts under his %d OVR"):format(p.name, low, high, p.overall))
+			if width == 0 then
+				assert(low == high and low == p.potential, "the best scout names it")
+			end
+		end
+	end
+end
+
 return T

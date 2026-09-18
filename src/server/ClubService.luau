@@ -61,6 +61,24 @@ local function dropBidIfGone()
 	ClubState.set("BidNews", "")
 end
 
+-- X337: the shortlist as the player is allowed to see it. The exact ceiling
+-- stays here until he signs; the client gets the band his scout will commit to
+-- (recomputed for a shortlist saved before scouts had any doubt at all).
+local function publishedShortlist(): { any }
+	local out = {}
+	for _, p in shortlist do
+		local copy = table.clone(p) :: any
+		local low, high = p.potentialLow, p.potentialHigh
+		if type(low) ~= "number" or type(high) ~= "number" then
+			low, high = Squad.potentialBand(p.potential, Squad.scoutDoubt(scoutLevel), p.id, p.overall)
+		end
+		copy.potentialLow, copy.potentialHigh = low, high
+		copy.potential = nil
+		table.insert(out, copy)
+	end
+	return out
+end
+
 local function publish()
 	dropBidIfGone()
 	ClubState.set("Club", HttpService:JSONEncode({
@@ -69,7 +87,7 @@ local function publish()
 		autoSquad = autoSquad,
 		coachLevel = coachLevel,
 		scoutLevel = scoutLevel,
-		shortlist = shortlist,
+		shortlist = publishedShortlist(), -- X337
 		shortlistMatchesLeft = math.max(SHORTLIST_MATCHES - shortlistAge, 0),
 		bid = bid, -- X323
 	}))

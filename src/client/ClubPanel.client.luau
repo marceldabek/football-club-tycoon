@@ -36,6 +36,9 @@ type Player = {
 	goals: number,
 	fee: number?,
 	look: number?,
+	-- X337: a prospect's ceiling arrives as the band his scout will commit to
+	potentialLow: number?,
+	potentialHigh: number?,
 }
 type Club = {
 	players: { Player },
@@ -599,8 +602,13 @@ local function renderScouting(club: Club)
 		textW = game:GetService("TextService"):GetTextSize(title.Text, 22, Theme.fonts.display, Vector2.new(400, 64)).X
 	end)
 	cell(head, "|", 58 + textW + 14, 12, { TextColor3 = GREY, Size = UDim2.fromOffset(12, 64), TextYAlignment = Enum.TextYAlignment.Center })
+	-- X337: what this scout is worth beyond the size of his list
+	local doubt = if level then (level.potentialDoubt or 0) else 0
+	local precision = if doubt == 0
+		then "He names a ceiling exactly."
+		else ("He puts a ceiling within %d."):format(doubt)
 	local desc = if level
-		then ("Finds %d prospects after every match."):format(level.prospects)
+		then ("Finds %d prospects after every match. %s"):format(level.prospects, precision)
 		else "A scout brings you a short list of players you can sign, refreshed after every match."
 	cell(head, desc, 58 + textW + 32, 520, { TextColor3 = Color3.fromRGB(210, 215, 225), Size = UDim2.new(1, -(58 + textW + 32) - 300, 0, 64), TextYAlignment = Enum.TextYAlignment.Center, TextTruncate = Enum.TextTruncate.AtEnd })
 	if nextLevel then
@@ -621,7 +629,7 @@ local function renderScouting(club: Club)
 		end
 	end
 	if not level then
-		infoFooter("Hire a scout to start receiving prospects. Better scouts find more players with higher potential.")
+		infoFooter("Hire a scout to start receiving prospects. Better scouts find more players, with higher ceilings, and can tell you more precisely how high.")
 		return
 	end
 
@@ -679,7 +687,13 @@ local function renderScouting(club: Club)
 		cell(r, p.name, 96, 320, { Font = Theme.fonts.display, TextSize = 19, Size = UDim2.fromOffset(320, 30), Position = UDim2.fromOffset(96, 16), TextTruncate = Enum.TextTruncate.AtEnd })
 		cell(r, ("%s  ·  Age %d"):format(p.role, p.age), 96, 320, { TextColor3 = BLUE_LINE, TextSize = 14, Size = UDim2.fromOffset(320, 22), Position = UDim2.fromOffset(96, 46) })
 		cell(r, tostring(p.overall), 0, 90, { Position = UDim2.new(COL_OVR, -12, 0, 0), Size = UDim2.fromOffset(90, ROW_H), Font = Theme.fonts.display, TextSize = 32, TextColor3 = ACCENT, TextXAlignment = Enum.TextXAlignment.Center, TextYAlignment = Enum.TextYAlignment.Center })
-		cell(r, tostring(p.potential), 0, 110, { Position = UDim2.new(COL_POT, -12, 0, 0), Size = UDim2.fromOffset(110, ROW_H), Font = Theme.fonts.display, TextSize = 32, TextColor3 = CYAN, TextXAlignment = Enum.TextXAlignment.Center, TextYAlignment = Enum.TextYAlignment.Center })
+		-- X337: a band, unless the scout is good enough to name the number
+		local low, high = p.potentialLow, p.potentialHigh
+		local band = low ~= nil and high ~= nil and low ~= high
+		local potText = if band
+			then ("%d-%d"):format(low :: number, high :: number)
+			else tostring(p.potential or high or low or "?")
+		cell(r, potText, 0, 110, { Position = UDim2.new(COL_POT, -12, 0, 0), Size = UDim2.fromOffset(110, ROW_H), Font = Theme.fonts.display, TextSize = if band then 24 else 32, TextColor3 = CYAN, TextXAlignment = Enum.TextXAlignment.Center, TextYAlignment = Enum.TextYAlignment.Center })
 		if canManage() then
 			local sign = Theme.button(r, ("Sign %s"):format(money(p.fee or 0)), "primary", {
 				Size = UDim2.new(1 - COL_FEE, -36, 0, 48),
@@ -702,7 +716,11 @@ local function renderScouting(club: Club)
 	local keeps = if type(left) == "number" and left > 0
 		then ("This list keeps for %d more match%s, so you can save up for someone."):format(left, if left == 1 then "" else "es")
 		else "A new list is scouted after your next match."
-	infoFooter("Potential shows how far a player can develop. Young players improve faster with a coach.  " .. keeps)
+	-- X337: the band is the scout's opinion, so say whose opinion it is
+	local trust = if doubt == 0
+		then "Your scouting network reports a ceiling exactly. "
+		else ("Potential is your scout's estimate, and a better scout narrows it (within %d today). "):format(doubt)
+	infoFooter("Potential shows how far a player can develop. Young players improve faster with a coach. " .. trust .. keeps)
 end
 
 -- ----------------------------------------------------------------- League tab
