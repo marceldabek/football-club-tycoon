@@ -582,6 +582,12 @@ end
 -- (and says what to save for when nothing is affordable), with the run-in
 -- taking priority because it expires.
 function midGameHint(): string
+	-- X323: an offer for one of your players expires at the next match, so it
+	-- comes before anything else the pill might say
+	local bidNews = get("BidNews")
+	if type(bidNews) == "string" and bidNews ~= "" then
+		return bidNews .. " CLUB OFFICE, then SQUAD."
+	end
 	local roundsLeft = (get("Rounds") or 10) - (get("Round") or 0)
 	local position = get("Position") or 99
 	-- Review of X295: this promised promotion from 3rd (only two go up) and

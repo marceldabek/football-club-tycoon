@@ -301,6 +301,57 @@ end
 -- middle, the current hint on the right. Built once, then only its text moves.
 local SQUAD_BAR_H = 56
 
+-- X323: the standing approach from another club, across the top of the squad
+-- screen. Hidden (and the board full height) when nobody has come in.
+local BID_H = 64
+
+local bidCard = Instance.new("Frame")
+bidCard.Name = "Bid"
+bidCard.BackgroundColor3 = Color3.fromRGB(38, 32, 16)
+bidCard.BorderSizePixel = 0
+bidCard.Size = UDim2.new(1, 0, 0, BID_H)
+bidCard.Visible = false
+bidCard.Parent = squadPage
+Theme.corner(bidCard, Theme.cardRadius)
+Theme.stroke(bidCard, "selected")
+
+local bidTitle = Theme.text(bidCard, "", "body", {
+	Name = "Title",
+	Position = UDim2.fromOffset(16, 8),
+	Size = UDim2.new(1, -300, 0, 22),
+	TextSize = 17,
+	Font = Theme.fonts.bold,
+	TextColor3 = Theme.colors.accent,
+	TextXAlignment = Enum.TextXAlignment.Left,
+})
+local bidDetail = Theme.text(bidCard, "", "muted", {
+	Name = "Detail",
+	Position = UDim2.fromOffset(16, 32),
+	Size = UDim2.new(1, -300, 0, 20),
+	TextSize = 14,
+	TextXAlignment = Enum.TextXAlignment.Left,
+})
+local bidAccept = Theme.button(bidCard, "ACCEPT", "primary", {
+	Name = "Accept",
+	Position = UDim2.new(1, -274, 0.5, 0),
+	AnchorPoint = Vector2.new(0, 0.5),
+	Size = UDim2.fromOffset(130, 40),
+	TextSize = 15,
+})
+local bidDecline = Theme.button(bidCard, "KEEP HIM", "secondary", {
+	Name = "Decline",
+	Position = UDim2.new(1, -136, 0.5, 0),
+	AnchorPoint = Vector2.new(0, 0.5),
+	Size = UDim2.fromOffset(120, 40),
+	TextSize = 15,
+})
+bidAccept.Activated:Connect(function()
+	actionEvent:FireServer("acceptBid")
+end)
+bidDecline.Activated:Connect(function()
+	actionEvent:FireServer("declineBid")
+end)
+
 local boardHolder = Instance.new("Frame")
 boardHolder.Name = "Board"
 boardHolder.BackgroundTransparency = 1
@@ -407,6 +458,16 @@ local function renderSquad(club: Club)
 		})
 	end
 	local manage = canManage()
+	-- X323: an approach for one of your players, if there is one standing
+	local offer: any = club.bid
+	local showBid = manage and type(offer) == "table" and type(offer.fee) == "number"
+	bidCard.Visible = showBid
+	boardHolder.Position = UDim2.fromOffset(0, if showBid then BID_H + 8 else 0)
+	boardHolder.Size = UDim2.new(1, 0, 1, -SQUAD_BAR_H - 8 - (if showBid then BID_H + 8 else 0))
+	if showBid then
+		bidTitle.Text = ("%s want %s"):format(tostring(offer.club), tostring(offer.playerName))
+		bidDetail.Text = ("%s now, and he leaves today. The offer is off at your next match."):format(money(offer.fee))
+	end
 	;(board :: LineupBoard.Board).update(club :: any, selectedId, manage and not club.autoSquad, manage)
 
 	local on = club.autoSquad

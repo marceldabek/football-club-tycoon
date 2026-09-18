@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Squad = require(ReplicatedStorage.Shared.Squad)
+local Bids = require(ReplicatedStorage.Shared.Bids)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local Profile = require(ReplicatedStorage.Shared.Profile)
 local Trade = require(ReplicatedStorage.Shared.Trade)
@@ -23,6 +24,11 @@ local autoSquad = true
 local coachLevel = 0
 local scoutLevel = 0
 local shortlist: { Squad.Prospect } = {}
+-- X323: the standing approach from a bigger club, if there is one. It arrives
+-- after a match and lasts until the next one is played, and it is saved, so
+-- rejoining mid-week does not quietly lose the offer.
+local bid: Bids.Bid? = nil
+
 -- X289: this season's academy intake, for the board outside the hut. Saved,
 -- because otherwise a rejoin blanked the board and emptied the youth session
 -- until the next rollover (review).
@@ -51,6 +57,7 @@ local function publish()
 		scoutLevel = scoutLevel,
 		shortlist = shortlist,
 		shortlistMatchesLeft = math.max(SHORTLIST_MATCHES - shortlistAge, 0),
+		bid = bid, -- X323
 	}))
 	ClubState.set("CoachLevel", coachLevel)
 	ClubState.set("ScoutLevel", scoutLevel)
@@ -212,6 +219,7 @@ local function generateFresh()
 	scoutLevel = 0
 	shortlist = {}
 	academy = {} -- X289: a brand-new club has produced nobody yet
+	bid = nil -- X323: and nobody has come in for anyone
 	lineup = { xi = {}, bench = {} }
 	-- Review of X325: the intake is published on the restore path only, and
 	-- ReplicatedStorage.Clubs.PlotN is found-or-created and never cleared, so a
@@ -276,6 +284,11 @@ function ClubService.restore(data: any?)
 		end
 	end
 	ClubState.set("Academy", HttpService:JSONEncode(academy))
+	-- X323: a standing approach, if the save was made between matches
+	bid = nil
+	if type(data.bid) == "table" and type(data.bid.playerId) == "number" and type(data.bid.fee) == "number" then
+		bid = data.bid
+	end
 	if type(data.shortlist) == "table" then
 		for _, p in data.shortlist do
 			if validPlayer(p) and type(p.fee) == "number" then
@@ -306,6 +319,7 @@ function ClubService.serialize()
 		shortlist = shortlist,
 		shortlistAge = shortlistAge,
 		academy = academy,
+		bid = bid, -- X323
 		nextId = nextId,
 	}
 end
@@ -459,6 +473,40 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 		recomputeLineup()
 		publish()
 		return true, ("%s signed! Shirt number %d."):format(signed.name, signed.number)
+	elseif name == "acceptBid" or name == "declineBid" then
+		-- X323
+		local standing = bid
+		if not standing then
+			return false, "There is no offer on the table."
+		end
+		if name == "declineBid" then
+			bid = nil
+			ClubState.set("BidNews", "")
+			publish()
+			return true, ("%s turned down."):format(standing.club)
+		end
+		local blocker = Bids.blocker(players, standing.playerId, xiSlotOf(standing.playerId) ~= nil)
+		if blocker then
+			return false, blocker
+		end
+		local sold: Squad.Player? = nil
+		for i, q in players do
+			if q.id == standing.playerId then
+				sold = q
+				table.remove(players, i)
+				break
+			end
+		end
+		bid = nil
+		ClubState.set("BidNews", "")
+		ClubState.addCash(standing.fee, "sales")
+		recomputeLineup()
+		publish()
+		return true, ("%s sold to %s for %s"):format(
+			if sold then sold.name else standing.playerName,
+			standing.club,
+			money(standing.fee)
+		)
 	elseif name == "release" then
 		local pid = tonumber(a)
 		local p = if pid then findPlayer(pid) else nil
@@ -533,9 +581,27 @@ function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.Ma
 	local award = Squad.manOfTheMatch(players, lineup.xi, scorerIds, conceded or 0, matchSquad)
 	local news, changes = Squad.afterMatch(players, lineup.xi, scorerIds, coachLevel, rng, subIds)
 	ageShortlist()
+	ClubService.considerBid()
 	recomputeLineup()
 	publish()
 	return news, changes, award
+end
+
+-- X323: after a match, a club from a higher division may come in for one of
+-- your better players. The seed is the club and the matchday, so the same week
+-- always brings the same approach (and a rejoin does not re-roll it).
+function ClubService.considerBid()
+	local round = (ClubState.get("MatchesPlayed") :: number?) or 0
+	local tier = (ClubState.get("Tier") :: number?) or 1
+	local name = (ClubState.get("ClubName") :: string?) or Config.ClubName
+	local seed = round * 7919 + #name * 131 + string.byte(name) * 17 + tier
+	bid = Bids.after(players, tier, round, seed)
+	if bid then
+		local b = bid :: Bids.Bid
+		ClubState.set("BidNews", ("%s have come in for %s: %s."):format(b.club, b.playerName, money(b.fee)))
+	else
+		ClubState.set("BidNews", "")
+	end
 end
 
 -- New season housekeeping (Milestone 4 calls this).

@@ -187,6 +187,18 @@ local function injuryDot(parent: Instance)
 	Theme.stroke(inj)
 end
 
+-- X287: age belongs on the card now that players retire (X277). X285 coloured
+-- it in the detail panel, but a player scanning the XI could not see who was 36
+-- without tapping every face, so a retirement still arrived as a surprise.
+local function ageColour(age: number): Color3
+	if age >= Config.RetireMaxAge then
+		return Theme.colors.bad
+	elseif age >= Config.RetireAge then
+		return Theme.colors.accent
+	end
+	return Theme.colors.muted
+end
+
 -- X287 (review): the same trap as the injury dot below - a card is built once
 -- and kept, so an academy graduate wore NEW for his whole career and an age
 -- froze at whatever it was the day the card appeared. Called on every update.
@@ -230,18 +242,6 @@ local function refreshInjury(frame: Frame, p: Player, dotParent: Instance, withC
 			chip:Destroy()
 		end
 	end
-end
-
--- X287: age belongs on the card now that players retire (X277). X285 coloured
--- it in the detail panel, but a player scanning the XI could not see who was 36
--- without tapping every face, so a retirement still arrived as a surprise.
-local function ageColour(age: number): Color3
-	if age >= Config.RetireMaxAge then
-		return Theme.colors.bad
-	elseif age >= Config.RetireAge then
-		return Theme.colors.accent
-	end
-	return Theme.colors.muted
 end
 
 -- A player with no appearances yet: an academy graduate or a new signing.
