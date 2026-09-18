@@ -72,14 +72,20 @@ end
 -- always clamped a *saved* balance at zero, so the live balance is clamped the
 -- same way - a club can be skint but never in debt (TEMP, question 24). The
 -- ledger records what actually moved, not what was asked for.
-function ClubState.addCash(amount: number, category: string?)
+-- Returns what actually moved, which is not always what was asked for: the
+-- balance clamps at zero (X350), so a big loss against an empty account takes
+-- less than the full amount. X359: the matchday row and the summary card use
+-- the return value, or they would disagree with the balance the player sees.
+function ClubState.addCash(amount: number, category: string?): number
 	local before = (ClubState.get("Cash") :: number) or 0
 	local after = math.max(before + amount, 0)
 	ClubState.set("Cash", after)
+	local moved = after - before
 	if category then
-		Finance.record(finance, category, after - before)
+		Finance.record(finance, category, moved)
 		publishFinance()
 	end
+	return moved
 end
 
 function ClubState.recordMatchFinance(row: Finance.MatchRow)

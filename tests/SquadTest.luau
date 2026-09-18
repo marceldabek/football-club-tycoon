@@ -922,12 +922,20 @@ end
 
 function T.theVerdictSaysWhereTheSquadStandsInItsDivision()
 	local base = 60
-	assert(Squad.divisionVerdict(base + 10, base) == "too good for this level", "a runaway squad")
-	assert(Squad.divisionVerdict(base + 3, base) == "stronger than this level", "a promotion squad")
-	assert(Squad.divisionVerdict(base, base) == "about right", "a mid-table squad")
-	assert(Squad.divisionVerdict(base - 1, base) == "about right", "and a point under is still about right")
-	assert(Squad.divisionVerdict(base - 4, base) == "a bit light", "a relegation scrap")
-	assert(Squad.divisionVerdict(base - 12, base) == "well short", "just promoted and outclassed")
+	-- X359: the boundaries themselves, not points either side of them - the
+	-- first version sampled +10/+3/0/-1/-4/-12 and tested none of the four
+	local function verdict(gap: number): string
+		return Squad.divisionVerdict(base + gap, base)
+	end
+	assert(verdict(6) == "too good for this level", "+6 is the top band")
+	assert(verdict(5.99) == "stronger than this level", "just under it is not")
+	assert(verdict(2) == "stronger than this level", "+2 is the second band")
+	assert(verdict(1.99) == "about right", "just under it is level")
+	assert(verdict(-1.99) == "about right", "and so is just above -2")
+	assert(verdict(-2) == "a bit light", "-2 is light")
+	assert(verdict(-5.99) == "a bit light", "and so is just above -6")
+	assert(verdict(-6) == "well short", "-6 is short")
+	assert(verdict(-30) == "well short", "and anything worse")
 	-- every division has a verdict for every rating the game can produce
 	for tier = 1, #Config.Divisions do
 		for rating = Squad.MIN_OVERALL, Squad.MAX_OVERALL, 5 do

@@ -31,7 +31,13 @@ function UpgradeService.refreshPrompt()
 	local demand = (ClubState.get("Demand") :: number?) or 0
 	local queue = math.max(demand - capacity, 0)
 	local amenityNow = Config.AmenityLevels[((ClubState.get("AmenityLevel") :: number?) or 0) + 1]
-	local perFan = Config.TicketPrice + (if amenityNow then amenityNow.perFan else 0)
+	-- X359: a fan brings a ticket, a kiosk spend and a shop spend (X353) - and
+	-- takes the wage share (X350) back out with them, because wages are a
+	-- share of the matchday's income. Quoting the gross overstated the return
+	-- by a third, on the one figure a player weighs a stand against a striker.
+	local perFan = (Config.TicketPrice
+		+ (if amenityNow then amenityNow.perFan else 0)
+		+ (if amenityNow then (amenityNow.merchPerFan or 0) else 0)) * (1 - Config.WageShare)
 
 	for _, plot in Config.StandPlots do
 		local prompt = standPrompts[plot.key]

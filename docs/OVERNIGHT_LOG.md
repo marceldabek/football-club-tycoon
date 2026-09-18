@@ -1,6 +1,6 @@
 # Overnight Log
 
-## Morning handoff (kept current, last touched 00:32)
+## Morning handoff (kept current, last touched 00:34)
 
 **What to look at:** Press Play. Pick a ground with the picker (‹ › then BUILD MY CLUB HERE).
 You spawn in your office on that plot; the other plots are FOR SALE lots. Walk or take a bus (prompt on
@@ -2143,3 +2143,10 @@ A read-only agent reviewed the last eight commits (X333-X342). Eleven real findi
 - **`Finance.normalize` dropped `merch` and `costs` on every restore** - the second field-by-field copy of a match row, one function below the comment warning about the first. So a rejoin left the matchday rows not adding up. Fixed, with a round-trip test that also loads an old ledger (the new fields read 0, which is what they were).
 - **`RIVAL_MAX_OVER` was 10 against an 8-point step between divisions**, so a division could drift level with the one above and promotion changed the opposition by nothing - for any XI around 56-62 tiers 1 and 2 were identical. It is 6 now, and the test asserts both that a division's ceiling stays under the next division's floor (the old assertion allowed exactly the 2 points of slack the violation needed) and that going up always changes who you play.
 - RunAll 573 passed, 0 failed. Four findings are left for the next pass: the match row reports the asked-for cost rather than the cash that actually moved when the balance clamps at zero, the stand prompt's "+£X a match" now overstates the return by the wage share, X356's squad-bar text runs under the capacity bar, and the verdict test samples no band boundary.
+
+### 2026-09-18 00:34 — The review's four smaller findings (X359)
+- **The row said what the bill was, not what was paid.** `ClubState.addCash` clamps the balance at zero and records what moved, but the matchday row and the summary card used `settlement.costs` and `settlement.total` - so a club with £0 and a loss saw a card reading "-£2,560" while the balance went 0 to 0. `addCash` returns what moved now, and the row, the card and the ledger all use that.
+- **The stand prompt's "+£X a match" was a third too high.** `UpgradeService` priced a seat at `TicketPrice + amenity.perFan`; since X350 every pound of matchday income drags the wage share out with it, and since X353 a fan also spends in the shop. A seat is `(ticket + kiosk + shop) * (1 - WageShare)` now - which matters because that figure is exactly how a player weighs a stand against a striker.
+- **X356's squad-bar text was hidden behind the capacity bar.** The label is 430 wide now and the bar has moved from x 462 to x 660 (it is drawn after the label and has a solid background, so it was covering "v 52: well short"). The hint at the far right gives up the room.
+- **The verdict test tested no boundary.** It sampled +10/+3/0/-1/-4/-12 against bands that turn at +6/+2/-2/-6. It now checks each boundary and the value just under it, so an off-by-one in any band fails.
+- RunAll 573 passed, 0 failed.

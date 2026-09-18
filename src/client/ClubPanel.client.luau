@@ -407,8 +407,11 @@ end)
 local capacityLabel = Theme.text(squadBar, "", "body", {
 	Name = "Capacity",
 	-- X287: wide enough for "Squad 16 / 20 · avg age 29.9" on one line
-	-- X356: and now the squad's rating against the division's as well
-	Size = UDim2.fromOffset(470, SQUAD_BAR_H),
+	-- X356: and now the squad's rating against the division's as well.
+	-- X359: 470 ran under the capacity bar at x 462, which is drawn after it
+	-- with a solid background, so the verdict was hidden. The bar moves right
+	-- instead, and the hint beyond it gives up the room.
+	Size = UDim2.fromOffset(430, SQUAD_BAR_H),
 	Position = UDim2.fromOffset(218, 0),
 	TextSize = 15,
 	Font = Theme.fonts.bold,
@@ -416,7 +419,7 @@ local capacityLabel = Theme.text(squadBar, "", "body", {
 })
 local capacityTrack = Instance.new("Frame")
 capacityTrack.Name = "Track"
-capacityTrack.Position = UDim2.new(0, 462, 0.5, 0)
+capacityTrack.Position = UDim2.new(0, 660, 0.5, 0) -- X359: clear of the label
 capacityTrack.AnchorPoint = Vector2.new(0, 0.5)
 capacityTrack.Size = UDim2.new(0, 150, 0, 12)
 capacityTrack.BackgroundColor3 = Theme.colors.bg3
@@ -433,7 +436,7 @@ Theme.corner(capacityFill, 6)
 
 local squadHint = Theme.text(squadBar, "", "muted", {
 	Name = "Hint",
-	Size = UDim2.new(1, -636, 0, SQUAD_BAR_H), -- X287 (review): clear of the wider bar
+	Size = UDim2.new(1, -834, 0, SQUAD_BAR_H), -- X359: clear of the bar in its new place
 	Position = UDim2.new(1, -14, 0, 0),
 	AnchorPoint = Vector2.new(1, 0),
 	TextSize = 13,
@@ -515,7 +518,7 @@ local function renderSquad(club: Club)
 		count, max, average, math.floor(rating + 0.5), division.baseStrength,
 		Squad.divisionVerdict(rating, division.baseStrength))
 	capacityLabel.Position = UDim2.fromOffset(if manage then 218 else 14, 0)
-	capacityTrack.Position = UDim2.new(0, if manage then 462 else 258, 0.5, 0)
+	capacityTrack.Position = UDim2.new(0, if manage then 660 else 456, 0.5, 0) -- X359
 	capacityFill.Size = UDim2.fromScale(math.clamp(count / max, 0, 1), 1)
 
 	if not manage then

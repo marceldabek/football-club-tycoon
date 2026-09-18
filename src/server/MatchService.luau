@@ -412,9 +412,13 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 	ClubState.addCash(settlement.resultBonus, "bonus")
 	ClubState.addCash(settlement.sponsorFee, "sponsor") -- X309
 	-- X350: and the two things the matchday costs, which is the first money the
-	-- player did not choose to spend
-	ClubState.addCash(-settlement.wages, "wages")
-	ClubState.addCash(-settlement.upkeep, "upkeep")
+	-- player did not choose to spend. X359: what the club could actually pay -
+	-- the balance clamps at zero, so a loss against an empty account takes
+	-- less than the bill, and the row has to report what moved.
+	local paidWages = -ClubState.addCash(-settlement.wages, "wages")
+	local paidUpkeep = -ClubState.addCash(-settlement.upkeep, "upkeep")
+	local paidCosts = paidWages + paidUpkeep
+	local netTotal = settlement.income - paidCosts
 
 	ClubState.recordMatchFinance({
 		round = roundResult.round,
@@ -423,8 +427,8 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		merch = settlement.merchRevenue, -- X353
 		bonus = settlement.resultBonus,
 		sponsor = settlement.sponsorFee, -- X309, so the row adds up
-		costs = settlement.costs, -- X350
-		total = settlement.total,
+		costs = paidCosts, -- X350/X359: what was actually paid
+		total = netTotal,
 	})
 	if settlement.outcome == "Win" then
 		bump("Wins", 1)
@@ -452,9 +456,9 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		turnedAway = settlement.turnedAway,
 		ticketRevenue = settlement.ticketRevenue,
 		merchRevenue = settlement.merchRevenue, -- X353
-		wages = settlement.wages, -- X350
-		upkeep = settlement.upkeep,
-		costs = settlement.costs,
+		wages = paidWages, -- X350/X359: what the club could actually pay
+		upkeep = paidUpkeep,
+		costs = paidCosts,
 		income = settlement.income,
 		concessionRevenue = settlement.concessionRevenue,
 		resultBonus = settlement.resultBonus,
