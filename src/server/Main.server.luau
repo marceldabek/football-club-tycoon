@@ -25,6 +25,7 @@ local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 --   ServerScriptService.Server:SetAttribute("DebugRun", "preview|4,2,1,0")
 --   ServerScriptService.Server:SetAttribute("DebugRun", "plot|2|playMatch|20|3")
 --   ServerScriptService.Server:SetAttribute("DebugRun", "friendly|20|3")
+--   ServerScriptService.Server:SetAttribute("DebugRun", "claim|1")
 -- The result is written back to the "DebugResult" attribute.
 if game:GetService("RunService"):IsStudio() then
 	local function run(command: string, ...): (boolean, string?)
@@ -34,6 +35,16 @@ if game:GetService("RunService"):IsStudio() then
 			plot = tonumber(args[1])
 			command = args[2]
 			args = { select(3, ...) }
+		end
+		-- X340 (testing): claim a ground for the first player. Everything below
+		-- needs a club to be running, and the only other way in is clicking
+		-- BUILD MY CLUB HERE on the picker, which the MCP cannot do reliably.
+		if command == "claim" then
+			local claimant = game:GetService("Players"):GetPlayers()[1]
+			if not claimant then
+				return false, "no player"
+			end
+			return PlotService.claim(claimant, tonumber(args[1]) or 1)
 		end
 		local m = PlotService.debugModules(plot)
 		if not m then

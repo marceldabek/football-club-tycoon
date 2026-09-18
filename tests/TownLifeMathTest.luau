@@ -382,4 +382,48 @@ function T.cruiserLapsSmoothlyOnTheWater()
 	end
 end
 
+-- X340 ----------------------------------------------------------------------
+
+function T.aClubWithNoMatchesHasNoStickers()
+	assert(TownLifeMath.stickerCount(0, 1) == 0, "nobody flyposts for a club that has not played")
+	assert(TownLifeMath.stickerCount(0, 5) == 0, "not even a top-tier one")
+end
+
+function T.stickersSpreadWithMatchesAndWithPromotion()
+	local first = TownLifeMath.stickerCount(1, 1)
+	assert(first > 0, "the first match puts something up")
+	assert(TownLifeMath.stickerCount(20, 1) > first, "more matches, more stickers")
+	assert(TownLifeMath.stickerCount(1, 3) > TownLifeMath.stickerCount(1, 1), "promotion spreads them")
+	-- and it never runs away with itself
+	assert(TownLifeMath.stickerCount(400, 9) == TownLifeMath.STICKER_MAX, "capped")
+	for played = 1, 60 do
+		for tier = 1, 6 do
+			local n = TownLifeMath.stickerCount(played, tier)
+			assert(n >= 1 and n <= TownLifeMath.STICKER_MAX, ("%d at %d matches, tier %d"):format(n, played, tier))
+		end
+	end
+end
+
+function T.everyThirdOneIsAFullBill()
+	local bills = 0
+	for i = 1, 12 do
+		if TownLifeMath.isBill(i) then
+			bills += 1
+		end
+	end
+	assert(bills == 4, "four bills in twelve, got " .. bills)
+	assert(TownLifeMath.isBill(3) and not TownLifeMath.isBill(4), "on the third")
+end
+
+function T.aStickerSitsAtEyeLevelOnAnythingTallEnough()
+	local tall = TownLifeMath.stickerHeight(12.6, false)
+	assert(tall > 4 and tall < 7, "eye level on a lamp post, got " .. tall)
+	-- a bin is shorter than eye level, so it goes halfway up instead
+	local bin = TownLifeMath.stickerHeight(2.6, false)
+	assert(math.abs(bin - 1.3) < 0.001, "halfway up a bin, got " .. bin)
+	assert(bin < 2.6, "and never above the top of it")
+	-- a bill hangs lower than a sticker, so the two never line up
+	assert(TownLifeMath.stickerHeight(12.6, true) < tall, "bills sit lower")
+end
+
 return T

@@ -491,4 +491,41 @@ function TownLifeMath.windowPane(facade: string?, house: number, houseWidth: num
 	return z, y, width, height
 end
 
+-- X340: club stickers and flyposted bills on the street furniture near a
+-- ground - bins, lamp posts and bus-stop poles - the way a real club's mark
+-- spreads through a town (WORLD_VISION s4: "posters, club stickers"). Nothing
+-- before the first match; then it grows with matches played *and* with the
+-- tier, because a club that gets promoted is suddenly on every lamp post.
+-- TEMP numbers, like the scarves above.
+TownLifeMath.STICKER_MATCHES = 4
+TownLifeMath.STICKER_PER_TIER = 3
+TownLifeMath.STICKER_MAX = 24
+function TownLifeMath.stickerCount(matchesPlayed: number, tier: number): number
+	if matchesPlayed < 1 then
+		return 0
+	end
+	local n = 2
+		+ math.floor(matchesPlayed / TownLifeMath.STICKER_MATCHES)
+		+ math.max(math.floor(tier) - 1, 0) * TownLifeMath.STICKER_PER_TIER
+	return math.min(n, TownLifeMath.STICKER_MAX)
+end
+
+-- Every third one is a full flyposted bill (the club's name and its next home
+-- match) rather than a round sticker, so a street has both.
+function TownLifeMath.isBill(index: number): boolean
+	return index % 3 == 0
+end
+
+-- Pure: how far up a prop a sticker goes and how far it stands proud of it.
+-- `height` is the prop's own height; stickers sit at eye level on anything
+-- tall enough and halfway up anything shorter, and a bill hangs a little lower
+-- than a sticker so the two do not line up in a row.
+function TownLifeMath.stickerHeight(height: number, bill: boolean): number
+	local eye = if bill then 4.2 else 5.2
+	if height <= eye + 1 then
+		return height / 2
+	end
+	return eye
+end
+
 return TownLifeMath
