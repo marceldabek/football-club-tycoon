@@ -331,6 +331,11 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 	-- and the evening-kickoff rule counts the club's matches, so the count has
 	-- to be right before the round is recorded. The payment still comes last.
 	bump("MatchesPlayed", 1)
+	-- X332: the approach belongs to the match that has just been counted, so it
+	-- is asked for here rather than inside finishMatch, which runs before the
+	-- count moves (a bid stamped with the old number was dropped as stale by
+	-- the next rejoin)
+	ClubService.considerBid()
 	-- league bookkeeping after the squad: at season end this ages the squad and rolls the division
 	local roundResult = SeasonService.recordPlayerResult(result.homeGoals, result.awayGoals, settlement.outcome)
 

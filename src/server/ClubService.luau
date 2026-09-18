@@ -611,7 +611,6 @@ function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.Ma
 	local award = Squad.manOfTheMatch(players, lineup.xi, scorerIds, conceded or 0, matchSquad)
 	local news, changes = Squad.afterMatch(players, lineup.xi, scorerIds, coachLevel, rng, subIds)
 	ageShortlist()
-	ClubService.considerBid()
 	recomputeLineup()
 	publish()
 	return news, changes, award
@@ -620,6 +619,11 @@ end
 -- X323: after a match, a club from a higher division may come in for one of
 -- your better players. The seed is the club and the matchday, so the same week
 -- always brings the same approach (and a rejoin does not re-roll it).
+--
+-- X332: called by MatchService *after* it increments MatchesPlayed, not from
+-- finishMatch. It used to run five lines earlier, so the offer was stamped with
+-- the previous match number and `Bids.isStale` threw it away on the first
+-- rejoin - the feature was switched off for anyone who reconnected mid-week.
 function ClubService.considerBid()
 	local round = (ClubState.get("MatchesPlayed") :: number?) or 0
 	local tier = (ClubState.get("Tier") :: number?) or 1
@@ -632,6 +636,7 @@ function ClubService.considerBid()
 	else
 		ClubState.set("BidNews", "")
 	end
+	publish()
 end
 
 -- New season housekeeping (Milestone 4 calls this).
