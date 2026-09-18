@@ -17,7 +17,10 @@ Config.WalkoutSeconds = 10
 
 -- TEMP economy
 Config.StartingCash = 0
-Config.TicketPrice = 8
+-- X361: raised from 8 when away fixtures stopped paying a gate, so a season
+-- still lands near the pacing that was measured at 00:26 (about 30k and a
+-- promotion from a standing start). TEMP, and part of question 19.
+Config.TicketPrice = 12
 Config.WinBonus = 400
 Config.DrawBonus = 150
 Config.LossBonus = 0

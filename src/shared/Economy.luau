@@ -16,6 +16,7 @@ export type Settlement = {
 	ticketRevenue: number,
 	concessionRevenue: number,
 	merchRevenue: number, -- X353: the club shop
+	atHome: boolean, -- X361: false when none of the matchday money is ours
 	resultBonus: number,
 	sponsorFee: number, -- X309
 	sponsorName: string, -- X309: who paid it
@@ -41,6 +42,9 @@ export type Inputs = {
 	tier: number, -- X309: the sponsor pays more in a higher division
 	popularity: number,
 	sponsorSeed: number, -- which of Config.Sponsors signed the deal
+	-- X361: five of the ten fixtures are away, and the gate, the kiosks and
+	-- the shop belong to whoever owns the ground
+	atHome: boolean?,
 	-- X350: what the club costs to run for one match
 	squadAverage: number?, -- Squad.average across the whole squad
 	squadSize: number?,
@@ -147,8 +151,15 @@ end
 function Economy.settle(inputs: Inputs): Settlement
 	local attendance = math.min(inputs.capacity, inputs.demand)
 	local turnedAway = math.max(inputs.demand - inputs.capacity, 0)
-	local ticketRevenue = attendance * inputs.ticketPrice
-	local concessionRevenue = attendance * inputs.concessionPerFan
+	-- X361: `SeasonService.publish` already admitted this - "TEMP: the match is
+	-- still played and paid for at this ground" - so a club banked a full home
+	-- gate, kiosk and shop take for all ten fixtures, which doubled the money
+	-- the whole capacity-versus-squad tradeoff (CLAUDE.md s10/s11) is priced
+	-- against. Away, the matchday money belongs to the hosts; the result bonus
+	-- and the shirt sponsor follow the club wherever it plays.
+	local atHome = inputs.atHome ~= false
+	local ticketRevenue = if atHome then attendance * inputs.ticketPrice else 0
+	local concessionRevenue = if atHome then attendance * inputs.concessionPerFan else 0
 
 	local outcome: "Win" | "Draw" | "Loss"
 	local bonus
@@ -161,10 +172,20 @@ function Economy.settle(inputs: Inputs): Settlement
 	end
 
 	local sponsorFee = Economy.sponsorFee(inputs.tier or 1, inputs.popularity or 0)
-	local merchRevenue = Economy.merchRevenue(attendance, inputs.popularity or 0, inputs.merchPerFan or 0)
+	local merchRevenue = if atHome
+		then Economy.merchRevenue(attendance, inputs.popularity or 0, inputs.merchPerFan or 0)
+		else 0
 	local income = ticketRevenue + concessionRevenue + merchRevenue + bonus + sponsorFee
 	-- X350: and what it cost to put the match on
-	local wages = Economy.wageBill(income, inputs.squadAverage or 0, inputs.squadSize or 0, inputs.tier or 1)
+	-- X361: the squad costs the same to play away as at home, so the wage bill
+	-- is a share of what the matchday would have been worth at home - if it
+	-- followed the away income it would collapse to a few hundred pounds.
+	local homeIncome = attendance * inputs.ticketPrice
+		+ attendance * inputs.concessionPerFan
+		+ Economy.merchRevenue(attendance, inputs.popularity or 0, inputs.merchPerFan or 0)
+		+ bonus
+		+ sponsorFee
+	local wages = Economy.wageBill(homeIncome, inputs.squadAverage or 0, inputs.squadSize or 0, inputs.tier or 1)
 	local upkeep = Economy.staffUpkeep(inputs.coachLevel or 0, inputs.scoutLevel or 0)
 	local costs = wages + upkeep
 	return {
@@ -175,6 +196,7 @@ function Economy.settle(inputs: Inputs): Settlement
 		ticketRevenue = ticketRevenue,
 		concessionRevenue = concessionRevenue,
 		merchRevenue = merchRevenue, -- X353
+		atHome = atHome, -- X361
 		resultBonus = bonus,
 		sponsorFee = sponsorFee,
 		sponsorName = Economy.sponsorName(inputs.sponsorSeed or 0),

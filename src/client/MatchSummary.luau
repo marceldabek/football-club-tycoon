@@ -359,7 +359,7 @@ function MatchSummary.new(gui: ScreenGui): Summary
 
 	-- -------------------------------------------------------- attendance
 	local attendance = section(body, "Attendance", 64, 4)
-	Theme.text(attendance, "Attendance", "muted", {
+	local attendanceTitle = Theme.text(attendance, "Attendance", "muted", {
 		Size = UDim2.fromOffset(150, 18),
 		Position = UDim2.fromOffset(16, 12),
 		TextSize = 14,
@@ -599,6 +599,10 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		end
 		-- X310: five of ten fixtures are away and the card never said so
 		local away = data.atHome == false
+		-- X361: a friendly is paid like a home match whichever ground it is on
+		-- (MatchService.playFriendly settles for the hosts), so the money lines
+		-- below ask this rather than `away`
+		local theirGround = away and not data.friendly
 		matchLine.Text = if data.friendly
 			then "FRIENDLY"
 			elseif away then ("MATCH %d / %d   ·   AWAY AT %s"):format(data.round or 0, data.rounds or 10, string.upper(tostring(data.opponent or "")))
@@ -667,6 +671,11 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		local merch = data.merchRevenue or 0
 		columns.concessions.Text = money((data.concessionRevenue or 0) + merch)
 		columnTitles.concessions.Text = if merch > 0 then "Kiosks & shop" else "Concessions"
+		-- X361: away, the gate and the kiosks belong to the hosts
+		if theirGround then
+			columnTitles.tickets.Text = "Gate (theirs)"
+			columnTitles.concessions.Text = "Kiosks (theirs)"
+		end
 		columns.bonus.Text = money(data.resultBonus or 0)
 		-- X309
 		local fee = data.sponsorFee or 0
@@ -678,9 +687,13 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		-- X350: the two costs, spelled out
 		local wages, upkeep = data.wages or 0, data.upkeep or 0
 		costsLine.Visible = wages + upkeep > 0
-		costsLine.Text = if upkeep > 0
+		local costsText = if upkeep > 0
 			then ("less %s in wages and %s keeping the staff"):format(money(wages), money(upkeep))
 			else ("less %s in wages"):format(money(wages))
+		-- X361: the squad still has to be paid for an away trip
+		costsLine.Text = if theirGround
+			then costsText .. " - away, so no gate"
+			else costsText
 
 		local capacity = math.max(data.capacity or 1, 1)
 		local att = data.attendance or 0
@@ -688,7 +701,14 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		local frac = math.clamp(att / capacity, 0, 1)
 		fill.Size = UDim2.fromScale(frac, 1)
 		percent.Text = ("%d%% full"):format(math.floor(frac * 100 + 0.5))
-		local turnedAway = if data.friendly then 0 else (data.turnedAway or 0)
+		-- X361: away, the crowd belongs to the hosts, so there is no gate of ours
+		-- to miss - the line used to read "1,396 fans turned away · about £0
+		-- missed", because the ticket revenue it divides is now zero. The number
+		-- itself is still this ground's, which the presentation layer admits
+		-- (League.playerFixture: "presentation is always at the player's ground");
+		-- the title says so rather than passing it off as the hosts' count.
+		attendanceTitle.Text = if theirGround then "Attendance (this ground)" else "Attendance"
+		local turnedAway = if data.friendly or theirGround then 0 else (data.turnedAway or 0)
 		turnedAwayLabel.Visible = turnedAway > 0
 		attendance.Size = UDim2.new(1, 0, 0, if turnedAway > 0 then 86 else 64)
 		if turnedAway > 0 then

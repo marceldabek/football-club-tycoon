@@ -173,45 +173,31 @@ function T.anOverpaidSquadInASmallDivisionLosesMoney()
 	-- Sunday Parks League club with a National League squad and the best staff
 	-- in the game cannot pay for them out of a Sunday Parks gate.
 	local demand = Economy.demand(1, 50, 0, 0)
-	local s = Economy.settle({
-		homeGoals = 1,
-		awayGoals = 0,
-		capacity = demand,
-		demand = demand,
-		ticketPrice = Config.TicketPrice,
-		concessionPerFan = Config.AmenityLevels[2].perFan,
-		winBonus = Config.WinBonus,
-		drawBonus = Config.DrawBonus,
-		lossBonus = Config.LossBonus,
-		tier = 1,
-		popularity = 50,
-		sponsorSeed = 1,
-		squadAverage = Config.Divisions[4].baseStrength,
-		squadSize = 20,
-		coachLevel = #Config.CoachLevels - 1,
-		scoutLevel = #Config.ScoutLevels,
-	})
-	assert(s.costs > s.income, ("costs %d against income %d"):format(s.costs, s.income))
-	assert(s.total < 0, "the matchday should settle at a loss")
+	local function settle(average, size, coach, scout)
+		return Economy.settle({
+			homeGoals = 1,
+			awayGoals = 0,
+			capacity = demand,
+			demand = demand,
+			ticketPrice = Config.TicketPrice,
+			concessionPerFan = Config.AmenityLevels[2].perFan,
+			winBonus = Config.WinBonus,
+			drawBonus = Config.DrawBonus,
+			lossBonus = Config.LossBonus,
+			tier = 1,
+			popularity = 50,
+			sponsorSeed = 1,
+			squadAverage = average,
+			squadSize = size,
+			coachLevel = coach,
+			scoutLevel = scout,
+		})
+	end
+	local broke = settle(Config.Divisions[4].baseStrength, 20, #Config.CoachLevels - 1, #Config.ScoutLevels)
+	assert(broke.costs > broke.income, ("costs %d against income %d"):format(broke.costs, broke.income))
+	assert(broke.total < 0, "the matchday should settle at a loss")
 	-- and the same club with a squad it can afford should be in profit
-	local sensible = Economy.settle({
-		homeGoals = 1,
-		awayGoals = 0,
-		capacity = demand,
-		demand = demand,
-		ticketPrice = Config.TicketPrice,
-		concessionPerFan = Config.AmenityLevels[2].perFan,
-		winBonus = Config.WinBonus,
-		drawBonus = Config.DrawBonus,
-		lossBonus = Config.LossBonus,
-		tier = 1,
-		popularity = 50,
-		sponsorSeed = 1,
-		squadAverage = Config.Divisions[1].baseStrength,
-		squadSize = 16,
-		coachLevel = 1,
-		scoutLevel = 1,
-	})
+	local sensible = settle(Config.Divisions[1].baseStrength, 16, 1, 1)
 	assert(sensible.total > 0, ("a sensible club should profit, got %d"):format(sensible.total))
 end
 
@@ -290,6 +276,61 @@ function T.aBrandNewClubMakesMoneyOnItsFirstMatch()
 	assert(cheapest / win.total <= 4,
 		("the first paid stand costs %d and a matchday makes %d - that is %.1f matches"):format(
 			cheapest, win.total, cheapest / win.total))
+end
+
+-- X361 ----------------------------------------------------------------------
+
+function T.awayFromHomeTheGateIsNotOurs()
+	local function settle(atHome)
+		return Economy.settle({
+			homeGoals = 2, awayGoals = 1, capacity = 1000, demand = 1000,
+			ticketPrice = Config.TicketPrice, concessionPerFan = Config.AmenityLevels[2].perFan,
+			merchPerFan = Config.AmenityLevels[2].merchPerFan,
+			winBonus = Config.WinBonus, drawBonus = Config.DrawBonus, lossBonus = Config.LossBonus,
+			tier = 1, popularity = 50, sponsorSeed = 1, atHome = atHome,
+			squadAverage = Config.Divisions[1].baseStrength, squadSize = 16, coachLevel = 1, scoutLevel = 1,
+		})
+	end
+	local home, away = settle(true), settle(false)
+	assert(home.ticketRevenue > 0 and home.concessionRevenue > 0 and home.merchRevenue > 0, "a home gate is ours")
+	assert(away.ticketRevenue == 0 and away.concessionRevenue == 0 and away.merchRevenue == 0,
+		("away we took %d at the gate"):format(away.ticketRevenue))
+	-- the result bonus and the shirt follow the club wherever it plays
+	assert(away.resultBonus == home.resultBonus and away.sponsorFee == home.sponsorFee,
+		"the bonus and the sponsor should travel")
+	assert(away.income < home.income, "so an away day is worth less")
+	-- and the squad costs the same to play away, so the wage bill does not
+	-- collapse to a share of a few hundred pounds
+	assert(away.wages == home.wages, ("wages %d away against %d at home"):format(away.wages, home.wages))
+	assert(away.atHome == false and home.atHome == true, "the settlement says where it was")
+end
+
+function T.aSeasonOfFiveHomeAndFiveAwayStillPaysForTheClub()
+	-- X361 halved the money, so TicketPrice went up with it: a full season
+	-- still has to leave a settled bottom-division club in profit
+	local demand = Economy.demand(1, 50, 1, 0)
+	local capacity = math.min(demand, 950)
+	local function settle(atHome)
+		return Economy.settle({
+			homeGoals = 1, awayGoals = 1, capacity = capacity, demand = demand,
+			ticketPrice = Config.TicketPrice, concessionPerFan = Config.AmenityLevels[2].perFan,
+			merchPerFan = Config.AmenityLevels[2].merchPerFan,
+			winBonus = Config.WinBonus, drawBonus = Config.DrawBonus, lossBonus = Config.LossBonus,
+			tier = 1, popularity = 50, sponsorSeed = 1, atHome = atHome,
+			squadAverage = Config.Divisions[1].baseStrength, squadSize = 16, coachLevel = 1, scoutLevel = 1,
+		})
+	end
+	local season = 5 * settle(true).total + 5 * settle(false).total
+	assert(season > 0, ("a season should not send the club backwards: %d"):format(season))
+	-- and the cheapest paid stand has to stay inside a season's takings
+	local cheapest = math.huge
+	for _, plot in Config.StandPlots do
+		local nextLevel = Config.StandLevels[plot.start + 2]
+		if nextLevel and nextLevel.cost > 0 and nextLevel.cost < cheapest then
+			cheapest = nextLevel.cost
+		end
+	end
+	assert(cheapest < season, ("a season makes %d and the first stand costs %d"):format(season, cheapest))
 end
 
 return T

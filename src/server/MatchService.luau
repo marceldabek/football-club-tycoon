@@ -381,6 +381,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		tier = (ClubState.get("Tier") :: number?) or 1,
 		popularity = (ClubState.get("Popularity") :: number?) or 0,
 		sponsorSeed = ((ClubState.get("Season") :: number?) or 1) + #((ClubState.get("ClubName") :: string?) or ""),
+		atHome = fixture.atHome ~= false, -- X361: the gate belongs to the hosts
 		-- X350: and what the club costs to run for a match
 		squadAverage = ClubService.squadAverage(),
 		squadSize = ClubService.squadSize(),
@@ -456,6 +457,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		turnedAway = settlement.turnedAway,
 		ticketRevenue = settlement.ticketRevenue,
 		merchRevenue = settlement.merchRevenue, -- X353
+		atHomeMoney = settlement.atHome, -- X361 (the card already has atHome)
 		wages = paidWages, -- X350/X359: what the club could actually pay
 		upkeep = paidUpkeep,
 		costs = paidCosts,
