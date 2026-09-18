@@ -1,6 +1,6 @@
 # Overnight Log
 
-## Morning handoff (kept current, last touched 23:36)
+## Morning handoff (kept current, last touched 23:32)
 
 **What to look at:** Press Play. Pick a ground with the picker (‹ › then BUILD MY CLUB HERE).
 You spawn in your office on that plot; the other plots are FOR SALE lots. Walk or take a bus (prompt on
@@ -2024,6 +2024,6 @@ A read-only agent reviewed the last eight commits (X333-X342). Eleven real findi
 - Noticed while patching: Studio's HUD still has the beacon at `StudsOffsetWorldSpace = Vector3.new(0, 7, 0)`, which disk fixed to 3.5 because 7 put it through the office ceiling. One more for X347's list.
 - RunAll 554 passed, 0 failed.
 
-### 2026-09-17 23:36 — X340 follow-up: the bus stops were never getting one
+### 2026-09-17 23:32 — X340 follow-up: the bus stops were never getting one
 - Reading my own X340 code back: a bus stop's model is named after the **stop** ("Town Centre", "Plot 1", "Station"), and the name only appears in its `BusStop` attribute - so `host.Name:find("BusStop")` matched nothing and **every one of the 24 stickers went on a terrace lamp post**. The play test that "passed" said exactly that, and I read it as a placement preference instead of a bug.
 - Matching on the attribute instead: now **4 on bus stops** (the Plot 1 stop's pole and its bin, and the Plot 3 stop) and 20 on lamps, which is the mix the item asked for.
