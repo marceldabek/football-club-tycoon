@@ -190,7 +190,8 @@ function Session.refreshPromptLock()
 	-- does nothing was the only thing that still looked usable.
 	local clubPrompt = w.model:FindFirstChild("ClubPrompt", true)
 	if clubPrompt and clubPrompt:IsA("ProximityPrompt") then
-		clubPrompt.Enabled = managing
+		-- X339: and not before the club has a name, like the matchday board
+		clubPrompt.Enabled = managing and named
 		clubPrompt.ObjectText = if managing then "Manage squad, scouting & staff" else "Locked during matchday"
 	end
 	UpgradeService.refreshPrompt()

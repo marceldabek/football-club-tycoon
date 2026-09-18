@@ -1906,3 +1906,9 @@ A second read-only review agent went over tonight's later commits. Nine findings
 - The onboarding hint now picks the cheapest next step on any of the four sides - the same way `midGameHint` has picked since X295 - and both hints share one picker instead of keeping two copies of the loop. It also says the price: "Grow your ground: build up the West Stand (yellow sign in front of it): it's free."
 - Checked against the real Config with a brand-new club's levels: **"new club: West Stand at 0 (starting cash 0)"**, and once the free builds are up it moves on to "East Stand at 1500" - which is what the old hint said from the very first match.
 
+### 2026-09-17 21:35 — Nothing to manage until the club has a name (X339)
+- `Phase` is already "Manage" while the naming card is up, and the office panel gated on the phase alone - so at second five a first-time player could open the CLUB OFFICE button, the office computer or Tab and get squad, transfers, scouting, finance and history rendering *underneath* the card they are meant to be filling in. That is the front-loading CLAUDE.md s12 rules out, and X250 had already made the same call for the matchday board.
+- The panel now refuses to open while `NeedsName`, the CLUB OFFICE button hides (it already hid during a match), the office computer's prompt is disabled the way the matchday board's is, and the stand and amenity prompts stay shut - with the purchase path refusing "Name your club first" in case anything else reaches it.
+- Verified in play by flipping `NeedsName` on the live club: **clubPrompt=false, boardPrompt=false, standPrompt=false, CLUB OFFICE button visible=false, panel visible=false**, and everything back on when it was set false again.
+- RunAll 499 passed.
+

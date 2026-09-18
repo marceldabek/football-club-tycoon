@@ -22,7 +22,9 @@ local function money(n: number): string
 end
 
 function UpgradeService.refreshPrompt()
-	local managing = ClubState.get("Phase") == "Manage"
+	-- X339: nothing to buy until the club has a name, so the stand and amenity
+	-- prompts stay shut while the naming card is up
+	local managing = ClubState.get("Phase") == "Manage" and ClubState.get("NeedsName") ~= true
 
 	-- X293: a stand was priced but never valued — "Main Stand (400 seats) —
 	-- £1,500" says nothing about what those seats earn, so choosing between a
@@ -92,6 +94,9 @@ end
 local function pay(cost: number, category: string): (boolean, string?)
 	if ClubState.get("Phase") ~= "Manage" then
 		return false, "Locked during matchday"
+	end
+	if ClubState.get("NeedsName") == true then
+		return false, "Name your club first" -- X339
 	end
 	local cash = ClubState.get("Cash") :: number
 	if cash < cost then

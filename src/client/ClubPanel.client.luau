@@ -1110,7 +1110,12 @@ render = function()
 end
 
 local function setOpen(open: boolean)
-	if open and get("Phase") ~= "Manage" then
+	-- X339: squad, transfers, scouting and finance are not the first thing a
+	-- new player should meet. The naming card is up while `NeedsName` is true
+	-- and `Phase` is already "Manage", so gating on the phase alone let the
+	-- whole office render underneath it at second five - the front-loading
+	-- CLAUDE.md s12 rules out. X250 made the same call for the matchday board.
+	if open and (get("Phase") ~= "Manage" or get("NeedsName") == true) then
 		return
 	end
 	panel.Visible = open
@@ -1154,11 +1159,15 @@ end)
 for _, key in { "Club", "Cash", "MatchesPlayed", "LeagueTable", "LastRound", "Demand", "History", "Finance", "ClubName", "OwnerUserId" } do
 	state:GetAttributeChangedSignal(key):Connect(render)
 end
-state:GetAttributeChangedSignal("Phase"):Connect(function()
-	local manage = get("Phase") == "Manage"
-	openButton.Visible = manage
-	if not manage then
+-- X339: the button hides while the naming card is up as well as during a match
+local function refreshOpenButton()
+	local usable = get("Phase") == "Manage" and get("NeedsName") ~= true
+	openButton.Visible = usable
+	if not usable then
 		setOpen(false)
 	end
-end)
-openButton.Visible = get("Phase") == "Manage"
+end
+for _, key in { "Phase", "NeedsName" } do
+	state:GetAttributeChangedSignal(key):Connect(refreshOpenButton)
+end
+refreshOpenButton()
