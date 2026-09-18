@@ -272,6 +272,60 @@ function League.roundResults(season: Season, round: number): { RoundResult }
 	return out
 end
 
+-- X362: the mini-table of the matches a set of clubs played against each other,
+-- which is how a dead-level group is separated. Only played fixtures count, so a
+-- half-finished table can use it too.
+--
+-- It returns a *score per club* rather than comparing two of them, because
+-- head-to-head is not transitive - A beats B, B beats C, C beats A is possible
+-- between three clubs level on everything else, and a `table.sort` comparator
+-- that says so can throw "invalid order function".
+export type MiniRow = { points: number, diff: number }
+
+function League.miniTable(season: Season, indices: { number }): { [number]: MiniRow }
+	local inGroup: { [number]: boolean } = {}
+	local mini: { [number]: MiniRow } = {}
+	for _, index in indices do
+		inGroup[index] = true
+		mini[index] = { points = 0, diff = 0 }
+	end
+	for _, f in season.fixtures do
+		if f.played and f.hg and f.ag and inGroup[f.home] and inGroup[f.away] then
+			local hg, ag = f.hg :: number, f.ag :: number
+			local home, away = mini[f.home], mini[f.away]
+			home.diff += hg - ag
+			away.diff += ag - hg
+			if hg > ag then
+				home.points += 3
+			elseif hg == ag then
+				home.points += 1
+				away.points += 1
+			else
+				away.points += 3
+			end
+		end
+	end
+	return mini
+end
+
+-- X362: and if even that is level, a draw - the same one every time the table
+-- is drawn, but nothing the player can read off the club names. Mixed from the
+-- season seed and the club's own seed, so two dead-level clubs do not keep the
+-- same order next season.
+local function drawTicket(season: Season, teamSeed: number?): number
+	-- `Random.new` rather than hand-rolled arithmetic: it is the same seeded
+	-- generator the fixture list and the squads already trust to be repeatable,
+	-- and it mixes properly - an xorshift of (season seed XOR club seed) let the
+	-- club seed win every tie for forty seasons running, because a season seed
+	-- of 7 only moves the bottom three bits.
+	--
+	-- Floored and defaulted: every season `League.newSeason` builds gives each
+	-- club a seed, but a save without one must not take the league table down.
+	local a = math.floor(math.abs(season.seed or 0)) % 1000003
+	local b = math.floor(math.abs(teamSeed or 0)) % 1000003
+	return Random.new(a * 1000003 + b):NextNumber()
+end
+
 function League.standings(season: Season): { Row }
 	local rows: { Row } = {}
 	for i, t in season.teams do
@@ -291,8 +345,46 @@ function League.standings(season: Season): { Row }
 		if a.gf ~= b.gf then
 			return a.gf > b.gf
 		end
-		return a.name < b.name
+		-- X362: this used to be `a.name < b.name`, and `League.outcome` reads
+		-- `positionOf` straight off this sort - so a club level on points, goal
+		-- difference and goals scored was promoted or relegated on the alphabet,
+		-- for ever, in a game whose whole point is the promotion. The draw is
+		-- only the last resort; clubs level this far are separated by the
+		-- mini-table below first.
+		return drawTicket(season, a.seed) > drawTicket(season, b.seed)
 	end)
+	-- X362: now separate each run of clubs that is still level on points, goal
+	-- difference and goals scored by what they did to each other.
+	local function level(a: Row, b: Row): boolean
+		return a.points == b.points and (a.gf - a.ga) == (b.gf - b.ga) and a.gf == b.gf
+	end
+	local first = 1
+	while first <= #rows do
+		local last = first
+		while last < #rows and level(rows[last + 1], rows[first]) do
+			last += 1
+		end
+		if last > first then
+			local group: { number } = {}
+			for i = first, last do
+				table.insert(group, rows[i].index)
+			end
+			local mini = League.miniTable(season, group)
+			local tied = table.move(rows, first, last, 1, {})
+			table.sort(tied, function(a, b)
+				local ma, mb = mini[a.index], mini[b.index]
+				if ma.points ~= mb.points then
+					return ma.points > mb.points
+				end
+				if ma.diff ~= mb.diff then
+					return ma.diff > mb.diff
+				end
+				return drawTicket(season, a.seed) > drawTicket(season, b.seed)
+			end)
+			table.move(tied, 1, #tied, first, rows)
+		end
+		first = last + 1
+	end
 	for pos, row in rows do
 		row.position = pos
 	end

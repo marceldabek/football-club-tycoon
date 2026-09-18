@@ -303,4 +303,118 @@ function T.tenSeasonsInOneDivisionGetHarder()
 	assert(last <= base + League.RIVAL_MAX_OVER + 4, ("and not run away: %.1f"):format(last))
 end
 
+-- X362 ----------------------------------------------------------------------
+
+-- Four clubs where two of them finish level on points, goal difference and
+-- goals scored, and one of those two won the head-to-head.
+local function levelSeason(firstName: string, secondName: string, seed: number)
+	local function team(name: string, seedValue: number, points: number, gf: number, ga: number)
+		return {
+			name = name,
+			strength = 50,
+			kit = { 40, 40, 40 },
+			isPlayer = false,
+			seed = seedValue,
+			played = 4,
+			won = 0,
+			drawn = 0,
+			lost = 0,
+			gf = gf,
+			ga = ga,
+			points = points,
+		}
+	end
+	return {
+		tier = 1,
+		seed = seed,
+		teams = {
+			team(firstName, 11, 7, 6, 4), -- 1
+			team(secondName, 22, 7, 6, 4), -- 2, level on all three
+			team("Cawthorne Vale", 33, 0, 1, 6), -- 3
+			team("Dunmore Athletic", 44, 3, 3, 2), -- 4
+		},
+		fixtures = {
+			{ round = 1, home = 1, away = 2, played = true, hg = 2, ag = 0 },
+			{ round = 2, home = 2, away = 1, played = true, hg = 1, ag = 1 },
+			{ round = 3, home = 1, away = 3, played = true, hg = 3, ag = 1 },
+			{ round = 4, home = 4, away = 1, played = true, hg = 2, ag = 0 },
+			{ round = 5, home = 2, away = 3, played = true, hg = 3, ag = 0 },
+			{ round = 6, home = 2, away = 4, played = true, hg = 2, ag = 1 },
+		},
+		rounds = 6,
+		playerIndex = 1,
+	}
+end
+
+function T.aDeadLevelFinishIsSettledOnThePitchNotTheAlphabet()
+	-- The old comparator ended `return a.name < b.name`, and League.outcome
+	-- reads positionOf straight off it, so with two promotion spots a club
+	-- level on points, goal difference and goals scored was promoted on its
+	-- name. Club 1 took 4 points off club 2 and club 2 took 1 off club 1.
+	for _, names in { { "Zenith Town", "Ashford Rangers" }, { "Ashford Rangers", "Zenith Town" } } do
+		local s = levelSeason(names[1], names[2], 4242) :: any
+		local rows = League.standings(s)
+		assert(rows[1].points == rows[2].points, "the top two should be level on points")
+		assert(rows[1].index == 1 and rows[2].index == 2,
+			("the head-to-head winner should be first, got %s then %s"):format(rows[1].name, rows[2].name))
+		assert(League.positionOf(s, 1) == 1 and League.positionOf(s, 2) == 2, "positionOf should agree")
+	end
+end
+
+function T.aTieNobodyWonIsDrawnBySeedAndStaysDrawnThatWay()
+	-- Level on everything and level head-to-head: the order has to come from
+	-- somewhere, and it must be the same every time the table is drawn.
+	local function allLevel(seed: number)
+		local s = levelSeason("Zenith Town", "Ashford Rangers", seed) :: any
+		-- make the two meetings a mirror, so the mini-table cannot separate them
+		s.fixtures[1].hg, s.fixtures[1].ag = 2, 1
+		s.fixtures[2].hg, s.fixtures[2].ag = 2, 1
+		return s
+	end
+	local s = allLevel(4242)
+	local mini = League.miniTable(s, { 1, 2 })
+	assert(mini[1].points == mini[2].points and mini[1].diff == mini[2].diff, "setup: the head-to-head is level")
+	local firstDraw = League.standings(s)[1].index
+	for _ = 1, 5 do
+		assert(League.standings(s)[1].index == firstDraw, "the same table must not reorder itself")
+	end
+	-- and the draw is a draw: over a run of seeds it cannot always be the
+	-- alphabet, which is what it was before
+	local alphabetical, other = 0, 0
+	for seed = 1, 40 do
+		local rows = League.standings(allLevel(seed))
+		if rows[1].name < rows[2].name then
+			alphabetical += 1
+		else
+			other += 1
+		end
+	end
+	assert(alphabetical > 0 and other > 0,
+		("the draw should not be one-sided: %d alphabetical, %d not"):format(alphabetical, other))
+end
+
+function T.threeClubsInARockPaperScissorsTieStillGetATable()
+	-- head-to-head is not transitive, and a table.sort comparator that says so
+	-- can throw "invalid order function for sorting" - which would take the
+	-- league tab down at the end of a season rather than mis-order it
+	local s = levelSeason("Zenith Town", "Ashford Rangers", 7) :: any
+	for _, t in s.teams do
+		t.points, t.gf, t.ga = 6, 4, 4
+	end
+	s.fixtures = {
+		{ round = 1, home = 1, away = 2, played = true, hg = 1, ag = 0 },
+		{ round = 2, home = 2, away = 3, played = true, hg = 1, ag = 0 },
+		{ round = 3, home = 3, away = 1, played = true, hg = 1, ag = 0 },
+		{ round = 4, home = 4, away = 1, played = true, hg = 1, ag = 1 },
+	}
+	local rows = League.standings(s)
+	assert(#rows == 4, "every club should still be in the table")
+	local seen: { [number]: boolean } = {}
+	for pos, row in rows do
+		assert(row.position == pos, "positions should be 1..n in order")
+		assert(not seen[row.index], "no club should appear twice")
+		seen[row.index] = true
+	end
+end
+
 return T
