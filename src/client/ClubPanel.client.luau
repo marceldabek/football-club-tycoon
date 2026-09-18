@@ -11,6 +11,7 @@ local ProximityPromptService = game:GetService("ProximityPromptService")
 local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Squad = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Squad")) -- X331: what a bid is actually for
 local Finance = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Finance")) -- X299
 local Theme = require(script.Parent.Theme)
 local LineupBoard = require(script.Parent.LineupBoard)
@@ -465,8 +466,25 @@ local function renderSquad(club: Club)
 	boardHolder.Position = UDim2.fromOffset(0, if showBid then BID_H + 8 else 0)
 	boardHolder.Size = UDim2.new(1, 0, 1, -SQUAD_BAR_H - 8 - (if showBid then BID_H + 8 else 0))
 	if showBid then
+		-- X331: "they want Alfie Skyward" is not a decision until you know who he
+		-- is and what he is worth, and the card is usually read without the
+		-- squad board in front of you
+		local wanted = nil
+		for _, p in club.players do
+			if p.id == offer.playerId then
+				wanted = p
+			end
+		end
 		bidTitle.Text = ("%s want %s"):format(tostring(offer.club), tostring(offer.playerName))
-		bidDetail.Text = ("%s now, and he leaves today. The offer is off at your next match."):format(money(offer.fee))
+		if wanted then
+			local value = Squad.value(wanted)
+			local premium = if value > 0 then math.floor((offer.fee / value - 1) * 100 + 0.5) else 0
+			bidDetail.Text = ("%s %s, %d OVR (%d potential), aged %d  ·  worth %s  ·  they offer %s, %d%% over"):format(
+				wanted.role, if wanted.injured > 0 then "injured" else "fit", wanted.overall, wanted.potential, wanted.age,
+				money(value), money(offer.fee), premium)
+		else
+			bidDetail.Text = ("%s now, and he leaves today. The offer is off at your next match."):format(money(offer.fee))
+		end
 	end
 	;(board :: LineupBoard.Board).update(club :: any, selectedId, manage and not club.autoSquad, manage)
 
