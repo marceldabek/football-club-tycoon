@@ -78,7 +78,7 @@ function MatchFeed.build(
 	timeline: Timeline,
 	subs: { Sub },
 	minute: number,
-	opts: { injury: string?, injuryMinute: number?, finished: boolean? }?
+	opts: { injury: string?, injuryMinute: number?, finished: boolean?, atHome: boolean? }?
 ): { Line }
 	local o = opts or {}
 	local us = timeline.home
@@ -86,14 +86,22 @@ function MatchFeed.build(
 	local lines: { Line } = {}
 	local ours, theirs = 0, 0
 
+	-- X344: the scoreboard names the hosts first (X310), so the feed under it
+	-- has to as well, score included - on an away fixture the two used to
+	-- disagree about who was playing whom and who was winning.
+	local hosts, visitors = us, them
+	local away = o.atHome == false
+	if away then
+		hosts, visitors = them, us
+	end
 	local function score(): string
-		return ("%d-%d"):format(ours, theirs)
+		return if away then ("%d-%d"):format(theirs, ours) else ("%d-%d"):format(ours, theirs)
 	end
 
 	table.insert(lines, {
 		minute = 0,
 		kind = "kickoff" :: Kind,
-		text = ("Kick-off  ·  %s v %s"):format(us.name, them.name),
+		text = ("Kick-off  ·  %s v %s"):format(hosts.name, visitors.name),
 	})
 
 	local halfTimeShown = false
@@ -124,7 +132,13 @@ function MatchFeed.build(
 		end
 	end
 	table.sort(extras, function(a, b)
-		return a.minute < b.minute
+		if a.minute ~= b.minute then
+			return a.minute < b.minute
+		end
+		-- X344: a forced substitution carries the same minute as the injury
+		-- that caused it, and the tie used to be broken by insertion order, so
+		-- the feed read "14 Naylor on for 9 Ives" and then "9 Ives is down".
+		return a.kind == "injury" and b.kind ~= "injury"
 	end)
 
 	local nextExtra = 1
@@ -189,7 +203,7 @@ function MatchFeed.build(
 		table.insert(lines, {
 			minute = MatchFeed.MINUTES,
 			kind = "fulltime" :: Kind,
-			text = ("Full time  ·  %s %s %s"):format(us.name, score(), them.name),
+			text = ("Full time  ·  %s %s %s"):format(hosts.name, score(), visitors.name),
 		})
 	end
 	return lines

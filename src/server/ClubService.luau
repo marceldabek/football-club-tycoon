@@ -442,6 +442,12 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 			return false, ("Need %s more"):format(money(nextLevel.cost - cash))
 		end
 		ClubState.addCash(-nextLevel.cost, "staff") -- X299 (review): scouting is staff
+		-- X344: this line only existed in the place file. On disk the fee was
+		-- taken and nothing happened: no scout, no prospects, and the button
+		-- ready to charge again. It went missing when the addCash line above
+		-- was rewritten (X307), and the tests never caught it because they run
+		-- against Studio's copy (known bug 4).
+		scoutLevel += 1
 		refreshShortlist()
 		publish()
 		return true, ("%s hired. %d prospects found."):format(nextLevel.name, #shortlist)

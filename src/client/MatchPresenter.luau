@@ -650,6 +650,13 @@ local function crowdReact(away: boolean?, strength: number?, sound: boolean?)
 	-- part of one fan must hop together: recover the seat from the part's known
 	-- offset and give each seat one delay
 	local seatDelay: { [Vector3]: number } = {}
+	-- X344 (review): a full house is 660 fans of 5-6 parts, so a reaction is
+	-- about 2,500 delayed closures and 2,500 tweens. X335 started calling this
+	-- on every save, miss, kick-off and whistle, which on a phone is five or
+	-- six times the churn it was built for (CLAUDE.md s21.12). A goal still
+	-- lifts the whole end; the small reactions lift about a third of the seats.
+	local seatShare = if size >= 1 then 1 else 0.35
+	local seatOut: { [Vector3]: boolean } = {}
 	for _, fan in fans do
 		if fan:IsA("BasePart") then
 			local offset = FAN_PART_OFFSETS[fan.Name] or Vector3.zero
@@ -664,9 +671,16 @@ local function crowdReact(away: boolean?, strength: number?, sound: boolean?)
 			local seat = (CFrame.new(restPos) * fan.CFrame.Rotation * CFrame.new(-offset)).Position
 			local key = Vector3.new(math.round(seat.X * 2), math.round(seat.Y * 2), math.round(seat.Z * 2))
 			local delay = seatDelay[key]
+			if not delay and not seatOut[key] then
+				if seatShare < 1 and math.random() >= seatShare then
+					seatOut[key] = true
+				else
+					delay = math.random() * 0.35
+					seatDelay[key] = delay
+				end
+			end
 			if not delay then
-				delay = math.random() * 0.35
-				seatDelay[key] = delay
+				continue -- this seat is sitting this one out
 			end
 			task.delay(delay, function()
 				fan.Position = restPos

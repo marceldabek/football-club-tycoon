@@ -156,6 +156,9 @@ function ClubState.init()
 	ClubState.set("Tactic", "Balanced") -- "Balanced" | "Attack" | "Defend"
 	ClubState.set("Subs", "[]") -- JSON list of { out = number, in = number }
 	ClubState.set("Timeline", "") -- JSON published at PreMatch for the client presenter
+	-- X344: the only two match attributes that did not exist before kick-off
+	ClubState.set("InjuryNews", "")
+	ClubState.set("InjuryMinute", 0)
 	ClubState.set("ClubName", Config.ClubName)
 	ClubState.set("Club", "") -- JSON squad / lineup / staff / shortlist (ClubService)
 	ClubState.set("CoachLevel", 0)

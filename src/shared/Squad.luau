@@ -321,23 +321,44 @@ end
 -- X334: the change an injury forces. `outIdx` is the slot that went down, so
 -- this is not a choice - it only has to find somebody on the bench who can
 -- take his place (a keeper for a keeper), or give up if there is nobody.
+-- X344: which squad index is in `slot`'s shirt now, after every substitution
+-- made in it. The sim names a starting slot, but a coach change (X333) can
+-- already have put a substitute there - and the injury used to name and injure
+-- the starter who walked off twenty minutes earlier.
+function Squad.filledBy(made: { Sub }, slot: number): number
+	local idx = slot
+	for _, s in made do
+		if s.out == idx then
+			idx = s["in"]
+		end
+	end
+	return idx
+end
+
 function Squad.forcedSub(matchSquad: { MatchPlayer }, made: { Sub }, outIdx: number): Sub?
 	if #made >= Config.MaxSubs then
 		return nil
 	end
-	local used: { [number]: boolean } = {}
+	-- who has been taken off, and who has come on: a substitute already on the
+	-- pitch can go down himself, and that is not the same as "already off"
+	local off: { [number]: boolean } = {}
+	local on: { [number]: boolean } = {}
 	for _, s in made do
-		used[s.out] = true
-		used[s["in"]] = true
+		off[s.out] = true
+		on[s["in"]] = true
 	end
-	if used[outIdx] or not matchSquad[outIdx] then
+	local idx = Squad.filledBy(made, outIdx)
+	local hurt = matchSquad[idx]
+	if off[idx] or not hurt then
 		return nil -- already off
 	end
-	local wantKeeper = Pitch.ROLES[outIdx] == "GK"
+	-- a keeper for a keeper, by the injured man's own role (a substitute is not
+	-- in a formation slot at all, so Pitch.ROLES cannot answer it)
+	local wantKeeper = hurt.role == "GK"
 	local inIdx: number? = nil
-	for idx = #Pitch.ROLES + 1, #matchSquad do
-		local p = matchSquad[idx]
-		if used[idx] or not p then
+	for i = #Pitch.ROLES + 1, #matchSquad do
+		local p = matchSquad[i]
+		if off[i] or on[i] or not p then
 			continue
 		end
 		local isKeeper = p.role == "GK"
@@ -345,13 +366,13 @@ function Squad.forcedSub(matchSquad: { MatchPlayer }, made: { Sub }, outIdx: num
 			continue
 		end
 		if inIdx == nil or p.overall > matchSquad[inIdx :: number].overall then
-			inIdx = idx
+			inIdx = i
 		end
 	end
 	if inIdx == nil then
 		return nil -- nobody on the bench can take that place
 	end
-	return { out = outIdx, ["in"] = inIdx :: number, minute = 0, afterEvent = 0 }
+	return { out = idx, ["in"] = inIdx :: number, minute = 0, afterEvent = 0 }
 end
 
 function Squad.nextSub(matchSquad: { MatchPlayer }, made: { Sub }): Sub?

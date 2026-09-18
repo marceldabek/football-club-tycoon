@@ -180,6 +180,7 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	ClubState.set("Tactic", "Balanced")
 	ClubState.set("Subs", "[]")
 	ClubState.set("InjuryNews", "") -- X334: last week's casualty is not this week's
+	ClubState.set("InjuryMinute", 0) -- X344
 	ClubState.set("Evening", evening)
 	ClubState.set("Timeline", HttpService:JSONEncode({
 		events = result.events,
@@ -205,6 +206,11 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	-- X334: the man the sim put down, once his minute comes round
 	local injuredSlot: number? = nil
 	local injuredId: number? = nil
+	-- X344: a friendly has no injuries (Friendly TEMP rules, CLAUDE.md s27),
+	-- but the sim rolls one for every match, so the friendly path was walking
+	-- a man off and announcing him - and then he was fit, because friendlies
+	-- never reach ClubService.finishMatch.
+	local injury = if ClubState.get("Friendly") == true then nil else result.injury
 
 	-- X333: what the coach is allowed to do on his own this match
 	local coachLevel = (ClubState.get("CoachLevel") :: number?) or 0
@@ -230,22 +236,32 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 		eventsShown = nextEvent - 1
 		-- X334: one of ours goes down at his minute, and comes off if there is
 		-- anybody to bring on. The injury itself is applied after the whistle.
-		local injury = result.injury
 		if injury and injuredSlot == nil and minute >= injury.minute then
 			injuredSlot = injury.slot
-			local hurt = homeSquad[injury.slot]
+			-- X344: the man in that shirt *now*. A coach substitution earlier in
+			-- the match can have taken the starter off already, and this used to
+			-- name him, walk him off a second time and injure him for next week
+			-- while the substitute actually playing was untouched.
+			local slot = Squad.filledBy(subsMade, injury.slot)
+			local hurt = homeSquad[slot]
 			if hurt and hurt.id > 0 then
 				injuredId = hurt.id
 			end
-			if hurt then
-				ClubState.set("InjuryNews", ("%d %s is down, and cannot carry on."):format(hurt.number, hurt.name))
-			end
-			local forced = Squad.forcedSub(homeSquad, subsMade, injury.slot)
+			local forced = Squad.forcedSub(homeSquad, subsMade, slot)
 			if forced then
 				forced.minute = minute
 				forced.afterEvent = eventsShown
 				table.insert(subsMade, forced)
 				ClubState.set("Subs", HttpService:JSONEncode(subsMade))
+			end
+			if hurt then
+				-- X344: and he only "cannot carry on" if somebody can replace
+				-- him. With an empty bench (or the subs spent) he limps on, and
+				-- the ground should be told that instead.
+				ClubState.set("InjuryMinute", minute)
+				ClubState.set("InjuryNews", if forced
+					then ("%d %s is down, and cannot carry on."):format(hurt.number, hurt.name)
+					else ("%d %s is down, with nobody to bring on."):format(hurt.number, hurt.name))
 			end
 		end
 		-- X333: the coach makes his own changes on the clock, through exactly

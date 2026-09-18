@@ -113,6 +113,39 @@ function T.substitutionsAndTheCasualtyReadInOrder()
 	assert(order == "kickoff,save,halftime,injury,sub,miss", "got " .. order .. " (" .. texts(lines) .. ")")
 end
 
+function T.theCasualtyReadsBeforeTheChangeItForced()
+	-- X344: a forced substitution carries the same minute as the injury, and
+	-- the tie used to be broken by insertion order, so the feed read
+	-- "14 N on for 9 I" and only then "9 I is down".
+	local subs = { { out = 9, ["in"] = 14, minute = 72, afterEvent = 0 } }
+	local lines = MatchFeed.build(timeline({}), subs, 80, { injury = "9 I is down, and cannot carry on.", injuryMinute = 72 })
+	local kinds = {}
+	for _, l in lines do
+		table.insert(kinds, l.kind)
+	end
+	local order = table.concat(kinds, ",")
+	-- (half time comes first: the 72nd minute is after the break)
+	assert(order == "kickoff,halftime,injury,sub", "got " .. order .. " (" .. texts(lines) .. ")")
+end
+
+function T.anAwayFixtureReadsHostsFirstJustLikeTheScoreboard()
+	local tl = timeline({
+		{ minute = 10, team = "Home", type = "GOAL", scorer = 9 },
+		{ minute = 20, team = "Away", type = "GOAL" },
+		{ minute = 30, team = "Away", type = "GOAL" },
+	})
+	local lines = MatchFeed.build(tl, {}, 90, { atHome = false })
+	assert(lines[1].text == "Kick-off  ·  Marsh Rangers v Dino FC", "got " .. lines[1].text)
+	-- our goal is still ours, but the score reads the way the scoreboard does
+	assert(lines[2].text:find("0-1", 1, true) ~= nil, "our goal away from home: " .. lines[2].text)
+	assert(lines[4].text:find("2-1", 1, true) ~= nil, "their second: " .. lines[4].text)
+	assert(lines[#lines].text == "Full time  ·  Marsh Rangers 2-1 Dino FC", "got " .. lines[#lines].text)
+	-- and at home nothing changes
+	local home = MatchFeed.build(tl, {}, 90, { atHome = true })
+	assert(home[1].text == "Kick-off  ·  Dino FC v Marsh Rangers", "got " .. home[1].text)
+	assert(home[#home].text == "Full time  ·  Dino FC 1-2 Marsh Rangers", "got " .. home[#home].text)
+end
+
 function T.somethingThatHasNotHappenedYetStaysOff()
 	local lines = MatchFeed.build(timeline({}), { { out = 5, ["in"] = 12, minute = 60 } }, 30, { injury = "down", injuryMinute = 70 })
 	assert(#lines == 1, "only kick-off before either happens: " .. texts(lines))

@@ -727,14 +727,66 @@ function T.aForcedSubGivesUpWhenThereIsNobody()
 	assert(Squad.forcedSub(squad, {}, 3) == nil, "no bench, no substitution")
 end
 
-function T.aForcedSubRespectsTheMatchLimitAndAManAlreadyOff()
+function T.aForcedSubRespectsTheMatchLimit()
 	local squad = matchSquadFor334()
 	local made = {}
 	for i = 1, Config.MaxSubs do
 		table.insert(made, { out = i + 1, ["in"] = #Pitch.ROLES + i, minute = 60, afterEvent = 0 })
 	end
 	assert(Squad.forcedSub(squad, made, 5) == nil, "the match limit still applies")
-	assert(Squad.forcedSub(squad, { made[1] }, made[1].out) == nil, "and a man already off cannot go off again")
+end
+
+-- X344 ----------------------------------------------------------------------
+
+function T.aShirtIsFollowedThroughEverySubstitutionMadeInIt()
+	assert(Squad.filledBy({}, 7) == 7, "nobody has moved")
+	local one = { { out = 7, ["in"] = 13, minute = 60 } }
+	assert(Squad.filledBy(one, 7) == 13, "the substitute is in that shirt now")
+	assert(Squad.filledBy(one, 8) == 8, "and the shirt beside it is untouched")
+	local chain = { { out = 7, ["in"] = 13, minute = 60 }, { out = 13, ["in"] = 14, minute = 75 } }
+	assert(Squad.filledBy(chain, 7) == 14, "two changes in one shirt follow through")
+end
+
+function T.anInjuryInAShirtAlreadySubstitutedTakesOffTheSubstitute()
+	-- X344: the sim names a starting slot, and the coach (X333) may already
+	-- have put somebody else in it. The old code walked the starter off again
+	-- and injured him for next week while the substitute played on.
+	local squad = matchSquadFor334()
+	local first = { out = 2, ["in"] = #Pitch.ROLES + 1, minute = 60, afterEvent = 0 }
+	local forced = Squad.forcedSub(squad, { first }, 2)
+	assert(forced, "the substitute can be replaced himself")
+	local f = forced :: any
+	assert(f.out == first["in"], ("%d should be the man who goes off, not %d"):format(first["in"], f.out))
+	assert(f["in"] ~= first["in"] and f["in"] > #Pitch.ROLES, "and a different bench player comes on")
+	-- and the chain follows once more, given somebody left to bring on
+	squad[#Pitch.ROLES + 4] = { id = 98, name = "P98", number = 98, role = "DEF", overall = 46, injured = 0 } :: any
+	local third = Squad.forcedSub(squad, { first, f }, 2)
+	assert(third and (third :: any).out == f["in"], "a third man in the same shirt can go off too")
+	assert(third and (third :: any)["in"] == #Pitch.ROLES + 4, "and the last outfielder on the bench comes on")
+end
+
+function T.aKeeperOffTheBenchIsReplacedByAKeeper()
+	-- X344: a substitute is in no formation slot, so his own role decides
+	local squad = matchSquadFor334()
+	local gkBench, otherGk = nil, nil
+	for idx = #Pitch.ROLES + 1, #squad do
+		if squad[idx] and squad[idx].role == "GK" then
+			gkBench = idx
+		end
+	end
+	assert(gkBench, "this bench has a keeper")
+	-- add a second spare keeper so there is somebody to bring on
+	squad[#Pitch.ROLES + 4] = { id = 99, name = "P99", number = 99, role = "GK", overall = 44, injured = 0 } :: any
+	otherGk = #Pitch.ROLES + 4
+	local keeperSlot = nil
+	for slot, role in Pitch.ROLES do
+		if role == "GK" then
+			keeperSlot = slot
+		end
+	end
+	local first = { out = keeperSlot :: number, ["in"] = gkBench :: number, minute = 30, afterEvent = 0 }
+	local forced = Squad.forcedSub(squad, { first }, keeperSlot :: number)
+	assert(forced and (forced :: any)["in"] == otherGk, "the other keeper comes on, not an outfielder")
 end
 
 -- X337 ----------------------------------------------------------------------

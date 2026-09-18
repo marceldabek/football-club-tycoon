@@ -606,9 +606,14 @@ local FEED_COLOURS: { [string]: Color3 } = {
 	save = C.muted,
 	miss = C.muted,
 }
--- the minute somebody went down, so the casualty keeps its place in the feed
--- as the match runs on (the sim keeps injuries out of the timeline, X334)
-local injuryMinute: number? = nil
+-- X344: the minute somebody went down comes from the server now. The client
+-- used to stamp it from the attribute changing, so anybody who joined after it
+-- happened had no minute for it and the line pinned itself to the top of the
+-- feed, claiming all match that it had just happened.
+local function injuryMinute(): number?
+	local at = get("InjuryMinute")
+	return if type(at) == "number" and at > 0 then at else nil
+end
 -- the feed stays up for a few seconds after the whistle, so its last line -
 -- the result - is actually read before the card arrives
 local FEED_HOLD = 4
@@ -620,6 +625,12 @@ local function matchMinute(): number
 	return MatchFeed.minute(duration - (get("TimeLeft") or duration), duration)
 end
 
+-- X344 (review): TimeLeft ticks four times a second, and rebuilding decoded
+-- two JSON payloads and rewrote four labels every time. Nothing on the feed can
+-- change unless the minute, the substitutions or the casualty have, so the work
+-- is skipped when none of them has moved.
+local lastFeedKey = ""
+
 local function refreshFeed()
 	local raw = get("Timeline")
 	local inMatch = get("Phase") == "Match"
@@ -629,6 +640,15 @@ local function refreshFeed()
 	if not live then
 		return
 	end
+	local key = ("%s|%d|%s|%s"):format(
+		tostring(get("Phase")),
+		if inMatch then matchMinute() else MatchFeed.MINUTES,
+		tostring(get("Subs")),
+		tostring(get("InjuryNews")))
+	if key == lastFeedKey then
+		return
+	end
+	lastFeedKey = key
 	local ok, timeline = pcall(function()
 		return HttpService:JSONDecode(raw)
 	end)
@@ -642,8 +662,9 @@ local function refreshFeed()
 	local news = get("InjuryNews")
 	local lines = MatchFeed.latest(MatchFeed.build(timeline, subs, if inMatch then matchMinute() else MatchFeed.MINUTES, {
 		injury = if type(news) == "string" then news else nil,
-		injuryMinute = injuryMinute,
+		injuryMinute = injuryMinute(),
 		finished = not inMatch,
+		atHome = get("AtHome") ~= false, -- X344: the hosts read first, as on the scoreboard
 	}), FEED_ROWS)
 	for i, row in feedRows do
 		local line = lines[i]
@@ -832,7 +853,11 @@ local beaconArrow: TextLabel? = nil
 
 local function beaconGui(): BillboardGui
 	local existing = beacon
-	if existing then
+	-- X344 (found while testing X341): a respawn resets PlayerGui, which
+	-- destroys the beacon, and this handed back the dead instance for ever -
+	-- every refresh then failed with "the Parent property is locked", twice a
+	-- second, for the rest of the session.
+	if existing and existing.Parent ~= nil then
 		return existing
 	end
 	local gui = Instance.new("BillboardGui")
@@ -1012,7 +1037,7 @@ state:GetAttributeChangedSignal("Phase"):Connect(function()
 	elseif phase == "Match" and lastPhase == "PreMatch" then
 		-- X186: a real kick-off, not joining or reconnecting mid-match
 		lastMinute = 0
-		injuryMinute = nil -- X336: last week's casualty is not this week's
+		lastFeedKey = "" -- X344: a new match starts the feed again
 		flash("KICK-OFF", C.text, 1.5)
 	end
 	lastPhase = phase
@@ -1050,7 +1075,6 @@ state:GetAttributeChangedSignal("InjuryNews"):Connect(function()
 	local news = get("InjuryNews")
 	if type(news) == "string" and news ~= "" then
 		showToast(news, C.bad)
-		injuryMinute = matchMinute() -- X336: his place in the feed
 		refreshFeed()
 	end
 end)
