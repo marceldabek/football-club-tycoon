@@ -184,7 +184,7 @@ local function repairLineup()
 			-- nil when every fit player is already used: the slot stays empty and
 			-- Squad.matchSquad puts a trialist there (the auto XI fallback here
 			-- used to name a player already in the XI or on the bench)
-			local id = Squad.fillSlot(players, slot, inUse)
+			local id = Squad.fillSlot(players, slot, inUse, Squad.misjudgeFor(coachLevel)) -- X352
 			if id then
 				lineup.xi[slot] = id
 				inUse[id] = true
@@ -193,7 +193,7 @@ local function repairLineup()
 	end
 	-- X338: and top the bench up in rating order, like Auto Squad, because
 	-- Squad.nextSub brings on the first name it can use
-	for _, id in Squad.benchOrder(players, inUse) do
+	for _, id in Squad.benchOrder(players, inUse, Squad.misjudgeFor(coachLevel)) do -- X352
 		if #lineup.bench >= Config.BenchSize then
 			break
 		end
@@ -204,7 +204,7 @@ end
 
 local function recomputeLineup()
 	if autoSquad then
-		lineup = Squad.autoLineup(players)
+		lineup = Squad.autoLineup(players, Squad.misjudgeFor(coachLevel)) -- X352
 	else
 		repairLineup()
 	end
@@ -461,6 +461,11 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 		end
 		ClubState.addCash(-nextLevel.cost, "staff") -- X299
 		coachLevel += 1
+		-- X352: the new coach picks the team again. Without this the XI he
+		-- inherited stayed exactly as the old one had left it, so a Pro Coach
+		-- changed nothing until the next squad change happened to trigger a
+		-- recompute - which is what the live test showed.
+		recomputeLineup()
 		publish()
 		return true, ("%s hired"):format(nextLevel.name)
 	elseif name == "sign" then

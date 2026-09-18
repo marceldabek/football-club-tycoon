@@ -937,4 +937,63 @@ function T.theVerdictSaysWhereTheSquadStandsInItsDivision()
 	end
 end
 
+-- X352 ----------------------------------------------------------------------
+
+function T.aProCoachPicksABetterTeamThanNobody()
+	-- CLAUDE.md s9 puts "automatic lineup quality" first among what a coach
+	-- influences, and a club with no coach used to pick a bit-for-bit
+	-- identical XI to a 10,000 pound Pro Coach.
+	local pro = Squad.misjudgeFor(#Config.CoachLevels - 1)
+	local none = Squad.misjudgeFor(0)
+	assert(pro == 0 and none > 0, ("a Pro Coach should see straight: %d against %d"):format(pro, none))
+	local weaker, equal = 0, 0
+	for seed = 1, 40 do
+		local players = Squad.generate(seed, 55)
+		local best = Squad.autoLineup(players, pro)
+		local guess = Squad.autoLineup(players, none)
+		local bestStrength = Squad.strength(players, best.xi)
+		local guessStrength = Squad.strength(players, guess.xi)
+		assert(guessStrength <= bestStrength + 0.001,
+			("no coach out-picked a Pro Coach on seed %d: %.2f against %.2f"):format(seed, guessStrength, bestStrength))
+		if guessStrength < bestStrength - 0.001 then
+			weaker += 1
+		else
+			equal += 1
+		end
+	end
+	assert(weaker > 0, "a coachless club should sometimes pick the wrong XI")
+	assert(equal > 0, "and sometimes stumble on the right one")
+end
+
+function T.theSameCoachAlwaysPicksTheSameTeam()
+	-- the misjudgement is a function of the player's id, not a roll, or the XI
+	-- would flicker every time the panel refreshed
+	local players = Squad.generate(7, 50)
+	local misjudge = Squad.misjudgeFor(1)
+	local first = Squad.autoLineup(players, misjudge)
+	for _ = 1, 5 do
+		local again = Squad.autoLineup(players, misjudge)
+		for slot = 1, #Pitch.ROLES do
+			assert(again.xi[slot] == first.xi[slot], "the XI moved between refreshes")
+		end
+		for i, id in first.bench do
+			assert(again.bench[i] == id, "the bench moved between refreshes")
+		end
+	end
+end
+
+function T.aBetterCoachIsNeverAWorseJudge()
+	local misjudges = {}
+	for level = 0, #Config.CoachLevels - 1 do
+		table.insert(misjudges, Squad.misjudgeFor(level))
+	end
+	for i = 2, #misjudges do
+		assert(misjudges[i] <= misjudges[i - 1], ("level %d is a worse judge than the one below it"):format(i - 1))
+	end
+	-- and a player is seen as himself when nobody is guessing
+	local players = Squad.generate(3, 60)
+	assert(Squad.perceived(players[1], 0) == players[1].overall, "a Pro Coach sees the real rating")
+	assert(math.abs(Squad.perceived(players[1], 6) - players[1].overall) <= 6, "and nobody is wrong by more than the spread")
+end
+
 return T

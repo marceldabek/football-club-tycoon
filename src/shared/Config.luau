@@ -216,11 +216,17 @@ Config.RetireMaxAge = 37
 -- during a match. The hint pill has always sold him as the man who "picks the
 -- team and brings your young players on", and CLAUDE.md s9 gives him automatic
 -- substitutions, but nothing ever made one without the SUB button. TEMP.
+-- X352: `misjudge` is how many rating points a coach can be wrong about a
+-- player by when he picks the team. CLAUDE.md s9 lists "automatic lineup
+-- quality" first among what a coach influences and the hint pill sells him as
+-- the man who "picks the team", but `Squad.autoLineup` took no coach argument
+-- at all - a club with no coach picked a bit-for-bit identical XI to a
+-- 10,000 pound Pro Coach. TEMP.
 Config.CoachLevels = {
-	{ name = "No coach", cost = 0, strengthBonus = 0, developMultiplier = 1, autoSubs = 0 },
-	{ name = "Volunteer Coach", cost = 800, strengthBonus = 2, developMultiplier = 1.5, autoSubs = 1 },
-	{ name = "Qualified Coach", cost = 4000, strengthBonus = 4, developMultiplier = 2, autoSubs = 2 },
-	{ name = "Pro Coach", cost = 10000, strengthBonus = 6, developMultiplier = 3, autoSubs = 3 },
+	{ name = "No coach", cost = 0, strengthBonus = 0, developMultiplier = 1, autoSubs = 0, misjudge = 6 },
+	{ name = "Volunteer Coach", cost = 800, strengthBonus = 2, developMultiplier = 1.5, autoSubs = 1, misjudge = 4 },
+	{ name = "Qualified Coach", cost = 4000, strengthBonus = 4, developMultiplier = 2, autoSubs = 2, misjudge = 2 },
+	{ name = "Pro Coach", cost = 10000, strengthBonus = 6, developMultiplier = 3, autoSubs = 3, misjudge = 0 },
 }
 -- The minutes a coach thinks about his first, second and third change. TEMP:
 -- an hour in, then the last twenty, then the last ten.

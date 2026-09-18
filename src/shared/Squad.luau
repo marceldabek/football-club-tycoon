@@ -136,10 +136,30 @@ function Squad.generate(seed: number, avgOverall: number): { Player }
 	return players
 end
 
+-- X352: how good a coach *thinks* a player is. A poor coach is wrong by up to
+-- `misjudge` points - deterministically, from the player's own id, so the XI
+-- does not flicker between refreshes - and a Pro Coach sees exactly what is
+-- there. `Squad.strength` still uses the real ratings, so the mistake costs
+-- the club real strength on the pitch.
+function Squad.misjudgeFor(coachLevel: number): number
+	local level = Config.CoachLevels[math.max(math.floor(coachLevel), 0) + 1] or Config.CoachLevels[1]
+	return level.misjudge or 0
+end
+
+function Squad.perceived(p: Player, misjudge: number?): number
+	local spread = misjudge or 0
+	if spread <= 0 then
+		return p.overall
+	end
+	-- a stable -1..1 from the id: the same coach always has the same blind spot
+	local h = (p.id * 2654435761) % 2048 / 2048
+	return p.overall + (h * 2 - 1) * spread
+end
+
 -- Best fit player per formation slot; injured players never start.
 -- Falls back to any fit player when a role runs out (strength() applies the
 -- out-of-role penalty). Bench: best remaining fit players.
-function Squad.autoLineup(players: { Player }): Lineup
+function Squad.autoLineup(players: { Player }, misjudge: number?): Lineup
 	local fit: { Player } = {}
 	for _, p in players do
 		if p.injured == 0 then
@@ -147,8 +167,10 @@ function Squad.autoLineup(players: { Player }): Lineup
 		end
 	end
 	table.sort(fit, function(a, b)
-		if a.overall ~= b.overall then
-			return a.overall > b.overall
+		-- X352: by what the coach thinks they are worth, not what they are
+		local pa, pb = Squad.perceived(a, misjudge), Squad.perceived(b, misjudge)
+		if pa ~= pb then
+			return pa > pb
 		end
 		return a.id < b.id
 	end)
@@ -171,14 +193,14 @@ function Squad.autoLineup(players: { Player }): Lineup
 		if xi[slot] then
 			continue
 		end
-		local id = Squad.fillSlot(players, slot, taken)
+		local id = Squad.fillSlot(players, slot, taken, misjudge)
 		if id then
 			taken[id] = true
 			xi[slot] = id
 		end
 	end
 
-	local bench = Squad.benchOrder(players, taken)
+	local bench = Squad.benchOrder(players, taken, misjudge)
 	for _, id in bench do
 		taken[id] = true
 	end
@@ -196,7 +218,7 @@ end
 -- The best available player for `slot`: in role first, then the same kind
 -- (keeper or outfield), then anyone, and the higher rating within each of
 -- those. `taken` is the set of ids already used.
-function Squad.fillSlot(players: { Player }, slot: number, taken: { [number]: boolean }): number?
+function Squad.fillSlot(players: { Player }, slot: number, taken: { [number]: boolean }, misjudge: number?): number?
 	local role = Pitch.ROLES[slot]
 	local wantKeeper = role == "GK"
 	local best: Player? = nil
@@ -215,7 +237,9 @@ function Squad.fillSlot(players: { Player }, slot: number, taken: { [number]: bo
 		else
 			local b = best :: Player
 			local pr, br = rank(p), rank(b)
-			if pr > br or (pr == br and (p.overall > b.overall or (p.overall == b.overall and p.id < b.id))) then
+			-- X352: the coach's own opinion decides between two of a kind
+			local pv, bv = Squad.perceived(p, misjudge), Squad.perceived(b, misjudge)
+			if pr > br or (pr == br and (pv > bv or (pv == bv and p.id < b.id))) then
 				best = p
 			end
 		end
@@ -226,7 +250,7 @@ end
 -- Who sits on the bench: the fittest available players by rating, best first,
 -- up to Config.BenchSize. The order matters because Squad.nextSub takes the
 -- first one it can use.
-function Squad.benchOrder(players: { Player }, taken: { [number]: boolean }): { number }
+function Squad.benchOrder(players: { Player }, taken: { [number]: boolean }, misjudge: number?): { number }
 	local spare: { Player } = {}
 	for _, p in players do
 		if p.injured == 0 and not taken[p.id] then
@@ -234,8 +258,10 @@ function Squad.benchOrder(players: { Player }, taken: { [number]: boolean }): { 
 		end
 	end
 	table.sort(spare, function(a, b)
-		if a.overall ~= b.overall then
-			return a.overall > b.overall
+		-- X352: the same opinion that picked the XI orders the bench
+		local pa, pb = Squad.perceived(a, misjudge), Squad.perceived(b, misjudge)
+		if pa ~= pb then
+			return pa > pb
 		end
 		return a.id < b.id
 	end)
