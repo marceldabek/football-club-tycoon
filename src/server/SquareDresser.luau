@@ -426,6 +426,405 @@ end
 local CHURCH_KIT = "ChurchSpire" -- 163 x 202 x 77, nave along its local X (MANIFEST)
 local CHURCH_KIT_HEIGHT = 202
 
+-- X319: the church is one of the three landmarks every sightline in town was
+-- planned around (E9.1, Q5), and it stood on plain mown grass - no wall, no
+-- path, no graves - so the closer you walked the less it read as a church.
+-- A churchyard round it: a low stone wall with a lychgate on the road side, a
+-- flagged path to the door, headstones on the grass, a noticeboard and two
+-- yews. The kit church is 105 studs along the street and 50 deep, and the
+-- terraced rows either side come within about four studs of its gables, so the
+-- yard is walled along its two long sides only and measured off the building
+-- rather than off the layout block.
+local YARD_MARGIN = 18
+local YARD_WALL_H = 2.4
+local YARD_WALL_T = 1.2
+local GATE_GAP = 12
+local GRAVE_STONE = Color3.fromRGB(176, 172, 160)
+local YEW = Color3.fromRGB(38, 72, 46)
+-- The kit church model carries the parish name ("St. Peter's"); the fallback is
+-- only for a greybox church that has none.
+local PARISH_FALLBACK = "THE PARISH CHURCH"
+
+local function parishName(town: Instance): string
+	local church = town:FindFirstChild("Church")
+	for _, d in (church and church:GetChildren() or {}) do
+		if d:IsA("Model") and d.Name:find("%a") and d.Name ~= "Church" then
+			return string.upper(d.Name)
+		end
+	end
+	return PARISH_FALLBACK
+end
+
+-- The church's footprint in world axes. The kit is placed with a yaw, so its
+-- model bounding box is in the building's own frame (105 along the nave, 50
+-- across) and says nothing about which way that is on the map.
+local function worldFootprint(model: Instance): (Vector3, Vector3)
+	local minV = Vector3.new(math.huge, 0, math.huge)
+	local maxV = Vector3.new(-math.huge, 0, -math.huge)
+	for _, p in model:GetDescendants() do
+		if p:IsA("BasePart") then
+			local s = p.Size / 2
+			local cf = p.CFrame
+			local ex = math.abs(cf.RightVector.X) * s.X + math.abs(cf.UpVector.X) * s.Y + math.abs(cf.LookVector.X) * s.Z
+			local ez = math.abs(cf.RightVector.Z) * s.X + math.abs(cf.UpVector.Z) * s.Y + math.abs(cf.LookVector.Z) * s.Z
+			minV = Vector3.new(math.min(minV.X, p.Position.X - ex), 0, math.min(minV.Z, p.Position.Z - ez))
+			maxV = Vector3.new(math.max(maxV.X, p.Position.X + ex), 0, math.max(maxV.Z, p.Position.Z + ez))
+		end
+	end
+	return minV, maxV
+end
+
+-- Which way the nearest road lies, as a unit axis: the lychgate goes there.
+-- Only sides that got a wall are candidates (`room` is keyed by wall name).
+local function wallOf(out: Vector3): string
+	if out.X < -0.5 then
+		return "WallW"
+	elseif out.X > 0.5 then
+		return "WallE"
+	elseif out.Z < -0.5 then
+		return "WallN"
+	end
+	return "WallS"
+end
+
+local SIDE_AXES = {
+	Vector3.new(-1, 0, 0),
+	Vector3.new(1, 0, 0),
+	Vector3.new(0, 0, -1),
+	Vector3.new(0, 0, 1),
+}
+
+local function roadSide(centre: Vector3, hx: number, hz: number, room: { [string]: number }): Vector3
+	local best, bestD = nil, math.huge
+	for _, axis in SIDE_AXES do
+		if room[wallOf(axis)] then
+			local edge = centre + Vector3.new(axis.X * hx, 0, axis.Z * hz)
+			for _, road in TownLayout.ROADS do
+				local d = TownLayout.distanceToPolyline(edge, road.points)
+				if d < bestD then
+					bestD, best = d, axis
+				end
+			end
+		end
+	end
+	return best or Vector3.new(0, 0, 1)
+end
+
+-- Probe band: from just above the kerb to head height, so the grass, the
+-- pavement and the road do not count but buildings, trees and lamps do.
+local PROBE_Y0, PROBE_Y1 = 0.6, 5.2
+
+local function probeClear(at: Vector3, size: Vector3, ignore: { Instance }): boolean
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = ignore
+	params.MaxParts = 4
+	return #workspace:GetPartBoundsInBox(CFrame.new(at + Vector3.new(0, (PROBE_Y0 + PROBE_Y1) / 2, 0)), size, params) == 0
+end
+
+-- The furthest clear line for one side's wall, walking outward from the
+-- building, or nil when that side has no room at all - the church is hemmed in
+-- by terraced rows and two of its four sides usually are. `out` points from the
+-- church towards the side being measured.
+local function fitSide(centre: Vector3, out: Vector3, least: number, want: number, across: number, ignore: { Instance }): number?
+	local size = Vector3.new(
+		if math.abs(out.X) > 0.5 then 3 else across * 2,
+		PROBE_Y1 - PROBE_Y0,
+		if math.abs(out.X) > 0.5 then across * 2 else 3
+	)
+	local best: number? = nil
+	for half = least, want, 2 do
+		if probeClear(centre + out * half, size, ignore) then
+			best = half
+		elseif best then
+			break -- past the last clear line: the terrace starts here
+		end
+	end
+	return best
+end
+
+local function headstone(parent: Instance, at: Vector3, rng: Random)
+	local w = rng:NextNumber(1.6, 2.4)
+	local h = rng:NextNumber(2.2, 3.6)
+	local stone = part({
+		Name = "Headstone",
+		Size = Vector3.new(w, h, 0.4),
+		CFrame = CFrame.new(at + Vector3.new(0, h / 2 - 0.15, 0))
+			* CFrame.Angles(0, rng:NextNumber(-0.5, 0.5), rng:NextNumber(-0.06, 0.06)),
+		Color = GRAVE_STONE:Lerp(Color3.new(0, 0, 0), rng:NextNumber(0, 0.18)),
+		Material = Enum.Material.Limestone,
+		Parent = parent,
+	})
+	stone.CanCollide = false
+	return stone
+end
+
+local function yew(parent: Instance, at: Vector3, rng: Random)
+	local h = rng:NextNumber(7, 9)
+	part({
+		Name = "YewTrunk",
+		Size = Vector3.new(1.4, h, 1.4),
+		CFrame = CFrame.new(at + Vector3.new(0, h / 2 - 0.2, 0)),
+		Color = Color3.fromRGB(72, 56, 42),
+		Material = Enum.Material.Wood,
+		Parent = parent,
+	})
+	local d = rng:NextNumber(7, 9)
+	local canopy = part({
+		Name = "YewCanopy",
+		Size = Vector3.new(d, d * 0.9, d),
+		CFrame = CFrame.new(at + Vector3.new(0, h + d * 0.35, 0)),
+		Color = YEW,
+		Material = Enum.Material.Grass,
+		Parent = parent,
+	})
+	canopy.CanCollide = false
+end
+
+local function dressChurchyard(town: Instance, church: Instance?, block: any): number
+	local yard = Instance.new("Model")
+	yard.Name = "Churchyard"
+	yard:SetAttribute("Decor", true)
+	local rng = Random.new(1642)
+
+	local centre, halfX, halfZ
+	if church then
+		local minV, maxV = worldFootprint(church)
+		centre = Vector3.new((minV.X + maxV.X) / 2, 0, (minV.Z + maxV.Z) / 2)
+		halfX, halfZ = (maxV.X - minV.X) / 2, (maxV.Z - minV.Z) / 2
+	else
+		centre = Vector3.new(block.centre.X, 0, block.centre.Z)
+		halfX, halfZ = block.size.X / 2, block.size.Z / 2
+	end
+
+	local ignore: { Instance } = { yard }
+	-- Each side is measured on its own: a wall goes up only where there is
+	-- grass for it, and the gate goes on whichever walled side faces a road.
+	local AXES = {
+		{ name = "WallW", out = Vector3.new(-1, 0, 0) },
+		{ name = "WallE", out = Vector3.new(1, 0, 0) },
+		{ name = "WallN", out = Vector3.new(0, 0, -1) },
+		{ name = "WallS", out = Vector3.new(0, 0, 1) },
+	}
+	local room: { [string]: number } = {}
+	for _, side in AXES do
+		local half = if math.abs(side.out.X) > 0.5 then halfX else halfZ
+		local across = if math.abs(side.out.X) > 0.5 then halfZ else halfX
+		local fit = fitSide(centre, side.out, half + 4, half + YARD_MARGIN, across + 2, ignore)
+		if fit then
+			room[side.name] = fit
+		end
+	end
+	if not next(room) then
+		yard:Destroy()
+		return 0
+	end
+	-- the rectangle the graves and the path live in: the nearest wall each way,
+	-- falling back to a few studs of grass where there is no wall
+	local hx = math.min(room.WallW or (halfX + 4), room.WallE or (halfX + 4))
+	local hz = math.min(room.WallN or (halfZ + 4), room.WallS or (halfZ + 4))
+	local gate = roadSide(centre, hx, hz, room)
+	local along = Vector3.new(-gate.Z, 0, gate.X)
+	local inward = -gate
+
+	local function wall(name: string, from: Vector3, to: Vector3)
+		local span = to - from
+		if span.Magnitude < 2 then
+			return
+		end
+		part({
+			Name = name,
+			Size = Vector3.new(math.max(math.abs(span.X), YARD_WALL_T), YARD_WALL_H, math.max(math.abs(span.Z), YARD_WALL_T)),
+			CFrame = CFrame.new((from.X + to.X) / 2, YARD_WALL_H / 2, (from.Z + to.Z) / 2),
+			Color = STONE_DARK,
+			Material = Enum.Material.Cobblestone,
+			Parent = yard,
+		})
+	end
+	local gateCentre = centre + gate * (room[wallOf(gate)] or hz)
+	for _, side in AXES do
+		local at = room[side.name]
+		if not at then
+			continue -- no room on that side; the gable nearly touches the terrace
+		end
+		-- the wall runs the length of the yard across its own axis
+		local run = if math.abs(side.out.X) > 0.5 then hz else hx
+		local across = Vector3.new(-side.out.Z, 0, side.out.X)
+		local a = centre + side.out * at - across * run
+		local b = centre + side.out * at + across * run
+		if wallOf(side.out) == wallOf(gate) then
+			wall(side.name .. "A", a, gateCentre + along * (GATE_GAP / 2))
+			wall(side.name .. "B", gateCentre - along * (GATE_GAP / 2), b)
+		else
+			wall(side.name, a, b)
+		end
+	end
+
+	-- the lychgate over the gap
+	local postY = 5.2
+	for _, sx in { -1, 1 } do
+		for _, sz in { -1, 1 } do
+			local at = gateCentre + along * (sx * (GATE_GAP / 2 - 0.6)) + inward * (sz * 2.4)
+			part({
+				Name = "GatePost",
+				Size = Vector3.new(0.9, postY, 0.9),
+				CFrame = CFrame.new(at.X, postY / 2, at.Z),
+				Color = Color3.fromRGB(96, 70, 48),
+				Material = Enum.Material.Wood,
+				Parent = yard,
+			})
+		end
+	end
+	part({
+		Name = "GateLintel",
+		Size = Vector3.new(math.max(math.abs(along.X) * GATE_GAP, 1.2), 0.8, math.max(math.abs(along.Z) * GATE_GAP, 1.2)),
+		CFrame = CFrame.new(gateCentre.X, postY + 0.4, gateCentre.Z),
+		Color = Color3.fromRGB(96, 70, 48),
+		Material = Enum.Material.Wood,
+		Parent = yard,
+	})
+	for _, sz in { -1, 1 } do
+		local roof = part({
+			Name = "GateRoof",
+			Size = Vector3.new(
+				if math.abs(along.X) > 0.5 then GATE_GAP + 3 else 6,
+				0.4,
+				if math.abs(along.X) > 0.5 then 6 else GATE_GAP + 3
+			),
+			-- pitched, not a table top: the halves meet over the ridge and fall
+			-- away either side
+			CFrame = CFrame.new(gateCentre + inward * (sz * 2.5) + Vector3.new(0, postY + 1.9, 0))
+				* CFrame.fromAxisAngle(along, sz * 0.62),
+			Color = Color3.fromRGB(78, 64, 58),
+			Material = Enum.Material.Slate,
+			Parent = yard,
+		})
+		roof.CanCollide = false
+	end
+
+	-- the flagged path from the gate to the church wall
+	local reach = (room[wallOf(gate)] or hz) - (if math.abs(gate.X) > 0.5 then halfX else halfZ)
+	local pathMid = gateCentre + inward * (reach / 2)
+	part({
+		Name = "Path",
+		Size = Vector3.new(if math.abs(gate.X) > 0.5 then reach else 6, 0.2, if math.abs(gate.X) > 0.5 then 6 else reach),
+		CFrame = CFrame.new(pathMid.X, 0.1, pathMid.Z),
+		Color = Color3.fromRGB(186, 180, 168),
+		Material = Enum.Material.Slate,
+		Parent = yard,
+	})
+
+	-- headstones on whatever grass is left, each one probed: the first version
+	-- buried one inside a terraced house and another in a tree
+	local placed = 0
+	for _ = 1, 120 do
+		if placed >= 14 then
+			break
+		end
+		local x = rng:NextNumber(-hx + 4, hx - 4)
+		local z = rng:NextNumber(-hz + 4, hz - 4)
+		local onPath = math.abs(if math.abs(gate.X) > 0.5 then z else x) < 6
+		local at = Vector3.new(centre.X + x, 0, centre.Z + z)
+		if not onPath and probeClear(at, Vector3.new(4, PROBE_Y1 - PROBE_Y0, 4), { yard }) then
+			headstone(yard, at, rng)
+			placed += 1
+		end
+	end
+
+	-- the noticeboard, just inside the gate
+	local boardAt = gateCentre + inward * 5 + along * 8
+	part({
+		Name = "NoticePost",
+		Size = Vector3.new(0.5, 4.4, 0.5),
+		CFrame = CFrame.new(boardAt.X, 2.2, boardAt.Z),
+		Color = Color3.fromRGB(42, 46, 44),
+		Material = Enum.Material.Wood,
+		Parent = yard,
+	})
+	local board = part({
+		Name = "Notice",
+		Size = Vector3.new(math.max(math.abs(along.X) * 7, 0.3), 4, math.max(math.abs(along.Z) * 7, 0.3)),
+		CFrame = CFrame.new(boardAt.X, 5.4, boardAt.Z),
+		Color = Color3.fromRGB(28, 44, 36),
+		Material = Enum.Material.SmoothPlastic,
+		Parent = yard,
+	})
+	board.CanCollide = false
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "Notice"
+	gui.Face = if math.abs(along.X) > 0.5
+		then (if gate.Z > 0 then Enum.NormalId.Front else Enum.NormalId.Back)
+		else (if gate.X > 0 then Enum.NormalId.Right else Enum.NormalId.Left)
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 34
+	gui.LightInfluence = 0.5
+	gui.MaxDistance = 140
+	gui.Parent = board
+	local title = Instance.new("TextLabel")
+	title.BackgroundTransparency = 1
+	title.Size = UDim2.fromScale(0.9, 0.4)
+	title.Position = UDim2.fromScale(0.05, 0.1)
+	title.Font = Enum.Font.GothamBold
+	title.TextScaled = true
+	title.TextColor3 = Color3.fromRGB(236, 236, 228)
+	title.Text = parishName(town)
+	title.Parent = gui
+	local when = Instance.new("TextLabel")
+	when.BackgroundTransparency = 1
+	when.Size = UDim2.fromScale(0.9, 0.3)
+	when.Position = UDim2.fromScale(0.05, 0.55)
+	when.Font = Enum.Font.Gotham
+	when.TextScaled = true
+	when.TextColor3 = Color3.fromRGB(206, 214, 204)
+	when.Text = "SUNDAY 9.30"
+	when.Parent = gui
+
+	-- a yew in each far corner, where there is room for one
+	for _, sx in { -1, 1 } do
+		local at = centre - gate * (hz * math.abs(gate.Z) + hx * math.abs(gate.X) - 7) + along * (sx * (math.abs(along.X) * hx + math.abs(along.Z) * hz - 7))
+		if probeClear(at, Vector3.new(8, PROBE_Y1 - PROBE_Y0, 8), { yard }) then
+			yew(yard, Vector3.new(at.X, 0, at.Z), rng)
+		end
+	end
+
+	-- a bench inside the gate, facing the path
+	KitPlacer.place("UKSP__ParkBenches__ParkBench01", CFrame.new(gateCentre + inward * 6 - along * 8) * CFrame.Angles(0, math.atan2(-along.X, -along.Z), 0), yard, {
+		fallbackSize = Vector3.new(6, 3, 2),
+		fallbackColor = Color3.fromRGB(120, 80, 50),
+		fallbackMaterial = Enum.Material.Wood,
+	})
+
+	local parts = 0
+	for _, d in yard:GetDescendants() do
+		if d:IsA("BasePart") then
+			parts += 1
+		end
+	end
+	yard.Parent = town
+	return parts
+end
+
+-- X319: the yard stands whether or not the kit church is there, so the greybox
+-- nave gets one too.
+local function buildChurchyard(town: Instance): number
+	local block = nil
+	for _, district in TownLayout.DISTRICTS do
+		for _, b in district.blocks do
+			if b.use == "church" then
+				block = b
+			end
+		end
+	end
+	if not block then
+		return 0
+	end
+	local old = town:FindFirstChild("Churchyard")
+	if old then
+		old:Destroy()
+	end
+	return dressChurchyard(town, town:FindFirstChild("Church"), block)
+end
+
 local function dressChurch(town: Instance): number
 	local landmark = nil
 	for _, l in TownLayout.LANDMARKS do
@@ -475,6 +874,7 @@ local function dressChurch(town: Instance): number
 	end
 	return parts
 end
+
 
 -- Returns a summary line for the server log.
 function SquareDresser.build(): string
@@ -556,7 +956,8 @@ function SquareDresser.build(): string
 		end
 	end
 	local churchParts = dressChurch(town)
-	return ("square: %d parts (%d lamp baskets), church: %d parts"):format(parts, baskets, churchParts)
+	local yardParts = buildChurchyard(town) -- X319
+	return ("square: %d parts (%d lamp baskets), church: %d parts, churchyard: %d parts"):format(parts, baskets, churchParts, yardParts)
 end
 
 return SquareDresser
