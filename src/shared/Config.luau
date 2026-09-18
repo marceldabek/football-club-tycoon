@@ -251,7 +251,9 @@ end
 Config.AmenityLevels = {
 	{ name = "Nothing", cost = 0, perFan = 0, demandBonus = 0 },
 	{ name = "Snack Bar", cost = 1200, perFan = 2, demandBonus = 0.1 },
-	{ name = "Club Shop", cost = 6000, perFan = 4, demandBonus = 0.2 },
+	-- X300 (TEMP rename): the plot already has a Club Shop building, and having
+	-- two different things called that made the upgrade read as a no-op
+	{ name = "Merch Stand", cost = 6000, perFan = 4, demandBonus = 0.2 },
 	{ name = "Fan Zone", cost = 15000, perFan = 6, demandBonus = 0.35 },
 }
 

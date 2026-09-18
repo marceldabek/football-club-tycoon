@@ -1871,3 +1871,10 @@ A second read-only review agent went over tonight's later commits. Nine findings
 - 3 new tests on the pure half: every school block is found, each one faces one of the four axes with a real road distance and width, and the side chosen is genuinely the nearest to any road.
 - RunAll 499 passed. Screenshots from the street and from above.
 
+### 2026-09-17 21:13 — The club shop sells something now (X300)
+- Buying the £6,000 amenity changed the concourse hut and nothing else. The club shop *building* on the plot - the one with CLUB SHOP over the door - looked identical from the first match to the last, because X179 stocked it once and for good. Worse, two different things were called the club shop, so the upgrade read as a no-op.
+- The plot shop now follows the amenity the club has actually bought: **0** bare shelves, no counter, the sign unlit and the lights off; **1** stock in and the lights on; **2** the fascia lit and a shirt on a stand in the window; **3** a second display and an A-board out on the apron saying NEW SHIRT IN STOCK. It rebuilds on every change and after a world rebuild, like the office fittings.
+- The amenity tier that was called "Club Shop" is now **TEMP "Merch Stand"**, so the £6,000 upgrade and the building have different names.
+- Verified in play by walking the level: `level 0: stock=bare fascia=unlit display=0 light=false`, `level 1: stock=in fascia=unlit display=0 light=true`, `level 3: stock=in fascia=lit display=5 light=true`, and back to the save's own level 2 with one display. Screenshot: the neon fascia reading MDINO24 FC CLUB SHOP with the window display behind the glass.
+- RunAll 499 passed.
+

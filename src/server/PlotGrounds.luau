@@ -958,6 +958,110 @@ local function bindAcademy()
 	task.defer(refresh) -- review: a rebuilt board starts blank
 end
 
+-- X300: buying the £6,000 amenity changed the concourse hut and nothing else,
+-- while the club shop building on the plot looked identical from the first
+-- match to the last (X179 stocked it once, for good). The shop now grows with
+-- the amenity the club has actually bought:
+--   0  nothing sold here: the shelves are bare, the sign is unlit
+--   1  stock in (counter, shirts, scarves) and the light on
+--   2  the fascia lights up and a shirt goes in the window
+--   3  a second window display and an A-board out on the path
+-- Rebuilt on every change, and on a world rebuild, like the office fittings.
+local SHOP_STOCK = { "Counter", "Till", "Shelf", "FoldedShirts", "ScarfRail", "Scarves" }
+
+function PlotGrounds.dressShop(amenityLevel: number)
+	local club = PlotContext.clubModel()
+	local grounds = club and club:FindFirstChild("Grounds")
+	local shop = grounds and grounds:FindFirstChild("ClubShop")
+	if not shop then
+		return
+	end
+	local level = math.clamp(math.floor(amenityLevel), 0, 3)
+
+	local stocked = {}
+	for _, name in SHOP_STOCK do
+		stocked[name] = true
+	end
+	for _, d in shop:GetChildren() do
+		if d:IsA("BasePart") and stocked[d.Name] then
+			d.Transparency = if level >= 1 then 0 else 1
+			d.CanCollide = level >= 1
+		elseif d:IsA("BasePart") and d.Name == "Fascia" then
+			-- the sign is lit from the tier that is actually a shop
+			d.Material = if level >= 2 then Enum.Material.Neon else Enum.Material.SmoothPlastic
+		end
+	end
+	-- the ceiling light hangs off the scarf rail (X179)
+	local light = shop:FindFirstChildWhichIsA("PointLight", true)
+	if light then
+		light.Enabled = level >= 1
+	end
+
+	local old = shop:FindFirstChild("Display")
+	if old then
+		old:Destroy()
+	end
+	if level < 2 then
+		return
+	end
+	-- the window display: a shirt on a stand, behind the glass
+	local display = Instance.new("Model")
+	display.Name = "Display"
+	display.Parent = shop
+	local x0, x1 = SHOP_CX - SHOP_W / 2, SHOP_CX + SHOP_W / 2
+	local z0 = SHOP_CZ - SHOP_D / 2
+	local floorTop = GROUND_Y + PATH_TOP
+	local fx0 = x1 - SHOP_WALL_T
+	local stands = if level >= 3 then 2 else 1
+	for i = 1, stands do
+		local zc = z0 + 6 + (i - 1) * 6
+		extents(("DisplayStand%d"):format(i), fx0 - 3.2, fx0 - 2.4, floorTop, floorTop + 3.6, zc - 0.4, zc + 0.4,
+			Color3.fromRGB(60, 62, 68), Enum.Material.Metal, display)
+		extents(("DisplayShirt%d"):format(i), fx0 - 4.2, fx0 - 1.4, floorTop + 3.6, floorTop + 6.2, zc - 1.6, zc + 1.6,
+			if i == 1 then Config.HomeKit else Color3.fromRGB(236, 236, 232), Enum.Material.Fabric, display)
+	end
+	if level >= 3 then
+		-- an A-board out on the apron, the way a shop that wants trade does
+		local boardZ = z0 + 20
+		local board = extents("ShopBoard", fx0 + 3, fx0 + 3.4, GROUND_Y + PATH_TOP, GROUND_Y + PATH_TOP + 4, boardZ - 2, boardZ + 2,
+			Color3.fromRGB(40, 34, 28), Enum.Material.Wood, display)
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = Enum.NormalId.Right
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 34
+		gui.LightInfluence = 0.5
+		gui.MaxDistance = 120
+		gui.Parent = board
+		local label = Instance.new("TextLabel")
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(0.9, 0.8)
+		label.Position = UDim2.fromScale(0.05, 0.1)
+		label.Font = Enum.Font.GothamBold
+		label.TextScaled = true
+		label.TextColor3 = Color3.fromRGB(240, 236, 226)
+		label.Text = "NEW SHIRT\nIN STOCK"
+		label.Parent = gui
+	end
+	PlotContext.place(display)
+end
+
+local shopBound = false
+
+local function bindShop()
+	local state = PlotContext.stateFolder()
+	if not state then
+		return
+	end
+	local function refresh()
+		PlotGrounds.dressShop((state:GetAttribute("AmenityLevel") :: number?) or 0)
+	end
+	if not shopBound then
+		shopBound = true
+		state:GetAttributeChangedSignal("AmenityLevel"):Connect(refresh)
+	end
+	task.defer(refresh) -- a rebuilt shop starts bare
+end
+
 function PlotGrounds.build(club: Model): Model
 	local old = club:FindFirstChild("Grounds")
 	if old then
@@ -985,6 +1089,7 @@ function PlotGrounds.build(club: Model): Model
 
 	PlotContext.place(grounds)
 	bindAcademy()
+	bindShop() -- X300
 	return grounds
 end
 
