@@ -13,6 +13,7 @@ local Theme = require(script.Parent.Theme)
 local MatchAudio = require(script.Parent.MatchAudio)
 local MatchSummary = require(script.Parent.MatchSummary)
 local Crest = require(script.Parent.Crest)
+local MatchFeed = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MatchFeed")) -- X336
 local Sky = require(script.Parent.Sky)
 
 local player = Players.LocalPlayer
@@ -569,6 +570,91 @@ toastEvent.OnClientEvent:Connect(function(message: string, ok: boolean?)
 	showToast(message, if ok then C.good else nil)
 end)
 
+-- ------------------------------------------------------- left, during a match
+
+-- X336: the whole in-match text layer was a 2.5 s "GOAL!" flash and a sub
+-- toast, so a player who walked round the ground (CLAUDE.md s4) and looked
+-- away for ten seconds had no account of the ninety minutes until the summary.
+-- This is the rolling feed, built from the timeline the client already holds.
+-- Bottom-left belongs to the phone thumbstick, so it sits under the season
+-- line on the left, clear of the scoreboard, the tactics panel and the hint.
+local FEED_ROWS = 4
+local feed = Theme.panel(gui, "Feed", {
+	Size = UDim2.fromOffset(330, 124),
+	Position = UDim2.fromOffset(20, 196),
+	BackgroundTransparency = 0.3,
+	Visible = false,
+})
+local feedRows: { TextLabel } = {}
+for i = 1, FEED_ROWS do
+	table.insert(feedRows, Theme.text(feed, "", "body", {
+		Name = "Row" .. i,
+		Size = UDim2.new(1, -20, 0, 26),
+		Position = UDim2.fromOffset(10, 5 + (i - 1) * 28),
+		TextSize = 15,
+		TextWrapped = false,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		RichText = true,
+		Visible = false,
+	}))
+end
+local FEED_COLOURS: { [string]: Color3 } = {
+	goal = C.accent,
+	conceded = C.bad,
+	injury = C.bad,
+	sub = C.info,
+	save = C.muted,
+	miss = C.muted,
+}
+-- the minute somebody went down, so the casualty keeps its place in the feed
+-- as the match runs on (the sim keeps injuries out of the timeline, X334)
+local injuryMinute: number? = nil
+-- the feed stays up for a few seconds after the whistle, so its last line -
+-- the result - is actually read before the card arrives
+local FEED_HOLD = 4
+local feedHoldUntil = 0
+
+-- The football minute, from the same clock the scoreboard reads.
+local function matchMinute(): number
+	local duration = get("MatchDuration") or Config.MatchDurationSeconds
+	return MatchFeed.minute(duration - (get("TimeLeft") or duration), duration)
+end
+
+local function refreshFeed()
+	local raw = get("Timeline")
+	local inMatch = get("Phase") == "Match"
+	local held = not inMatch and os.clock() < feedHoldUntil
+	local live = (inMatch or held) and type(raw) == "string" and raw ~= ""
+	feed.Visible = live
+	if not live then
+		return
+	end
+	local ok, timeline = pcall(function()
+		return HttpService:JSONDecode(raw)
+	end)
+	local decoded, subs = pcall(function()
+		return HttpService:JSONDecode(get("Subs") or "[]")
+	end)
+	if not ok or not decoded then
+		feed.Visible = false
+		return
+	end
+	local news = get("InjuryNews")
+	local lines = MatchFeed.latest(MatchFeed.build(timeline, subs, if inMatch then matchMinute() else MatchFeed.MINUTES, {
+		injury = if type(news) == "string" then news else nil,
+		injuryMinute = injuryMinute,
+		finished = not inMatch,
+	}), FEED_ROWS)
+	for i, row in feedRows do
+		local line = lines[i]
+		row.Visible = line ~= nil
+		if line then
+			row.Text = rich(MatchFeed.stamp(line), C.muted, true) .. "  " .. line.text
+			row.TextColor3 = FEED_COLOURS[line.kind] or C.text
+		end
+	end
+end
+
 -- ---------------------------------------------------------------- refreshes
 
 local refreshHintText: () -> ()
@@ -835,10 +921,10 @@ local function refreshScoreboard()
 	Crest.update(homeCrest, homeName, atHome)
 	Crest.update(awayCrest, awayName, not atHome)
 	scoreLabel.Text = ("%s   %d - %d   %s"):format(homeName, ours, theirs, awayName)
-	local total = get("TimeLeft") or 0
-	-- show a football minute rather than raw seconds; the real clock is hidden
-	local elapsedFrac = 1 - (total / math.max(get("MatchDuration") or 90, 1))
-	local minute = math.clamp(math.floor(elapsedFrac * 90), 0, 90)
+	-- show a football minute rather than raw seconds; the real clock is hidden.
+	-- X336: MatchFeed.minute is the server's own sum, so the clock, the feed
+	-- and the event minutes on it can never disagree.
+	local minute = matchMinute()
 	clockLabel.Text = ("%d'   ·   %s"):format(minute, if minute < 45 then "First half" else "Second half")
 	if minute >= 45 and lastMinute ~= nil and (lastMinute :: number) < 45 then
 		flash("HALF TIME", C.text, 2)
@@ -892,6 +978,11 @@ state:GetAttributeChangedSignal("Cash"):Connect(refreshCash)
 for _, key in { "Phase", "HomeGoals", "AwayGoals", "TimeLeft", "Opponent" } do
 	state:GetAttributeChangedSignal(key):Connect(refreshScoreboard)
 end
+-- X336: TimeLeft ticks four times a second, and the feed is rebuilt from
+-- scratch each time, so a late joiner reads the same account as everybody else
+for _, key in { "Phase", "TimeLeft", "Timeline" } do
+	state:GetAttributeChangedSignal(key):Connect(refreshFeed)
+end
 -- X295: the mid-game hints read cash, the table and each stand plot, so those
 -- have to nudge the pill too (the per-plot keys were missing even for X240's
 -- onboarding hint)
@@ -912,9 +1003,16 @@ state:GetAttributeChangedSignal("Phase"):Connect(function()
 	local phase = get("Phase")
 	if lastPhase == "Match" and phase == "Manage" then
 		flash("FULL TIME", C.text, 3)
+		-- X336: hold the feed open long enough to read the result on it. The
+		-- Phase connection above has already run and hidden it by now, so it
+		-- takes an explicit rebuild, and another to take it away again.
+		feedHoldUntil = os.clock() + FEED_HOLD
+		refreshFeed()
+		task.delay(FEED_HOLD + 0.1, refreshFeed)
 	elseif phase == "Match" and lastPhase == "PreMatch" then
 		-- X186: a real kick-off, not joining or reconnecting mid-match
 		lastMinute = 0
+		injuryMinute = nil -- X336: last week's casualty is not this week's
 		flash("KICK-OFF", C.text, 1.5)
 	end
 	lastPhase = phase
@@ -952,11 +1050,14 @@ state:GetAttributeChangedSignal("InjuryNews"):Connect(function()
 	local news = get("InjuryNews")
 	if type(news) == "string" and news ~= "" then
 		showToast(news, C.bad)
+		injuryMinute = matchMinute() -- X336: his place in the feed
+		refreshFeed()
 	end
 end)
 
 state:GetAttributeChangedSignal("Subs"):Connect(function()
 	refreshTacticButtons()
+	refreshFeed()
 	local subs = HttpService:JSONDecode(get("Subs") or "[]")
 	local raw = get("Timeline")
 	if #subs == 0 or type(raw) ~= "string" or raw == "" then
@@ -982,6 +1083,7 @@ seasonCard.frame:GetPropertyChangedSignal("Visible"):Connect(refreshHint)
 
 refreshCash()
 refreshScoreboard()
+refreshFeed()
 refreshHint()
 -- X311: the marker is re-evaluated on a slow loop rather than on every hint
 -- change, so the distance on it counts down as the player walks over.
