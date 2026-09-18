@@ -946,6 +946,15 @@ state:GetAttributeChangedSignal("AwayGoals"):Connect(function()
 	end
 end)
 
+-- X334: somebody goes down during the match; the sub toast that follows says
+-- who came on, but not why
+state:GetAttributeChangedSignal("InjuryNews"):Connect(function()
+	local news = get("InjuryNews")
+	if type(news) == "string" and news ~= "" then
+		showToast(news, C.bad)
+	end
+end)
+
 state:GetAttributeChangedSignal("Subs"):Connect(function()
 	refreshTacticButtons()
 	local subs = HttpService:JSONDecode(get("Subs") or "[]")

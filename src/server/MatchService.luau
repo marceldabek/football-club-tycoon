@@ -179,6 +179,7 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	ClubState.set("Attendance", attendance)
 	ClubState.set("Tactic", "Balanced")
 	ClubState.set("Subs", "[]")
+	ClubState.set("InjuryNews", "") -- X334: last week's casualty is not this week's
 	ClubState.set("Evening", evening)
 	ClubState.set("Timeline", HttpService:JSONEncode({
 		events = result.events,
