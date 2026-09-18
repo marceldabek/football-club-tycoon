@@ -795,9 +795,17 @@ end
 
 -- TEMP transfer value: what the club receives for selling a player. Younger
 -- players hold their fee; veterans fetch much less. Rounded to 50, min 100.
+-- X351: and a player the club has just signed sells at a loss. Without this,
+-- `value == fee` for every prospect a scout can find (they are all 27 or
+-- under), so signing and releasing in the same second was a full refund and no
+-- transfer was ever a commitment. He is worth `ResaleShare` of his value with
+-- no appearances, rising to `ResaleSettled` after `ResaleAppearances` - never
+-- the whole fee, because somebody else always takes a cut.
 function Squad.value(p: Player): number
 	local ageFactor = if p.age <= 23 then 1 elseif p.age <= 29 then 0.85 elseif p.age <= 32 then 0.55 else 0.35
-	return math.max(math.floor((Squad.fee(p) * ageFactor) / 50) * 50, 100)
+	local settled = math.clamp((p.apps or 0) / Config.ResaleAppearances, 0, 1)
+	local loyalty = Config.ResaleShare + (Config.ResaleSettled - Config.ResaleShare) * settled
+	return math.max(math.floor((Squad.fee(p) * ageFactor * loyalty) / 50) * 50, 100)
 end
 
 -- X337: how wide a band this scout reports a ceiling in. 0 means he names it.

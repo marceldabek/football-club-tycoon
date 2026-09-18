@@ -221,6 +221,8 @@ function T.valueNeverExceedsFeeAndFallsWithAge()
 	local young = { id = 1, name = "a", number = 1, role = "MID", age = 21, overall = 55, potential = 65, injured = 0, apps = 0, goals = 0, look = 1 }
 	local old = { id = 2, name = "b", number = 2, role = "MID", age = 33, overall = 55, potential = 65, injured = 0, apps = 0, goals = 0, look = 2 }
 	assert(Squad.value(young :: any) <= Squad.fee(young :: any), "sale value above buying fee")
+	-- X351: and never the whole fee back, however young he is
+	assert(Squad.value(young :: any) < Squad.fee(young :: any), "a signing should not be a free undo")
 	assert(Squad.value(young :: any) > Squad.value(old :: any), "veteran should be worth less")
 	assert(Squad.value(old :: any) >= 100 and Squad.value(old :: any) % 50 == 0, "value not rounded to 50 / below floor")
 end
@@ -892,6 +894,28 @@ function T.everyProspectCarriesHisScoutsBand()
 			end
 		end
 	end
+end
+
+-- X351 ----------------------------------------------------------------------
+
+function T.aPlayerYouHaveJustSignedSellsAtALoss()
+	local function man(age, apps)
+		return { id = 1, name = "P", number = 9, role = "FWD", age = age, overall = 62, potential = 74,
+			injured = 0, apps = apps, goals = 0, look = 1 } :: any
+	end
+	local fresh = man(21, 0)
+	local settled = man(21, Config.ResaleAppearances)
+	local fee = Squad.fee(fresh)
+	assert(Squad.value(fresh) < fee, ("a signing with no appearances should sell below his %d fee"):format(fee))
+	assert(Squad.value(settled) > Squad.value(fresh), "and he is worth more once he has played")
+	assert(Squad.value(settled) < fee, "but never the whole fee back")
+	-- it rises with appearances and then stops
+	local half = Squad.value(man(21, math.ceil(Config.ResaleAppearances / 2)))
+	assert(half > Squad.value(fresh) and half < Squad.value(settled), "the discount should narrow with appearances")
+	assert(Squad.value(man(21, 200)) == Squad.value(settled), "and stop narrowing once he is established")
+	-- age still matters on top of it
+	assert(Squad.value(man(35, 200)) < Squad.value(man(21, 200)), "a veteran is worth less than a youngster")
+	assert(Squad.value(fresh) % 50 == 0 and Squad.value(fresh) >= 100, "still rounded to 50, still above the floor")
 end
 
 return T

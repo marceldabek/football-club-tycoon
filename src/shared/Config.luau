@@ -312,6 +312,19 @@ Config.StatueMinApps = 20
 --                   way: attendance is capped by the ground (X234) while the
 --                   division's demand is not, so undamped wages could bankrupt
 --                   a top-flight club for being popular
+-- X351: what a club gets back for a player it has just signed. `Squad.value`
+-- was `fee * ageFactor` with ageFactor 1 for anyone 23 or under, and every
+-- prospect a scout finds is 27 or younger - so signing a player and releasing
+-- him the same second refunded the whole fee, and the one decision CLAUDE.md
+-- s11 holds up as the model tradeoff shipped with a free undo button.
+--   ResaleShare        of his value before he has kicked a ball for the club
+--   ResaleSettled      of his value once he is established
+--   ResaleAppearances  appearances to get there
+-- TEMP.
+Config.ResaleShare = 0.6
+Config.ResaleSettled = 0.9
+Config.ResaleAppearances = 5
+
 Config.WageBase = 3600
 Config.WageSquadSize = 16
 Config.WageCurve = 2.5
