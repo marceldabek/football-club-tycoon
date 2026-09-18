@@ -134,12 +134,19 @@ function Finance.normalize(raw: any): Ledger
 	if type(raw.matches) == "table" then
 		for _, row in ipairs(raw.matches) do
 			if type(row) == "table" and type(row.total) == "number" then
+				-- X350/X353: this is the second field-by-field copy of a row, and
+				-- it dropped `merch` and `costs` on every restore - so after a
+				-- rejoin the matchday rows stopped adding up. A row that came
+				-- from before those fields existed simply reads 0, which is
+				-- what it was.
 				Finance.recordMatch(out, {
 					round = if type(row.round) == "number" then math.floor(row.round) else 0,
 					gate = if type(row.gate) == "number" then math.floor(row.gate) else 0,
 					concessions = if type(row.concessions) == "number" then math.floor(row.concessions) else 0,
+					merch = if type(row.merch) == "number" then math.floor(row.merch) else 0,
 					bonus = if type(row.bonus) == "number" then math.floor(row.bonus) else 0,
 					sponsor = if type(row.sponsor) == "number" then math.floor(row.sponsor) else 0,
+					costs = if type(row.costs) == "number" then math.floor(row.costs) else 0,
 					total = math.floor(row.total),
 				})
 			end

@@ -147,6 +147,27 @@ function T.theStaffCostSomethingToKeep()
 	assert(volunteer > 0 and best > volunteer * 5, ("%d then %d"):format(volunteer, best))
 end
 
+function T.aBadlyRunClubCanLoseMoneyInEveryDivision()
+	-- the review found the first version could not produce a loss above tier 3
+	-- at all, because wages went on a *ratio* of the division's standard
+	for tier = 1, #Config.Divisions do
+		local demand = Economy.demand(tier, 60, 1, 0)
+		local amenity = Config.AmenityLevels[2]
+		local s = Economy.settle({
+			homeGoals = 1, awayGoals = 0, capacity = demand, demand = demand,
+			ticketPrice = Config.TicketPrice, concessionPerFan = amenity.perFan,
+			merchPerFan = amenity.merchPerFan,
+			winBonus = Config.WinBonus, drawBonus = Config.DrawBonus, lossBonus = Config.LossBonus,
+			tier = tier, popularity = 60, sponsorSeed = 1,
+			-- the worst a club can do to itself: the best squad the game can
+			-- make, at full size, with the best staff
+			squadAverage = Squad.MAX_OVERALL, squadSize = Config.SquadMax,
+			coachLevel = #Config.CoachLevels - 1, scoutLevel = #Config.ScoutLevels,
+		})
+		assert(s.total < 0, ("tier %d cannot lose money: income %d, costs %d"):format(tier, s.income, s.costs))
+	end
+end
+
 function T.anOverpaidSquadInASmallDivisionLosesMoney()
 	-- CLAUDE.md s5: poor management should eventually produce losses. A
 	-- Sunday Parks League club with a National League squad and the best staff

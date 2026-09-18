@@ -321,14 +321,37 @@ Config.StatueMinApps = 20
 --                   of 150 people, and a bill sized for the division cost it
 --                   4,120 against 1,880 of income - bankrupt on match 1
 --                   (caught at 00:18 by playing the numbers through a new club)
---   WageCurve       how much harder a squad rated above its division bites
+--   WagePerPoint    how much dearer each rating point above the division's
+--                   standard is. A *ratio* (the first version) could not
+--                   produce a loss in the top two divisions at all: at tier 5
+--                   even a 99-rated squad of 20 only reached 73% of income,
+--                   because (99/76) is a much smaller ratio than (65/44).
+--                   Points are the same everywhere, so poor management can
+--                   lose money at any level (review at 00:29)
+--   WageMinRatio    the floor, so a cheap squad is cheap but not free
 --   WageSquadSize   the squad size WageShare is quoted for
 --   StaffUpkeepShare the share of a coach's and scout's purchase price they
 --                   cost to keep, every match
 Config.WageShare = 0.3
 Config.WageSquadSize = 16
-Config.WageCurve = 2.5
+Config.WagePerPoint = 0.08
+Config.WageMinRatio = 0.4
 Config.StaffUpkeepShare = 0.02
+
+-- X353: at 100 popularity the club shop sells half again as much per fan
+Config.MerchPopularityShare = 0.5
+
+-- X351: what a club gets back for a player it has just signed. `Squad.value`
+-- was `fee * ageFactor` with ageFactor 1 for anyone 23 or under, and every
+-- prospect a scout finds is 27 or younger - so signing a player and releasing
+-- him the same second refunded the whole fee.
+--   ResaleShare        of his value before he has kicked a ball for the club
+--   ResaleSettled      of his value once he is established
+--   ResaleAppearances  appearances to get there
+-- TEMP.
+Config.ResaleShare = 0.6
+Config.ResaleSettled = 0.9
+Config.ResaleAppearances = 5
 
 Config.SponsorBase = 250
 Config.SponsorPopularityShare = 0.6 -- at 100 popularity the fee is 1.6x

@@ -260,11 +260,22 @@ function T.aDivisionAimsAtTheClubItIsGoingToFace()
 	assert(League.rivalTarget(1, base + 100) == base + League.RIVAL_MAX_OVER, "and it stops climbing")
 	-- promotion is still the step up: the next division starts above anything
 	-- this one can drift to
+	-- promotion has to be a real step up: what a division can drift to must
+	-- stay *under* what the next one starts at. The first version of this
+	-- assertion allowed 2 points of slack, which was exactly the size of the
+	-- violation it was meant to catch.
 	for tier = 1, #Config.Divisions - 1 do
 		local ceiling = Config.Divisions[tier].baseStrength + League.RIVAL_MAX_OVER
-		assert(Config.Divisions[tier + 1].baseStrength >= ceiling - 2,
+		assert(Config.Divisions[tier + 1].baseStrength > ceiling,
 			("tier %d can drift to %d, but tier %d only starts at %d"):format(
 				tier, ceiling, tier + 1, Config.Divisions[tier + 1].baseStrength))
+	end
+	-- and going up always changes who you play
+	for tier = 1, #Config.Divisions - 1 do
+		for strength = 40, 99, 3 do
+			assert(League.rivalTarget(tier + 1, strength) > League.rivalTarget(tier, strength),
+				("an XI of %d meets the same rivals in tier %d and tier %d"):format(strength, tier, tier + 1))
+		end
 	end
 end
 

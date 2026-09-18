@@ -83,4 +83,37 @@ function T.wagesAndUpkeepAreSpend()
 	assert(Finance.totalSpend(l) == 5580, "and counted in the total")
 end
 
+function T.aSavedLedgerComesBackWholeAndAnOldOneStillLoads()
+	-- X350/X353: `normalize` is the *second* field-by-field copy of a match row
+	-- (recordMatch is the first), and it dropped merch and costs on every
+	-- restore, so the rows stopped adding up after a rejoin.
+	local l = Finance.new()
+	Finance.record(l, "gate", 1000)
+	Finance.record(l, "merch", 150)
+	Finance.record(l, "wages", -400)
+	Finance.record(l, "upkeep", -30)
+	Finance.recordMatch(l, { round = 2, gate = 1000, concessions = 200, merch = 150, bonus = 400, sponsor = 300, costs = 430, total = 1620 })
+	local back = Finance.normalize(l)
+	assert(back.income.gate == 1000 and back.income.merch == 150, "income survived")
+	assert(back.spend.wages == 400 and back.spend.upkeep == 30, "spend survived")
+	local row = back.matches[#back.matches]
+	for _, field in { "round", "gate", "concessions", "merch", "bonus", "sponsor", "costs", "total" } do
+		assert(type(row[field]) == "number", "the restored row lost " .. field)
+	end
+	assert(row.gate + row.concessions + row.merch + row.bonus + row.sponsor - row.costs == row.total,
+		"a restored row should still add up")
+
+	-- and a ledger saved before tonight has no merch, no costs and no wages
+	local old = Finance.normalize({
+		income = { gate = 500, concessions = 100 },
+		spend = { stands = 1500 },
+		matches = { { round = 1, gate = 500, concessions = 100, bonus = 0, total = 600 } },
+	})
+	assert(old.income.gate == 500 and old.spend.stands == 1500, "an old ledger still loads")
+	local oldRow = old.matches[1]
+	assert(oldRow.merch == 0 and oldRow.costs == 0, "the new fields read zero, which is what they were")
+	assert(oldRow.gate + oldRow.concessions + oldRow.merch + oldRow.bonus + (oldRow.sponsor or 0) - oldRow.costs == oldRow.total,
+		"and it still adds up")
+end
+
 return T

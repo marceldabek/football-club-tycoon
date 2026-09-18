@@ -88,7 +88,11 @@ end
 -- Rivals now aim just below the club they keep meeting, but never far above
 -- the division's own standard, so promotion is still the real step up. TEMP.
 League.RIVAL_GAP = 4 -- how far below the player's XI the division aims
-League.RIVAL_MAX_OVER = 10 -- and never more than this above its own standard
+-- ...and never more than this above its own standard. It has to stay *below*
+-- the 8-point step between divisions, or a division can drift level with the
+-- one above and promotion changes the opposition by nothing (review at 00:29:
+-- at 10, any XI around 56-62 met identical rivals in tiers 1 and 2).
+League.RIVAL_MAX_OVER = 6
 
 -- Pure: what this division's rivals are built around, given the club they are
 -- up against. A weak club never makes the division weaker than it is.

@@ -106,7 +106,7 @@ end
 
 -- X350: the squad's wages for one match. A squad rated at its division's own
 -- standard costs `WageShare` of that matchday's income; a squad rated above
--- the division costs sharply more (`WageCurve`), which is what makes buying a
+-- the division costs sharply more (`WagePerPoint` a point), which is what makes buying a
 -- promotion-ready squad a decision rather than a free win, and a smaller squad
 -- is cheaper, so releasing a reserve is worth something.
 --
@@ -118,7 +118,10 @@ end
 function Economy.wageBill(income: number, squadAverage: number, squadSize: number, tier: number): number
 	local division = Config.Divisions[tier] or Config.Divisions[1]
 	local standard = math.max(division.baseStrength, 1)
-	local ratio = (math.max(squadAverage, 1) / standard) ^ Config.WageCurve
+	-- each point above the division's standard is `WagePerPoint` dearer. A
+	-- ratio instead of points made a loss unreachable in the top two
+	-- divisions, where the same quality gap is a much smaller ratio.
+	local ratio = math.max(1 + (squadAverage - standard) * Config.WagePerPoint, Config.WageMinRatio)
 	local size = math.max(squadSize, 0) / Config.WageSquadSize
 	local bill = math.max(income, 0) * Config.WageShare * ratio * size
 	return math.floor(bill / 10 + 0.5) * 10
