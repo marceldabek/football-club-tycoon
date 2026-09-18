@@ -1863,3 +1863,11 @@ A second read-only review agent went over tonight's later commits. Nine findings
 9. `Bids.isStale` was dead code, and `restore` accepted any table with a number id and fee. Restore now validates the whole shape and drops an offer from before a match that has since been played.
 - RunAll 496 passed.
 
+### 2026-09-17 21:09 — The schools show something to the street (X320)
+- X59 built the town's board schools as red-brick blocks with RIVERMERE PRIMARY SCHOOL over the door and nothing else: no railings, no gate, no playground, no bike shed, and no markings on the road. A British school shows all of that to the street, and these stand in districts that got the whole imperfection pass, so they read as unfinished from the pavement.
+- New `SchoolDresser` (there are **three** school blocks in the layout, not the two the item assumed): a low brick wall with railings along the street frontage, two brick piers and a pair of gates in the middle of it, SCHOOL KEEP CLEAR painted across the carriageway outside, a tarmac playground behind the building with a painted court, centre circle and hopscotch, and a bike shed with a rack at the far end of it. **56 parts** across the three, against the item's guess of 30.
+- **Everything is probed before it is placed**, and the middle school shows why: it is hemmed in on three sides, so it gets its frontage and its gate and no playground at all. The others get the lot.
+- **Two geometry bugs found by measuring.** The railings were set ten studs out from the building, which put them in the road on every school (22 overlaps) - the module now takes the nearest road's own width from the layout and stands the railings behind the pavement. Then the gate piers were clipping the school's own portico, which sticks out four studs with a pediment over it, so the frontage is held at least nine studs clear and each pier is probed before it goes up. Final measurement: **0 overlaps except the pavement the railings stand on**.
+- 3 new tests on the pure half: every school block is found, each one faces one of the four axes with a real road distance and width, and the side chosen is genuinely the nearest to any road.
+- RunAll 499 passed. Screenshots from the street and from above.
+

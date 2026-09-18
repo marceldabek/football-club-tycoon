@@ -51,7 +51,10 @@ local function probeClear(at: Vector3, size: Vector3, ignore: { Instance }): boo
 	return #workspace:GetPartBoundsInBox(CFrame.new(centre), Vector3.new(size.X, PROBE_Y1 - PROBE_Y0, size.Z), params) == 0
 end
 
-export type School = { centre: Vector3, size: Vector3, toRoad: Vector3, roadDistance: number }
+-- `roadDistance` is measured from ten studs outside the building to the road's
+-- centre line, and `roadHalf` is that road's own half width, so the railings
+-- can stand behind the pavement instead of in the carriageway.
+export type School = { centre: Vector3, size: Vector3, toRoad: Vector3, roadDistance: number, roadHalf: number }
 
 -- Pure: every school block with the direction of the nearest road from it.
 function SchoolDresser.schools(): { School }
@@ -62,14 +65,14 @@ function SchoolDresser.schools(): { School }
 				continue
 			end
 			local centre = Vector3.new(block.centre.X, 0, block.centre.Z)
-			local best, bestD = Vector3.new(0, 0, 1), math.huge
+			local best, bestD, bestHalf = Vector3.new(0, 0, 1), math.huge, 12
 			for _, axis in { Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 0, -1) } do
 				local half = if math.abs(axis.X) > 0.5 then block.size.X / 2 else block.size.Z / 2
 				local edge = centre + axis * (half + 10)
 				for _, road in TownLayout.ROADS do
 					local d = TownLayout.distanceToPolyline(edge, road.points)
 					if d < bestD then
-						bestD, best = d, axis
+						bestD, best, bestHalf = d, axis, road.width / 2
 					end
 				end
 			end
@@ -78,6 +81,7 @@ function SchoolDresser.schools(): { School }
 				size = Vector3.new(block.size.X, block.size.Y, block.size.Z),
 				toRoad = best,
 				roadDistance = bestD,
+				roadHalf = bestHalf,
 			})
 		end
 	end
@@ -98,8 +102,14 @@ local function dress(school: School, root: Instance): number
 	local centre = school.centre
 	local frontage = halfAlong + 6
 
-	-- the railings along the street frontage, with a gap for the gate
-	local railZ = centre + toRoad * (halfOut + 10)
+	-- The railings along the street frontage: behind the pavement, not in the
+	-- road. `roadDistance` is measured from ten studs out, so the road's centre
+	-- line is that much further again.
+	local roadCentre = halfOut + 10 + school.roadDistance
+	-- and never closer than the building's own portico, which sticks out about
+	-- four studs from the front wall with a pediment over it
+	local railOffset = math.max(roadCentre - (school.roadHalf + TownLayout.PAVEMENT_WIDTH) - 2, halfOut + 9)
+	local railZ = centre + toRoad * railOffset
 	local function railRun(from: number, to: number, name: string)
 		local length = to - from
 		if length < 3 then
@@ -115,7 +125,7 @@ local function dress(school: School, root: Instance): number
 			return
 		end
 		local rail = part(model, name, size, CFrame.new(mid.X, RAIL_H / 2, mid.Z), RAIL_COLOUR, Enum.Material.Metal)
-		rail.Transparency = 0.15 -- railings, not a wall
+		rail.Transparency = 0.45 -- railings, not a wall: it has to read as bars
 		-- a low wall the railings stand on, the way a board school has
 		part(model, name .. "Wall", Vector3.new(size.X + 0.4, 1.2, size.Z + 0.4), CFrame.new(mid.X, 0.6, mid.Z), Color3.fromRGB(150, 76, 58), Enum.Material.Brick)
 	end
@@ -125,6 +135,9 @@ local function dress(school: School, root: Instance): number
 	-- the gate: two piers and a pair of leaves, and the school's own sign
 	for _, side in { -1, 1 } do
 		local at = railZ + along * (side * GATE_GAP / 2)
+		if not probeClear(at, Vector3.new(3, 0, 3), ignore) then
+			continue -- no room for a pier on that side
+		end
 		part(model, "GatePier", Vector3.new(2, 6, 2), CFrame.new(at.X, 3, at.Z), Color3.fromRGB(150, 76, 58), Enum.Material.Brick)
 		local leafAt = railZ + along * (side * GATE_GAP / 4)
 		local leaf = part(model, "GateLeaf", Vector3.new(
@@ -137,14 +150,14 @@ local function dress(school: School, root: Instance): number
 
 	-- SCHOOL KEEP CLEAR on the carriageway, if the road is close enough to mark
 	if school.roadDistance < 26 then
-		local roadAt = centre + toRoad * (halfOut + 10 + school.roadDistance + 4)
+		local roadAt = centre + toRoad * roadCentre
 		local markSize = Vector3.new(
 			if math.abs(along.X) > 0.5 then 40 else 2.2,
 			0.12,
 			if math.abs(along.X) > 0.5 then 2.2 else 40
 		)
 		for _, side in { -1, 1 } do
-			local at = roadAt + toRoad * (side * 5)
+			local at = roadAt + toRoad * (side * school.roadHalf * 0.55)
 			part(model, "KeepClear", markSize, CFrame.new(at.X, 0.26, at.Z), PAINT, Enum.Material.SmoothPlastic).CanCollide = false
 		end
 		local words = part(model, "KeepClearWords", Vector3.new(
@@ -199,7 +212,7 @@ local function dress(school: School, root: Instance): number
 		circle.CanCollide = false
 		circle.Transparency = 0.25
 		-- hopscotch in the corner, in yellow
-		for i = 1, 4 do
+		for i = 1, 3 do
 			local p = part(model, "Hopscotch", Vector3.new(2.6, 0.05, 2.6), CFrame.new(
 				yardCentre.X + yardSize.X / 2 - 8,
 				0.52,
