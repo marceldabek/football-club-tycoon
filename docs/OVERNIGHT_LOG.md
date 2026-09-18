@@ -1,6 +1,6 @@
 # Overnight Log
 
-## Morning handoff (kept current, last touched 00:26)
+## Morning handoff (kept current, last touched 00:27)
 
 **What to look at:** Press Play. Pick a ground with the picker (‹ › then BUILD MY CLUB HERE).
 You spawn in your office on that plot; the other plots are FOR SALE lots. Walk or take a bus (prompt on
@@ -2130,3 +2130,8 @@ A read-only agent reviewed the last eight commits (X333-X342). Eleven real findi
 - Match-by-match the profit ran £1,280, £2,110, £1,840, £1,930 and upward as the ground grew (150 -> 300 -> 550 seats), so every match paid for something and nothing ever went backwards.
 - **No concessions and no merch in that ledger at all**, because the club never bought an amenity - which is the tradeoff working: it spent on seats instead, and the hint pill's next suggestion is the Snack Bar. In the County League its demand is 2,077 against 550 seats, so the fans it is turning away are now the loudest thing on the summary card.
 - Promotion also exercised X355's rival drift at the rollover: the club is *below* the County League's own standard, so the new division is built at its own baseStrength and nothing drifts - a promoted club is not punished for being promoted.
+
+### 2026-09-18 00:27 — My own seventh column sat under the total (X353 follow-up)
+- X350's Costs column made seven money columns on the FINANCE tab's matchday row, and Total is pinned to the row's right edge - so at the old "wide" threshold of 560 the total started at x 446 and sat on top of Costs at 435..505. That is the same failure the X325 review fixed for six columns, reintroduced by adding a seventh.
+- Seven columns need a 620-wide row, so that is the threshold now, with the middle columns packed tighter. Below it the row still drops to Match / Tickets / Shop / Total, with everything else spelled out in the tables above.
+- RunAll 571 passed.
