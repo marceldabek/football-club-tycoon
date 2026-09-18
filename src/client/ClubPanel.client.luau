@@ -939,7 +939,12 @@ local function renderFinance()
 		-- ScrollingFrame that does not scroll sideways. Total is pinned to the
 		-- row's right edge, and a narrow row drops the two middle columns
 		-- (which are both spelled out in MONEY IN just above).
-		local wide = content.AbsoluteSize.X >= 560
+		-- X353 (review of my own): this row carries seven columns now, and
+		-- Total is pinned to the right edge - at the old 560 threshold it
+		-- started at 446 and sat on top of Costs at 435..505. A row needs
+		-- 620 for all seven, so that is the threshold, and the columns are
+		-- packed a little tighter.
+		local wide = content.AbsoluteSize.X >= 620
 		local head = row(false)
 		head.BackgroundColor3 = PANEL_BG
 		cell(head, "Match", 10, 60, { TextColor3 = GREY })
@@ -948,9 +953,9 @@ local function renderFinance()
 			-- X353: the shop's take rides with the kiosks in one column, and is
 			-- its own line in MONEY IN above
 			cell(head, "Kiosks & shop", 165, 105, { TextColor3 = GREY })
-			cell(head, "Bonus", 275, 70, { TextColor3 = GREY })
-			cell(head, "Sponsor", 350, 80, { TextColor3 = GREY })
-			cell(head, "Costs", 435, 70, { TextColor3 = GREY }) -- X350
+			cell(head, "Bonus", 265, 65, { TextColor3 = GREY })
+			cell(head, "Sponsor", 335, 75, { TextColor3 = GREY })
+			cell(head, "Costs", 415, 70, { TextColor3 = GREY }) -- X350
 		else
 			cell(head, "Shop", 165, 80, { TextColor3 = GREY })
 		end
@@ -963,10 +968,10 @@ local function renderFinance()
 			local kiosks = (m.concessions or 0) + (m.merch or 0) -- X353
 			if wide then
 				cell(f, money(kiosks), 165, 105)
-				cell(f, money(m.bonus or 0), 275, 70)
-				cell(f, money(m.sponsor or 0), 350, 80)
+				cell(f, money(m.bonus or 0), 265, 65)
+				cell(f, money(m.sponsor or 0), 335, 75)
 				-- X350: shown as what it took off, so the row adds up
-				cell(f, money(-(m.costs or 0)), 435, 70, { TextColor3 = Theme.colors.bad })
+				cell(f, money(-(m.costs or 0)), 415, 70, { TextColor3 = Theme.colors.bad })
 			else
 				cell(f, money(kiosks), 165, 80)
 			end
