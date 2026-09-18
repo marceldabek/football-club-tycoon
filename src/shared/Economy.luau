@@ -105,17 +105,22 @@ function Economy.merchRevenue(attendance: number, popularity: number, merchPerFa
 end
 
 -- X350: the squad's wages for one match. A squad rated at its division's own
--- standard costs about a third of that division's matchday takings; paying for
--- a squad above the division costs sharply more (WageCurve), which is what
--- makes buying a promotion-ready squad a decision rather than a free win. A
--- smaller squad is cheaper, so releasing a reserve is worth something.
-function Economy.wageBill(squadAverage: number, squadSize: number, tier: number): number
+-- standard costs `WageShare` of that matchday's income; a squad rated above
+-- the division costs sharply more (`WageCurve`), which is what makes buying a
+-- promotion-ready squad a decision rather than a free win, and a smaller squad
+-- is cheaper, so releasing a reserve is worth something.
+--
+-- Wages are a share of the income rather than an absolute figure for the
+-- division, because a brand-new club plays its first match in front of 150
+-- people: a bill sized for the division (the first version of this) cost it
+-- 4,120 against 1,880 of income and bankrupted it on match 1. A share cannot
+-- do that, and an over-paid squad can still cost more than the club takes.
+function Economy.wageBill(income: number, squadAverage: number, squadSize: number, tier: number): number
 	local division = Config.Divisions[tier] or Config.Divisions[1]
 	local standard = math.max(division.baseStrength, 1)
 	local ratio = (math.max(squadAverage, 1) / standard) ^ Config.WageCurve
 	local size = math.max(squadSize, 0) / Config.WageSquadSize
-	local money = League.divisionFactor(tier) ^ Config.WageDivisionDamping
-	local bill = Config.WageBase * money * ratio * size
+	local bill = math.max(income, 0) * Config.WageShare * ratio * size
 	return math.floor(bill / 10 + 0.5) * 10
 end
 
@@ -156,7 +161,7 @@ function Economy.settle(inputs: Inputs): Settlement
 	local merchRevenue = Economy.merchRevenue(attendance, inputs.popularity or 0, inputs.merchPerFan or 0)
 	local income = ticketRevenue + concessionRevenue + merchRevenue + bonus + sponsorFee
 	-- X350: and what it cost to put the match on
-	local wages = Economy.wageBill(inputs.squadAverage or 0, inputs.squadSize or 0, inputs.tier or 1)
+	local wages = Economy.wageBill(income, inputs.squadAverage or 0, inputs.squadSize or 0, inputs.tier or 1)
 	local upkeep = Economy.staffUpkeep(inputs.coachLevel or 0, inputs.scoutLevel or 0)
 	local costs = wages + upkeep
 	return {

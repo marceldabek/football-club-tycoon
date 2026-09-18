@@ -314,35 +314,20 @@ Config.StatueMinApps = 20
 -- could ever be wrong and a Pro Coach paid for himself for ever, against
 -- CLAUDE.md s5 ("eventually poor club management should produce losses").
 -- All TEMP.
---   WageBase        what a division-standard squad of WageSquadSize costs in
---                   the bottom division; scaled up by League.divisionFactor
+--   WageShare       what a squad rated at its division's own standard costs,
+--                   as a share of that matchday's income. Wages have to be a
+--                   share of the gate rather than an absolute figure for the
+--                   division: a brand-new club plays its first match in front
+--                   of 150 people, and a bill sized for the division cost it
+--                   4,120 against 1,880 of income - bankrupt on match 1
+--                   (caught at 00:18 by playing the numbers through a new club)
 --   WageCurve       how much harder a squad rated above its division bites
+--   WageSquadSize   the squad size WageShare is quoted for
 --   StaffUpkeepShare the share of a coach's and scout's purchase price they
 --                   cost to keep, every match
---   WageDivisionDamping  wages follow the division's money, but not all the
---                   way: attendance is capped by the ground (X234) while the
---                   division's demand is not, so undamped wages could bankrupt
---                   a top-flight club for being popular
--- X351: what a club gets back for a player it has just signed. `Squad.value`
--- was `fee * ageFactor` with ageFactor 1 for anyone 23 or under, and every
--- prospect a scout finds is 27 or younger - so signing a player and releasing
--- him the same second refunded the whole fee, and the one decision CLAUDE.md
--- s11 holds up as the model tradeoff shipped with a free undo button.
---   ResaleShare        of his value before he has kicked a ball for the club
---   ResaleSettled      of his value once he is established
---   ResaleAppearances  appearances to get there
--- TEMP.
--- X353: at 100 popularity the shop sells half again as much per fan
-Config.MerchPopularityShare = 0.5
-
-Config.ResaleShare = 0.6
-Config.ResaleSettled = 0.9
-Config.ResaleAppearances = 5
-
-Config.WageBase = 3600
+Config.WageShare = 0.3
 Config.WageSquadSize = 16
 Config.WageCurve = 2.5
-Config.WageDivisionDamping = 0.8
 Config.StaffUpkeepShare = 0.02
 
 Config.SponsorBase = 250

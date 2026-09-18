@@ -2,6 +2,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Economy = require(ReplicatedStorage.Shared.Economy)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Squad = require(ReplicatedStorage.Shared.Squad) -- X350: a real starting squad
 
 local T = {}
 
@@ -114,26 +115,29 @@ end
 
 function T.aMatchdayCostsSomethingToPutOn()
 	local division = Config.Divisions[1]
-	local bill = Economy.wageBill(division.baseStrength, Config.WageSquadSize, 1)
+	local income = 10000
+	local bill = Economy.wageBill(income, division.baseStrength, Config.WageSquadSize, 1)
 	assert(bill > 0, "a squad has to be paid")
-	-- a division-standard squad costs a serious share of that division's
-	-- matchday money, but not all of it
-	local gate = Economy.demand(1, 50, 0, 0) * Config.TicketPrice
-	assert(bill < gate, ("wages %d against a %d gate"):format(bill, gate))
-	assert(bill > gate * 0.1, ("wages %d are a rounding error against a %d gate"):format(bill, gate))
+	-- a division-standard squad costs its division's share of the matchday,
+	-- and never the whole of it
+	assert(math.abs(bill - income * Config.WageShare) < 20,
+		("a standard squad should cost about %d, got %d"):format(income * Config.WageShare, bill))
+	assert(Economy.wageBill(0, division.baseStrength, 16, 1) == 0, "no income, no wage bill")
 end
 
 function T.payingAboveYourDivisionCostsMore()
 	local division = Config.Divisions[1]
-	local standard = Economy.wageBill(division.baseStrength, 16, 1)
-	local stars = Economy.wageBill(division.baseStrength + 20, 16, 1)
-	local cheap = Economy.wageBill(division.baseStrength - 8, 16, 1)
+	local income = 10000
+	local standard = Economy.wageBill(income, division.baseStrength, 16, 1)
+	local stars = Economy.wageBill(income, division.baseStrength + 20, 16, 1)
+	local cheap = Economy.wageBill(income, division.baseStrength - 8, 16, 1)
 	assert(stars > standard * 1.5, ("a 20-point better squad should cost much more: %d vs %d"):format(stars, standard))
 	assert(cheap < standard, "and a weaker one less")
 	-- a bigger squad costs more than a smaller one of the same quality
-	assert(Economy.wageBill(division.baseStrength, 20, 1) > standard, "20 players cost more than 16")
-	-- and the same squad costs more in a richer division, because everything does
-	assert(Economy.wageBill(60, 16, 3) > Economy.wageBill(60, 16, 1), "the same squad costs more higher up")
+	assert(Economy.wageBill(income, division.baseStrength, 20, 1) > standard, "20 players cost more than 16")
+	-- the same squad is standard in one division and expensive in another
+	assert(Economy.wageBill(income, 60, 16, 3) < Economy.wageBill(income, 60, 16, 1),
+		"a 60-rated squad is standard in the Regional Premier and dear in the Sunday Parks League")
 end
 
 function T.theStaffCostSomethingToKeep()
@@ -220,6 +224,51 @@ function T.theShopIsPartOfTheSettlement()
 	assert(s.income == s.ticketRevenue + s.concessionRevenue + s.merchRevenue + s.resultBonus + s.sponsorFee,
 		"income should count the shop")
 	assert(s.total == s.income - s.costs, "and the total is still income less costs")
+end
+
+function T.aBrandNewClubMakesMoneyOnItsFirstMatch()
+	-- The first version of X350 sized wages for the division, and a new club
+	-- plays in front of 150 people: it cost 4,120 against 1,880 of income and
+	-- was bankrupt on match 1, with the onboarding pointing at an upgrade it
+	-- could never afford. CLAUDE.md s5: the game is forgiving early.
+	local players = Squad.generate(1, Config.StartingSquadOverall)
+	local capacity = 0
+	for _, plot in Config.StandPlots do
+		local level = Config.StandLevels[plot.start]
+		if level then
+			capacity += math.floor(level.capacity * plot.share)
+		end
+	end
+	assert(capacity > 0, "the starting ground should hold somebody")
+	local demand = Economy.demand(1, Config.StartingPopularity, 0, 0)
+	local amenity = Config.AmenityLevels[1]
+	local function settle(homeGoals, awayGoals)
+		return Economy.settle({
+			homeGoals = homeGoals, awayGoals = awayGoals, capacity = capacity, demand = demand,
+			ticketPrice = Config.TicketPrice, concessionPerFan = amenity.perFan,
+			merchPerFan = amenity.merchPerFan,
+			winBonus = Config.WinBonus, drawBonus = Config.DrawBonus, lossBonus = Config.LossBonus,
+			tier = 1, popularity = Config.StartingPopularity, sponsorSeed = 1,
+			squadAverage = Squad.average(players), squadSize = #players, coachLevel = 0, scoutLevel = 0,
+		})
+	end
+	for _, score in { { 2, 1 }, { 1, 1 }, { 0, 2 } } do
+		local s = settle(score[1], score[2])
+		assert(s.total > 0, ("a new club should not lose money at %d-%d: income %d, costs %d"):format(
+			score[1], score[2], s.income, s.costs))
+	end
+	-- and the first paid upgrade has to be within a few matchdays
+	local win = settle(2, 1)
+	local cheapest = math.huge
+	for _, plot in Config.StandPlots do
+		local nextLevel = Config.StandLevels[plot.start + 2]
+		if nextLevel and nextLevel.cost > 0 and nextLevel.cost < cheapest then
+			cheapest = nextLevel.cost
+		end
+	end
+	assert(cheapest / win.total <= 4,
+		("the first paid stand costs %d and a matchday makes %d - that is %.1f matches"):format(
+			cheapest, win.total, cheapest / win.total))
 end
 
 return T
