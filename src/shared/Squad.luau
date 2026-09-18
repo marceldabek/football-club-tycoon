@@ -468,11 +468,14 @@ end
 function Squad.creditScorers(events: { ScoredEvent }, subs: { Sub }): { number }
 	local scorers: { number } = {}
 	for index, ev in events do
-		local slot = (ev :: any).scorer
+		local scored = ev :: any
+		local slot = scored.scorer
 		if ev.team == "Home" and ev.type == "GOAL" and type(slot) == "number" then
-			-- X357: the rule itself lives in Squad.filledBy now
-			slot = Squad.filledBy(subs, slot, { index = index, minute = (ev :: any).minute })
-			(ev :: any).scorer = slot
+			-- X357: the rule itself lives in Squad.filledBy now. The moment
+			-- goes through a local because `slot = f(...)` followed by a line
+			-- starting with `(` is the one syntax Luau calls ambiguous.
+			slot = Squad.filledBy(subs, slot, { index = index, minute = scored.minute })
+			scored.scorer = slot
 			table.insert(scorers, slot)
 		end
 	end
