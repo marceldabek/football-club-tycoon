@@ -315,6 +315,42 @@ function Squad.coachWantsSub(minute: number, made: { Sub }, allowance: number): 
 	return due ~= nil and minute >= due
 end
 
+-- X334: the change an injury forces. `outIdx` is the slot that went down, so
+-- this is not a choice - it only has to find somebody on the bench who can
+-- take his place (a keeper for a keeper), or give up if there is nobody.
+function Squad.forcedSub(matchSquad: { MatchPlayer }, made: { Sub }, outIdx: number): Sub?
+	if #made >= Config.MaxSubs then
+		return nil
+	end
+	local used: { [number]: boolean } = {}
+	for _, s in made do
+		used[s.out] = true
+		used[s["in"]] = true
+	end
+	if used[outIdx] or not matchSquad[outIdx] then
+		return nil -- already off
+	end
+	local wantKeeper = Pitch.ROLES[outIdx] == "GK"
+	local inIdx: number? = nil
+	for idx = #Pitch.ROLES + 1, #matchSquad do
+		local p = matchSquad[idx]
+		if used[idx] or not p then
+			continue
+		end
+		local isKeeper = p.role == "GK"
+		if isKeeper ~= wantKeeper then
+			continue
+		end
+		if inIdx == nil or p.overall > matchSquad[inIdx :: number].overall then
+			inIdx = idx
+		end
+	end
+	if inIdx == nil then
+		return nil -- nobody on the bench can take that place
+	end
+	return { out = outIdx, ["in"] = inIdx :: number, minute = 0, afterEvent = 0 }
+end
+
 function Squad.nextSub(matchSquad: { MatchPlayer }, made: { Sub }): Sub?
 	if #made >= Config.MaxSubs then
 		return nil
@@ -414,7 +450,10 @@ end
 -- Post-match bookkeeping. `scorerIds` are player ids; `subIds` are the
 -- players who came on (X219: they played too). Mutates players and returns
 -- human-readable news lines for the summary.
-function Squad.afterMatch(players: { Player }, xi: { number }, scorerIds: { number }, coachLevel: number, rng: Random, subIds: { number }?): ({ string }, { RatingChange })
+-- X334: `injuredId` is the player the match sim put down, if any. Injuries
+-- used to be rolled here, per starter, after the whistle - so they never
+-- happened *during* a match and could not force a substitution.
+function Squad.afterMatch(players: { Player }, xi: { number }, scorerIds: { number }, coachLevel: number, rng: Random, subIds: { number }?, injuredId: number?): ({ string }, { RatingChange })
 	local news: { string } = {}
 	local changes: { RatingChange } = {}
 	local played: { [number]: boolean } = {}
@@ -463,8 +502,8 @@ function Squad.afterMatch(players: { Player }, xi: { number }, scorerIds: { numb
 			if APP_MILESTONES[p.apps] then
 				table.insert(news, ("%s makes their %dth appearance"):format(p.name, p.apps))
 			end
-			if rng:NextNumber() < Config.InjuryChance then
-				p.injured = rng:NextInteger(1, 3)
+			if injuredId and p.id == injuredId then
+				p.injured = rng:NextInteger(Config.InjuryMatches[1], Config.InjuryMatches[2])
 				table.insert(news, ("%s injured (out %d match%s)"):format(p.name, p.injured, if p.injured == 1 then "" else "es"))
 			end
 		elseif p.injured > 0 then

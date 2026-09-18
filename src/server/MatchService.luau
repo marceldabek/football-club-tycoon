@@ -201,6 +201,10 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	ClubState.set("KickoffAt", workspace:GetServerTimeNow())
 	ClubState.set("Phase", "Match")
 
+	-- X334: the man the sim put down, once his minute comes round
+	local injuredSlot: number? = nil
+	local injuredId: number? = nil
+
 	-- X333: what the coach is allowed to do on his own this match
 	local coachLevel = (ClubState.get("CoachLevel") :: number?) or 0
 	local coachSubs = (Config.CoachLevels[coachLevel + 1] or Config.CoachLevels[1]).autoSubs or 0
@@ -223,6 +227,26 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 			nextEvent += 1
 		end
 		eventsShown = nextEvent - 1
+		-- X334: one of ours goes down at his minute, and comes off if there is
+		-- anybody to bring on. The injury itself is applied after the whistle.
+		local injury = result.injury
+		if injury and injuredSlot == nil and minute >= injury.minute then
+			injuredSlot = injury.slot
+			local hurt = homeSquad[injury.slot]
+			if hurt and hurt.id > 0 then
+				injuredId = hurt.id
+			end
+			if hurt then
+				ClubState.set("InjuryNews", ("%d %s is down, and cannot carry on."):format(hurt.number, hurt.name))
+			end
+			local forced = Squad.forcedSub(homeSquad, subsMade, injury.slot)
+			if forced then
+				forced.minute = minute
+				forced.afterEvent = eventsShown
+				table.insert(subsMade, forced)
+				ClubState.set("Subs", HttpService:JSONEncode(subsMade))
+			end
+		end
 		-- X333: the coach makes his own changes on the clock, through exactly
 		-- the same path as the SUB button
 		while coachSubs > 0 and Squad.coachWantsSub(minute, subsMade, coachSubs) do
@@ -247,7 +271,7 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	-- X218: goals after a substitution belong to the player who came on
 	scorerSlots = Squad.creditScorers(result.events :: any, subsMade)
 
-	return { result = result, scorerSlots = scorerSlots, capacity = capacity, demand = demand }
+	return { result = result, scorerSlots = scorerSlots, capacity = capacity, demand = demand, injuredId = injuredId }
 end
 
 local function scorerLines(result: MatchSim.Result): { string }
@@ -341,7 +365,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		sponsorSeed = ((ClubState.get("Season") :: number?) or 1) + #((ClubState.get("ClubName") :: string?) or ""),
 	})
 
-	local news, development, award = ClubService.finishMatch(played.scorerSlots, homeSquad, subsMade, result.awayGoals)
+	local news, development, award = ClubService.finishMatch(played.scorerSlots, homeSquad, subsMade, result.awayGoals, played.injuredId)
 	local scorers = scorerLines(result)
 	-- X301 (review): the season service publishes the office fixture notice,
 	-- and the evening-kickoff rule counts the club's matches, so the count has

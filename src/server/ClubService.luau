@@ -569,7 +569,8 @@ function ClubService.prepareMatch(): Prepared
 end
 
 -- Called after the final whistle. `scorerSlots` index into the matchSquad.
-function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.MatchPlayer }, subs: { Squad.Sub }?, conceded: number?): ({ string }, { Squad.RatingChange }, Squad.Award?)
+-- X334: `injuredId` is whoever the sim put down during the match, if anyone.
+function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.MatchPlayer }, subs: { Squad.Sub }?, conceded: number?, injuredId: number?): ({ string }, { Squad.RatingChange }, Squad.Award?)
 	local scorerIds: { number } = {}
 	for _, slot in scorerSlots do
 		local p = matchSquad[slot]
@@ -587,7 +588,7 @@ function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.Ma
 	-- X302: the award is picked before afterMatch's injuries and ratings move,
 	-- so it is about the match that was just played
 	local award = Squad.manOfTheMatch(players, lineup.xi, scorerIds, conceded or 0, matchSquad)
-	local news, changes = Squad.afterMatch(players, lineup.xi, scorerIds, coachLevel, rng, subIds)
+	local news, changes = Squad.afterMatch(players, lineup.xi, scorerIds, coachLevel, rng, subIds, injuredId)
 	ageShortlist()
 	recomputeLineup()
 	publish()

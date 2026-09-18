@@ -682,4 +682,59 @@ function T.theCoachNeverExceedsTheMatchLimit()
 	assert(not Squad.coachWantsSub(90, made, 99), "the match limit still applies")
 end
 
+-- X334: the change an injury forces
+
+local function matchSquadFor334(): { Squad.MatchPlayer }
+	local out = {}
+	local function add(idx, role, overall)
+		out[idx] = { id = idx, name = "P" .. idx, number = idx, role = role, overall = overall, injured = 0 } :: any
+	end
+	for slot, role in Pitch.ROLES do
+		add(slot, role, 50 + slot)
+	end
+	add(#Pitch.ROLES + 1, "DEF", 48)
+	add(#Pitch.ROLES + 2, "FWD", 52)
+	add(#Pitch.ROLES + 3, "GK", 45)
+	return out
+end
+
+function T.aForcedSubTakesOffTheManWhoWentDown()
+	local squad = matchSquadFor334()
+	local sub = Squad.forcedSub(squad, {}, 4)
+	assert(sub and sub.out == 4, "the injured slot is the one that comes off")
+	assert(sub and sub["in"] > #Pitch.ROLES, "and the replacement comes off the bench")
+end
+
+function T.aKeeperIsReplacedByAKeeper()
+	local squad = matchSquadFor334()
+	local gkSlot = nil
+	for slot, role in Pitch.ROLES do
+		if role == "GK" then
+			gkSlot = slot
+		end
+	end
+	local sub = Squad.forcedSub(squad, {}, gkSlot :: number)
+	assert(sub, "there is a spare keeper on this bench")
+	assert(squad[(sub :: any)["in"]].role == "GK", "and he is the one who comes on")
+end
+
+function T.aForcedSubGivesUpWhenThereIsNobody()
+	local squad = matchSquadFor334()
+	-- strip the bench
+	for idx = #Pitch.ROLES + 1, #squad do
+		squad[idx] = nil
+	end
+	assert(Squad.forcedSub(squad, {}, 3) == nil, "no bench, no substitution")
+end
+
+function T.aForcedSubRespectsTheMatchLimitAndAManAlreadyOff()
+	local squad = matchSquadFor334()
+	local made = {}
+	for i = 1, Config.MaxSubs do
+		table.insert(made, { out = i + 1, ["in"] = #Pitch.ROLES + i, minute = 60, afterEvent = 0 })
+	end
+	assert(Squad.forcedSub(squad, made, 5) == nil, "the match limit still applies")
+	assert(Squad.forcedSub(squad, { made[1] }, made[1].out) == nil, "and a man already off cannot go off again")
+end
+
 return T

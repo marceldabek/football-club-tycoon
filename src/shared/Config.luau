@@ -188,7 +188,11 @@ Config.StartingSquadOverall = 45
 Config.SquadMax = 20
 Config.SquadMin = 14
 Config.BenchSize = 5
-Config.InjuryChance = 0.04 -- per starter per match
+-- X334: one injury at most, rolled inside the match sim at a minute, instead
+-- of a per-starter roll after the whistle. 0.3 a match is about what the old
+-- 4%% per starter came to across eleven of them. TEMP.
+Config.MatchInjuryChance = 0.3
+Config.InjuryMatches = { 1, 3 } -- how long they are out for, TEMP
 Config.DevelopChance = 0.2 -- per eligible player per match, scaled by coach
 -- X292: a £10,000 Pro Coach used to stop paying the day the youngsters turned
 -- 24, because only under-24s could improve. Players in their prime still get

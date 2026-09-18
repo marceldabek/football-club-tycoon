@@ -1932,3 +1932,11 @@ A second read-only review agent went over tonight's later commits. Nine findings
 - 4 new tests: a club with no coach never subs itself at any minute, a coach waits for his first window and then goes, each level only gets its own allowance, and nobody exceeds `Config.MaxSubs`.
 - RunAll 513 passed.
 
+### 2026-09-17 21:56 — Somebody goes down (X334)
+- Injuries were rolled after the whistle, per starter, inside `Squad.afterMatch` - so nobody ever went down *during* a match, nothing forced a substitution, and the first the player heard of it was a line on the post-match card. CLAUDE.md s22 puts injuries in the simulation layer, beside goals and substitutions.
+- The sim now decides, at most once a match (**TEMP 0.3**, about what the old 4% per starter came to across eleven), that one of ours goes down at a minute, and names the slot. `MatchService` applies it when that minute comes round: the ground is told ("1 Pablo Rashford-Lee is down, and cannot carry on."), `Squad.forcedSub` brings on a replacement - a keeper for a keeper - and the injury itself is applied after the whistle, so the squad screen and the card agree.
+- **The injury is deliberately not an entry in the chance timeline.** My first version pushed it in as an INJURY event and two existing tests failed at once: that list is the shot-by-shot timeline the presenter replays, with its own spacing and half-time rules, and `playSequence` would have tried to play a limping full back as a chance on goal. It travels as its own field on the result instead.
+- Verified in play: **"1 Pablo Rashford-Lee is down, and cannot carry on." at 76 s left, sub 14' slot 4 off, 12 on**, and after the whistle "injured in the squad: Pablo Rashford-Lee out 1".
+- 6 new tests: at most one injury a match and it names one of the eleven at a real minute, the chance timeline stays chances only, the same seed hurts the same man in the same minute, a forced change takes off the man who went down, a keeper is replaced by a keeper, and it gives up when the bench cannot cover it or the match limit is spent.
+- RunAll 519 passed.
+

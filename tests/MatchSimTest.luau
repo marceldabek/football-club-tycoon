@@ -173,4 +173,31 @@ function T.awayFixturesLoseTheVenueAdvantage()
 	assert(homeAgainst < awayAgainst, ("home %d should concede less than away %d"):format(homeAgainst, awayAgainst))
 end
 
+-- X334: injuries happen in the sim, at a minute, outside the chance timeline
+
+function T.atMostOneInjuryAndItNamesOneOfTheEleven()
+	local hurt = 0
+	for seed = 1, 150 do
+		local r = MatchSim.simulate({ homeStrength = 60, awayStrength = 60, seed = seed })
+		if r.injury then
+			hurt += 1
+			assert(r.injury.slot >= 1 and r.injury.slot <= 11, "it names one of the eleven, seed " .. seed)
+			assert(r.injury.minute >= 1 and r.injury.minute <= 90, "at a minute in the match, seed " .. seed)
+		end
+		for _, ev in r.events do
+			assert(ev.type ~= "INJURY", "the chance timeline stays chances only")
+		end
+	end
+	assert(hurt > 150 * 0.15 and hurt < 150 * 0.5, ("about a third of matches should have one, got %d in 150"):format(hurt))
+end
+
+function T.theSameMatchIsHurtTheSameWay()
+	local a = MatchSim.simulate({ homeStrength = 60, awayStrength = 60, seed = 7 })
+	local b = MatchSim.simulate({ homeStrength = 60, awayStrength = 60, seed = 7 })
+	assert((a.injury == nil) == (b.injury == nil), "the same seed means the same match")
+	if a.injury and b.injury then
+		assert(a.injury.minute == b.injury.minute and a.injury.slot == b.injury.slot, "down to the minute and the man")
+	end
+end
+
 return T

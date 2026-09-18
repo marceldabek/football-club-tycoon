@@ -4,8 +4,14 @@
 -- chances (GOAL / MISS / SAVE). The presentation layer only replays the
 -- timeline; the score is authoritative regardless of what gets shown.
 
+local Config = require(game:GetService("ReplicatedStorage").Shared.Config) -- X334: the injury chance
+
 local MatchSim = {}
 
+-- X334: CLAUDE.md s22 puts injuries in the simulation layer, beside goals and
+-- substitutions. They used to be rolled after the whistle inside
+-- Squad.afterMatch, so nobody ever went down during a match and the first the
+-- player heard of it was the post-match card.
 export type EventType = "GOAL" | "MISS" | "SAVE"
 
 export type Event = {
@@ -14,10 +20,16 @@ export type Event = {
 	type: EventType,
 }
 
+-- X334: one of ours going down, at a minute. It is kept out of `events` on
+-- purpose: that list is the chance timeline the presenter replays shot by
+-- shot, and it has its own spacing rules.
+export type Injury = { minute: number, slot: number }
+
 export type Result = {
 	homeGoals: number,
 	awayGoals: number,
 	events: { Event },
+	injury: Injury?, -- X334
 }
 
 export type Params = {
@@ -206,10 +218,19 @@ function MatchSim.simulate(params: Params): Result
 		table.insert(events, { minute = minutes[i], team = chance.team, type = chance.type })
 	end
 
+	-- X334: and at most one of ours goes down, at a minute, with the slot named
+	-- so the match can bring somebody on for him. Keepers included: a keeper
+	-- who limps off is a story, and the swap refuses it if the bench cannot.
+	local injury: Injury? = nil
+	if rng:NextNumber() < Config.MatchInjuryChance then
+		injury = { minute = rng:NextInteger(8, 88), slot = rng:NextInteger(1, 11) }
+	end
+
 	return {
 		homeGoals = homeGoals,
 		awayGoals = awayGoals,
 		events = events,
+		injury = injury, -- X334
 	}
 end
 
