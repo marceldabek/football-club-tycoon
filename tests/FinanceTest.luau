@@ -28,7 +28,7 @@ end
 function T.matchRowsKeepTheLastFew()
 	local l = Finance.new()
 	for round = 1, Finance.MATCH_ROWS + 3 do
-		Finance.recordMatch(l, { round = round, gate = round * 100, concessions = 10, bonus = 0, total = round * 110 })
+		Finance.recordMatch(l, { round = round, gate = round * 100, concessions = 10, bonus = 0, costs = 25, total = round * 110 })
 	end
 	assert(#l.matches == Finance.MATCH_ROWS, "the list is capped")
 	assert(l.matches[1].round == 4, "the oldest rows drop off the front")
@@ -56,6 +56,30 @@ function T.everyCategoryHasALabelInEitherList()
 	for _, name in Finance.SPEND do
 		assert(Finance.isSpend(name) and not Finance.isIncome(name), name .. " should be spend only")
 	end
+end
+
+-- X350 ----------------------------------------------------------------------
+
+function T.aMatchRowKeepsEveryFieldItIsGiven()
+	-- recordMatch copies field by field, so it dropped `costs` silently the
+	-- first time - the row on screen stopped adding up
+	local l = Finance.new()
+	Finance.recordMatch(l, { round = 3, gate = 1000, concessions = 200, bonus = 400, sponsor = 300, costs = 700, total = 1200 })
+	local row = l.matches[#l.matches]
+	for _, field in { "round", "gate", "concessions", "bonus", "sponsor", "costs", "total" } do
+		assert(type(row[field]) == "number", "the row lost " .. field)
+	end
+	assert(row.gate + row.concessions + row.bonus + row.sponsor - row.costs == row.total, "the row should add up")
+end
+
+function T.wagesAndUpkeepAreSpend()
+	assert(Finance.isSpend("wages") and Finance.isSpend("upkeep"), "the matchday's own costs are spend")
+	assert(not Finance.isIncome("wages"), "and never income")
+	local l = Finance.new()
+	Finance.record(l, "wages", -4360)
+	Finance.record(l, "upkeep", -1220)
+	assert(l.spend.wages == 4360 and l.spend.upkeep == 1220, "stored as positive totals like every other category")
+	assert(Finance.totalSpend(l) == 5580, "and counted in the total")
 end
 
 return T

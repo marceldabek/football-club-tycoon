@@ -68,10 +68,16 @@ end
 -- X299: money moves through here and nowhere else, so this is where the ledger
 -- is kept. `category` is one of Finance.INCOME / Finance.SPEND; the few places
 -- that move money for no reportable reason (the debug `cash` command) pass nil.
+-- X350: a matchday can settle at a loss now, and `Profile.normalize` has
+-- always clamped a *saved* balance at zero, so the live balance is clamped the
+-- same way - a club can be skint but never in debt (TEMP, question 24). The
+-- ledger records what actually moved, not what was asked for.
 function ClubState.addCash(amount: number, category: string?)
-	ClubState.set("Cash", (ClubState.get("Cash") :: number) + amount)
+	local before = (ClubState.get("Cash") :: number) or 0
+	local after = math.max(before + amount, 0)
+	ClubState.set("Cash", after)
 	if category then
-		Finance.record(finance, category, amount)
+		Finance.record(finance, category, after - before)
 		publishFinance()
 	end
 end

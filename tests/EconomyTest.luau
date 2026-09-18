@@ -59,7 +59,10 @@ function T.settleIncludesConcessions()
 	assert(s.ticketRevenue == 800 and s.concessionRevenue == 200, "revenue wrong")
 	-- X309: the shirt sponsor's fee is part of the takings
 	assert(s.sponsorFee == Economy.sponsorFee(1, 0), "the sponsor fee should be in the settlement")
-	assert(s.total == 1400 + s.sponsorFee and s.outcome == "Win", "total / outcome wrong")
+	-- X350: with no squad and no staff there is nothing to pay, so the total is
+	-- still everything that came in
+	assert(s.income == 1400 + s.sponsorFee, "income wrong")
+	assert(s.costs == 0 and s.total == s.income and s.outcome == "Win", "total / outcome wrong")
 	assert(s.sponsorName ~= "", "the sponsor should be named")
 end
 
@@ -105,6 +108,86 @@ function T.formMovesDemandAndPopularityDrifts()
 	assert(Economy.popularityAtSeasonEnd(10, 2) > 10, "below the baseline should drift up")
 	-- the top flight keeps a higher floor than the bottom
 	assert(Config.PopularityBaseline[5] > Config.PopularityBaseline[1], "baselines should rise with the division")
+end
+
+-- X350 ----------------------------------------------------------------------
+
+function T.aMatchdayCostsSomethingToPutOn()
+	local division = Config.Divisions[1]
+	local bill = Economy.wageBill(division.baseStrength, Config.WageSquadSize, 1)
+	assert(bill > 0, "a squad has to be paid")
+	-- a division-standard squad costs a serious share of that division's
+	-- matchday money, but not all of it
+	local gate = Economy.demand(1, 50, 0, 0) * Config.TicketPrice
+	assert(bill < gate, ("wages %d against a %d gate"):format(bill, gate))
+	assert(bill > gate * 0.1, ("wages %d are a rounding error against a %d gate"):format(bill, gate))
+end
+
+function T.payingAboveYourDivisionCostsMore()
+	local division = Config.Divisions[1]
+	local standard = Economy.wageBill(division.baseStrength, 16, 1)
+	local stars = Economy.wageBill(division.baseStrength + 20, 16, 1)
+	local cheap = Economy.wageBill(division.baseStrength - 8, 16, 1)
+	assert(stars > standard * 1.5, ("a 20-point better squad should cost much more: %d vs %d"):format(stars, standard))
+	assert(cheap < standard, "and a weaker one less")
+	-- a bigger squad costs more than a smaller one of the same quality
+	assert(Economy.wageBill(division.baseStrength, 20, 1) > standard, "20 players cost more than 16")
+	-- and the same squad costs more in a richer division, because everything does
+	assert(Economy.wageBill(60, 16, 3) > Economy.wageBill(60, 16, 1), "the same squad costs more higher up")
+end
+
+function T.theStaffCostSomethingToKeep()
+	assert(Economy.staffUpkeep(0, 0) == 0, "no staff, nothing to pay")
+	local volunteer = Economy.staffUpkeep(1, 1)
+	local best = Economy.staffUpkeep(#Config.CoachLevels - 1, #Config.ScoutLevels)
+	assert(volunteer > 0 and best > volunteer * 5, ("%d then %d"):format(volunteer, best))
+end
+
+function T.anOverpaidSquadInASmallDivisionLosesMoney()
+	-- CLAUDE.md s5: poor management should eventually produce losses. A
+	-- Sunday Parks League club with a National League squad and the best staff
+	-- in the game cannot pay for them out of a Sunday Parks gate.
+	local demand = Economy.demand(1, 50, 0, 0)
+	local s = Economy.settle({
+		homeGoals = 1,
+		awayGoals = 0,
+		capacity = demand,
+		demand = demand,
+		ticketPrice = Config.TicketPrice,
+		concessionPerFan = Config.AmenityLevels[2].perFan,
+		winBonus = Config.WinBonus,
+		drawBonus = Config.DrawBonus,
+		lossBonus = Config.LossBonus,
+		tier = 1,
+		popularity = 50,
+		sponsorSeed = 1,
+		squadAverage = Config.Divisions[4].baseStrength,
+		squadSize = 20,
+		coachLevel = #Config.CoachLevels - 1,
+		scoutLevel = #Config.ScoutLevels,
+	})
+	assert(s.costs > s.income, ("costs %d against income %d"):format(s.costs, s.income))
+	assert(s.total < 0, "the matchday should settle at a loss")
+	-- and the same club with a squad it can afford should be in profit
+	local sensible = Economy.settle({
+		homeGoals = 1,
+		awayGoals = 0,
+		capacity = demand,
+		demand = demand,
+		ticketPrice = Config.TicketPrice,
+		concessionPerFan = Config.AmenityLevels[2].perFan,
+		winBonus = Config.WinBonus,
+		drawBonus = Config.DrawBonus,
+		lossBonus = Config.LossBonus,
+		tier = 1,
+		popularity = 50,
+		sponsorSeed = 1,
+		squadAverage = Config.Divisions[1].baseStrength,
+		squadSize = 16,
+		coachLevel = 1,
+		scoutLevel = 1,
+	})
+	assert(sensible.total > 0, ("a sensible club should profit, got %d"):format(sensible.total))
 end
 
 return T

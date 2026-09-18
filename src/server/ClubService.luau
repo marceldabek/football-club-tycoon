@@ -698,6 +698,11 @@ function ClubService.squadAverage(): number
 	return Squad.average(players)
 end
 
+-- X350: how many players are on the books, which is part of the wage bill
+function ClubService.squadSize(): number
+	return #players
+end
+
 -- Trades (I4.1). A copy of the squad for validation; changing it changes nothing.
 function ClubService.squadCopy(): { Squad.Player }
 	local out = {}

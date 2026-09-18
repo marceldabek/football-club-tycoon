@@ -16,10 +16,14 @@ local Finance = {}
 -- in with a player trade, and cash that went out with one. They are separate
 -- names because a category lives on one side of the ledger only.
 Finance.INCOME = { "gate", "concessions", "bonus", "sponsor", "prize", "sales", "friendly", "tradesIn" }
-Finance.SPEND = { "transfers", "stands", "amenities", "staff", "trades" }
+-- X350: `wages` and `upkeep` are the matchday's own costs, the first spend
+-- in the game that is not a purchase the player chose to make.
+Finance.SPEND = { "wages", "upkeep", "transfers", "stands", "amenities", "staff", "trades" }
 
 -- `sponsor` (X309) is part of `total`, so the row adds up on screen (review)
-export type MatchRow = { round: number, gate: number, concessions: number, bonus: number, sponsor: number, total: number }
+-- `costs` (X350) is the wages and upkeep taken off that matchday, so
+-- gate + concessions + bonus + sponsor - costs = total
+export type MatchRow = { round: number, gate: number, concessions: number, bonus: number, sponsor: number, costs: number, total: number }
 
 export type Ledger = {
 	income: { [string]: number },
@@ -82,6 +86,8 @@ function Finance.recordMatch(ledger: Ledger, row: MatchRow)
 		concessions = row.concessions,
 		bonus = row.bonus,
 		sponsor = row.sponsor or 0,
+		costs = row.costs or 0, -- X350: this copy is field by field, so a new
+		-- field that is not named here is silently dropped
 		total = row.total,
 	})
 	while #ledger.matches > Finance.MATCH_ROWS do

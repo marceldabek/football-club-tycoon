@@ -297,6 +297,27 @@ Config.SeatColor = Color3.fromRGB(200, 40, 50) -- TEMP: seat colour customisatio
 Config.StatueFromTier = 3
 Config.StatueMinApps = 20
 
+-- X350: the running costs of a club, per match. Until now every negative
+-- addCash in the game was a one-off purchase, `Economy.settle` had no cost
+-- side at all, and a matchday could only ever *add* money - so no investment
+-- could ever be wrong and a Pro Coach paid for himself for ever, against
+-- CLAUDE.md s5 ("eventually poor club management should produce losses").
+-- All TEMP.
+--   WageBase        what a division-standard squad of WageSquadSize costs in
+--                   the bottom division; scaled up by League.divisionFactor
+--   WageCurve       how much harder a squad rated above its division bites
+--   StaffUpkeepShare the share of a coach's and scout's purchase price they
+--                   cost to keep, every match
+--   WageDivisionDamping  wages follow the division's money, but not all the
+--                   way: attendance is capped by the ground (X234) while the
+--                   division's demand is not, so undamped wages could bankrupt
+--                   a top-flight club for being popular
+Config.WageBase = 3600
+Config.WageSquadSize = 16
+Config.WageCurve = 2.5
+Config.WageDivisionDamping = 0.8
+Config.StaffUpkeepShare = 0.02
+
 Config.SponsorBase = 250
 Config.SponsorPopularityShare = 0.6 -- at 100 popularity the fee is 1.6x
 

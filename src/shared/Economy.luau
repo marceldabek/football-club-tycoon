@@ -18,7 +18,11 @@ export type Settlement = {
 	resultBonus: number,
 	sponsorFee: number, -- X309
 	sponsorName: string, -- X309: who paid it
-	total: number,
+	wages: number, -- X350: the squad's wages for this match
+	upkeep: number, -- X350: keeping the coach and the scout
+	costs: number, -- X350: wages + upkeep, what the matchday cost to put on
+	income: number, -- X350: everything that came in
+	total: number, -- income - costs, and it can be negative
 	outcome: "Win" | "Draw" | "Loss",
 }
 
@@ -35,6 +39,11 @@ export type Inputs = {
 	tier: number, -- X309: the sponsor pays more in a higher division
 	popularity: number,
 	sponsorSeed: number, -- which of Config.Sponsors signed the deal
+	-- X350: what the club costs to run for one match
+	squadAverage: number?, -- Squad.average across the whole squad
+	squadSize: number?,
+	coachLevel: number?,
+	scoutLevel: number?,
 }
 
 -- Fans who want to come. Grows with the division, popularity and amenities.
@@ -82,6 +91,30 @@ function Economy.sponsorFee(tier: number, popularity: number): number
 	return math.floor(base * known / 10 + 0.5) * 10
 end
 
+-- X350: the squad's wages for one match. A squad rated at its division's own
+-- standard costs about a third of that division's matchday takings; paying for
+-- a squad above the division costs sharply more (WageCurve), which is what
+-- makes buying a promotion-ready squad a decision rather than a free win. A
+-- smaller squad is cheaper, so releasing a reserve is worth something.
+function Economy.wageBill(squadAverage: number, squadSize: number, tier: number): number
+	local division = Config.Divisions[tier] or Config.Divisions[1]
+	local standard = math.max(division.baseStrength, 1)
+	local ratio = (math.max(squadAverage, 1) / standard) ^ Config.WageCurve
+	local size = math.max(squadSize, 0) / Config.WageSquadSize
+	local money = League.divisionFactor(tier) ^ Config.WageDivisionDamping
+	local bill = Config.WageBase * money * ratio * size
+	return math.floor(bill / 10 + 0.5) * 10
+end
+
+-- X350: what the staff cost to keep, per match: a share of what they cost to
+-- hire. A Continental Network is a standing commitment, not a one-off.
+function Economy.staffUpkeep(coachLevel: number, scoutLevel: number): number
+	local coach = Config.CoachLevels[math.max(math.floor(coachLevel), 0) + 1]
+	local scout = Config.ScoutLevels[math.floor(scoutLevel)]
+	local paid = (if coach then coach.cost else 0) + (if scout then scout.cost else 0)
+	return math.floor(paid * Config.StaffUpkeepShare / 10 + 0.5) * 10
+end
+
 -- X309: the same sponsor every match of a season, picked from the boards that
 -- are already painted round the pitch.
 function Economy.sponsorName(seed: number): string
@@ -107,6 +140,11 @@ function Economy.settle(inputs: Inputs): Settlement
 	end
 
 	local sponsorFee = Economy.sponsorFee(inputs.tier or 1, inputs.popularity or 0)
+	local income = ticketRevenue + concessionRevenue + bonus + sponsorFee
+	-- X350: and what it cost to put the match on
+	local wages = Economy.wageBill(inputs.squadAverage or 0, inputs.squadSize or 0, inputs.tier or 1)
+	local upkeep = Economy.staffUpkeep(inputs.coachLevel or 0, inputs.scoutLevel or 0)
+	local costs = wages + upkeep
 	return {
 		demand = inputs.demand,
 		capacity = inputs.capacity,
@@ -117,7 +155,11 @@ function Economy.settle(inputs: Inputs): Settlement
 		resultBonus = bonus,
 		sponsorFee = sponsorFee,
 		sponsorName = Economy.sponsorName(inputs.sponsorSeed or 0),
-		total = ticketRevenue + concessionRevenue + bonus + sponsorFee,
+		wages = wages,
+		upkeep = upkeep,
+		costs = costs,
+		income = income,
+		total = income - costs,
 		outcome = outcome,
 	}
 end

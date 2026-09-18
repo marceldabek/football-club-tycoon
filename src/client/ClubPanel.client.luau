@@ -872,6 +872,8 @@ local FINANCE_LABELS: { [string]: string } = {
 	stands = "Stands",
 	amenities = "Amenities",
 	staff = "Coach & scouting",
+	wages = "Wages", -- X350
+	upkeep = "Staff upkeep",
 	tradesIn = "Trades in",
 	trades = "Trades out",
 }
@@ -938,6 +940,7 @@ local function renderFinance()
 			cell(head, "Concessions", 165, 105, { TextColor3 = GREY })
 			cell(head, "Bonus", 275, 70, { TextColor3 = GREY })
 			cell(head, "Sponsor", 350, 80, { TextColor3 = GREY })
+			cell(head, "Costs", 435, 70, { TextColor3 = GREY }) -- X350
 		else
 			cell(head, "Conc.", 165, 80, { TextColor3 = GREY })
 		end
@@ -951,13 +954,19 @@ local function renderFinance()
 				cell(f, money(m.concessions or 0), 165, 105)
 				cell(f, money(m.bonus or 0), 275, 70)
 				cell(f, money(m.sponsor or 0), 350, 80)
+				-- X350: shown as what it took off, so the row adds up
+				cell(f, money(-(m.costs or 0)), 435, 70, { TextColor3 = Theme.colors.bad })
 			else
 				cell(f, money(m.concessions or 0), 165, 80)
 			end
-			rightCell(f, money(m.total or 0), 90, { TextColor3 = Theme.colors.cash, Font = Enum.Font.GothamBold })
+			local net = m.total or 0
+			rightCell(f, money(net), 90, {
+				TextColor3 = if net < 0 then Theme.colors.bad else Theme.colors.cash,
+				Font = Enum.Font.GothamBold,
+			})
 		end
 		if not wide then
-			note("Bonus and sponsor are in MONEY IN above.", GREY)
+			note("Bonus, sponsor and the matchday's costs are in the tables above.", GREY)
 		end
 	end
 end

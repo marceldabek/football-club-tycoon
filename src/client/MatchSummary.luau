@@ -304,7 +304,7 @@ function MatchSummary.new(gui: ScreenGui): Summary
 	})
 
 	-- ---------------------------------------------------------- earnings
-	local earnings = section(body, "Earnings", 150, 3)
+	local earnings = section(body, "Earnings", 172, 3) -- X350: room for the costs line
 	Theme.text(earnings, "MATCH EARNINGS", "muted", {
 		Size = UDim2.new(1, -28, 0, 20),
 		Position = UDim2.fromOffset(16, 12),
@@ -327,6 +327,14 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		Position = UDim2.fromOffset(16, 70),
 		TextSize = 13,
 		TextColor3 = C.cash,
+	})
+	-- X350: what the matchday cost to put on, under the three income columns
+	local costsLine = Theme.text(earnings, "", "muted", {
+		Name = "Costs",
+		Size = UDim2.new(1, -32, 0, 18),
+		Position = UDim2.fromOffset(16, 140),
+		TextSize = 13,
+		TextColor3 = C.bad,
 	})
 	local columns: { [string]: TextLabel } = {}
 	local columnTitles: { [string]: TextLabel } = {}
@@ -647,7 +655,11 @@ function MatchSummary.new(gui: ScreenGui): Summary
 			leagueRight.Text = "No league points · no injuries"
 		end
 
-		total.Text = "+" .. money(data.total or 0)
+		-- X350: a matchday can lose money now, so the big number is a profit or
+		-- a loss, and it says which
+		local net = data.total or 0
+		total.Text = if net < 0 then money(net) else "+" .. money(net)
+		total.TextColor3 = if net < 0 then C.bad else C.cash
 		columns.tickets.Text = money(data.ticketRevenue or 0)
 		-- X225: a friendly pays the home club a share of the gate, not every ticket
 		columnTitles.tickets.Text = if data.friendly then "Gate share" else "Tickets"
@@ -659,6 +671,13 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		sponsorLine.Text = if fee > 0
 			then ("includes %s from %s"):format(money(fee), tostring(data.sponsorName or "the shirt sponsor"))
 			else ""
+
+		-- X350: the two costs, spelled out
+		local wages, upkeep = data.wages or 0, data.upkeep or 0
+		costsLine.Visible = wages + upkeep > 0
+		costsLine.Text = if upkeep > 0
+			then ("less %s in wages and %s keeping the staff"):format(money(wages), money(upkeep))
+			else ("less %s in wages"):format(money(wages))
 
 		local capacity = math.max(data.capacity or 1, 1)
 		local att = data.attendance or 0

@@ -380,6 +380,11 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		tier = (ClubState.get("Tier") :: number?) or 1,
 		popularity = (ClubState.get("Popularity") :: number?) or 0,
 		sponsorSeed = ((ClubState.get("Season") :: number?) or 1) + #((ClubState.get("ClubName") :: string?) or ""),
+		-- X350: and what the club costs to run for a match
+		squadAverage = ClubService.squadAverage(),
+		squadSize = ClubService.squadSize(),
+		coachLevel = (ClubState.get("CoachLevel") :: number?) or 0,
+		scoutLevel = (ClubState.get("ScoutLevel") :: number?) or 0,
 	})
 
 	local news, development, award = ClubService.finishMatch(played.scorerSlots, homeSquad, subsMade, result.awayGoals, played.injuredId)
@@ -404,6 +409,10 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 	ClubState.addCash(settlement.concessionRevenue, "concessions")
 	ClubState.addCash(settlement.resultBonus, "bonus")
 	ClubState.addCash(settlement.sponsorFee, "sponsor") -- X309
+	-- X350: and the two things the matchday costs, which is the first money the
+	-- player did not choose to spend
+	ClubState.addCash(-settlement.wages, "wages")
+	ClubState.addCash(-settlement.upkeep, "upkeep")
 
 	ClubState.recordMatchFinance({
 		round = roundResult.round,
@@ -411,6 +420,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		concessions = settlement.concessionRevenue,
 		bonus = settlement.resultBonus,
 		sponsor = settlement.sponsorFee, -- X309, so the row adds up
+		costs = settlement.costs, -- X350
 		total = settlement.total,
 	})
 	if settlement.outcome == "Win" then
@@ -438,6 +448,10 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		capacity = settlement.capacity,
 		turnedAway = settlement.turnedAway,
 		ticketRevenue = settlement.ticketRevenue,
+		wages = settlement.wages, -- X350
+		upkeep = settlement.upkeep,
+		costs = settlement.costs,
+		income = settlement.income,
 		concessionRevenue = settlement.concessionRevenue,
 		resultBonus = settlement.resultBonus,
 		sponsorFee = settlement.sponsorFee, -- X309
