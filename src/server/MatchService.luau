@@ -201,6 +201,10 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	ClubState.set("KickoffAt", workspace:GetServerTimeNow())
 	ClubState.set("Phase", "Match")
 
+	-- X333: what the coach is allowed to do on his own this match
+	local coachLevel = (ClubState.get("CoachLevel") :: number?) or 0
+	local coachSubs = (Config.CoachLevels[coachLevel + 1] or Config.CoachLevels[1]).autoSubs or 0
+
 	-- Presentation layer (scoreboard): replay goal events against the clock.
 	local startClock = os.clock()
 	local nextEvent = 1
@@ -219,6 +223,18 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 			nextEvent += 1
 		end
 		eventsShown = nextEvent - 1
+		-- X333: the coach makes his own changes on the clock, through exactly
+		-- the same path as the SUB button
+		while coachSubs > 0 and Squad.coachWantsSub(minute, subsMade, coachSubs) do
+			local sub = Squad.nextSub(homeSquad, subsMade)
+			if not sub then
+				break
+			end
+			sub.minute = minute
+			sub.afterEvent = eventsShown
+			table.insert(subsMade, sub)
+			ClubState.set("Subs", HttpService:JSONEncode(subsMade))
+		end
 		ClubState.set("TimeLeft", math.ceil(duration - elapsed))
 		task.wait(0.25)
 	end

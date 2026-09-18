@@ -651,4 +651,35 @@ function T.benchSkipsTheInjuredAndTheTaken()
 	end
 end
 
+-- X333: the coach's own substitutions
+
+function T.noCoachNeverMakesASubstitution()
+	for minute = 0, 90, 5 do
+		assert(not Squad.coachWantsSub(minute, {}, 0), "a club with no coach should never sub itself at " .. minute)
+	end
+end
+
+function T.aCoachWaitsForTheHour()
+	local first = Config.AutoSubMinutes[1]
+	assert(not Squad.coachWantsSub(first - 1, {}, 3), "not before his first window")
+	assert(Squad.coachWantsSub(first, {}, 3), "and does at it")
+	assert(Squad.coachWantsSub(90, {}, 3), "and certainly by the end")
+end
+
+function T.eachCoachOnlyGetsHisOwnAllowance()
+	local made = { { out = 2, ["in"] = 12, minute = 60, afterEvent = 0 } }
+	assert(not Squad.coachWantsSub(90, made, 1), "a volunteer coach only makes one")
+	assert(Squad.coachWantsSub(Config.AutoSubMinutes[2], made, 2), "a qualified coach makes a second")
+	local three = { made[1], { out = 3, ["in"] = 13, minute = 72, afterEvent = 0 }, { out = 4, ["in"] = 14, minute = 82, afterEvent = 0 } }
+	assert(not Squad.coachWantsSub(90, three, 3), "and nobody makes a fourth")
+end
+
+function T.theCoachNeverExceedsTheMatchLimit()
+	local made = {}
+	for i = 1, Config.MaxSubs do
+		table.insert(made, { out = i + 1, ["in"] = 11 + i, minute = 60, afterEvent = 0 })
+	end
+	assert(not Squad.coachWantsSub(90, made, 99), "the match limit still applies")
+end
+
 return T

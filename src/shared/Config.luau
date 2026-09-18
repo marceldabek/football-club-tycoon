@@ -208,12 +208,19 @@ Config.RetireAge = 34
 Config.RetireChancePerYear = 0.3 -- 34 -> 30%, 35 -> 60%, 36 -> 90%
 Config.RetireMaxAge = 37
 
+-- X333: `autoSubs` is how many substitutions the coach will make on his own
+-- during a match. The hint pill has always sold him as the man who "picks the
+-- team and brings your young players on", and CLAUDE.md s9 gives him automatic
+-- substitutions, but nothing ever made one without the SUB button. TEMP.
 Config.CoachLevels = {
-	{ name = "No coach", cost = 0, strengthBonus = 0, developMultiplier = 1 },
-	{ name = "Volunteer Coach", cost = 800, strengthBonus = 2, developMultiplier = 1.5 },
-	{ name = "Qualified Coach", cost = 4000, strengthBonus = 4, developMultiplier = 2 },
-	{ name = "Pro Coach", cost = 10000, strengthBonus = 6, developMultiplier = 3 },
+	{ name = "No coach", cost = 0, strengthBonus = 0, developMultiplier = 1, autoSubs = 0 },
+	{ name = "Volunteer Coach", cost = 800, strengthBonus = 2, developMultiplier = 1.5, autoSubs = 1 },
+	{ name = "Qualified Coach", cost = 4000, strengthBonus = 4, developMultiplier = 2, autoSubs = 2 },
+	{ name = "Pro Coach", cost = 10000, strengthBonus = 6, developMultiplier = 3, autoSubs = 3 },
 }
+-- The minutes a coach thinks about his first, second and third change. TEMP:
+-- an hour in, then the last twenty, then the last ten.
+Config.AutoSubMinutes = { 60, 72, 82 }
 -- Level 0 = no scout. Index = level (no zero entry). Shortlist refreshes every match.
 Config.ScoutLevels = {
 	{ name = "Local Scout", cost = 600, prospects = 3, overallBonus = 2, potentialBoost = 3 },

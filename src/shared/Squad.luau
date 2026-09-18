@@ -302,6 +302,19 @@ end
 -- Lowest-rated outfield starter comes off for the best unused bench player
 -- of the same role (any outfield role if none). Indices are matchSquad
 -- positions, like the presenter expects. nil when no sub is possible.
+-- X333: whether the coach would make a change now. The choice of who comes off
+-- and who comes on is `Squad.nextSub` - the same one the SUB button uses - so
+-- an automatic substitution and a manual one are the same event to everything
+-- downstream (the presenter, the scorer credit, the summary).
+function Squad.coachWantsSub(minute: number, made: { Sub }, allowance: number): boolean
+	local madeCount = #made
+	if madeCount >= math.min(allowance, Config.MaxSubs) then
+		return false
+	end
+	local due = Config.AutoSubMinutes[madeCount + 1]
+	return due ~= nil and minute >= due
+end
+
 function Squad.nextSub(matchSquad: { MatchPlayer }, made: { Sub }): Sub?
 	if #made >= Config.MaxSubs then
 		return nil

@@ -1925,3 +1925,10 @@ A second read-only review agent went over tonight's later commits. Nine findings
 - 5 new tests, including the negative case, the rounding (down, like every other figure the player is quoted), the ordinal teens (11th, 12th, 13th, 21st, 111th) and a hyphenated surname.
 - Verified in play: the HUD, the welcome card and the panel all still read "£3,542,376", and the log is clean. RunAll 509 passed.
 
+### 2026-09-17 21:48 — The coach makes his own substitutions (X333)
+- `Squad.nextSub` had exactly one caller: the SUB button. So a club with Auto Squad on and a Pro Coach played ninety seconds with a frozen XI and never used any of its three substitutions - while the hint pill sold the coach as the man who "picks the team and brings your young players on" and CLAUDE.md s9 gives him automatic substitutions and tactical decisions.
+- Each coach level now has an `autoSubs` allowance (**TEMP**: none, one, two, three) and the coach makes them on the clock at **60', 72' and 82'** (TEMP). The choice of who comes off and who comes on is `Squad.nextSub` - the same function the button uses - so an automatic change is the same event as a manual one to the presenter, the scorer credit (X218) and the summary.
+- Verified in play by hiring a Volunteer Coach (£800, which is what the pill has been asking for all night) and playing a match: **"1 subs: 60' slot 5 off, 15 on"**, made with nobody touching the button, and still on the record at full time.
+- 4 new tests: a club with no coach never subs itself at any minute, a coach waits for his first window and then goes, each level only gets its own allowance, and nobody exceeds `Config.MaxSubs`.
+- RunAll 513 passed.
+
