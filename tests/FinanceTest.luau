@@ -64,12 +64,13 @@ function T.aMatchRowKeepsEveryFieldItIsGiven()
 	-- recordMatch copies field by field, so it dropped `costs` silently the
 	-- first time - the row on screen stopped adding up
 	local l = Finance.new()
-	Finance.recordMatch(l, { round = 3, gate = 1000, concessions = 200, bonus = 400, sponsor = 300, costs = 700, total = 1200 })
+	Finance.recordMatch(l, { round = 3, gate = 1000, concessions = 200, merch = 150, bonus = 400, sponsor = 300, costs = 700, total = 1350 })
 	local row = l.matches[#l.matches]
-	for _, field in { "round", "gate", "concessions", "bonus", "sponsor", "costs", "total" } do
+	for _, field in { "round", "gate", "concessions", "merch", "bonus", "sponsor", "costs", "total" } do
 		assert(type(row[field]) == "number", "the row lost " .. field)
 	end
-	assert(row.gate + row.concessions + row.bonus + row.sponsor - row.costs == row.total, "the row should add up")
+	assert(row.gate + row.concessions + row.merch + row.bonus + row.sponsor - row.costs == row.total, "the row should add up")
+	assert(Finance.isIncome("merch"), "X353: the shop's take is income")
 end
 
 function T.wagesAndUpkeepAreSpend()

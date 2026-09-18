@@ -190,4 +190,36 @@ function T.anOverpaidSquadInASmallDivisionLosesMoney()
 	assert(sensible.total > 0, ("a sensible club should profit, got %d"):format(sensible.total))
 end
 
+-- X353 ----------------------------------------------------------------------
+
+function T.theClubShopSellsSomething()
+	-- no shop, no sales
+	assert(Economy.merchRevenue(1000, 50, 0) == 0, "an empty shop sells nothing")
+	assert(Economy.merchRevenue(0, 50, 2) == 0, "and an empty ground buys nothing")
+	local snack = Config.AmenityLevels[2].merchPerFan
+	local fanZone = Config.AmenityLevels[#Config.AmenityLevels].merchPerFan
+	local small = Economy.merchRevenue(1000, 50, snack)
+	assert(small > 0, "a stocked shop sells")
+	assert(Economy.merchRevenue(2000, 50, snack) > small, "twice the fans, more sold")
+	assert(Economy.merchRevenue(1000, 100, snack) > small, "a better-known club sells more per fan")
+	assert(Economy.merchRevenue(1000, 50, fanZone) > small, "and a bigger shop sells more")
+	-- it is a sensible share of the matchday, not a second gate
+	local gate = 1000 * Config.TicketPrice
+	assert(small < gate * 0.25, ("merch %d against a %d gate is too much"):format(small, gate))
+end
+
+function T.theShopIsPartOfTheSettlement()
+	local s = Economy.settle({
+		homeGoals = 1, awayGoals = 0, capacity = 1000, demand = 1000,
+		ticketPrice = Config.TicketPrice, concessionPerFan = Config.AmenityLevels[2].perFan,
+		merchPerFan = Config.AmenityLevels[2].merchPerFan,
+		winBonus = Config.WinBonus, drawBonus = Config.DrawBonus, lossBonus = Config.LossBonus,
+		tier = 1, popularity = 50, sponsorSeed = 1,
+	})
+	assert(s.merchRevenue > 0, "the shop should have sold something")
+	assert(s.income == s.ticketRevenue + s.concessionRevenue + s.merchRevenue + s.resultBonus + s.sponsorFee,
+		"income should count the shop")
+	assert(s.total == s.income - s.costs, "and the total is still income less costs")
+end
+
 return T

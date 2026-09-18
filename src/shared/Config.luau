@@ -273,13 +273,18 @@ function Config.plotCapacity(plot: any, level: number): number
 end
 
 -- Concourse amenities. Level 0 = nothing. Values are cumulative. TEMP.
+-- X353: `merchPerFan` is the club shop's take per fan through the gate.
+-- CLAUDE.md s11 lists merchandise third among revenues, and the shop X300
+-- stocked, lit and fitted with a window display on every plot contained no
+-- money code at all - the one shop the player can walk into never sold a
+-- thing, while the 6,000 pound tier was already called "Merch Stand". TEMP.
 Config.AmenityLevels = {
-	{ name = "Nothing", cost = 0, perFan = 0, demandBonus = 0 },
-	{ name = "Snack Bar", cost = 1200, perFan = 2, demandBonus = 0.1 },
+	{ name = "Nothing", cost = 0, perFan = 0, merchPerFan = 0, demandBonus = 0 },
+	{ name = "Snack Bar", cost = 1200, perFan = 2, merchPerFan = 0.6, demandBonus = 0.1 },
 	-- X300 (TEMP rename): the plot already has a Club Shop building, and having
 	-- two different things called that made the upgrade read as a no-op
-	{ name = "Merch Stand", cost = 6000, perFan = 4, demandBonus = 0.2 },
-	{ name = "Fan Zone", cost = 15000, perFan = 6, demandBonus = 0.35 },
+	{ name = "Merch Stand", cost = 6000, perFan = 4, merchPerFan = 1.4, demandBonus = 0.2 },
+	{ name = "Fan Zone", cost = 15000, perFan = 6, merchPerFan = 2.2, demandBonus = 0.35 },
 }
 
 Config.ClubName = "Your Club" -- TEMP: club naming flow is undecided
@@ -321,6 +326,9 @@ Config.StatueMinApps = 20
 --   ResaleSettled      of his value once he is established
 --   ResaleAppearances  appearances to get there
 -- TEMP.
+-- X353: at 100 popularity the shop sells half again as much per fan
+Config.MerchPopularityShare = 0.5
+
 Config.ResaleShare = 0.6
 Config.ResaleSettled = 0.9
 Config.ResaleAppearances = 5

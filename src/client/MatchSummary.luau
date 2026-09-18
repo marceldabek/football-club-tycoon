@@ -663,7 +663,10 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		columns.tickets.Text = money(data.ticketRevenue or 0)
 		-- X225: a friendly pays the home club a share of the gate, not every ticket
 		columnTitles.tickets.Text = if data.friendly then "Gate share" else "Tickets"
-		columns.concessions.Text = money(data.concessionRevenue or 0)
+		-- X353: the club shop's take sits with the kiosks, and says so
+		local merch = data.merchRevenue or 0
+		columns.concessions.Text = money((data.concessionRevenue or 0) + merch)
+		columnTitles.concessions.Text = if merch > 0 then "Kiosks & shop" else "Concessions"
 		columns.bonus.Text = money(data.resultBonus or 0)
 		-- X309
 		local fee = data.sponsorFee or 0

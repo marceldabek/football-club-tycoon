@@ -15,6 +15,7 @@ export type Settlement = {
 	turnedAway: number,
 	ticketRevenue: number,
 	concessionRevenue: number,
+	merchRevenue: number, -- X353: the club shop
 	resultBonus: number,
 	sponsorFee: number, -- X309
 	sponsorName: string, -- X309: who paid it
@@ -33,6 +34,7 @@ export type Inputs = {
 	demand: number,
 	ticketPrice: number,
 	concessionPerFan: number,
+	merchPerFan: number?, -- X353: from the amenity level, which is the shop's stock
 	winBonus: number,
 	drawBonus: number,
 	lossBonus: number,
@@ -91,6 +93,17 @@ function Economy.sponsorFee(tier: number, popularity: number): number
 	return math.floor(base * known / 10 + 0.5) * 10
 end
 
+-- X353: what the club shop takes on a matchday. Per fan through the gate,
+-- scaled by how well known the club is - a Fan Zone in the Premier Division
+-- sells rather more than a snack bar in the Sunday Parks League.
+function Economy.merchRevenue(attendance: number, popularity: number, merchPerFan: number): number
+	if merchPerFan <= 0 or attendance <= 0 then
+		return 0
+	end
+	local known = 1 + Config.MerchPopularityShare * math.clamp(popularity, 0, 100) / 100
+	return math.floor(attendance * merchPerFan * known + 0.5)
+end
+
 -- X350: the squad's wages for one match. A squad rated at its division's own
 -- standard costs about a third of that division's matchday takings; paying for
 -- a squad above the division costs sharply more (WageCurve), which is what
@@ -140,7 +153,8 @@ function Economy.settle(inputs: Inputs): Settlement
 	end
 
 	local sponsorFee = Economy.sponsorFee(inputs.tier or 1, inputs.popularity or 0)
-	local income = ticketRevenue + concessionRevenue + bonus + sponsorFee
+	local merchRevenue = Economy.merchRevenue(attendance, inputs.popularity or 0, inputs.merchPerFan or 0)
+	local income = ticketRevenue + concessionRevenue + merchRevenue + bonus + sponsorFee
 	-- X350: and what it cost to put the match on
 	local wages = Economy.wageBill(inputs.squadAverage or 0, inputs.squadSize or 0, inputs.tier or 1)
 	local upkeep = Economy.staffUpkeep(inputs.coachLevel or 0, inputs.scoutLevel or 0)
@@ -152,6 +166,7 @@ function Economy.settle(inputs: Inputs): Settlement
 		turnedAway = turnedAway,
 		ticketRevenue = ticketRevenue,
 		concessionRevenue = concessionRevenue,
+		merchRevenue = merchRevenue, -- X353
 		resultBonus = bonus,
 		sponsorFee = sponsorFee,
 		sponsorName = Economy.sponsorName(inputs.sponsorSeed or 0),

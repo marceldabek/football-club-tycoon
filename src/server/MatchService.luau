@@ -373,6 +373,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		demand = played.demand,
 		ticketPrice = Config.TicketPrice,
 		concessionPerFan = amenity.perFan,
+		merchPerFan = amenity.merchPerFan, -- X353: the club shop's stock
 		winBonus = Config.WinBonus,
 		drawBonus = Config.DrawBonus,
 		lossBonus = Config.LossBonus,
@@ -407,6 +408,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 	-- answers to "where did that come from", so they are recorded apart
 	ClubState.addCash(settlement.ticketRevenue, "gate")
 	ClubState.addCash(settlement.concessionRevenue, "concessions")
+	ClubState.addCash(settlement.merchRevenue, "merch") -- X353
 	ClubState.addCash(settlement.resultBonus, "bonus")
 	ClubState.addCash(settlement.sponsorFee, "sponsor") -- X309
 	-- X350: and the two things the matchday costs, which is the first money the
@@ -418,6 +420,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		round = roundResult.round,
 		gate = settlement.ticketRevenue,
 		concessions = settlement.concessionRevenue,
+		merch = settlement.merchRevenue, -- X353
 		bonus = settlement.resultBonus,
 		sponsor = settlement.sponsorFee, -- X309, so the row adds up
 		costs = settlement.costs, -- X350
@@ -448,6 +451,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 		capacity = settlement.capacity,
 		turnedAway = settlement.turnedAway,
 		ticketRevenue = settlement.ticketRevenue,
+		merchRevenue = settlement.merchRevenue, -- X353
 		wages = settlement.wages, -- X350
 		upkeep = settlement.upkeep,
 		costs = settlement.costs,

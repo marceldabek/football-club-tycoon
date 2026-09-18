@@ -870,6 +870,7 @@ end
 local FINANCE_LABELS: { [string]: string } = {
 	gate = "Tickets",
 	concessions = "Concessions",
+	merch = "Merchandise", -- X353
 	bonus = "Result bonuses",
 	sponsor = "Shirt sponsor",
 	prize = "Season prizes",
@@ -944,12 +945,14 @@ local function renderFinance()
 		cell(head, "Match", 10, 60, { TextColor3 = GREY })
 		cell(head, "Tickets", 75, 85, { TextColor3 = GREY })
 		if wide then
-			cell(head, "Concessions", 165, 105, { TextColor3 = GREY })
+			-- X353: the shop's take rides with the kiosks in one column, and is
+			-- its own line in MONEY IN above
+			cell(head, "Kiosks & shop", 165, 105, { TextColor3 = GREY })
 			cell(head, "Bonus", 275, 70, { TextColor3 = GREY })
 			cell(head, "Sponsor", 350, 80, { TextColor3 = GREY })
 			cell(head, "Costs", 435, 70, { TextColor3 = GREY }) -- X350
 		else
-			cell(head, "Conc.", 165, 80, { TextColor3 = GREY })
+			cell(head, "Shop", 165, 80, { TextColor3 = GREY })
 		end
 		rightCell(head, "Total", 90, { TextColor3 = GREY })
 		for i = #matches, 1, -1 do
@@ -957,14 +960,15 @@ local function renderFinance()
 			local f = row(i % 2 == 0)
 			cell(f, ("%d"):format(m.round or 0), 10, 60, { TextColor3 = GREY })
 			cell(f, money(m.gate or 0), 75, 85)
+			local kiosks = (m.concessions or 0) + (m.merch or 0) -- X353
 			if wide then
-				cell(f, money(m.concessions or 0), 165, 105)
+				cell(f, money(kiosks), 165, 105)
 				cell(f, money(m.bonus or 0), 275, 70)
 				cell(f, money(m.sponsor or 0), 350, 80)
 				-- X350: shown as what it took off, so the row adds up
 				cell(f, money(-(m.costs or 0)), 435, 70, { TextColor3 = Theme.colors.bad })
 			else
-				cell(f, money(m.concessions or 0), 165, 80)
+				cell(f, money(kiosks), 165, 80)
 			end
 			local net = m.total or 0
 			rightCell(f, money(net), 90, {
