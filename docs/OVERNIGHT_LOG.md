@@ -1833,3 +1833,12 @@ A read-only review agent went through the last five commits. Ten findings, all r
 - Verified in play: pressed PLAY MATCH from the office, and at kick-off the character was 111 studs from the centre spot (the dugout is 107 across and 28 along, so 110.6), looking at the pitch with the bench and the crowd behind. Then walked to the far corner (1250, 1400) and pressed the button: back to the same spot, 111 studs. Screenshot taken from the dugout.
 - The match hint now names the button. RunAll 487 passed.
 
+### 2026-09-17 20:49 — It rains on the grey weeks now (X327)
+- X321 gave the fast-forward an overcast beat but not the rain the item asked for, and the review (X326) called that out: a wet week only dimmed the sky. There is a **Wet** look now - Overcast with the lights down further, the colour pulled out and the haze up - and it actually rains through it.
+- **The look carries the weather.** `DayCycle.Look` gained `rain` (0 dry, 1 raining), which lerps like every other field, so the shower arrives and clears with the light instead of switching on. Every other look is `rain = 0`; only Wet is 1.
+- **The client turns that into rain.** `Sky` keeps one invisible part riding above and just ahead of the camera with a particle emitter and a looping rain bed on it, both driven by `look.rain`. It is built the first time a week is wet and never exists at all otherwise - no parts on the server, nothing to stream.
+- **Tuned by eye.** The first settings (thin 0.35 streaks at 45% transparency, 700 a second) were invisible over a green pitch. It is 2,200 a second, 0.7 across, squashed 4x into streaks, 15-20% transparent and a little blue - legible against both the sky and the grass. The shower also holds for about a second now rather than flashing past: the match sweep is Wet at 2.6 s and 3.4 s and clears through Overcast at 3.7 s, and the season sweep at 7.2 s and 8.4 s.
+- **Verified end to end in play.** Played through to match 154 (154 % 3 == 1, so the seed says wet) and pressed Back to Club: afterwards the camera holds a `Rain` part with its emitter and a loaded rain bed, built by that sweep and now idle at rate 0 - it does not exist after a dry week's sweep (checked after match 152). The look itself was photographed with the same emitter settings under the wet lighting.
+- Sound: "Rain On Water, Constant, Heavy Rainfall, Loop" from the licensed library, **unheard** like the rest (question 15).
+- RunAll 487 passed.
+

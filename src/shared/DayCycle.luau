@@ -31,6 +31,9 @@ export type Look = {
 	gradeTint: Color3,
 	floodlights: boolean,
 	streetLights: boolean,
+	-- X327: 0 dry, 1 raining. The client turns this into particles and a rain
+	-- bed; it lerps like everything else, so the shower arrives and clears.
+	rain: number,
 }
 
 -- Atmosphere densities were cut ~30% on 2026-09-17 so the town reads at
@@ -58,6 +61,7 @@ local LOOKS: { [string]: Look } = {
 		gradeTint = Color3.fromRGB(255, 250, 240),
 		floodlights = false,
 		streetLights = false,
+		rain = 0,
 	},
 	EveningMatch = {
 		clock = 19.2,
@@ -79,6 +83,7 @@ local LOOKS: { [string]: Look } = {
 		gradeTint = Color3.fromRGB(230, 235, 255),
 		floodlights = true,
 		streetLights = true,
+		rain = 0,
 	},
 	Sunset = {
 		clock = 18.3,
@@ -100,6 +105,7 @@ local LOOKS: { [string]: Look } = {
 		gradeTint = Color3.fromRGB(255, 215, 190),
 		floodlights = false,
 		streetLights = true,
+		rain = 0,
 	},
 	Night = {
 		clock = 0.5,
@@ -121,6 +127,7 @@ local LOOKS: { [string]: Look } = {
 		gradeTint = Color3.fromRGB(220, 225, 245),
 		floodlights = false,
 		streetLights = true,
+		rain = 0,
 	},
 	Dawn = {
 		clock = 6.5,
@@ -142,6 +149,32 @@ local LOOKS: { [string]: Look } = {
 		gradeTint = Color3.fromRGB(235, 225, 240),
 		floodlights = false,
 		streetLights = true,
+		rain = 0,
+	},
+	-- X327: X321 shipped the grey week without the rain the item asked for, so
+	-- a wet week only dimmed the sky. This is Overcast with the lights down
+	-- further, the colour pulled out and the rain turned on.
+	Wet = {
+		clock = 13.6,
+		brightness = 1.35,
+		exposure = -0.05,
+		ambient = Color3.fromRGB(74, 78, 84),
+		outdoorAmbient = Color3.fromRGB(112, 116, 126),
+		atmosphereDensity = 0.45,
+		atmosphereOffset = 0.15,
+		atmosphereColor = Color3.fromRGB(176, 180, 190),
+		atmosphereDecay = Color3.fromRGB(110, 112, 120),
+		atmosphereGlare = 0.05,
+		atmosphereHaze = 2.6,
+		bloomIntensity = 0.1,
+		sunRays = 0.0,
+		gradeBrightness = -0.04,
+		gradeContrast = 0.08,
+		gradeSaturation = -0.12,
+		gradeTint = Color3.fromRGB(232, 238, 248),
+		floodlights = false,
+		streetLights = false,
+		rain = 1,
 	},
 	Overcast = {
 		clock = 14.0,
@@ -163,6 +196,7 @@ local LOOKS: { [string]: Look } = {
 		gradeTint = Color3.fromRGB(245, 245, 245),
 		floodlights = false,
 		streetLights = false,
+		rain = 0,
 	},
 }
 DayCycle.LOOKS = LOOKS
@@ -200,6 +234,7 @@ function DayCycle.lerpLook(a: Look, b: Look, t: number): Look
 		gradeTint = a.gradeTint:Lerp(b.gradeTint, t),
 		floodlights = if switchToB then b.floodlights else a.floodlights,
 		streetLights = if switchToB then b.streetLights else a.streetLights,
+		rain = lerpNumber(a.rain or 0, b.rain or 0, t), -- X327
 	}
 end
 
@@ -237,7 +272,11 @@ function DayCycle.fastForward(kind: "match" | "season", fromEvening: boolean?, w
 				{ at = 0.8, look = "Sunset" },
 				{ at = 1.6, look = "EveningMatch" }, -- lights on
 				{ at = 2.4, look = "Night" },
-				{ at = 3.2, look = if wet then "Overcast" else "Dawn" },
+				-- X327: the shower holds for a beat rather than flashing past, then
+				-- clears through the grey into the afternoon the match is played in
+				{ at = 2.6, look = if wet then "Wet" else "Dawn" },
+				{ at = 3.4, look = if wet then "Wet" else "Dawn" },
+				{ at = 3.7, look = if wet then "Overcast" else "Dawn" },
 				{ at = duration, look = "HeroAfternoon" },
 			},
 		}
@@ -251,8 +290,10 @@ function DayCycle.fastForward(kind: "match" | "season", fromEvening: boolean?, w
 			{ at = 2, look = "Sunset" },
 			{ at = 4, look = "EveningMatch" }, -- lights on
 			{ at = 6, look = "Night" },
-			{ at = 8, look = if wet then "Overcast" else "Dawn" },
-			{ at = 9, look = if wet then "Overcast" else "HeroAfternoon" },
+			{ at = 7.2, look = if wet then "Wet" else "Dawn" }, -- X327
+			{ at = 8.4, look = if wet then "Wet" else "Dawn" },
+			{ at = 8.9, look = if wet then "Overcast" else "Dawn" },
+			{ at = 9.4, look = if wet then "Overcast" else "HeroAfternoon" },
 			{ at = duration, look = "HeroAfternoon" },
 		},
 	}

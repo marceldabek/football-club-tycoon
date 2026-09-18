@@ -162,11 +162,17 @@ function T.fastForwardHasAnOccasionalOvercastWeek()
 	for week = 1, 30 do
 		local track = DayCycle.fastForward("match", false, week)
 		local grey = false
+		local rains = false
 		for _, key in track.keys do
-			if key.look == "Overcast" then
+			if key.look == "Overcast" or key.look == "Wet" then
 				grey = true
 			end
+			if key.look == "Wet" then
+				rains = true
+			end
 		end
+		-- X327: a grey week is a wet one, and it clears before the match
+		assert(grey == rains, "a grey week should rain, and a clear week should not")
 		if grey then wet += 1 else dry += 1 end
 		-- whatever the week, the sweep ends on the look a match is played in
 		assert(track.keys[#track.keys].look == "HeroAfternoon", "the sweep must end on the hero afternoon")
@@ -201,6 +207,11 @@ function T.fastForwardHasAnOccasionalOvercastWeek()
 	end
 	assert(differs, "a grey week and a clear week should not sweep identically")
 	assert(not DayCycle.isOvercastWeek(nil), "no seed means no weather")
+	-- X327: the rain is in the looks, and every look says whether it is raining
+	assert(DayCycle.LOOKS.Wet.rain == 1, "the wet look should rain")
+	assert(DayCycle.LOOKS.HeroAfternoon.rain == 0, "the hero afternoon should not")
+	local half = DayCycle.lerpLook(DayCycle.LOOKS.HeroAfternoon, DayCycle.LOOKS.Wet, 0.5)
+	assert(math.abs(half.rain - 0.5) < 0.001, "rain should come in gradually, got " .. tostring(half.rain))
 	local season = DayCycle.fastForward("season", false, 1)
 	assert(season.keys[#season.keys].look == "HeroAfternoon", "the season sweep ends on the hero afternoon too")
 end

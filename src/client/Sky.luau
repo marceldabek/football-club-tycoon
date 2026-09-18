@@ -88,6 +88,96 @@ end)
 local DARK_ATTRIBUTE = "SkyDark"
 Sky.DARK_ATTRIBUTE = DARK_ATTRIBUTE
 
+-- X327: the rain itself. One emitter on a part that rides above the camera and
+-- one looping bed, both driven by `look.rain`, so the shower comes in and
+-- clears with the light rather than switching on. Client-only, no parts on the
+-- server, and it only ever exists during a wet week's fast-forward.
+local RAIN_SOUND = "rbxassetid://9112855439" -- "Rain On Water, Constant, Heavy Rainfall, Loop"
+local RAIN_VOLUME = 0.35
+local rainPart: Part? = nil
+local rainEmitter: ParticleEmitter? = nil
+local rainSound: Sound? = nil
+
+local function rainRig(): (Part, ParticleEmitter, Sound)
+	local part = rainPart
+	if part and part.Parent then
+		return part, rainEmitter :: ParticleEmitter, rainSound :: Sound
+	end
+	part = Instance.new("Part")
+	part.Name = "Rain"
+	part.Size = Vector3.new(70, 1, 70)
+	part.Transparency = 1
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Parent = workspace.CurrentCamera
+
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Name = "Drops"
+	emitter.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	emitter.Color = ColorSequence.new(Color3.fromRGB(205, 218, 236))
+	-- tuned by eye against the wet sky: fainter or thinner than this and the
+	-- drops disappear over a green pitch
+	emitter.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.15),
+		NumberSequenceKeypoint.new(0.85, 0.2),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	emitter.Size = NumberSequence.new(0.7)
+	emitter.Squash = NumberSequence.new(4) -- a drop is a streak, not a blob
+	emitter.Orientation = Enum.ParticleOrientation.VelocityPerpendicular
+	emitter.Lifetime = NumberRange.new(0.5, 0.7)
+	emitter.Speed = NumberRange.new(55, 70)
+	emitter.EmissionDirection = Enum.NormalId.Bottom
+	emitter.SpreadAngle = Vector2.new(4, 4)
+	emitter.Acceleration = Vector3.new(2, -60, 0) -- a little slant, like wind
+	emitter.LightEmission = 0.25
+	emitter.LockedToPart = false
+	emitter.Rate = 0
+	emitter.Enabled = false
+	emitter.Parent = part
+
+	local sound = Instance.new("Sound")
+	sound.Name = "RainBed"
+	sound.SoundId = RAIN_SOUND
+	sound.Looped = true
+	sound.Volume = 0
+	sound.Parent = part
+
+	rainPart, rainEmitter, rainSound = part, emitter, sound
+	return part, emitter, sound
+end
+
+local function setRain(amount: number)
+	if amount <= 0.01 and not rainPart then
+		return -- never built one, and no need to
+	end
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return
+	end
+	local part, emitter, sound = rainRig()
+	if part.Parent ~= camera then
+		part.Parent = camera
+	end
+	-- a little ahead of the lens as well as above it, so drops fall through the
+	-- shot rather than only past the edges
+	part.CFrame = CFrame.new(camera.CFrame.Position + camera.CFrame.LookVector * 18 + Vector3.new(0, 26, 0))
+	local wet = math.clamp(amount, 0, 1)
+	emitter.Rate = 2200 * wet
+	emitter.Enabled = wet > 0.02
+	sound.Volume = RAIN_VOLUME * wet
+	if wet > 0.02 then
+		if not sound.IsPlaying then
+			sound:Play()
+		end
+	elseif sound.IsPlaying then
+		sound:Stop()
+	end
+end
+
 local function apply(look: DayCycle.Look)
 	current = look
 	local me = game:GetService("Players").LocalPlayer
@@ -117,6 +207,8 @@ local function apply(look: DayCycle.Look)
 	grade.Contrast = look.gradeContrast
 	grade.Saturation = look.gradeSaturation
 	grade.TintColor = look.gradeTint
+
+	setRain(look.rain or 0) -- X327
 
 	if floodsShown ~= look.floodlights then
 		floodsShown = look.floodlights
