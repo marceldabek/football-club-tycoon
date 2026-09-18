@@ -1,6 +1,6 @@
 # Overnight Log
 
-## Morning handoff (kept current, last touched 00:23)
+## Morning handoff (kept current, last touched 00:26)
 
 **What to look at:** Press Play. Pick a ground with the picker (‹ › then BUILD MY CLUB HERE).
 You spawn in your office on that plot; the other plots are FOR SALE lots. Walk or take a bus (prompt on
@@ -34,7 +34,7 @@ Mill Street front gardens, railings, street trees, signs and parked cars (X11), 
 24. **X350 running costs, done as TEMP - please confirm, and one decision for you.** A matchday now pays wages - 30% of that matchday's income for a squad rated at its division's standard, sharply more for a squad above it (a Sunday Parks club carrying a National League squad pays 111% of its income) - and 2% of the coach's and scout's hire price as upkeep. A brand-new club pays £650 against £1,880 and still profits £1,230. *Rec: keep the shape - it is the only thing in the game that makes an investment capable of being wrong.* The decision: **can a club go into debt?** Today `addCash` clamps the balance at zero (matching what `Profile.normalize` has always done to a saved balance), so a big loss just empties the club rather than putting it in the red. *Rec: keep the clamp for now, because a negative balance needs its own rules (can you still buy? does the game end?), and revisit it with question 19 when stand costs are set.*
 
 **Known bugs**
-1. **The Studio test club was wiped at 00:23** to run the onboarding for real (it is "Test Rovers", one match played). Up to 02:20 Studio playtests used your real DataStore club. Agent tests added matches, cash and one North-stand level to Dino FC (it went from 7 to 8 matches tonight). Since 02:20 Studio uses a separate store (see question 1). The Studio-store test club (MDino24 FC) had matches played and, at 07:27, the West bleachers built by agent tests; wipe it with DebugRun `wipe` if you want a clean Studio club.
+1. **The Studio test club was wiped at 00:23** to run the onboarding for real; it is now "Test Rovers", promoted to the County League with £30,920 after one full season. Up to 02:20 Studio playtests used your real DataStore club. Agent tests added matches, cash and one North-stand level to Dino FC (it went from 7 to 8 matches tonight). Since 02:20 Studio uses a separate store (see question 1). The Studio-store test club (MDino24 FC) had matches played and, at 07:27, the West bleachers built by agent tests; wipe it with DebugRun `wipe` if you want a clean Studio club.
 2. Studio holds condensed copies of the new modules (comments trimmed). Reconnect Rojo to overwrite them from disk.
 3. Season-end fast-forward: the server rollover is verified; the client 10 s sweep has not been watched.
 4. Studio holds hand-pasted copies of every module merged tonight (comments stripped). Disk is the source of truth; reconnect Rojo before editing in Studio (X4/X34). Since 05:20, each change was written to disk and pasted into Studio separately, and the tests ran against the Studio copies. No Luau compiler is installed locally, so the disk copies were only checked by scanning for broken string literals and escapes, which were clean at 06:45. At 08:18 a read-only review of the whole day's Luau diff (42 files) found no syntax, ordering or require-cycle problems. A second review at 09:45 of everything since 08:13 (36 files, about 2,200 lines) also found none. **After reconnecting Rojo, run RunAll once** to confirm the disk code compiles.
@@ -2120,3 +2120,13 @@ A read-only agent reviewed the last eight commits (X333-X342). Eleven real findi
   - the first *paid* step is £1,500 and the club is told **"Need £220 more"** - so it is one more matchday away, with a bigger ground paying for it.
 - That is the loop: press play, earn, see the ground grow, and want the next thing. It is the strongest verification of the night, and it only exists because the wage model was wrong first.
 - **The Studio test club is now "Test Rovers" with one match played** - the 168-match MDino24 FC club is gone (wiped deliberately for this test). Marcel's live DataStore club is untouched; this is the separate Studio store from question 1.
+
+### 2026-09-18 00:26 — A whole season with tonight's economy
+- Played the fresh club's entire first season (ten matches) to see the new money end to end, buying a stand on the way as a player would.
+- **Season 1, Sunday Parks League, won it from 1st and promoted to the County League.** The ledger:
+  - IN: gate £34,800 + result bonuses £2,700 + season prize £5,000 + shirt sponsor £2,900 = **£45,400**
+  - OUT: wages £12,980 (**29% of income**) + one stand £1,500
+  - finished on **£30,920** from a standing start of £0
+- Match-by-match the profit ran £1,280, £2,110, £1,840, £1,930 and upward as the ground grew (150 -> 300 -> 550 seats), so every match paid for something and nothing ever went backwards.
+- **No concessions and no merch in that ledger at all**, because the club never bought an amenity - which is the tradeoff working: it spent on seats instead, and the hint pill's next suggestion is the Snack Bar. In the County League its demand is 2,077 against 550 seats, so the fans it is turning away are now the loudest thing on the summary card.
+- Promotion also exercised X355's rival drift at the rollover: the club is *below* the County League's own standard, so the new division is built at its own baseStrength and nothing drifts - a promoted club is not punished for being promoted.
