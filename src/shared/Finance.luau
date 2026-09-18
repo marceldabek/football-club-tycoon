@@ -21,8 +21,9 @@ Finance.INCOME = { "gate", "concessions", "merch", "bonus", "sponsor", "prize", 
 Finance.SPEND = { "wages", "upkeep", "transfers", "stands", "amenities", "staff", "trades" }
 
 -- `sponsor` (X309) is part of `total`, so the row adds up on screen (review)
--- `costs` (X350) is the wages and upkeep taken off that matchday, so
--- gate + concessions + bonus + sponsor - costs = total
+-- `costs` (X350) is the wages and upkeep taken off that matchday, and `merch`
+-- (X353) is the club shop's take, so
+-- gate + concessions + merch + bonus + sponsor - costs = total
 export type MatchRow = { round: number, gate: number, concessions: number, merch: number, bonus: number, sponsor: number, costs: number, total: number }
 
 export type Ledger = {

@@ -1,6 +1,6 @@
 # Overnight Log
 
-## Morning handoff (kept current, last touched 00:34)
+## Morning handoff (kept current, last touched 00:36)
 
 **What to look at:** Press Play. Pick a ground with the picker (‹ › then BUILD MY CLUB HERE).
 You spawn in your office on that plot; the other plots are FOR SALE lots. Walk or take a bus (prompt on
@@ -2150,3 +2150,7 @@ A read-only agent reviewed the last eight commits (X333-X342). Eleven real findi
 - **X356's squad-bar text was hidden behind the capacity bar.** The label is 430 wide now and the bar has moved from x 462 to x 660 (it is drawn after the label and has a solid background, so it was covering "v 52: well short"). The hint at the far right gives up the room.
 - **The verdict test tested no boundary.** It sampled +10/+3/0/-1/-4/-12 against bands that turn at +6/+2/-2/-6. It now checks each boundary and the value just under it, so an off-by-one in any band fails.
 - RunAll 573 passed, 0 failed.
+
+### 2026-09-18 00:36 — The whole matchday reconciles, in play
+- After the four review fixes, played a match on the promoted club and checked the three numbers that have to agree: the **cash actually moved £4,520**, the matchday row's **total says £4,520**, and its **columns add to £4,520**. That is X359's point demonstrated rather than asserted.
+- Merchandise reads nil for this club because it still has no amenity - it spent its money on seats - which is the tradeoff the ledger is supposed to show.
