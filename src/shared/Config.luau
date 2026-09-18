@@ -298,7 +298,6 @@ Config.StatueFromTier = 3
 Config.StatueMinApps = 20
 
 Config.SponsorBase = 250
-Config.SponsorPerTier = 220
 Config.SponsorPopularityShare = 0.6 -- at 100 popularity the fee is 1.6x
 
 Config.Sponsors = {

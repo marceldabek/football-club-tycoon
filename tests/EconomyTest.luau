@@ -73,6 +73,15 @@ function T.sponsorFeeGrowsWithTheDivisionAndTheClub()
 	assert(top > bottom, "a higher division is worth more")
 	assert(Economy.sponsorFee(1, 200) == knownBottom, "popularity past 100 should not keep paying")
 	assert(bottom % 10 == 0 and top % 10 == 0, "fees are rounded to ten")
+	-- X354: and it is worth about the same share of the gate at every level,
+	-- rather than shrinking into irrelevance as the club climbs
+	for tier = 1, #Config.Divisions do
+		local fee = Economy.sponsorFee(tier, 50)
+		local fullGate = Economy.demand(tier, 50, 0, 0) * Config.TicketPrice
+		local share = fee / fullGate
+		assert(share > 0.02 and share < 0.2,
+			("tier %d: the sponsor pays %d against a %d gate (%.1f%%)"):format(tier, fee, fullGate, share * 100))
+	end
 	-- the same seed always signs the same sponsor, and every seed names somebody
 	assert(Economy.sponsorName(3) == Economy.sponsorName(3), "deterministic")
 	for seed = 0, 12 do

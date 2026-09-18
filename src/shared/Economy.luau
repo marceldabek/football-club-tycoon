@@ -4,6 +4,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
+local League = require(ReplicatedStorage.Shared.League) -- X354: divisionFactor
 
 local Economy = {}
 
@@ -68,9 +69,16 @@ end
 
 -- X309: what the shirt sponsor pays for one match. Rounded to 10 so the
 -- summary reads like a fee and not a calculation.
+-- X354: the fee used to be `SponsorBase + SponsorPerTier * (tier - 1)`, which
+-- runs 250..1,130 across the five divisions (4.5x) while the money a division
+-- actually generates runs 1x..20x (demandBase 600..12,000). So the shirt was
+-- worth about 6% of a Sunday Parks League gate and under 1% of a Premier
+-- Division one, and the FINANCE tab quietly lost an income line as the club
+-- climbed. It is a share of the division's own money now, exactly as X272 did
+-- for prize money.
 function Economy.sponsorFee(tier: number, popularity: number): number
-	local base = Config.SponsorBase + Config.SponsorPerTier * math.max(math.floor(tier) - 1, 0)
 	local known = 1 + Config.SponsorPopularityShare * math.clamp(popularity, 0, 100) / 100
+	local base = Config.SponsorBase * League.divisionFactor(tier)
 	return math.floor(base * known / 10 + 0.5) * 10
 end
 

@@ -1,6 +1,6 @@
 # Overnight Log
 
-## Morning handoff (kept current, last touched 23:45)
+## Morning handoff (kept current, last touched 23:47)
 
 **What to look at:** Press Play. Pick a ground with the picker (‹ › then BUILD MY CLUB HERE).
 You spawn in your office on that plot; the other plots are FOR SALE lots. Walk or take a bus (prompt on
@@ -2044,3 +2044,10 @@ A read-only agent reviewed the last eight commits (X333-X342). Eleven real findi
 - X218's rule - a goal belongs to whoever was in that shirt at that moment - was written three times: `Squad.creditScorers`, `MatchFeed.creditedSlot` and X344's new `Squad.filledBy` (the same loop without the `afterEvent`/minute test). `Squad.filledBy(made, slot, at)` now takes an optional moment and owns the rule; the other two call it.
 - **I committed it before running RunAll**, against OVERNIGHT.md's own rule, and it was broken: `slot = Squad.filledBy(...)` followed by a line starting with `(ev :: any).scorer = slot` is the one construct Luau rejects as ambiguous ("this looks like an argument list for a function call"). Nothing local compiles Luau (known bug 4), so the repo held a syntax error until the Studio paste threw. The moment now goes through a local, which reads better anyway.
 - RunAll 555 passed, 0 failed, and the fix is committed on top. The lesson is the rule as written: **RunAll before the commit, not after.**
+
+### 2026-09-17 23:47 — The shirt sponsor stops shrinking as the club grows (X354)
+- `Economy.sponsorFee` was `SponsorBase (250) + SponsorPerTier (220) * (tier - 1)`, so it ran 250..1,130 across the five divisions - 4.5x - while the money a division generates runs **20x** (`demandBase` 600..12,000). The shirt was worth about 6% of a Sunday Parks League gate and **under 1%** of a Premier Division one: an income line that quietly disappeared exactly as the club got big enough to care about it.
+- It is a share of the division's own money now, through `League.divisionFactor(tier)` - the same fix X272 made for prize money, which is where the 20x number comes from. `Config.SponsorPerTier` is gone.
+- Measured in Studio across the pyramid at popularity 50: **330 / 760 / 1,630 / 3,250 / 6,500 against gates of 7,600 / 17,736 / 38,000 / 76,000 / 152,000 - a flat 4.3% everywhere.**
+- The old test only asserted that the top division paid more than the bottom, which the broken version also did. It now checks the fee is between 2% and 20% of a full gate at *every* tier.
+- RunAll 555 passed, 0 failed.
