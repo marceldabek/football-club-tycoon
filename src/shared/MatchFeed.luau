@@ -18,6 +18,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Format = require(ReplicatedStorage.Shared.Format)
+local Squad = require(ReplicatedStorage.Shared.Squad) -- X357: one copy of X218's rule
 
 local MatchFeed = {}
 
@@ -58,17 +59,9 @@ end
 
 -- X218's rule, read-only: a goal belongs to whoever filled the slot when it
 -- went in, so a starter subbed off earlier hands it to the man who replaced
--- him. `index` is the event's place in the timeline, because a goal earlier in
--- the same minute as a substitution is still the starter's.
+-- him. X357: this was a third copy of the rule; `Squad.filledBy` owns it.
 local function creditedSlot(slot: number, index: number, minute: number, subs: { Sub }): number
-	local out = slot
-	for _, sub in subs do
-		local after = if sub.afterEvent then index > sub.afterEvent else (sub.minute or 0) <= minute
-		if sub.out == out and after then
-			out = sub["in"]
-		end
-	end
-	return out
+	return Squad.filledBy(subs :: any, slot, { index = index, minute = minute })
 end
 
 -- Every line for a match that has reached `minute`, oldest first. `injury` is

@@ -325,10 +325,22 @@ end
 -- made in it. The sim names a starting slot, but a coach change (X333) can
 -- already have put a substitute there - and the injury used to name and injure
 -- the starter who walked off twenty minutes earlier.
-function Squad.filledBy(made: { Sub }, slot: number): number
+-- `at` is a moment in the match: `index` is how far down the timeline we are
+-- and `minute` the clock. Without it, every substitution counts - "who is in
+-- that shirt now". With it, only the changes made before that moment count,
+-- which is X218's rule: a goal earlier in the same minute as a substitution
+-- still belongs to the man who was on then. Substitutions carry `afterEvent`
+-- (how many timeline events had been shown when they were made) and fall back
+-- to the minute for older saves.
+export type Moment = { index: number, minute: number }
+function Squad.filledBy(made: { Sub }, slot: number, at: Moment?): number
 	local idx = slot
 	for _, s in made do
-		if s.out == idx then
+		local counts = true
+		if at then
+			counts = if s.afterEvent then at.index > s.afterEvent else (s.minute or 0) <= at.minute
+		end
+		if s.out == idx and counts then
 			idx = s["in"]
 		end
 	end
@@ -458,12 +470,8 @@ function Squad.creditScorers(events: { ScoredEvent }, subs: { Sub }): { number }
 	for index, ev in events do
 		local slot = (ev :: any).scorer
 		if ev.team == "Home" and ev.type == "GOAL" and type(slot) == "number" then
-			for _, sub in subs do
-				local after = if sub.afterEvent then index > sub.afterEvent else (sub.minute or 0) <= (ev :: any).minute
-				if sub.out == slot and after then
-					slot = sub["in"]
-				end
-			end
+			-- X357: the rule itself lives in Squad.filledBy now
+			slot = Squad.filledBy(subs, slot, { index = index, minute = (ev :: any).minute })
 			(ev :: any).scorer = slot
 			table.insert(scorers, slot)
 		end

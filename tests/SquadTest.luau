@@ -747,6 +747,19 @@ function T.aShirtIsFollowedThroughEverySubstitutionMadeInIt()
 	assert(Squad.filledBy(chain, 7) == 14, "two changes in one shirt follow through")
 end
 
+function T.aMomentDecidesWhetherAChangeCountsYet()
+	-- X357: X218's rule, now in one place. A goal earlier in the same minute as
+	-- the substitution still belongs to the man who was on the pitch then.
+	local made = { { out = 9, ["in"] = 14, minute = 60, afterEvent = 3 } }
+	assert(Squad.filledBy(made, 9) == 14, "with no moment, the change has happened")
+	assert(Squad.filledBy(made, 9, { index = 3, minute = 60 }) == 9, "the third event is not after the change")
+	assert(Squad.filledBy(made, 9, { index = 4, minute = 60 }) == 14, "the fourth is")
+	-- a saved substitution without afterEvent falls back to the minute
+	local old = { { out = 9, ["in"] = 14, minute = 60 } }
+	assert(Squad.filledBy(old, 9, { index = 1, minute = 59 }) == 9, "before his minute")
+	assert(Squad.filledBy(old, 9, { index = 1, minute = 60 }) == 14, "and from his minute on")
+end
+
 function T.anInjuryInAShirtAlreadySubstitutedTakesOffTheSubstitute()
 	-- X344: the sim names a starting slot, and the coach (X333) may already
 	-- have put somebody else in it. The old code walked the starter off again

@@ -1,6 +1,6 @@
 # Overnight Log
 
-## Morning handoff (kept current, last touched 23:33)
+## Morning handoff (kept current, last touched 23:43)
 
 **What to look at:** Press Play. Pick a ground with the picker (‹ › then BUILD MY CLUB HERE).
 You spawn in your office on that plot; the other plots are FOR SALE lots. Walk or take a bus (prompt on
@@ -2031,3 +2031,11 @@ A read-only agent reviewed the last eight commits (X333-X342). Eleven real findi
 ### 2026-09-17 23:33 — Tonight's dual edits check out (X345 used on X336-X346)
 - Ran the new word digest over the 19 scripts edited in both places tonight. **Eleven match exactly**, and every one of the other eight has the *same* gap it had before tonight's edits (HUD -9, ClubPanel -4, MatchSim -2, Squad +2, SquadTest +1, TownLifeMathTest -13) - so the disk and Studio copies of tonight's work agree, and those gaps are older drift for X347.
 - The two real exceptions are MatchFeed (+22) and MatchFeedTest (+10), which is exactly the escaped middot I used in the Studio copies against the literal one on disk: eleven occurrences, two extra words each. The same bytes at runtime - and worth knowing that the digest counts an escape as words.
+
+### 2026-09-17 23:43 — The mid-game hint has been throwing since 20:30 (X349)
+- A read-only agent drafting new backlog items found a bug in my own X331: the shared `cheapestStand` was pasted **into the middle of `refreshHintText`**, so it was a local of that function - and `midGameHint`, a separate function, called an unbound global. Every refresh with `Demand > Capacity` threw "attempt to call a nil value", which is the pill's own mid-game path and most of the game.
+- The paste also swallowed the onboarding section's comment header and left the nested function at column 0. Hoisted to module scope above both callers, comments restored.
+- **`tools/late_locals.py` said "no late locals" the whole time**, because it only looked for a module-scope local declared *below* its caller. It now tracks scope with Lua's own block keywords, and the first attempt drifted twenty blocks deep across the HUD because **Luau's `if a then b else c` expression has no `end`** and the welcome card builds a table out of them. `then` only counts as a block opener when the line ends on it, or the line starts with `if ` and carries its own `end`. If a file's block count does not come back to zero the checker says so and falls back to the old module-scope check rather than guessing.
+- Proof both ways: the checker on the **pre-fix** HUD says `HUD.luau:789: calls cheapestStand, which is only in scope at line 716`, and on the repo as it stands says "no late locals" with every file balancing.
+- Verified in play: the pill reads "A Qualified Coach picks the team and brings your young players on: CLUB OFFICE, then STAFF." - a mid-game branch - and forcing `Demand` to 20,000 against a capacity of 8,000 runs the turned-away branch (the one that used to throw) with a clean console; the coach is simply the cheaper thing to want.
+- Also from that agent: **eight new backlog items, X350-X356**, all `[disk]` and all verifiable without a screenshot, which matters while Studio's capture is broken. The headline ones: a matchday can only ever *add* money (no wages, no running costs, and `Profile.normalize` clamps cash at 0, so no decision can ever be wrong), a prospect's value equals his fee at every age a scout can find so every transfer has a free undo, the coach cannot change the XI at all, the club shop sells nothing, sponsorship shrinks from 6% of the gate to under 1% as the club climbs, and rival strength never moves so the tenth season in a division is as easy as the first.

@@ -692,6 +692,26 @@ local function refreshHint()
 	hintLabel.Visible = hintLabel.Text ~= "" and not summary.frame.Visible and not seasonCard.frame.Visible
 end
 
+-- X331: the cheapest next step on any of the four stand plots, and what it
+-- costs. East starts at level 1 so its next step is £1,500, while West, North
+-- and South start empty and their first step (Bleachers) is free - so the
+-- onboarding hint used to send a player with £0 at the one upgrade they could
+-- not buy. Shared with midGameHint, which already picked this way.
+-- X349: this was declared *inside* refreshHintText, so midGameHint - a
+-- separate function - saw an unbound global and threw "attempt to call a nil
+-- value" the moment demand passed capacity, which is most of the game.
+local function cheapestStand(): (any, number)
+	local best, bestCost = nil, math.huge
+	for _, plot in Config.StandPlots do
+		local level = (get("Stand_" .. plot.key) :: number?) or plot.start
+		local nextLevel = Config.StandLevels[level + 1]
+		if nextLevel and nextLevel.cost < bestCost then
+			best, bestCost = plot, nextLevel.cost
+		end
+	end
+	return best, bestCost
+end
+
 function refreshHintText()
 	hintTarget = nil
 	local phase = get("Phase")
@@ -708,24 +728,7 @@ function refreshHintText()
 		hintLabel.Text = "Match on. Walk around and watch, TAKE MY SEAT for the dugout, or use ATTACK / DEFEND / SUB."
 		return
 	end
-	-- X331: the cheapest next step on any of the four stand plots, and what it
--- costs. East starts at level 1 so its next step is £1,500, while West, North
--- and South start empty and their first step (Bleachers) is free - so the
--- onboarding hint used to send a player with £0 at the one upgrade they could
--- not buy. Shared with midGameHint, which already picked this way.
-local function cheapestStand(): (any, number)
-	local best, bestCost = nil, math.huge
-	for _, plot in Config.StandPlots do
-		local level = (get("Stand_" .. plot.key) :: number?) or plot.start
-		local nextLevel = Config.StandLevels[level + 1]
-		if nextLevel and nextLevel.cost < bestCost then
-			best, bestCost = plot, nextLevel.cost
-		end
-	end
-	return best, bestCost
-end
-
--- Onboarding only: the pill teaches the first few upgrades, then goes away.
+	-- Onboarding only: the pill teaches the first few upgrades, then goes away.
 	-- Starting a match is the PLAY MATCH button at the top, so it is never hinted here.
 	local played = get("MatchesPlayed") or 0
 	-- X240: any stand built past its starting level counts, not only the East Stand
