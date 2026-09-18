@@ -154,6 +154,82 @@ function MatchdayRoutes.kioskQueueSpots(count: number): { CFrame }
 	return out
 end
 
+
+-- X318: the amenity the player buys builds a hut with a serving hatch on the
+-- concourse (WorldBuilder AMENITY_POS (-163, -172), hut 10 x 8 with the hatch
+-- and counter on its +X face) and nobody ever stood at it, while the fans who
+-- walk to the turnstiles vanish at the gate. These are the spots for a short
+-- line at the hatch and a thin scatter of people on the paving behind it, both
+-- pitch-local ground CFrames like every other route here.
+MatchdayRoutes.AMENITY_HATCH = Vector3.new(-156, 0, -172)
+MatchdayRoutes.AMENITY_QUEUE_GAP = 2.4
+-- the paving the amenity stands on, minus the lane the queue uses
+MatchdayRoutes.CONCOURSE = { x0 = -190, x1 = -160, z0 = -178, z1 = -152 }
+MatchdayRoutes.CONCOURSE_MAX = 14
+
+-- How many are queueing at the hatch: nobody before the club has built
+-- anything, then a line that grows a little with each amenity.
+function MatchdayRoutes.amenityQueueCount(amenityLevel: number, attendance: number, capacity: number, phase: any): number
+	if amenityLevel < 1 or capacity <= 0 or attendance <= 0 then
+		return 0
+	end
+	if phase ~= "Match" and phase ~= "PreMatch" then
+		return 0
+	end
+	local full = math.clamp(attendance / capacity, 0, 1)
+	return math.clamp(math.round(1 + amenityLevel + full * 2), 0, 5)
+end
+
+-- And how many are milling about on the concourse: only while the match is on
+-- (before kick-off they are still queueing outside, X104), more when the
+-- ground is full and when there is somewhere to stand about.
+function MatchdayRoutes.concourseCount(amenityLevel: number, attendance: number, capacity: number, phase: any): number
+	if phase ~= "Match" or capacity <= 0 or attendance <= 0 then
+		return 0
+	end
+	local full = math.clamp(attendance / capacity, 0, 1)
+	return math.clamp(math.round(2 + full * 8 + amenityLevel * 2), 0, MatchdayRoutes.CONCOURSE_MAX)
+end
+
+function MatchdayRoutes.amenityQueueSpots(count: number): { CFrame }
+	local out = {}
+	local h = MatchdayRoutes.AMENITY_HATCH
+	for i = 1, count do
+		local p = Vector3.new(h.X + (if i % 2 == 0 then 0.5 else -0.4), 0.05, h.Z + 2 + (i - 1) * MatchdayRoutes.AMENITY_QUEUE_GAP)
+		table.insert(out, CFrame.lookAt(p, Vector3.new(h.X + 4, p.Y, h.Z)))
+	end
+	return out
+end
+
+-- A scatter with no two people on the same spot: a coarse grid with a seeded
+-- jitter, which also keeps it identical every time the match is rebuilt.
+function MatchdayRoutes.concourseSpots(count: number, seed: number): { CFrame }
+	local out = {}
+	if count <= 0 then
+		return out
+	end
+	local rng = Random.new(seed)
+	local box = MatchdayRoutes.CONCOURSE
+	local columns = 4
+	local rows = math.ceil(MatchdayRoutes.CONCOURSE_MAX / columns)
+	local stepX = (box.x1 - box.x0) / columns
+	local stepZ = (box.z1 - box.z0) / rows
+	for i = 1, math.min(count, MatchdayRoutes.CONCOURSE_MAX) do
+		local cell = i - 1
+		local cx = cell % columns
+		local cz = math.floor(cell / columns)
+		local p = Vector3.new(
+			box.x0 + stepX * (cx + 0.5) + rng:NextNumber(-1.4, 1.4),
+			0.05,
+			box.z0 + stepZ * (cz + 0.5) + rng:NextNumber(-1.4, 1.4)
+		)
+		-- facing anywhere: they are standing about, not queueing
+		local a = rng:NextNumber(0, math.pi * 2)
+		table.insert(out, CFrame.lookAt(p, p + Vector3.new(math.cos(a), 0, math.sin(a))))
+	end
+	return out
+end
+
 -- X93 (roadmap H1 "media presence"): an outside-broadcast van on the forecourt
 -- on matchday once the club draws a crowd. Pitch-local ground CFrame, long axis
 -- along local X, clear of the team coach (x -160..-126, z -221..-213) and the

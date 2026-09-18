@@ -12,8 +12,11 @@
 -- single workspace:BulkMoveTo call, the same cheap-crowd approach as
 -- BlockFootballer.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer -- X318: for the Quality attribute
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local MatchdayRoutes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MatchdayRoutes"))
@@ -64,6 +67,7 @@ type PlotCrowd = {
 	model: Folder,
 	fans: { Fan },
 	stewards: { Model },
+	concourse: { Model }, -- X318: the hatch queue and the people stood about
 	cars: { Model },
 	queue: { Model },
 	near: boolean,
@@ -72,6 +76,7 @@ type PlotCrowd = {
 	phaseConn: RBXScriptConnection,
 	lastPhase: any,
 	leavingUntil: number?, -- X161: os.clock() until which the crowd walks out
+	concoursePhase: any, -- X318: the phase the concourse was last built for
 }
 
 -- ------------------------------------------------------------------ state
@@ -425,6 +430,50 @@ local function buildKioskQueue(crowd: PlotCrowd)
 	end
 end
 
+-- X318: the concourse. A short line at the amenity's serving hatch and a thin
+-- scatter of people stood about on the paving while the match is on, sized by
+-- the amenity and by how full the ground is. Off on Low, like the rest of the
+-- client-only life, and torn down with the stewards.
+local function buildConcourse(crowd: PlotCrowd)
+	for _, model in crowd.concourse do
+		model:Destroy()
+	end
+	table.clear(crowd.concourse)
+	if player:GetAttribute("Quality") == "Low" then
+		return
+	end
+	local folder = crowd.folder
+	local phase = folder:GetAttribute("Phase")
+	local amenity = numberAttribute(folder, "AmenityLevel")
+	local attendance = numberAttribute(folder, "Attendance")
+	local capacity = numberAttribute(folder, "Capacity")
+	local plot = folder:GetAttribute("PlotIndex")
+	local seed = if type(plot) == "number" then plot * 977 + math.floor(attendance) else 977
+
+	local function person(name: string, base: CFrame, i: number, scarf: boolean)
+		local model = Instance.new("Model")
+		model.Name = name
+		local kit = if i % 3 == 0 then Config.HomeKit else NEUTRAL_KITS[(i % #NEUTRAL_KITS) + 1]
+		part("Legs", LEG, DARK_TROUSERS, model).CFrame = base * CFrame.new(0, LEG.Y / 2, 0)
+		part("Torso", TORSO, kit, model).CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y / 2, 0)
+		local head = part("Head", Vector3.new(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE), SKIN_TONES[(i % #SKIN_TONES) + 1], model)
+		head.Shape = Enum.PartType.Ball
+		head.CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y + HEAD_SIZE / 2, 0)
+		if scarf then
+			part("Scarf", SCARF, Config.HomeKit, model).CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y * 0.85, 0.1)
+		end
+		model.Parent = crowd.model
+		table.insert(crowd.concourse, model)
+	end
+
+	for i, spot in MatchdayRoutes.amenityQueueSpots(MatchdayRoutes.amenityQueueCount(amenity, attendance, capacity, phase)) do
+		person("HatchFan" .. i, crowd.plotCFrame * spot, i, i % 2 == 1)
+	end
+	for i, spot in MatchdayRoutes.concourseSpots(MatchdayRoutes.concourseCount(amenity, attendance, capacity, phase), seed) do
+		person("ConcourseFan" .. i, crowd.plotCFrame * spot, i + 2, i % 3 == 0)
+	end
+end
+
 local function spawnCrowd(crowd: PlotCrowd)
 	crowd.plotCFrame = plotCFrameOf(crowd.folder)
 	buildStewards(crowd)
@@ -432,6 +481,7 @@ local function spawnCrowd(crowd: PlotCrowd)
 	buildMediaVan(crowd)
 	buildBarDrinkers(crowd)
 	buildKioskQueue(crowd)
+	buildConcourse(crowd) -- X318
 	buildCars(crowd)
 	rebuildQueue(crowd)
 	adjustFanCount(crowd)
@@ -445,6 +495,11 @@ local function despawnCrowd(crowd: PlotCrowd)
 		steward:Destroy()
 	end
 	table.clear(crowd.stewards)
+	for _, model in crowd.concourse do
+		model:Destroy()
+	end
+	table.clear(crowd.concourse)
+	crowd.concoursePhase = nil
 	for _, car in crowd.cars do
 		car:Destroy()
 	end
@@ -519,6 +574,12 @@ local function recheckCrowd(crowd: PlotCrowd, camPos: Vector3)
 		despawnCrowd(crowd)
 	elseif shouldBeAlive and crowd.alive and not leaving then
 		adjustFanCount(crowd)
+		-- X318: the concourse fills at kick-off and empties at the whistle, and
+		-- the crowd was usually spawned back in PreMatch
+		if crowd.concoursePhase ~= phase then
+			crowd.concoursePhase = phase
+			buildConcourse(crowd)
+		end
 		local wantQueue = MatchdayRoutes.queueCount(numberAttribute(folder, "Attendance"), numberAttribute(folder, "Capacity"), phase)
 		if wantQueue ~= #crowd.queue then
 			rebuildQueue(crowd)
@@ -551,6 +612,7 @@ local function trackPlot(folder: Folder)
 		model = model,
 		fans = {},
 		stewards = {},
+		concourse = {}, -- X318
 		cars = {},
 		queue = {},
 		near = false,

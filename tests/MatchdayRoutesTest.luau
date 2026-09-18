@@ -217,4 +217,74 @@ function T.leaversStartAtTheGateEnd()
 	assert(MatchdayRoutes.leavingStart(length, 1, 1) == length, "a lone leaver starts at the gate")
 end
 
+-- X318: the concourse
+
+function T.nobodyQueuesAtAHatchTheClubHasNotBuilt()
+	assert(MatchdayRoutes.amenityQueueCount(0, 900, 1000, "Match") == 0, "no amenity means no hatch to queue at")
+	assert(MatchdayRoutes.amenityQueueCount(2, 0, 1000, "Match") == 0, "nobody in the ground means nobody queueing")
+	assert(MatchdayRoutes.amenityQueueCount(2, 900, 0, "Match") == 0, "no capacity means no crowd")
+end
+
+function T.theHatchQueueGrowsWithTheAmenityAndTheCrowd()
+	local small = MatchdayRoutes.amenityQueueCount(1, 200, 1000, "Match")
+	local bigger = MatchdayRoutes.amenityQueueCount(3, 950, 1000, "Match")
+	assert(small >= 1, "a snack bar with a crowd in should have somebody at it")
+	assert(bigger > small, "a fan zone at a full house should have more, got " .. bigger .. " vs " .. small)
+	assert(bigger <= 5, "but never a queue round the block, got " .. bigger)
+end
+
+function T.theQueueIsOnlyThereOnMatchday()
+	assert(MatchdayRoutes.amenityQueueCount(2, 900, 1000, "Manage") == 0, "nobody queues on a Tuesday")
+	assert(MatchdayRoutes.amenityQueueCount(2, 900, 1000, "PreMatch") > 0, "they queue before kick-off")
+end
+
+function T.theConcourseOnlyFillsOnceTheMatchIsOn()
+	assert(MatchdayRoutes.concourseCount(2, 900, 1000, "PreMatch") == 0, "before kick-off they are still outside the turnstiles")
+	assert(MatchdayRoutes.concourseCount(2, 900, 1000, "Manage") == 0, "and there is nobody there between matches")
+	assert(MatchdayRoutes.concourseCount(2, 900, 1000, "Match") > 0, "with the match on, some people are stood about")
+end
+
+function T.theConcourseIsSizedByTheCrowdAndCapped()
+	local quiet = MatchdayRoutes.concourseCount(0, 100, 1000, "Match")
+	local busy = MatchdayRoutes.concourseCount(3, 1000, 1000, "Match")
+	assert(busy > quiet, "a full house with a fan zone should be busier")
+	assert(busy <= MatchdayRoutes.CONCOURSE_MAX, "and still inside the budget")
+end
+
+function T.concourseSpotsAreOnThePavingAndDoNotStack()
+	local spots = MatchdayRoutes.concourseSpots(MatchdayRoutes.CONCOURSE_MAX, 5)
+	assert(#spots == MatchdayRoutes.CONCOURSE_MAX, "should give every spot asked for")
+	local box = MatchdayRoutes.CONCOURSE
+	for i, cf in spots do
+		local p = cf.Position
+		assert(p.X >= box.x0 - 2 and p.X <= box.x1 + 2, "spot " .. i .. " is off the paving in X: " .. tostring(p.X))
+		assert(p.Z >= box.z0 - 2 and p.Z <= box.z1 + 2, "spot " .. i .. " is off the paving in Z: " .. tostring(p.Z))
+		for j = 1, i - 1 do
+			local d = (Vector3.new(p.X, 0, p.Z) - Vector3.new(spots[j].Position.X, 0, spots[j].Position.Z)).Magnitude
+			assert(d > 1.6, ("two people are stood on the same spot (%d and %d, %.1f apart)"):format(j, i, d))
+		end
+	end
+end
+
+function T.theSameMatchdayLooksTheSame()
+	local a = MatchdayRoutes.concourseSpots(8, 42)
+	local b = MatchdayRoutes.concourseSpots(8, 42)
+	for i, cf in a do
+		assert((cf.Position - b[i].Position).Magnitude < 0.001, "the same seed must give the same concourse")
+	end
+end
+
+function T.theHatchQueueFacesTheHatch()
+	local spots = MatchdayRoutes.amenityQueueSpots(4)
+	assert(#spots == 4, "four in the queue")
+	for i, cf in spots do
+		local toHatch = (MatchdayRoutes.AMENITY_HATCH - Vector3.new(cf.Position.X, 0, cf.Position.Z)).Unit
+		local facing = Vector3.new(cf.LookVector.X, 0, cf.LookVector.Z).Unit
+		assert(facing:Dot(toHatch) > 0.3, "queuer " .. i .. " should be facing the hatch")
+	end
+	for i = 2, #spots do
+		assert(spots[i].Position.Z > spots[i - 1].Position.Z, "the queue should stretch back from the hatch")
+	end
+end
+
 return T
