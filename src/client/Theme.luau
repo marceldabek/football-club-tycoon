@@ -4,6 +4,7 @@
 -- this module so a change here restyles the whole game.
 
 local Theme = {}
+local Format = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Format")) -- X342
 
 Theme.colors = {
 	bg = Color3.fromRGB(16, 20, 26), -- cards and panels
@@ -359,21 +360,11 @@ function Theme.card(parent: Instance, name: string, title: string, size: UDim2, 
 	return { frame = frame, title = titleLabel, body = body, addButton = addButton }
 end
 
-function Theme.money(n: number): string
-	local s = tostring(math.floor(n))
-	local withCommas = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
-	withCommas = withCommas:gsub("^,", "")
-	return "£" .. withCommas
-end
-
-function Theme.ordinal(n: number): string
-	local suffix = "th"
-	local last = n % 10
-	if n % 100 < 11 or n % 100 > 13 then
-		suffix = if last == 1 then "st" elseif last == 2 then "nd" elseif last == 3 then "rd" else "th"
-	end
-	return ("%d%s"):format(n, suffix)
-end
+-- X342: one implementation, in Shared.Format, so the server and shared code
+-- can use the same one. These stay as Theme.money / Theme.ordinal because
+-- every screen already calls them that.
+Theme.money = Format.money
+Theme.ordinal = Format.ordinal
 
 -- Rich text helpers so colours stay consistent across screens.
 local function hex(c: Color3): string

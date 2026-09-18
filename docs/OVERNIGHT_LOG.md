@@ -1918,3 +1918,10 @@ A second read-only review agent went over tonight's later commits. Nine findings
 - 5 new tests: the picker never reaches for the spare keeper to fill an outfield slot, it does put a keeper in goal (and the reserve when the first is taken), it skips the injured and the already-used, the bench comes back best-first and no longer than `BenchSize`, and it skips the injured and anyone in the XI.
 - RunAll 504 passed.
 
+### 2026-09-17 21:41 — One money formatter instead of five (X342)
+- `money` had five copies of the same reverse-group-by-three body (Theme, MatchSummary, UpgradeService, ClubService, Trade - X204 "fixed" a call site by adding the fifth), `ordinal` had two and `surname` had two. The root cause was that `Theme` is a client module, so shared and server code could not reach it and each one grew its own.
+- New `src/shared/Format.luau` with `money`, `ordinal` and `surname`; the nine call sites point at it, and `Theme.money` / `Theme.ordinal` stay as names so every screen keeps working.
+- **All five copies printed a negative as "£-,500"**, because grouping the digits in threes from the right catches the minus sign and the `^,` strip only looks at the front of the string. The shared one keeps the sign outside the grouping: `-£500`.
+- 5 new tests, including the negative case, the rounding (down, like every other figure the player is quoted), the ordinal teens (11th, 12th, 13th, 21st, 111th) and a hyphenated surname.
+- Verified in play: the HUD, the welcome card and the panel all still read "£3,542,376", and the log is clean. RunAll 509 passed.
+

@@ -64,11 +64,9 @@ local CARD_BG = Color3.fromRGB(16, 24, 44)
 local PITCH_GREEN = Color3.fromRGB(44, 128, 60)
 local PITCH_STRIPE = Color3.fromRGB(50, 138, 66)
 local LINE = Color3.fromRGB(225, 240, 225)
+local Format = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Format")) -- X342
 
-local function surname(name: string): string
-	local last = name:match("(%S+)$")
-	return last or name
-end
+local surname = Format.surname -- X342
 
 -- ------------------------------------------------------------------ pitch art
 

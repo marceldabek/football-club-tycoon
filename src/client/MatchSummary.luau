@@ -10,6 +10,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Co
 local Theme = require(script.Parent.Theme)
 local Headshot = require(script.Parent.Headshot)
 local Crest = require(script.Parent.Crest)
+local Format = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Format")) -- X342
 
 local MatchSummary = {}
 
@@ -30,10 +31,9 @@ export type Summary = {
 	continueButton: TextButton,
 }
 
+-- X342: the fourth copy of this lived here
 local function withCommas(n: number): string
-	local s = tostring(math.floor(n))
-	local out = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
-	return (out:gsub("^,", ""))
+	return (Format.money(n):gsub("£", ""))
 end
 
 local initials = Crest.initials

@@ -10,6 +10,7 @@ local HttpService = game:GetService("HttpService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Squad = require(ReplicatedStorage.Shared.Squad)
 local Bids = require(ReplicatedStorage.Shared.Bids)
+local Format = require(ReplicatedStorage.Shared.Format) -- X342
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local Profile = require(ReplicatedStorage.Shared.Profile)
 local Trade = require(ReplicatedStorage.Shared.Trade)
@@ -41,12 +42,7 @@ local shortlistAge = 0 -- matches played since it was last scouted
 local nextId = 1
 local rng = Random.new()
 
--- X204: thousands separators, like UpgradeService and Theme.money
-local function money(n: number): string
-	local s = tostring(math.floor(n))
-	local withCommas = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
-	return "£" .. withCommas:gsub("^,", "")
-end
+local money = Format.money -- X204, X342
 
 -- X323 (review): the approach has to go when the man does - he can retire in
 -- the season rollover, be traded, or be sold by hand - or the card advertises

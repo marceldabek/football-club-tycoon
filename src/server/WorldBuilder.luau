@@ -23,6 +23,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService") -- X317: the XI on the pegs
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
+local Format = require(ReplicatedStorage.Shared.Format) -- X342
 local CrestBadge = require(ReplicatedStorage.Shared.CrestBadge)
 local Assets = require(script.Parent.Assets)
 local PlotContext = require(script.Parent.PlotContext)
@@ -1247,10 +1248,7 @@ local function shirtLabel(shirt: BasePart, number: number?, name: string?, accen
 	who.Parent = gui
 end
 
-local function surname(full: string): string
-	local last = string.match(full, "([^%s]+)$")
-	return last or full
-end
+local surname = Format.surname -- X342
 
 -- `xi` is the starting eleven in shirt order; `visitors` is the away club's
 -- name and colour on matchday, or nil between matches.

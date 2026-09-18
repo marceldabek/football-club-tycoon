@@ -6,6 +6,7 @@
 local Config = require(script.Parent.Config)
 
 local ClubCard = {}
+local Format = require(game:GetService("ReplicatedStorage").Shared.Format) -- X342
 
 export type PlayerRow = { name: string, role: string, overall: number, goals: number, apps: number }
 
@@ -20,13 +21,7 @@ export type Summary = {
 
 local STAR_COUNT = 5
 
-local function ordinal(n: number): string
-	local last, lastTwo = n % 10, n % 100
-	if lastTwo >= 11 and lastTwo <= 13 then
-		return n .. "th"
-	end
-	return n .. (if last == 1 then "st" elseif last == 2 then "nd" elseif last == 3 then "rd" else "th")
-end
+local ordinal = Format.ordinal -- X342
 
 local function num(v: unknown, default: number): number
 	return if type(v) == "number" then v else default

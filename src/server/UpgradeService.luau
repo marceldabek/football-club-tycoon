@@ -6,6 +6,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local ClubState = require(script.Parent.ClubState)
+local Format = require(game:GetService("ReplicatedStorage").Shared.Format) -- X342
 local WorldBuilder = require(script.Parent.WorldBuilder)
 local SeasonService = require(script.Parent.SeasonService)
 
@@ -14,12 +15,7 @@ local UpgradeService = {}
 local standPrompts: { [string]: ProximityPrompt } = {}
 local amenityPrompt: ProximityPrompt
 
-local function money(n: number): string
-	local s = tostring(math.floor(n))
-	local withCommas = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
-	withCommas = withCommas:gsub("^,", "")
-	return "£" .. withCommas
-end
+local money = Format.money -- X342
 
 function UpgradeService.refreshPrompt()
 	-- X339: nothing to buy until the club has a name, so the stand and amenity

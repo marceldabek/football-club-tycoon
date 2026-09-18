@@ -13,6 +13,7 @@
 --     new id and the lowest free shirt number at the new club
 
 local Trade = {}
+local Format = require(game:GetService("ReplicatedStorage").Shared.Format) -- X342
 
 Trade.MAX_PLAYERS_PER_SIDE = 3 -- TEMP
 Trade.OFFER_SECONDS = 60 -- TEMP
@@ -229,11 +230,7 @@ function Trade.parseCash(text: string): number?
 	return tonumber(cleaned)
 end
 
-local function money(n: number): string
-	local s = tostring(math.floor(n))
-	local withCommas = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
-	return "£" .. (withCommas:gsub("^,", ""))
-end
+local money = Format.money -- X342
 
 local function playerLine(p: { [string]: any }): string
 	local injured = if type(p.injured) == "number" and p.injured > 0 then ", injured" else ""
