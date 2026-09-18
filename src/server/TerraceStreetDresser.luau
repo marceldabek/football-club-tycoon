@@ -575,6 +575,9 @@ local function sign(parent: Instance, cf: CFrame, roadName: string)
 	surfaceText(frame, name, Enum.Font.GothamBold, UDim2.fromScale(0.05, 0.08), UDim2.fromScale(0.9, 0.56))
 	surfaceText(frame, TerraceStreetDresser.areaName(cf.Position), Enum.Font.Gotham, UDim2.fromScale(0.2, 0.66), UDim2.fromScale(0.6, 0.26))
 end
+-- X341: SignDresser plates the roads this pass never reaches, with the same
+-- sign, so the town has one kind of street name plate.
+TerraceStreetDresser.streetSign = sign
 
 -- A garden wall segment in the wall frame (local -X toward the road, the wall's
 -- road face at local x = wx - WALL_T / 2). kind: "railing" | "hedge" | "wall".

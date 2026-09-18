@@ -174,6 +174,9 @@ print("[FCT] " .. require(script.Parent.ViaductDresser).build())
 print("[FCT] " .. require(script.Parent.BridgeDresser).build())
 print("[FCT] " .. require(script.Parent.WireDresser).build())
 print("[FCT] " .. require(script.Parent.CrossingDresser).build())
+-- X341: after the street and estate passes, so it can see which roads they
+-- have already signed
+print("[FCT] " .. require(script.Parent.SignDresser).build())
 print("[FCT] " .. require(script.Parent.CentreTreeDresser).build())
 print("[FCT] " .. require(script.Parent.GreeneryDresser).build())
 print("[FCT] " .. require(script.Parent.GatewayDresser).build())
