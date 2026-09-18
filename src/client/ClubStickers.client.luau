@@ -67,7 +67,10 @@ local function consider(inst: Instance)
 	if not (host and host:IsA("Model")) then
 		return
 	end
-	if (inst.Name == "Pole" or inst.Name == "Bin") and host.Name:find("BusStop") then
+	-- a bus stop's model is named after the *stop* ("Town Centre", "Plot 1"),
+	-- with the BusStop attribute carrying that name - matching on "BusStop" in
+	-- the model name found nothing at all, so every sticker went on a lamp
+	if (inst.Name == "Pole" or inst.Name == "Bin") and host:GetAttribute("BusStop") ~= nil then
 		table.insert(spots, { part = inst, kind = "furniture" :: "furniture" | "lamp", host = host })
 		shown = "" -- place again now there is somewhere new to paste
 	elseif inst.Name == "Post" and host.Name == "TerraceLamp" then
