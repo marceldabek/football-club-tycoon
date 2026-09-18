@@ -148,6 +148,49 @@ function T.heartbeatFalseWhenRequested()
 	assert(not lockerA:holds(8), "A should now believe it does not hold the lock")
 end
 
+-- X364: the contract Session.flush now depends on before every write.
+function T.aStolenLockIsVisibleImmediatelyNotOnTheNextHeartbeatTick()
+	local backend = SaveLock.memoryBackend()
+	local clock = 0
+	local function now()
+		return clock
+	end
+	local a = SaveLock.new(backend, { jobId = "A", now = now, wait = NO_WAIT, maxWait = 0 })
+	local b = SaveLock.new(backend, { jobId = "B", now = now, wait = NO_WAIT, maxWait = 0 })
+	assert(select(1, a:acquire(7)), "A takes a free lock")
+	-- B comes along and, with no patience, always wins
+	local okB = b:acquire(7)
+	assert(okB, "B should end up with the lock")
+	-- A can find that out on its very next question, with no waiting
+	local held, stolen = a:heartbeat(7)
+	assert(not held and stolen, "A should be told the lock is gone, at once")
+	-- and B still holds it afterwards: A's question must not take it back
+	local heldB = b:heartbeat(7)
+	assert(heldB, "B still holds the lock after A has asked")
+end
+
+function T.aRequestedLockIsNotAStolenOne()
+	-- the handover case: the old session is allowed one last flush
+	local backend = SaveLock.memoryBackend()
+	local clock = 0
+	local function now()
+		return clock
+	end
+	local a = SaveLock.new(backend, { jobId = "A", now = now, wait = NO_WAIT })
+	local b = SaveLock.new(backend, { jobId = "B", now = now, wait = NO_WAIT, maxWait = 0, poll = 1 })
+	a:acquire(8)
+	-- B asks once and stamps requestedBy without taking it
+	backend.update("lock_u8", function(old)
+		local record = old :: any
+		record.requestedBy = "B"
+		return record
+	end)
+	local held, stolen = a:heartbeat(8)
+	assert(not held, "a requested lock is no longer 'held'")
+	assert(not stolen, "but it has not been stolen, so the last save must still go through")
+	local _ = b
+end
+
 function T.releaseOnlyByHolder()
 	local store = {}
 	local backend = SaveLock.memoryBackend(store)

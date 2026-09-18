@@ -203,9 +203,41 @@ end
 local FAILED_SAVES_BEFORE_WARNING = 2
 local failedSaves = 0
 
+-- X364: `lockStolen` is only set inside the heartbeat loop, which ticks every
+-- `Config.Save.heartbeatSeconds`, so for up to ten seconds after another server
+-- took this owner's lock this session would still write - and
+-- `MatchService.onSettled` saves unconditionally the moment a match settles, so
+-- a match that finished a second after the new server loaded could overwrite
+-- the new session's profile with this one's. SaveLock's own header promises
+-- that cannot happen, so every write asks the lock record first.
+--
+-- A lock that is merely *requested* is not refused: handing over with one last
+-- flush is the decided behaviour (CLAUDE.md s27, "the old session closes").
+local function lockTaken(): boolean
+	if not haveLock or locker == nil then
+		return false -- no locking backend (the Studio memory fallback)
+	end
+	local ok, held, stolen = pcall(function()
+		return (locker :: SaveLock.Locker):heartbeat(ownerId)
+	end)
+	if not ok then
+		return false -- a backend error is not proof; the heartbeat loop decides
+	end
+	if stolen then
+		lockStolen = true
+		return true
+	end
+	return false
+end
+
 -- Every save goes through here so the stamps the saver writes stay in step.
 local function flush(force: boolean): boolean
 	if not loaded or stopped or lockStolen then
+		return false
+	end
+	-- only worth a lock read when there is actually something to write
+	if (force or saver:isDirty()) and lockTaken() then
+		warn("[FCT] save refused: another server holds this club's lock")
 		return false
 	end
 	local ok = saver:flush(ownerId, Session.snapshot, force)
