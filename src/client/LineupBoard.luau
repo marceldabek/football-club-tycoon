@@ -187,6 +187,26 @@ local function injuryDot(parent: Instance)
 	Theme.stroke(inj)
 end
 
+-- A player with no appearances yet: an academy graduate or a new signing.
+local function newChip(parent: Instance)
+	if parent:FindFirstChild("NewChip") then
+		return
+	end
+	local chip = Instance.new("TextLabel")
+	chip.Name = "NewChip"
+	chip.Size = UDim2.fromOffset(34, 15)
+	chip.Position = UDim2.fromOffset(4, 4)
+	chip.BackgroundColor3 = Theme.colors.info
+	chip.BorderSizePixel = 0
+	chip.Font = Theme.fonts.bold
+	chip.TextSize = 11
+	chip.TextColor3 = Color3.new(1, 1, 1)
+	chip.Text = "NEW"
+	chip.ZIndex = 3
+	chip.Parent = parent
+	Theme.corner(chip, Theme.chipRadius)
+end
+
 -- X287: age belongs on the card now that players retire (X277). X285 coloured
 -- it in the detail panel, but a player scanning the XI could not see who was 36
 -- without tapping every face, so a retirement still arrived as a surprise.
@@ -242,26 +262,6 @@ local function refreshInjury(frame: Frame, p: Player, dotParent: Instance, withC
 			chip:Destroy()
 		end
 	end
-end
-
--- A player with no appearances yet: an academy graduate or a new signing.
-local function newChip(parent: Instance)
-	if parent:FindFirstChild("NewChip") then
-		return
-	end
-	local chip = Instance.new("TextLabel")
-	chip.Name = "NewChip"
-	chip.Size = UDim2.fromOffset(34, 15)
-	chip.Position = UDim2.fromOffset(4, 4)
-	chip.BackgroundColor3 = Theme.colors.info
-	chip.BorderSizePixel = 0
-	chip.Font = Theme.fonts.bold
-	chip.TextSize = 11
-	chip.TextColor3 = Color3.new(1, 1, 1)
-	chip.Text = "NEW"
-	chip.ZIndex = 3
-	chip.Parent = parent
-	Theme.corner(chip, Theme.chipRadius)
 end
 
 -- Pitch card: shoulder headshot, surname, role bottom-left, OVR bottom-right.
