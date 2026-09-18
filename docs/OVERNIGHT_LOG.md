@@ -1,6 +1,6 @@
 # Overnight Log
 
-## Morning handoff (kept current, last touched 23:27)
+## Morning handoff (kept current, last touched 23:36)
 
 **What to look at:** Press Play. Pick a ground with the picker (‹ › then BUILD MY CLUB HERE).
 You spawn in your office on that plot; the other plots are FOR SALE lots. Walk or take a bus (prompt on
@@ -2015,4 +2015,11 @@ A read-only agent reviewed the last eight commits (X333-X342). Eleven real findi
 - Verified in play with a tier-2 club on 167 matches: **24 placed (16 stickers, 8 bills), the exact cap**, all on terrace lamps near the ground, and a `GetPartBoundsInBox` sweep says **none of them clips a wall and none is inside its own post**.
 - **No screenshot**: the Studio Assistant plugin's `screen_capture` began timing out at 23:20 and did not recover (`user_mouse_input` went with it - which is also why this needed a new `DebugRun "claim|1"` command to claim a ground without clicking the picker). The plugin has been asking for a Studio restart all night (known bug 5). X348 is the note to look at them after a restart.
 - 4 new tests: no stickers before the first match, they spread with matches and with promotion and never pass the cap, every third is a bill, and a sticker sits at eye level on a lamp post but halfway up a bin.
+- RunAll 554 passed, 0 failed.
+
+### 2026-09-17 23:36 — The beacon stops searching the whole club twice a second (X346)
+- `refreshBeacon` ran on a 0.5 s loop (X311, so the distance on the marker counts down as you walk) and every pass did a **recursive** `club:FindFirstChild(target, true)` - a walk of the entire club model, thousands of parts - plus a `player:WaitForChild("PlayerGui")` and a re-parent. This is the same shape of waste X344 had to fix in the match feed.
+- The part it finds is remembered against the hint that asked for it, and only searched for again when the hint changes or the part has gone (a stand upgrade rebuilds its model, and streaming can take it away). The re-parent only happens when the GUI is not already parented. **The distance still updates every tick** - that is the whole point of the loop.
+- Verified in play: the beacon is on `Workspace.Plots.Plot1.Club.Office.Computer` (the current hint), and moving the character 40 studs took the label from **"here" to "41 studs"** - so the cached target is being reused while the label still tracks.
+- Noticed while patching: Studio's HUD still has the beacon at `StudsOffsetWorldSpace = Vector3.new(0, 7, 0)`, which disk fixed to 3.5 because 7 put it through the office ceiling. One more for X347's list.
 - RunAll 554 passed, 0 failed.

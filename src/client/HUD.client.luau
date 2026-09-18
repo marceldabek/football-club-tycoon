@@ -850,6 +850,12 @@ end
 local beacon: BillboardGui? = nil
 local beaconLabel: TextLabel? = nil
 local beaconArrow: TextLabel? = nil
+-- X346: the part the beacon is on, remembered. Finding it means a *recursive*
+-- FindFirstChild over the whole club model - thousands of parts - and this
+-- runs twice a second (X311), so it is only searched for when the hint
+-- actually changes or the part it found has gone.
+local beaconTarget: BasePart? = nil
+local beaconTargetName = ""
 
 local function beaconGui(): BillboardGui
 	local existing = beacon
@@ -892,11 +898,22 @@ function refreshBeacon()
 	local target = hintTarget
 	local wanted: BasePart? = nil
 	if target and hintLabel.Visible then
-		local club = ClubRef.clubModel()
-		local found = club and club:FindFirstChild(target, true)
-		if found and found:IsA("BasePart") then
-			wanted = found
+		-- X346: the same hint keeps the part it found last time, unless that
+		-- part has been rebuilt (a stand upgrade replaces its model) or
+		-- streamed out
+		local cached = beaconTarget
+		if beaconTargetName == target and cached and cached.Parent ~= nil then
+			wanted = cached
+		else
+			local club = ClubRef.clubModel()
+			local found = club and club:FindFirstChild(target, true)
+			wanted = if found and found:IsA("BasePart") then found else nil
+			beaconTarget = wanted
+			beaconTargetName = target
 		end
+	else
+		beaconTarget = nil
+		beaconTargetName = ""
 	end
 	local gui = beacon
 	if not wanted then
@@ -908,7 +925,9 @@ function refreshBeacon()
 	end
 	gui = beaconGui()
 	gui.Adornee = wanted
-	gui.Parent = player:WaitForChild("PlayerGui")
+	if gui.Parent == nil then
+		gui.Parent = player:WaitForChild("PlayerGui")
+	end
 	gui.Enabled = true
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
