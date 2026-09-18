@@ -918,4 +918,23 @@ function T.aPlayerYouHaveJustSignedSellsAtALoss()
 	assert(Squad.value(fresh) % 50 == 0 and Squad.value(fresh) >= 100, "still rounded to 50, still above the floor")
 end
 
+-- X356 ----------------------------------------------------------------------
+
+function T.theVerdictSaysWhereTheSquadStandsInItsDivision()
+	local base = 60
+	assert(Squad.divisionVerdict(base + 10, base) == "too good for this level", "a runaway squad")
+	assert(Squad.divisionVerdict(base + 3, base) == "stronger than this level", "a promotion squad")
+	assert(Squad.divisionVerdict(base, base) == "about right", "a mid-table squad")
+	assert(Squad.divisionVerdict(base - 1, base) == "about right", "and a point under is still about right")
+	assert(Squad.divisionVerdict(base - 4, base) == "a bit light", "a relegation scrap")
+	assert(Squad.divisionVerdict(base - 12, base) == "well short", "just promoted and outclassed")
+	-- every division has a verdict for every rating the game can produce
+	for tier = 1, #Config.Divisions do
+		for rating = Squad.MIN_OVERALL, Squad.MAX_OVERALL, 5 do
+			local text = Squad.divisionVerdict(rating, Config.Divisions[tier].baseStrength)
+			assert(type(text) == "string" and #text > 0, ("no verdict at %d in tier %d"):format(rating, tier))
+		end
+	end
+end
+
 return T

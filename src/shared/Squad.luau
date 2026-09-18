@@ -868,6 +868,25 @@ function Squad.prospects(seed: number, avgOverall: number, scoutLevel: number, a
 	return list
 end
 
+-- X356: how the squad measures up to the division it is in. `Config.Divisions`
+-- says in its own comment that baseStrength "is what the squad's average
+-- overall has to keep up with", but no screen in the game ever showed the two
+-- numbers together: a club promoted into the National League with a 55-rated
+-- squad found out it was outclassed by losing ten matches. TEMP bands.
+function Squad.divisionVerdict(average: number, baseStrength: number): string
+	local gap = average - baseStrength
+	if gap >= 6 then
+		return "too good for this level"
+	elseif gap >= 2 then
+		return "stronger than this level"
+	elseif gap > -2 then
+		return "about right"
+	elseif gap > -6 then
+		return "a bit light"
+	end
+	return "well short"
+end
+
 -- Average overall across the squad; prospects are generated around it.
 function Squad.average(players: { Player }): number
 	if #players == 0 then

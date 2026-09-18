@@ -407,7 +407,8 @@ end)
 local capacityLabel = Theme.text(squadBar, "", "body", {
 	Name = "Capacity",
 	-- X287: wide enough for "Squad 16 / 20 · avg age 29.9" on one line
-	Size = UDim2.fromOffset(240, SQUAD_BAR_H),
+	-- X356: and now the squad's rating against the division's as well
+	Size = UDim2.fromOffset(470, SQUAD_BAR_H),
 	Position = UDim2.fromOffset(218, 0),
 	TextSize = 15,
 	Font = Theme.fonts.bold,
@@ -506,7 +507,13 @@ local function renderSquad(club: Club)
 		years += p.age
 	end
 	local average = if count > 0 then years / count else 0
-	capacityLabel.Text = ("Squad %d / %d   ·   avg age %.1f"):format(count, max, average)
+	-- X356: the hidden number that decides every result, next to the standard
+	-- the division expects and what that means
+	local rating = Squad.average(club.players :: any)
+	local division = Config.Divisions[(get("Tier") :: number?) or 1] or Config.Divisions[1]
+	capacityLabel.Text = ("Squad %d / %d   ·   avg age %.1f   ·   %d OVR v %d: %s"):format(
+		count, max, average, math.floor(rating + 0.5), division.baseStrength,
+		Squad.divisionVerdict(rating, division.baseStrength))
 	capacityLabel.Position = UDim2.fromOffset(if manage then 218 else 14, 0)
 	capacityTrack.Position = UDim2.new(0, if manage then 462 else 258, 0.5, 0)
 	capacityFill.Size = UDim2.fromScale(math.clamp(count / max, 0, 1), 1)
