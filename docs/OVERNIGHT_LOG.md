@@ -1901,3 +1901,8 @@ A second read-only review agent went over tonight's later commits. Nine findings
 - **X343** (mine, from using the thing): the bid card said "Ravenscar City want Alfie Skyward" and the fee, and nothing else, so the owner had to go and find the player on the squad board before they could judge it. It now reads "FWD fit, 42 OVR (67 potential), aged 35 · worth £700 · they offer £9,200, 1214% over" - position, fitness, rating, ceiling, age, what he is worth and how far over that the offer is.
 - RunAll 499 passed.
 
+### 2026-09-17 21:32 — The first upgrade a new player is sent to is one they can afford (X331)
+- CLAUDE.md s12 gives minutes 4-5 to "player buys first upgrade, upgrade physically changes club". The pill after match 1 said **"Grow your ground: expand the East Stand"** and the beacon pointed at its sign - but East is the only plot that starts at level 1, so its next step costs £1,500, while West, North and South start empty and their first step (Bleachers) costs nothing. With `StartingCash = 0` and one match's takings in the bank, that hint sent a new player at the single upgrade they could not buy, past three they could have had for free.
+- The onboarding hint now picks the cheapest next step on any of the four sides - the same way `midGameHint` has picked since X295 - and both hints share one picker instead of keeping two copies of the loop. It also says the price: "Grow your ground: build up the West Stand (yellow sign in front of it): it's free."
+- Checked against the real Config with a brand-new club's levels: **"new club: West Stand at 0 (starting cash 0)"**, and once the free builds are up it moves on to "East Stand at 1500" - which is what the old hint said from the very first match.
+

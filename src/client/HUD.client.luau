@@ -601,7 +601,24 @@ function refreshHintText()
 		hintLabel.Text = "Match on. Walk around and watch, TAKE MY SEAT for the dugout, or use ATTACK / DEFEND / SUB."
 		return
 	end
-	-- Onboarding only: the pill teaches the first few upgrades, then goes away.
+	-- X331: the cheapest next step on any of the four stand plots, and what it
+-- costs. East starts at level 1 so its next step is £1,500, while West, North
+-- and South start empty and their first step (Bleachers) is free - so the
+-- onboarding hint used to send a player with £0 at the one upgrade they could
+-- not buy. Shared with midGameHint, which already picked this way.
+local function cheapestStand(): (any, number)
+	local best, bestCost = nil, math.huge
+	for _, plot in Config.StandPlots do
+		local level = (get("Stand_" .. plot.key) :: number?) or plot.start
+		local nextLevel = Config.StandLevels[level + 1]
+		if nextLevel and nextLevel.cost < bestCost then
+			best, bestCost = plot, nextLevel.cost
+		end
+	end
+	return best, bestCost
+end
+
+-- Onboarding only: the pill teaches the first few upgrades, then goes away.
 	-- Starting a match is the PLAY MATCH button at the top, so it is never hinted here.
 	local played = get("MatchesPlayed") or 0
 	-- X240: any stand built past its starting level counts, not only the East Stand
@@ -615,11 +632,16 @@ function refreshHintText()
 		hintLabel.Text = "Welcome to your club. Have a look around, then hit PLAY MATCH at the top."
 		hintTarget = "MatchdayBoard"
 	elseif not grown then
+		-- X331: whichever side is cheapest, which after match 1 is a free
+		-- Bleachers on an empty plot rather than £1,500 for the East Stand
+		local plot, cost = cheapestStand()
+		local label = if plot then (plot :: any).label else "East Stand"
+		hintTarget = "StandSign_" .. (if plot then (plot :: any).key else "East")
+		local price = if cost <= 0 then "it's free" else money(cost)
 		-- X193: only say fans were turned away when they were
-		hintTarget = "StandSign_East"
 		hintLabel.Text = if (get("Demand") or 0) > (get("Capacity") or math.huge)
-			then "Fans were turned away. Expand the East Stand (yellow sign in front of it)."
-			else "Grow your ground: expand the East Stand (yellow sign in front of it)."
+			then ("Fans were turned away. Build up the %s (yellow sign in front of it): %s."):format(label, price)
+			else ("Grow your ground: build up the %s (yellow sign in front of it): %s."):format(label, price)
 	elseif (get("ScoutLevel") or 0) == 0 then
 		hintTarget = "Computer"
 		hintLabel.Text = "Hire a scout to find new players: the office computer, or the CLUB OFFICE button."
@@ -657,14 +679,7 @@ function midGameHint(): string
 	local candidates: { { cost: number, what: string, text: string, target: string? } } = {}
 	local turnedAway = (get("Demand") or 0) - (get("Capacity") or 0)
 	if turnedAway > 0 then
-		local best, bestCost = nil, math.huge
-		for _, plot in Config.StandPlots do
-			local level = (get("Stand_" .. plot.key) :: number?) or plot.start
-			local nextLevel = Config.StandLevels[level + 1]
-			if nextLevel and nextLevel.cost < bestCost then
-				best, bestCost = plot, nextLevel.cost
-			end
-		end
+		local best, bestCost = cheapestStand() -- X331: one picker for both hints
 		if best then
 			table.insert(candidates, {
 				cost = bestCost,
