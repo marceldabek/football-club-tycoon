@@ -17,6 +17,7 @@ local Sky = require(script.Parent.Sky)
 
 local player = Players.LocalPlayer
 local ClubRef = require(script.Parent.ClubRef)
+local Pitch = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Pitch")) -- X313: where the dugout is
 local state = ClubRef.waitState()
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local summaryEvent = remotes:WaitForChild("MatchSummary") :: RemoteEvent
@@ -273,7 +274,7 @@ end
 
 -- Tactics (Match only). Attack / Defend toggle back to Balanced.
 local tactics = Theme.panel(gui, "Tactics", {
-	Size = UDim2.fromOffset(180, 166),
+	Size = UDim2.fromOffset(180, 216), -- X313: room for TAKE MY SEAT
 	Position = UDim2.new(1, -20, 1, -30),
 	AnchorPoint = Vector2.new(1, 1),
 	Visible = false,
@@ -289,6 +290,13 @@ end
 local attackButton = tacticButton("Attack", 10, "danger")
 local defendButton = tacticButton("Defend", 60, "info")
 local subButton = tacticButton("Sub", 110, "secondary")
+-- X313: PLAY MATCH is a HUD button, so a first-timer presses it from the desk
+-- and, once the walkout camera hands control back, watches four walls and a
+-- filing cabinet for ninety seconds - the opposite of CLAUDE.md s4's "walk
+-- around and watch from different positions". This puts them in the dugout.
+local seatButton = tacticButton("Seat", 160, "primary")
+seatButton.Text = "TAKE MY SEAT"
+seatButton.TextSize = 15
 
 local function refreshTacticButtons()
 	local current = get("Tactic") or "Balanced"
@@ -310,6 +318,53 @@ end)
 subButton.Activated:Connect(function()
 	tacticEvent:FireServer("Sub")
 end)
+
+-- X313: the near dugout, standing on its step and facing the pitch. Pitch-local
+-- (Pitch.DUGOUT_*), then through the plot's own frame like every other piece of
+-- presentation.
+local function dugoutSeat(): CFrame
+	local z = (Pitch.DUGOUT_Z[1] + Pitch.DUGOUT_Z[2]) / 2
+	local spot = Vector3.new(Pitch.DUGOUT_FRONT + 3, Pitch.DUGOUT_STEP + 3, -z)
+	local look = Vector3.new(0, Pitch.DUGOUT_STEP + 3, -z + 6)
+	return ClubRef.presentFrame() * CFrame.lookAt(spot, look)
+end
+
+local function takeMySeat(): boolean
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then
+		return false
+	end
+	character:PivotTo(dugoutSeat() + Vector3.new(0, 2, 0))
+	return true
+end
+
+seatButton.Activated:Connect(function()
+	takeMySeat()
+end)
+
+-- Are they watching from inside a room? The office and the dressing rooms are
+-- the only places on the plot you cannot see the pitch from, and they are also
+-- where the player spawns, so this is the case worth catching.
+local function indoors(): boolean
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then
+		return false
+	end
+	local club = ClubRef.clubModel()
+	for _, name in { "Office", "DressingRooms" } do
+		local room = club and club:FindFirstChild(name)
+		if room and room:IsA("Model") then
+			local cf, size = room:GetBoundingBox()
+			local q = cf:PointToObjectSpace(root.Position)
+			if math.abs(q.X) < size.X / 2 and math.abs(q.Y) < size.Y / 2 and math.abs(q.Z) < size.Z / 2 then
+				return true
+			end
+		end
+	end
+	return false
+end
 
 -- ------------------------------------------------------------------- cards
 
@@ -543,7 +598,7 @@ function refreshHintText()
 		hintLabel.Text = "Matchday! The teams are walking out."
 		return
 	elseif phase == "Match" then
-		hintLabel.Text = "Match on. Walk around and watch, or use ATTACK / DEFEND / SUB."
+		hintLabel.Text = "Match on. Walk around and watch, TAKE MY SEAT for the dugout, or use ATTACK / DEFEND / SUB."
 		return
 	end
 	-- Onboarding only: the pill teaches the first few upgrades, then goes away.
@@ -794,6 +849,17 @@ local function refreshPhasePanels()
 	local phase = get("Phase")
 	banner.Visible = phase == "PreMatch"
 	tactics.Visible = phase == "Match"
+	-- X313: somebody who pressed PLAY MATCH from their desk is still at their
+	-- desk when the walkout camera hands control back, so put them in the
+	-- dugout. Only if they are actually indoors: anyone who walked out to watch
+	-- from wherever they like is left alone.
+	if phase == "Match" then
+		task.defer(function()
+			if get("Phase") == "Match" and indoors() then
+				takeMySeat()
+			end
+		end)
+	end
 	if phase == "PreMatch" then
 		summary.frame.Visible = false -- a lingering card must never cover the next match
 		seasonCard.frame.Visible = false

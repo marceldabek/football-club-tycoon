@@ -1826,3 +1826,10 @@ A read-only review agent went through the last five commits. Ten findings, all r
 - Now reads "no late locals" across the repo. Worth running before a commit that adds a helper; it takes about a second.
 - RunAll 487 passed.
 
+### 2026-09-17 20:34 — Somewhere to watch from (X313)
+- PLAY MATCH is a HUD button, so a first-time player presses it from behind their desk - and once the walkout camera hands control back, they are still behind their desk, watching four walls and a filing cabinet for ninety seconds. CLAUDE.md s4 promises the opposite: "walk around and watch from different positions".
+- **TAKE MY SEAT** is a fourth button under ATTACK / DEFEND / SUB while a match is on, and it puts you in your own dugout, stood on the step beside the substitutes and facing the pitch. The spot comes from `Pitch.DUGOUT_*` through the plot's frame, like every other piece of presentation, so it is right on any plot.
+- **And it happens by itself when it needs to.** At kick-off, if the character is inside the office or the dressing rooms - the only two places on the plot you cannot see the pitch from, and where the player spawns - they are moved to the dugout without being asked. Anyone who walked out to watch from the corner flag or the back of a stand is left exactly where they are.
+- Verified in play: pressed PLAY MATCH from the office, and at kick-off the character was 111 studs from the centre spot (the dugout is 107 across and 28 along, so 110.6), looking at the pitch with the bench and the crowd behind. Then walked to the far corner (1250, 1400) and pressed the button: back to the same spot, 111 studs. Screenshot taken from the dugout.
+- The match hint now names the button. RunAll 487 passed.
+
