@@ -122,9 +122,13 @@ function Bids.after(players: { Squad.Player }, tier: number, round: number, seed
 	}
 end
 
--- Whether the club is allowed to take the money: the same rules as selling by
--- hand, so a bid can never leave a squad that cannot field a team.
-function Bids.blocker(players: { Squad.Player }, playerId: number, inXi: boolean): string?
+-- Whether the club is allowed to take the money. The squad has to survive it,
+-- but - unlike selling by hand - the man being bid for may be in the XI:
+-- review of X323 found that `pick` always chooses the best player in the squad
+-- and Auto Squad always starts the best players, so requiring him to be out of
+-- the XI made ACCEPT unreachable in the shipped default. The hole is filled by
+-- `recomputeLineup` the moment he leaves.
+function Bids.blocker(players: { Squad.Player }, playerId: number): string?
 	local player: Squad.Player? = nil
 	for _, p in players do
 		if p.id == playerId then
@@ -136,9 +140,6 @@ function Bids.blocker(players: { Squad.Player }, playerId: number, inXi: boolean
 	end
 	if #players <= Config.SquadMin then
 		return ("Squad cannot go below %d players"):format(Config.SquadMin)
-	end
-	if inXi then
-		return "Take them out of the XI first"
 	end
 	if (player :: Squad.Player).role == "GK" then
 		local keepers = 0
@@ -154,9 +155,20 @@ function Bids.blocker(players: { Squad.Player }, playerId: number, inXi: boolean
 	return nil
 end
 
--- A bid stands until the next match is played.
+-- A bid stands until the next match is played. Used on restore: a save made
+-- before a match that has since been played carries an offer that has expired.
 function Bids.isStale(bid: Bid?, round: number): boolean
-	return bid ~= nil and round > bid.round
+	return bid ~= nil and round > (bid :: Bid).round
+end
+
+-- A restored bid is only worth keeping if it is shaped like one.
+function Bids.isValid(raw: any): boolean
+	return type(raw) == "table"
+		and type(raw.playerId) == "number"
+		and type(raw.fee) == "number"
+		and type(raw.round) == "number"
+		and type(raw.club) == "string"
+		and type(raw.playerName) == "string"
 end
 
 return Bids

@@ -265,38 +265,48 @@ function DayCycle.fastForward(kind: "match" | "season", fromEvening: boolean?, w
 	local wet = DayCycle.isOvercastWeek(weekSeed)
 	if kind == "match" then
 		local duration = 4
-		return {
+		local track: Track = {
 			duration = duration,
 			keys = {
 				{ at = 0, look = startLook },
 				{ at = 0.8, look = "Sunset" },
 				{ at = 1.6, look = "EveningMatch" }, -- lights on
 				{ at = 2.4, look = "Night" },
-				-- X327: the shower holds for a beat rather than flashing past, then
-				-- clears through the grey into the afternoon the match is played in
-				{ at = 2.6, look = if wet then "Wet" else "Dawn" },
-				{ at = 3.4, look = if wet then "Wet" else "Dawn" },
-				{ at = 3.7, look = if wet then "Overcast" else "Dawn" },
+				{ at = 3.2, look = "Dawn" },
 				{ at = duration, look = "HeroAfternoon" },
 			},
 		}
+		if wet then
+			-- X327: the shower holds for a beat and then clears through the
+			-- grey. Review: the first version rewrote the dry sweep's keys as
+			-- well, which changed two weeks in three for no reason.
+			track.keys[5] = { at = 2.6, look = "Wet" }
+			table.insert(track.keys, 6, { at = 3.4, look = "Wet" })
+			table.insert(track.keys, 7, { at = 3.7, look = "Overcast" })
+		end
+		return track
 	end
 	-- "season"
 	local duration = 10
-	return {
+	local track: Track = {
 		duration = duration,
 		keys = {
 			{ at = 0, look = startLook },
 			{ at = 2, look = "Sunset" },
 			{ at = 4, look = "EveningMatch" }, -- lights on
 			{ at = 6, look = "Night" },
-			{ at = 7.2, look = if wet then "Wet" else "Dawn" }, -- X327
-			{ at = 8.4, look = if wet then "Wet" else "Dawn" },
-			{ at = 8.9, look = if wet then "Overcast" else "Dawn" },
-			{ at = 9.4, look = if wet then "Overcast" else "HeroAfternoon" },
+			{ at = 8, look = "Dawn" },
+			{ at = 9, look = "HeroAfternoon" },
 			{ at = duration, look = "HeroAfternoon" },
 		},
 	}
+	if wet then
+		track.keys[5] = { at = 7.2, look = "Wet" }
+		track.keys[6] = { at = 8.4, look = "Wet" }
+		table.insert(track.keys, 7, { at = 8.9, look = "Overcast" })
+		table.insert(track.keys, 8, { at = 9.4, look = "Overcast" })
+	end
+	return track
 end
 
 local function smoothstep(t: number): number

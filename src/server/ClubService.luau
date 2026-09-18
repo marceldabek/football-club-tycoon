@@ -48,7 +48,25 @@ local function money(n: number): string
 	return "£" .. withCommas:gsub("^,", "")
 end
 
+-- X323 (review): the approach has to go when the man does - he can retire in
+-- the season rollover, be traded, or be sold by hand - or the card advertises
+-- somebody who is not in the squad and ACCEPT can never do anything.
+local function dropBidIfGone()
+	local standing = bid
+	if not standing then
+		return
+	end
+	for _, p in players do
+		if p.id == standing.playerId then
+			return
+		end
+	end
+	bid = nil
+	ClubState.set("BidNews", "")
+end
+
 local function publish()
+	dropBidIfGone()
 	ClubState.set("Club", HttpService:JSONEncode({
 		players = players,
 		lineup = lineup,
@@ -219,7 +237,10 @@ local function generateFresh()
 	scoutLevel = 0
 	shortlist = {}
 	academy = {} -- X289: a brand-new club has produced nobody yet
-	bid = nil -- X323: and nobody has come in for anyone
+	-- X323 (review): the folder outlives the owner, so a new club has to clear
+	-- the news as well as the offer, or it inherits a stranger's transfer story
+	bid = nil
+	ClubState.set("BidNews", "")
 	lineup = { xi = {}, bench = {} }
 	-- Review of X325: the intake is published on the restore path only, and
 	-- ReplicatedStorage.Clubs.PlotN is found-or-created and never cleared, so a
@@ -284,10 +305,15 @@ function ClubService.restore(data: any?)
 		end
 	end
 	ClubState.set("Academy", HttpService:JSONEncode(academy))
-	-- X323: a standing approach, if the save was made between matches
+	-- X323: a standing approach, if the save was made between matches, and only
+	-- if a match has not been played since (review)
 	bid = nil
-	if type(data.bid) == "table" and type(data.bid.playerId) == "number" and type(data.bid.fee) == "number" then
+	ClubState.set("BidNews", "")
+	local round = (ClubState.get("MatchesPlayed") :: number?) or 0
+	if Bids.isValid(data.bid) and not Bids.isStale(data.bid, round) then
 		bid = data.bid
+		local b = bid :: Bids.Bid
+		ClubState.set("BidNews", ("%s have come in for %s: %s."):format(b.club, b.playerName, money(b.fee)))
 	end
 	if type(data.shortlist) == "table" then
 		for _, p in data.shortlist do
@@ -485,8 +511,12 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 			publish()
 			return true, ("%s turned down."):format(standing.club)
 		end
-		local blocker = Bids.blocker(players, standing.playerId, xiSlotOf(standing.playerId) ~= nil)
+		local blocker = Bids.blocker(players, standing.playerId)
 		if blocker then
+			-- review: an offer for somebody who has already gone must not stick
+			-- around unanswerable
+			dropBidIfGone()
+			publish()
 			return false, blocker
 		end
 		local sold: Squad.Player? = nil

@@ -639,7 +639,7 @@ end
 function midGameHint(): string
 	-- X323: an offer for one of your players expires at the next match, so it
 	-- comes before anything else the pill might say
-	local bidNews = get("BidNews")
+	local bidNews = get("BidNews") -- X323 (in hintKeys, so KEEP HIM clears it)
 	if type(bidNews) == "string" and bidNews ~= "" then
 		return bidNews .. " CLUB OFFICE, then SQUAD."
 	end
@@ -880,7 +880,7 @@ end
 -- X295: the mid-game hints read cash, the table and each stand plot, so those
 -- have to nudge the pill too (the per-plot keys were missing even for X240's
 -- onboarding hint)
-local hintKeys = { "Phase", "MatchesPlayed", "StandLevel", "ScoutLevel", "AmenityLevel", "CoachLevel", "Round", "Rounds", "Position", "NeedsName", "Demand", "Capacity", "Cash" }
+local hintKeys = { "Phase", "MatchesPlayed", "StandLevel", "ScoutLevel", "AmenityLevel", "CoachLevel", "Round", "Rounds", "Position", "NeedsName", "Demand", "Capacity", "Cash", "BidNews" }
 for _, plot in Config.StandPlots do
 	table.insert(hintKeys, "Stand_" .. plot.key)
 end

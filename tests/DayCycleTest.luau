@@ -25,6 +25,8 @@ local FIELD_TYPES: { [string]: string } = {
 	gradeTint = "Color3",
 	floodlights = "boolean",
 	streetLights = "boolean",
+	-- X327
+	rain = "number",
 }
 
 local function approxColorEqual(a: Color3, b: Color3, eps: number): boolean
@@ -199,13 +201,22 @@ function T.fastForwardHasAnOccasionalOvercastWeek()
 	assert(wetWeek and dryWeek, "there should be both kinds of week in the first dozen")
 	local wetTrack = DayCycle.fastForward("match", false, wetWeek)
 	local dryTrack = DayCycle.fastForward("match", false, dryWeek)
-	local differs = false
+	-- a wet week has extra beats, so compare what they have in common too
+	local differs = #wetTrack.keys ~= #dryTrack.keys
 	for i, key in wetTrack.keys do
-		if key.look ~= dryTrack.keys[i].look then
+		local dry = dryTrack.keys[i]
+		if dry and key.look ~= dry.look then
 			differs = true
 		end
 	end
 	assert(differs, "a grey week and a clear week should not sweep identically")
+	-- and a clear week is exactly what it was before the rain went in (review)
+	assert(#dryTrack.keys == 6, "a dry match sweep should still be six keys, got " .. #dryTrack.keys)
+	local drySeason = DayCycle.fastForward("season", false, dryWeek)
+	assert(#drySeason.keys == 7, "a dry season sweep should still be seven keys, got " .. #drySeason.keys)
+	for _, key in dryTrack.keys do
+		assert(key.look ~= "Wet" and key.look ~= "Overcast", "a clear week has no grey in it")
+	end
 	assert(not DayCycle.isOvercastWeek(nil), "no seed means no weather")
 	-- X327: the rain is in the looks, and every look says whether it is raining
 	assert(DayCycle.LOOKS.Wet.rain == 1, "the wet look should rain")

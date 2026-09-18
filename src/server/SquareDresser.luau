@@ -653,8 +653,11 @@ local function dressChurchyard(town: Instance, church: Instance?, block: any): n
 		local a = centre + side.out * at - across * run
 		local b = centre + side.out * at + across * run
 		if wallOf(side.out) == wallOf(gate) then
-			wall(side.name .. "A", a, gateCentre + along * (GATE_GAP / 2))
-			wall(side.name .. "B", gateCentre - along * (GATE_GAP / 2), b)
+			-- review of X319: `across` is the same vector as `along` on this
+			-- side, so these two ends were swapped - the pair covered the whole
+			-- frontage twice over and bricked the gateway up
+			wall(side.name .. "A", a, gateCentre - along * (GATE_GAP / 2))
+			wall(side.name .. "B", gateCentre + along * (GATE_GAP / 2), b)
 		else
 			wall(side.name, a, b)
 		end

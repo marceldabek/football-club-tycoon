@@ -41,7 +41,7 @@ type Holder = { team: Pitch.Team, idx: number }
 -- X315: the three people on the pitch nobody had built. `half` is the end an
 -- assistant covers (-1 = the Home end), flipped at half-time with the teams.
 type Assistant = { fb: Footballer.Footballer, side: number, half: number }
-type Officials = { ref: Footballer.Footballer, assistants: { Assistant } }
+type Officials = { ref: Footballer.Footballer, assistants: { Assistant }, refHoldUntil: number }
 -- ground: rolls with ease-out at rest height; air: lofted along an arc.
 type Flight = { from: Vector3, to: Vector3, t: number, dur: number, arc: number, kind: "ground" | "air", onArrive: (() -> ())? }
 
@@ -256,7 +256,7 @@ function Presenter.buildOfficials(self: Presenter)
 		fb:face(centre())
 		table.insert(assistants, { fb = fb, side = side, half = if i == 1 then -1 else 1 })
 	end
-	self.officials = { ref = ref, assistants = assistants }
+	self.officials = { ref = ref, assistants = assistants, refHoldUntil = 0 }
 end
 
 -- Where the referee's diagonal runs at this end of the pitch.
@@ -272,13 +272,18 @@ function Presenter.updateOfficials(self: Presenter)
 		return
 	end
 	local ball = self.ballPos
-	-- the trail is toward the half the ball is in, so he is behind play either way
-	local trail = if ball.Z > 0 then REF_TRAIL else -REF_TRAIL
-	o.ref:setTarget(clampToPitch(Vector3.new(
-		diagonalX(ball.Z) * 0.75 + ball.X * 0.2,
-		Pitch.SURFACE_Y,
-		ball.Z - trail
-	)))
+	-- Review of X315: after a goal he was told to walk back to the centre spot
+	-- and then re-targeted at the ball on the very next frame, so he never went.
+	-- The hold is respected here.
+	if os.clock() >= o.refHoldUntil then
+		-- the trail is toward the half the ball is in, so he is behind play either way
+		local trail = if ball.Z > 0 then REF_TRAIL else -REF_TRAIL
+		o.ref:setTarget(clampToPitch(Vector3.new(
+			diagonalX(ball.Z) * 0.75 + ball.X * 0.2,
+			Pitch.SURFACE_Y,
+			ball.Z - trail
+		)))
+	end
 	for _, a in o.assistants do
 		-- halves swap with the teams at half-time
 		local half = if self.swapped then -a.half else a.half
@@ -752,7 +757,10 @@ function Presenter.playSequence(self: Presenter, ev: Event, shotAt: number)
 		MatchAudio.whistle()
 		local officials = self.officials
 		if officials then
+			-- back to the centre spot for the restart, and stay there while the
+			-- scorer is celebrating
 			officials.ref:setTarget(Vector3.new(6, Pitch.SURFACE_Y, 8))
+			officials.refHoldUntil = os.clock() + CELEBRATE_SECONDS + 0.8
 		end
 		shooter:celebrate()
 		-- X264: the two nearest teammates run in and celebrate with the scorer,

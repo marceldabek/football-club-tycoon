@@ -153,15 +153,29 @@ end
 
 function T.sellingCannotBreakTheSquad()
 	local players = squad()
-	assert(Bids.blocker(players, 3, false) == nil, "a reserve can be sold")
-	assert(Bids.blocker(players, 3, true) ~= nil, "not out of the starting XI")
-	assert(Bids.blocker(players, 1, false) ~= nil, "not the last goalkeeper")
-	assert(Bids.blocker(players, 999, false) ~= nil, "not somebody who has already gone")
+	assert(Bids.blocker(players, 3) == nil, "a reserve can be sold")
+	-- review of X323: the man being bid for is nearly always in the XI (the
+	-- approach picks the best player, and Auto Squad starts the best players),
+	-- so being in the XI must not block the sale
+	assert(Bids.blocker(players, 3) == nil, "being in the XI is not a blocker")
+	assert(Bids.blocker(players, 1) ~= nil, "not the last goalkeeper")
+	assert(Bids.blocker(players, 999) ~= nil, "not somebody who has already gone")
 	local thin = {}
 	for i = 1, Config.SquadMin do
 		table.insert(thin, player(i, 70, 74, 24))
 	end
-	assert(Bids.blocker(thin, 2, false) ~= nil, "not down to fewer than the minimum")
+	assert(Bids.blocker(thin, 2) ~= nil, "not down to fewer than the minimum")
+end
+
+function T.onlyAWellFormedBidIsWorthRestoring()
+	local good = { playerId = 3, playerName = "x", club = "y", tier = 5, fee = 1000, round = 4 }
+	assert(Bids.isValid(good), "a whole bid should restore")
+	for _, missing in { "playerId", "playerName", "club", "fee", "round" } do
+		local copy = table.clone(good)
+		copy[missing] = nil
+		assert(not Bids.isValid(copy), "a bid with no " .. missing .. " should not restore")
+	end
+	assert(not Bids.isValid("nonsense"), "and neither should anything that is not a table")
 end
 
 function T.aBidGoesStaleAtTheNextMatch()
