@@ -14,20 +14,25 @@
 | Loaded into the place (`Kit.Meshes`) | **96** — run `fetch_kit.luau` to get the rest |
 | **Actually referenced in `src/`** | **2** |
 
-Two of 299. The two are `UKSP__LitterBin__LitterBin` and `UKSP__ParkBenches__ParkBench01`. Everything
+Two of 497. The two are `UKSP__LitterBin__LitterBin` and `UKSP__ParkBenches__ParkBench01`. Everything
 else in Rivermere is primitives.
 
 | Pack | Exported | Uploaded | Used in `src/` |
 |---|---|---|---|
-| UK Street Props (UKSP) | 333 | 260 | **2** |
-| Modular English Housing (MEH) | 19 | 13 | **0** |
+| UK Street Props (UKSP) | 355 | **355** | **2** |
+| Modular English Housing (MEH) | 83 | **83** | **0** |
 | Poly Haven (PH, CC0) | 26 | 26 | **0** |
 
 ---
 
 # 1. HAVE — uploaded and usable today
 
-## UK Street Props — 260 items live
+## UK Street Props — 355 items live
+
+As well as the categories below, the kit now has **ModularRoads (44)**, **BondaryWall (6)**,
+**ExteriorWall (5)**, **UtilityPoles (8)**, **RoadClosedSign (6)**, **ElectricityPoles (5)**,
+**ModernPhoneBox (4)**, **ConcreteWall (4)**, **Bridge (3)**, **Pylons (2)**, **SpeedCameras (2)**,
+**PicnicBenches (2)**, **VarioGuard (2)**, **Cables (1)**, **Overpass (1)**.
 
 | Category | N | Category | N |
 |---|---|---|---|
@@ -45,8 +50,11 @@ else in Rivermere is primitives.
 | | | Skips / TrachCan | 2 / 2 |
 | | | BusShelter / LitterBin / WoodenFence | 1 each |
 
-## Modular English Housing — 13 uploaded
-6 house models × 2 trim-sheet variants, plus a garage. Flat-fronted Victorian; **no bay windows**.
+## Modular English Housing — 83 uploaded
+6 house models × 2 trim-sheet variants, garage, office and mansion — **plus all 68 modular pieces**
+(walls, windows, doors, roofs, chimneys, railings, stairs, beams, ceilings). The modular pieces are
+the ones that let housing be assembled with variety instead of repeating prefabs.
+Flat-fronted Victorian; **no bay windows**.
 
 ## Poly Haven (CC0) — 26 props
 Office and interior kit: desk, armchair, laptop, notepads, stationery, TV, drawer cabinet,
@@ -119,10 +127,11 @@ trophy, club bus, training equipment (s20 flags these as custom-worthy).
 
 # 5. WILL USE — the plan
 
-## Now, before Studio
-1. **Upload the 79 ready GLBs** — roads and the boundary wall above all.
-2. **Export the 7 unexported FBX packs** in one Blender batch.
-3. **Run `fetch_kit.luau`** — only 96 of 299 are in the place; after step 1 it should be ~378.
+## Now, before Studio — DONE 2026-09-19
+1. ~~Upload the ready GLBs~~ — done, 198 new assets.
+2. ~~Export the 7 unexported FBX packs~~ — done, 22 objects.
+3. **Run `assets/kit/_export/fetch_kit.luau` in Studio** — still outstanding. Only 96 of **497**
+   are in the place. This is the first thing to do when Studio next opens.
 
 ## Then, the club plot (`docs/PLOT_KIT_PLAN.md`)
 `BondaryWall` for the wall and gates → footpath furniture → car park signage → training fence →
@@ -135,8 +144,9 @@ for where they're genuinely needed. Roads do not have to run at arbitrary angles
 to the module grid is an acceptable and probably better-looking constraint.
 
 ## Not doing yet
-- MEH houses into the terraces — 13–19 prefabs across 66 semi pairs plus terrace rows will repeat
-  hard. Compare against the textured primitives side by side first.
+- MEH houses into the terraces. With 68 modular pieces now available this is far more promising than
+  it was (prefabs alone would repeat hard), but still compare against the textured primitives side by
+  side before committing.
 - Anything in section 4 that costs money, until Marcel approves a buy list.
 
 ---
@@ -147,5 +157,6 @@ to the module grid is an acceptable and probably better-looking constraint.
   likely two builders dressing the same street (`TerraceBuilder`, `TerraceStreetDresser`,
   `EstateBuilder` all place housing). Check before the road work, since it may be a layout bug
   rather than an asset one.
-- Only 96 of 299 uploads are loaded into the place.
+- Only 96 of **497** uploads are loaded into the place — run `fetch_kit.luau`.
+- The `max_tex: 2048` packs may render flat grey on MeshParts (see section 2).
 - `ServerStorage.Kit.Meshes` names must match `KitPlacer` lookups exactly; misses fall back to grey blocks.
