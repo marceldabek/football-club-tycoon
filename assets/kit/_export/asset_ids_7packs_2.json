@@ -10,5 +10,13 @@
  "UKSP__UtilityPoles__ElectricBox.glb": {
   "assetId": "71299636485457",
   "name": "UKSP UtilityPoles ElectricBox"
+ },
+ "UKSP__UtilityPoles__Light.glb": {
+  "assetId": "72166759020054",
+  "name": "UKSP UtilityPoles Light"
+ },
+ "UKSP__UtilityPoles__StraightRoad.glb": {
+  "assetId": "100435397318811",
+  "name": "UKSP UtilityPoles StraightRoad"
  }
 }

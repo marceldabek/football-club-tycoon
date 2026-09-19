@@ -10,5 +10,13 @@
  "UKSP__UtilityPoles__UtilityPole03.glb": {
   "assetId": "134956453409444",
   "name": "UKSP UtilityPoles UtilityPole03"
+ },
+ "UKSP__Cables__Cables.glb": {
+  "assetId": "115655582300552",
+  "name": "UKSP Cables Cables"
+ },
+ "UKSP__Overpass__OverPass51.glb": {
+  "assetId": "85916168294405",
+  "name": "UKSP Overpass OverPass51"
  }
 }

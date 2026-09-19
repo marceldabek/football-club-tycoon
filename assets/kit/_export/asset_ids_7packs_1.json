@@ -6,5 +6,21 @@
  "UKSP__ExteriorWall__GateLeft.glb": {
   "assetId": "122467447895167",
   "name": "UKSP ExteriorWall GateLeft"
+ },
+ "UKSP__ExteriorWall__GatePosts.glb": {
+  "assetId": "110520806162386",
+  "name": "UKSP ExteriorWall GatePosts"
+ },
+ "UKSP__ExteriorWall__GateRight.glb": {
+  "assetId": "100103133991782",
+  "name": "UKSP ExteriorWall GateRight"
+ },
+ "UKSP__ExteriorWall__Post.glb": {
+  "assetId": "93459913172432",
+  "name": "UKSP ExteriorWall Post"
+ },
+ "UKSP__ExteriorWall__Wall.glb": {
+  "assetId": "80287613991982",
+  "name": "UKSP ExteriorWall Wall"
  }
 }
