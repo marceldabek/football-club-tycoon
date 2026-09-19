@@ -1,0 +1,46 @@
+{
+ "UKSP__ModularRoads__Crossroads.glb": {
+  "assetId": "110149886047543",
+  "name": "UKSP ModularRoads Crossroads"
+ },
+ "UKSP__ModularRoads__CrossroadsYellowLines.glb": {
+  "assetId": "99121197375844",
+  "name": "UKSP ModularRoads CrossroadsYellowLines"
+ },
+ "UKSP__ModularRoads__CrossroadsYellowLines2.glb": {
+  "assetId": "105932976368540",
+  "name": "UKSP ModularRoads CrossroadsYellowLines2"
+ },
+ "UKSP__ModularRoads__CulDeSac.001.glb": {
+  "assetId": "97610738469032",
+  "name": "UKSP ModularRoads CulDeSac.001"
+ },
+ "UKSP__ModularRoads__CulDeSac.glb": {
+  "assetId": "109456068168961",
+  "name": "UKSP ModularRoads CulDeSac"
+ },
+ "UKSP__ModularRoads__CulDeSacYellowLines.glb": {
+  "assetId": "137198769753846",
+  "name": "UKSP ModularRoads CulDeSacYellowLines"
+ },
+ "UKSP__ModularRoads__CulDeSac_Left90Degree.001.glb": {
+  "assetId": "124056502936413",
+  "name": "UKSP ModularRoads CulDeSac_Left90Degree.001"
+ },
+ "UKSP__ModularRoads__CulDeSac_Left90Degree.glb": {
+  "assetId": "135138272714468",
+  "name": "UKSP ModularRoads CulDeSac_Left90Degree"
+ },
+ "UKSP__ModularRoads__CulDeSac_Left90DegreeYellowLines.glb": {
+  "assetId": "111897091499758",
+  "name": "UKSP ModularRoads CulDeSac_Left90DegreeYellowLines"
+ },
+ "UKSP__ModularRoads__CulDeSac_Right90Degree.001.glb": {
+  "assetId": "113543779950087",
+  "name": "UKSP ModularRoads CulDeSac_Right90Degree.001"
+ },
+ "UKSP__ModularRoads__CulDeSac_Right90Degree.glb": {
+  "assetId": "125498128446749",
+  "name": "UKSP ModularRoads CulDeSac_Right90Degree"
+ }
+}

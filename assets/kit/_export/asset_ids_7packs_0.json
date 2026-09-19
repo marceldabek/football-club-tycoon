@@ -1,0 +1,26 @@
+{
+ "UKSP__SpeedCameras__SpeedCameraNew.glb": {
+  "assetId": "134131086115742",
+  "name": "UKSP SpeedCameras SpeedCameraNew"
+ },
+ "UKSP__SpeedCameras__SpeedCameraOld.glb": {
+  "assetId": "107183770012648",
+  "name": "UKSP SpeedCameras SpeedCameraOld"
+ },
+ "UKSP__Pylons__Pylon_LOD0.glb": {
+  "assetId": "84816477046463",
+  "name": "UKSP Pylons Pylon_LOD0"
+ },
+ "UKSP__Pylons__Pylon_LOD1.glb": {
+  "assetId": "84300996898850",
+  "name": "UKSP Pylons Pylon_LOD1"
+ },
+ "UKSP__Bridge__Bridge.glb": {
+  "assetId": "105511845111590",
+  "name": "UKSP Bridge Bridge"
+ },
+ "UKSP__Bridge__RoadPiece01.glb": {
+  "assetId": "78390304754201",
+  "name": "UKSP Bridge RoadPiece01"
+ }
+}

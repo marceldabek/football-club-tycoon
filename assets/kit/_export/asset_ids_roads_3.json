@@ -1,0 +1,46 @@
+{
+ "UKSP__ModularRoads__RoadRightTurn.001.glb": {
+  "assetId": "98705463454776",
+  "name": "UKSP ModularRoads RoadRightTurn.001"
+ },
+ "UKSP__ModularRoads__RoadRightTurn.glb": {
+  "assetId": "134055902229059",
+  "name": "UKSP ModularRoads RoadRightTurn"
+ },
+ "UKSP__ModularRoads__RoadRightTurnYellowLines.glb": {
+  "assetId": "96385925098958",
+  "name": "UKSP ModularRoads RoadRightTurnYellowLines"
+ },
+ "UKSP__ModularRoads__Straight.glb": {
+  "assetId": "111485606589343",
+  "name": "UKSP ModularRoads Straight"
+ },
+ "UKSP__ModularRoads__StraightYellowLines.glb": {
+  "assetId": "137429997625387",
+  "name": "UKSP ModularRoads StraightYellowLines"
+ },
+ "UKSP__ModularRoads__StraightYellowLines2.glb": {
+  "assetId": "123597870188982",
+  "name": "UKSP ModularRoads StraightYellowLines2"
+ },
+ "UKSP__ModularRoads__TJunction.glb": {
+  "assetId": "107552425100760",
+  "name": "UKSP ModularRoads TJunction"
+ },
+ "UKSP__ModularRoads__TJunctionLeft.glb": {
+  "assetId": "75427442699815",
+  "name": "UKSP ModularRoads TJunctionLeft"
+ },
+ "UKSP__ModularRoads__TJunctionLeftYellowLines.glb": {
+  "assetId": "118668091651791",
+  "name": "UKSP ModularRoads TJunctionLeftYellowLines"
+ },
+ "UKSP__ModularRoads__TJunctionRight.glb": {
+  "assetId": "138251982056888",
+  "name": "UKSP ModularRoads TJunctionRight"
+ },
+ "UKSP__ModularRoads__TJunctionRightYellowLines.glb": {
+  "assetId": "86562054869578",
+  "name": "UKSP ModularRoads TJunctionRightYellowLines"
+ }
+}
