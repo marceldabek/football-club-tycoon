@@ -134,8 +134,55 @@ local function districtNamed(name: string): TownLayout.District?
 	return nil
 end
 
+local LIGHT_STREET_SAMPLE = 20 -- studs between samples along a road
+
+-- Pure: the shortest XZ distance from p to any block of a district, or math.huge.
+local function distanceToDistrict(p: Vector3, district: TownLayout.District): number
+	local best = math.huge
+	for _, block in district.blocks do
+		local d = StreetDresser.distanceToBlock(p, block)
+		if d < best then
+			best = d
+		end
+	end
+	return best
+end
+
+-- Pure: how many samples along a road run within LIGHT_STREET_RADIUS of the
+-- district, and how many samples there were. This measures how much of the road
+-- runs ALONGSIDE the district, which is what "whose street is this" means.
+function StreetDresser.streetCoverage(points: { Vector3 }, district: TownLayout.District): (number, number)
+	local near, total = 0, 0
+	for i = 2, #points do
+		local a, b = points[i - 1], points[i]
+		local seg = b - a
+		local steps = math.max(1, math.floor(seg.Magnitude / LIGHT_STREET_SAMPLE))
+		for k = 0, steps do
+			total += 1
+			if distanceToDistrict(a + seg * (k / steps), district) <= LIGHT_STREET_RADIUS then
+				near += 1
+			end
+		end
+	end
+	return near, total
+end
+
 -- Pure: residential streets that belong to a LIGHT district (midpoint within
 -- LIGHT_STREET_RADIUS of one of its blocks), minus streets the kit mode owns.
+--
+-- A street belongs to exactly ONE district: the one it runs alongside most.
+--
+-- This used to test only the road's MIDPOINT, which is meaningless for a long
+-- road. Elm Grove runs x -500..900 (1,400 studs); its midpoint happens to land
+-- 18 studs from a Northfields block, so Northfields claimed it even though the
+-- road runs alongside Mill Street Terraces for 70 of its 71 samples. Church Lane
+-- was claimed by both Town Centre and Mill Street Terraces the same way.
+--
+-- Length alone cannot decide it either: Northfields Avenue is the longest
+-- residential road in town (2,665 studs) and genuinely is Northfields' street,
+-- because all 134 of its samples run alongside Northfields.
+--
+-- Ties break on district name so the result does not depend on DISTRICTS order.
 function StreetDresser.lightStreets(districtName: string): { TownLayout.Road }
 	local out: { TownLayout.Road } = {}
 	local district = districtNamed(districtName)
@@ -152,12 +199,21 @@ function StreetDresser.lightStreets(districtName: string): { TownLayout.Road }
 		if road.kind ~= "residential" or kitOwned[road.name] then
 			continue
 		end
-		local mid = StreetDresser.polylineMidpoint(road.points)
-		for _, block in district.blocks do
-			if StreetDresser.distanceToBlock(mid, block) <= LIGHT_STREET_RADIUS then
-				table.insert(out, road)
-				break
+		local mine = StreetDresser.streetCoverage(road.points, district)
+		if mine == 0 then
+			continue
+		end
+		local owner, ownerCover = districtName, mine
+		for _, other in TownLayout.DISTRICTS do
+			if other.name ~= districtName then
+				local cover = StreetDresser.streetCoverage(road.points, other)
+				if cover > ownerCover or (cover == ownerCover and other.name < owner) then
+					owner, ownerCover = other.name, cover
+				end
 			end
+		end
+		if owner == districtName then
+			table.insert(out, road)
 		end
 	end
 	return out
