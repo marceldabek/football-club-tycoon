@@ -1,0 +1,26 @@
+{
+ "terrace_front_a.png": {
+  "assetId": "93573179046252",
+  "name": "terrace_front_a"
+ },
+ "terrace_front_b.png": {
+  "assetId": "96266284494631",
+  "name": "terrace_front_b"
+ },
+ "terrace_front_c.png": {
+  "assetId": "79862245695312",
+  "name": "terrace_front_c"
+ },
+ "terrace_back.png": {
+  "assetId": "77764095380617",
+  "name": "terrace_back"
+ },
+ "slate_roof.png": {
+  "assetId": "77485834711521",
+  "name": "slate_roof"
+ },
+ "brick_plain.png": {
+  "assetId": "74174126209346",
+  "name": "brick_plain"
+ }
+}

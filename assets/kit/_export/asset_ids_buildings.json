@@ -1,0 +1,38 @@
+{
+ "semi_front_a.png": {
+  "assetId": "86227648157444",
+  "name": "semi_front_a"
+ },
+ "semi_front_b.png": {
+  "assetId": "96244530243715",
+  "name": "semi_front_b"
+ },
+ "semi_side.png": {
+  "assetId": "81200911777912",
+  "name": "semi_side"
+ },
+ "roof_tiles.png": {
+  "assetId": "107062786945119",
+  "name": "roof_tiles"
+ },
+ "shed_cladding.png": {
+  "assetId": "91306351376128",
+  "name": "shed_cladding"
+ },
+ "shed_door.png": {
+  "assetId": "94659629504751",
+  "name": "shed_door"
+ },
+ "shed_sign_a.png": {
+  "assetId": "110260477425803",
+  "name": "shed_sign_a"
+ },
+ "shed_sign_b.png": {
+  "assetId": "87492718476432",
+  "name": "shed_sign_b"
+ },
+ "shed_sign_c.png": {
+  "assetId": "90435262795416",
+  "name": "shed_sign_c"
+ }
+}

@@ -1,0 +1,74 @@
+{
+ "shop_front_cafe.png": {
+  "assetId": "75968871689910",
+  "name": "shop_front_cafe"
+ },
+ "shop_front_deli.png": {
+  "assetId": "125966450676584",
+  "name": "shop_front_deli"
+ },
+ "shop_front_estate.png": {
+  "assetId": "101430233032563",
+  "name": "shop_front_estate"
+ },
+ "shop_front_pharmacy.png": {
+  "assetId": "133121386497645",
+  "name": "shop_front_pharmacy"
+ },
+ "shop_front_bakery.png": {
+  "assetId": "89445022795879",
+  "name": "shop_front_bakery"
+ },
+ "shop_front_butcher.png": {
+  "assetId": "134088458651083",
+  "name": "shop_front_butcher"
+ },
+ "shop_front_barber.png": {
+  "assetId": "139108695670061",
+  "name": "shop_front_barber"
+ },
+ "shop_front_charity.png": {
+  "assetId": "81242761458871",
+  "name": "shop_front_charity"
+ },
+ "shop_front_newsagent.png": {
+  "assetId": "94752055262529",
+  "name": "shop_front_newsagent"
+ },
+ "shop_front_pub.png": {
+  "assetId": "139146694406866",
+  "name": "shop_front_pub"
+ },
+ "shop_front_corner.png": {
+  "assetId": "109483842768923",
+  "name": "shop_front_corner"
+ },
+ "shop_front_corner2.png": {
+  "assetId": "100205814389853",
+  "name": "shop_front_corner2"
+ },
+ "shop_front_supermarket.png": {
+  "assetId": "102441765549781",
+  "name": "shop_front_supermarket"
+ },
+ "upper_floors_a.png": {
+  "assetId": "74293391117844",
+  "name": "upper_floors_a"
+ },
+ "upper_floors_b.png": {
+  "assetId": "99346607268832",
+  "name": "upper_floors_b"
+ },
+ "flats_facade.png": {
+  "assetId": "131820910991808",
+  "name": "flats_facade"
+ },
+ "civic_facade.png": {
+  "assetId": "111823681530486",
+  "name": "civic_facade"
+ },
+ "brick_buff.png": {
+  "assetId": "74530769815937",
+  "name": "brick_buff"
+ }
+}

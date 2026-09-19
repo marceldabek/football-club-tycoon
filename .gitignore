@@ -30,3 +30,6 @@ assets/kit/_export/*
 # Claude Code agent worktrees
 .claude/worktrees/
 __pycache__/
+
+# Scratch review output
+diff_review.txt
