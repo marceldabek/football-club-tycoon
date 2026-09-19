@@ -1085,7 +1085,10 @@ TownLayout.DISTRICTS = {
 		name = "Station",
 		kind = "station",
 		blocks = {
-			{ centre = Vector3.new(-1000, 0.5, -350), size = Vector3.new(120, 1, 60), yaw = 0, use = "station car park" },
+			-- east edge is held clear of Station Road, which ends at x -938: the road
+			-- needs width/2 + PAVEMENT_WIDTH - 0.5 = 20.5 studs, and at centre -1000
+			-- this block reached x -940 and cut into the pavement (TownLayoutTest).
+			{ centre = Vector3.new(-1020, 0.5, -350), size = Vector3.new(120, 1, 60), yaw = 0, use = "station car park" },
 			{ centre = Vector3.new(-1226, 12, -204), size = Vector3.new(40, 24, 24), yaw = 0, use = "corner shop" },
 			{ centre = Vector3.new(-1131, 12, -204), size = Vector3.new(130, 24, 24), yaw = 0, use = "terraced row" },
 			{ centre = Vector3.new(-991, 13, -204), size = Vector3.new(130, 26, 24), yaw = 0, use = "terraced row" },
