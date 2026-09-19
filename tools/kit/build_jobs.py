@@ -27,8 +27,16 @@ for name in ["House_01_VAR01", "House_02_VAR1", "House_03_VAR01", "House_04_VAR0
         J["jobs"].append({"name": "MEH__%s__ts%d" % (name, ts), "source": MEHB + "\\Building_Prefabs\\" + name + ".blend", "mode": "meh", "trimsheet": ts, "max_tex": 2048, "tri_limit": 19000})
 for name in ["Garage_01_VAR01", "Office_01_VAR01", "Mansion_01_VAR01"]:
     J["jobs"].append({"name": "MEH__%s__ts1" % name, "source": MEHB + "\\Building_Prefabs\\" + name + ".blend", "mode": "meh", "trimsheet": 1, "max_tex": 2048, "tri_limit": 19000})
-for piece in ["Wood_Fence_A", "Wood_Fence_Beam_A", "Wood_Gate_A", "Railing_A", "Railing_Post_A", "Door_Canopy_A", "Chimney_A", "Letterbox_A", "Stairs_Front_A", "Wall_Window_A", "Wall_Door_A", "Wall_A", "Roof_A"]:
-    J["jobs"].append({"name": "MEH__%s__ts1" % piece, "source": MEHB + "\\Modular_Pieces\\" + piece + ".blend", "mode": "meh", "trimsheet": 1, "max_tex": 2048})
+# Every modular piece, not a hand-picked few. This used to name 13 of the 68 pieces the
+# pack ships, so the modular half of "Modular English Housing" was never exported and the
+# town could only repeat whole prefab houses. max_tex is 1024: above that Roblox renders
+# SurfaceAppearance maps as flat grey on MeshParts.
+meh_pieces = sorted(glob.glob(MEHB + r"\Modular_Pieces\*.blend"))
+if not meh_pieces:
+    raise SystemExit("no MEH modular pieces found under " + MEHB + r"\Modular_Pieces")
+for src in meh_pieces:
+    piece = os.path.splitext(os.path.basename(src))[0]
+    J["jobs"].append({"name": "MEH__%s__ts1" % piece, "source": src, "mode": "meh", "trimsheet": 1, "max_tex": 1024})
 lim = {"drawer_cabinet": 12000, "dirty_football": 6000, "rubber_boots": 8000, "CoffeeCart_01": 15000, "power_box_01": 8000, "classic_laptop": 8000, "cardboard_box_01": 6000, "plastic_crate_01": 6000, "exterior_aircon_unit": 10000, "security_camera_01": 6000}
 for d in sorted(glob.glob(RAW + r"\PolyHaven\*")):
     if not os.path.isdir(d): continue

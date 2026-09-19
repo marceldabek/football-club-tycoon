@@ -26,5 +26,41 @@
  "MEH__Door_Canopy_A__ts1.glb": {
   "assetId": "121750460231078",
   "name": "MEH Door_Canopy_A ts1"
+ },
+ "MEH__Door_Canopy_B__ts1.glb": {
+  "assetId": "81620262669061",
+  "name": "MEH Door_Canopy_B ts1"
+ },
+ "MEH__Door_Double_A__ts1.glb": {
+  "assetId": "103324735502251",
+  "name": "MEH Door_Double_A ts1"
+ },
+ "MEH__Door_Double_B__ts1.glb": {
+  "assetId": "82258607297095",
+  "name": "MEH Door_Double_B ts1"
+ },
+ "MEH__Door_Double_C__ts1.glb": {
+  "assetId": "119578347672651",
+  "name": "MEH Door_Double_C ts1"
+ },
+ "MEH__Foundation_A__ts1.glb": {
+  "assetId": "131853355322660",
+  "name": "MEH Foundation_A ts1"
+ },
+ "MEH__Foundation_B__ts1.glb": {
+  "assetId": "126704087824872",
+  "name": "MEH Foundation_B ts1"
+ },
+ "MEH__Letterbox_A__ts1.glb": {
+  "assetId": "117524501783929",
+  "name": "MEH Letterbox_A ts1"
+ },
+ "MEH__Pillar_A__ts1.glb": {
+  "assetId": "85260109478063",
+  "name": "MEH Pillar_A ts1"
+ },
+ "MEH__Railing_Post_A__ts1.glb": {
+  "assetId": "128711176013844",
+  "name": "MEH Railing_Post_A ts1"
  }
 }

@@ -128,8 +128,19 @@ def load_source(job):
         bpy.ops.wm.read_factory_settings(use_empty=True)
         bpy.ops.import_scene.fbx(filepath=src)
 
+def deselect_all():
+    # 32 of the 68 Modular English Housing piece .blend files were saved with their
+    # object in Edit Mode. bpy.ops.object.select_all then fails its poll ("context is
+    # incorrect") and the whole job errors out, which is why only 13 MEH pieces had
+    # ever been exported. Setting select_set directly does not need the operator poll.
+    for _ob in bpy.context.view_layer.objects:
+        _ob.select_set(False)
+
 def prep_object(o, job):
-    bpy.ops.object.select_all(action='DESELECT'); o.select_set(True); bpy.context.view_layer.objects.active = o
+    if o.mode != 'OBJECT':
+        bpy.context.view_layer.objects.active = o
+        bpy.ops.object.mode_set(mode='OBJECT')
+    deselect_all(); o.select_set(True); bpy.context.view_layer.objects.active = o
     if o.parent: bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
     s = SPM / job.get("source_units_per_meter", 1.0)
@@ -176,14 +187,14 @@ for job in J["jobs"]:
             for o in objs:
                 tris = prep_object(o, job)
                 if tris == 0: continue
-                bpy.ops.object.select_all(action='DESELECT'); o.select_set(True)
+                deselect_all(); o.select_set(True)
                 safe = re.sub(r"[^A-Za-z0-9_.-]", "_", o.name)
                 outp = os.path.join(OUT, "%s__%s.glb" % (job['name'], safe)); export_selected(outp)
                 report.append({"job": job["name"], "object": o.name, "file": os.path.basename(outp), "tris": tris, "dims_studs": [round(x, 2) for x in o.dimensions], "size_MB": round(os.path.getsize(outp)/1e6, 2), "mats": [m.name + "->" + str(m.get("fct_prefix")) for m in o.data.materials if m]})
         else:
             tris = 0
             for o in objs: tris += prep_object(o, job)
-            bpy.ops.object.select_all(action='DESELECT')
+            deselect_all()
             for o in objs: o.select_set(True)
             outp = os.path.join(OUT, job["name"] + ".glb"); export_selected(outp)
             report.append({"job": job["name"], "objects": [o.name for o in objs], "file": os.path.basename(outp), "tris": tris, "dims_studs": [round(x, 2) for x in objs[0].dimensions], "size_MB": round(os.path.getsize(outp)/1e6, 2)})

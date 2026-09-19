@@ -22,5 +22,45 @@
  "MEH__Wall_Door_B__ts1.glb": {
   "assetId": "101131142069545",
   "name": "MEH Wall_Door_B ts1"
+ },
+ "MEH__Wall_Door_C__ts1.glb": {
+  "assetId": "105347342540911",
+  "name": "MEH Wall_Door_C ts1"
+ },
+ "MEH__Wall_Garage_A__ts1.glb": {
+  "assetId": "140363136829323",
+  "name": "MEH Wall_Garage_A ts1"
+ },
+ "MEH__Wall_Low_A__ts1.glb": {
+  "assetId": "93458145208704",
+  "name": "MEH Wall_Low_A ts1"
+ },
+ "MEH__Wall_Low_B__ts1.glb": {
+  "assetId": "119775652300504",
+  "name": "MEH Wall_Low_B ts1"
+ },
+ "MEH__Wall_Low_C__ts1.glb": {
+  "assetId": "108166540858225",
+  "name": "MEH Wall_Low_C ts1"
+ },
+ "MEH__Wall_Single_A__ts1.glb": {
+  "assetId": "89324685735387",
+  "name": "MEH Wall_Single_A ts1"
+ },
+ "MEH__Wall_Single_B__ts1.glb": {
+  "assetId": "123364574079369",
+  "name": "MEH Wall_Single_B ts1"
+ },
+ "MEH__Wall_Single_C__ts1.glb": {
+  "assetId": "138826791902004",
+  "name": "MEH Wall_Single_C ts1"
+ },
+ "MEH__Wall_WideDoor_A__ts1.glb": {
+  "assetId": "137335770451473",
+  "name": "MEH Wall_WideDoor_A ts1"
+ },
+ "MEH__Wall_WindowCentre_A__ts1.glb": {
+  "assetId": "139584654357272",
+  "name": "MEH Wall_WindowCentre_A ts1"
  }
 }
