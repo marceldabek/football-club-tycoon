@@ -1,0 +1,38 @@
+{
+ "MEH__Mansion_01_VAR01__ts1.glb": {
+  "assetId": "107020625334454",
+  "name": "MEH Mansion_01_VAR01 ts1"
+ },
+ "MEH__Stairs_Front_A__ts1.glb": {
+  "assetId": "117085442671386",
+  "name": "MEH Stairs_Front_A ts1"
+ },
+ "UKSP__BondaryWall__RightGate.glb": {
+  "assetId": "114775290058172",
+  "name": "UKSP BondaryWall RightGate"
+ },
+ "UKSP__ConcreteWall__ConcreteWallB.glb": {
+  "assetId": "89231652899974",
+  "name": "UKSP ConcreteWall ConcreteWallB"
+ },
+ "UKSP__ElectricityPoles__ElectricPole02.glb": {
+  "assetId": "92146398961037",
+  "name": "UKSP ElectricityPoles ElectricPole02"
+ },
+ "UKSP__ModernPhoneBox__PhoneBoxClean.glb": {
+  "assetId": "134563007805223",
+  "name": "UKSP ModernPhoneBox PhoneBoxClean"
+ },
+ "UKSP__PicnicBenches__BenchNew.glb": {
+  "assetId": "72162194086032",
+  "name": "UKSP PicnicBenches BenchNew"
+ },
+ "UKSP__RoadClosedSign__RoadClosedNew.glb": {
+  "assetId": "90662533127458",
+  "name": "UKSP RoadClosedSign RoadClosedNew"
+ },
+ "UKSP__VarioGuard__VarioguardCap.glb": {
+  "assetId": "95239282817341",
+  "name": "UKSP VarioGuard VarioguardCap"
+ }
+}

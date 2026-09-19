@@ -1,0 +1,34 @@
+{
+ "MEH__Railing_A__ts1.glb": {
+  "assetId": "135660449586985",
+  "name": "MEH Railing_A ts1"
+ },
+ "UKSP__BondaryWall__LeftGate.glb": {
+  "assetId": "77434875469618",
+  "name": "UKSP BondaryWall LeftGate"
+ },
+ "UKSP__BondaryWall__WallStraight.glb": {
+  "assetId": "106006552961156",
+  "name": "UKSP BondaryWall WallStraight"
+ },
+ "UKSP__ConcreteWall__ConcreteWallCap.glb": {
+  "assetId": "98940054864210",
+  "name": "UKSP ConcreteWall ConcreteWallCap"
+ },
+ "UKSP__ElectricityPoles__ElectricPole04.glb": {
+  "assetId": "108043316729877",
+  "name": "UKSP ElectricityPoles ElectricPole04"
+ },
+ "UKSP__ModernPhoneBox__PhoneBoxDoor.001.glb": {
+  "assetId": "118062951240844",
+  "name": "UKSP ModernPhoneBox PhoneBoxDoor.001"
+ },
+ "UKSP__RoadClosedSign__BackTrim.001.glb": {
+  "assetId": "128234100519868",
+  "name": "UKSP RoadClosedSign BackTrim.001"
+ },
+ "UKSP__RoadClosedSign__Sign.001.glb": {
+  "assetId": "70512237029376",
+  "name": "UKSP RoadClosedSign Sign.001"
+ }
+}
