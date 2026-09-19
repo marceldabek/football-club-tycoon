@@ -45,6 +45,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local CrestBadge = require(ReplicatedStorage.Shared.CrestBadge)
 local HttpService = game:GetService("HttpService") -- X289: the academy intake
 local PlotContext = require(script.Parent.PlotContext)
+local KitPlacer = require(script.Parent.KitPlacer)
 
 local PlotGrounds = {}
 
@@ -53,11 +54,27 @@ local PlotGrounds = {}
 local HALF = 380 -- half the plot side (TownLayout.PLOT_SIZE / 2)
 local GROUND_Y = 0
 
--- boundary wall
-local WALL_H, WALL_T = 3, 1
-local PIER_W, PIER_H = 2, 4 -- square gate piers, along the wall and inward
+-- boundary wall. WALL_H/PIER_H are set so the primitive runs finish at the same
+-- height as the UKSP__BondaryWall kit pieces (wall 4.6, posts 5.5 including the
+-- coping), so the two meet flush where the kit frontage ends.
+local WALL_H, WALL_T = 4.1, 1
+local PIER_W, PIER_H = 2, 5 -- square gate piers, along the wall and inward
 local VEHICLE_GATE = { 60, 100 } -- z range of the gap on the -X wall
 local PEDESTRIAN_GATE = { -20, -4 }
+
+-- X369: the stretch of the entrance (-X) wall built from the bought kit instead
+-- of stretched Parts. The whole 3,040-stud perimeter in kit pieces would be
+-- ~2,120 MeshParts per plot, which four plots cannot afford on a mid-range
+-- phone, so the kit covers only the band the player actually walks through --
+-- both gates sit inside it -- and the rest of the perimeter stays primitive.
+-- TEMP band; widen it once a phone measurement exists.
+local KIT_FRONTAGE = { -60, 140 }
+local KIT_WALL = "UKSP__BondaryWall__WallStraight"
+local KIT_POSTS = "UKSP__BondaryWall__GatePosts"
+local KIT_WALL_W = 4.3 -- one piece along the run
+local KIT_POSTS_W = 9.3 -- both piers; the opening between them is 6.5
+local KIT_GATE_SCALE = 0.39 -- the gate leaves are modelled ~3.6x the wall height
+local KIT_GATE_W = 8.9 * KIT_GATE_SCALE
 
 -- access road
 local ROAD_W = 24
@@ -469,22 +486,54 @@ local function buildBoundary(parent: Instance)
 	extents("WallE", HALF - WALL_T, HALF, y0, y1, inner0, inner1, BRICK, Enum.Material.Brick, wall)
 	coping("CopingE", HALF - WALL_T, HALF, inner0, inner1, false)
 
+	-- X369: inside KIT_FRONTAGE the entrance wall is built from kit pieces
+	-- instead of a stretched Part, so the stretch the player walks through is
+	-- brick-and-railings rather than a flat box. Outside the band it stays
+	-- primitive, at the same finished height so the two meet flush. If the kit
+	-- is not installed, every run falls back to the primitive wall.
+	local kitOk = KitPlacer.find(KIT_WALL) ~= nil
+	local function wallRun(z0: number, z1: number)
+		if z1 - z0 <= 0 then
+			return
+		end
+		local k0 = math.max(z0, KIT_FRONTAGE[1])
+		local k1 = math.min(z1, KIT_FRONTAGE[2])
+		local pieces = if kitOk then math.floor((k1 - k0) / KIT_WALL_W) else 0
+		if pieces < 1 then
+			extents("WallW", -HALF, -HALF + WALL_T, y0, y1, z0, z1, BRICK, Enum.Material.Brick, wall)
+			coping("CopingW", -HALF, -HALF + WALL_T, z0, z1, false)
+			return
+		end
+		-- whole pieces only; the remainder either side stays primitive so the
+		-- run still reaches the piers exactly
+		local kitEnd = k0 + pieces * KIT_WALL_W
+		KitPlacer.row(KIT_WALL,
+			CFrame.new(-HALF + WALL_T / 2, GROUND_Y, k0 + KIT_WALL_W / 2) * CFrame.Angles(0, -math.pi / 2, 0),
+			pieces, KIT_WALL_W, wall)
+		if k0 > z0 then
+			extents("WallW", -HALF, -HALF + WALL_T, y0, y1, z0, k0, BRICK, Enum.Material.Brick, wall)
+			coping("CopingW", -HALF, -HALF + WALL_T, z0, k0, false)
+		end
+		if kitEnd < z1 then
+			extents("WallW", -HALF, -HALF + WALL_T, y0, y1, kitEnd, z1, BRICK, Enum.Material.Brick, wall)
+			coping("CopingW", -HALF, -HALF + WALL_T, kitEnd, z1, false)
+		end
+	end
+
 	-- west: three runs broken by the two gates, each gap flanked by piers. The
 	-- runs stop at the piers so no two pieces share volume.
 	local gaps = { PEDESTRIAN_GATE, VEHICLE_GATE } -- sorted by z
 	local z = inner0
 	for _, gap in gaps do
 		local pierStart = gap[1] - PIER_W
-		extents("WallW", -HALF, -HALF + WALL_T, y0, y1, z, pierStart, BRICK, Enum.Material.Brick, wall)
-		coping("CopingW", -HALF, -HALF + WALL_T, z, pierStart, false)
+		wallRun(z, pierStart)
 		extents("GatePier", -HALF, -HALF + PIER_W, y0, GROUND_Y + PIER_H, pierStart, gap[1], PIER, Enum.Material.Brick, wall)
 		pierCap(-HALF, -HALF + PIER_W, pierStart, gap[1])
 		extents("GatePier", -HALF, -HALF + PIER_W, y0, GROUND_Y + PIER_H, gap[2], gap[2] + PIER_W, PIER, Enum.Material.Brick, wall)
 		pierCap(-HALF, -HALF + PIER_W, gap[2], gap[2] + PIER_W)
 		z = gap[2] + PIER_W
 	end
-	extents("WallW", -HALF, -HALF + WALL_T, y0, y1, z, inner1, BRICK, Enum.Material.Brick, wall)
-	coping("CopingW", -HALF, -HALF + WALL_T, z, inner1, false)
+	wallRun(z, inner1)
 end
 
 -- ------------------------------------------------------------ road + car park
