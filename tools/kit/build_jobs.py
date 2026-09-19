@@ -9,10 +9,16 @@ J = {"studs_per_meter": 2.75, "out_dir": r"F:\dev\football-club-tycoon\assets\ki
                             "CrowdBarrierNewShader": "BarriersNew", "CrowdBarrierOldShader": "BarriersOld", "RedPhoneBoxTextSub": "RedPhoneBoxClean", "Cable": "SteelCable", "Metal": "Iron",
                             "BridgeRoadShader": "Road", "M_TrafficCones": "T_TrafficCones", "BrickWideShader": "Brick", "ElectircPoleShader": "ElectricityPoles", "ElectricPolesShader": "ElectricityPoles", "ElectricPoleGlassShader": "ElectricityPoles"},
      "jobs": []}
+# max_tex picks the texcache: >1024 uses the 2k cache. Prefer 1024. Two reasons:
+# Roblox renders SurfaceAppearance maps above 1024x1024 as flat grey on MeshParts,
+# and 2k maps pushed every ModularRoads GLB to 23-29 MB against Open Cloud's 20 MB
+# per-file limit, so none of them uploaded (fixed 2026-09-19: 1024 -> max 6.2 MB).
+# The 2048 entries below are untested and suspect for the same grey-render reason;
+# check them in Studio before trusting them, then drop them to 1024 and re-export.
 uk_files = {"Skips": 2048, "dumpster": 2048, "LitterBin": 1024, "TrachCan": 1024, "boxes": 1024, "WoodPallets": 1024, "BusShelter": 2048, "RedPhoneBoxes": 2048, "ModernPhoneBox": 1024,
             "StreetLights": 1024, "Signs": 1024, "TrafficCones": 1024, "CrowdBarrier": 1024, "GuardRails": 1024, "armcoBarrier": 1024, "ConcreteBarriers": 1024, "ConcreteWall": 1024,
             "GardenWall": 2048, "GardenWallA": 2048, "GardenWallB": 2048, "BondaryWall": 2048, "RailingWall": 2048, "Fences": 1024, "WoodFences": 1024, "WoodenFence": 1024, "CorrugatedFence": 1024,
-            "TelegraphPoles": 1024, "ElectricityPoles": 1024, "TrafficProps": 1024, "ParkBenches": 1024, "PicnicBenches": 1024, "TrashBags": 1024, "ModularRoads": 2048, "VarioGuard": 1024,
+            "TelegraphPoles": 1024, "ElectricityPoles": 1024, "TrafficProps": 1024, "ParkBenches": 1024, "PicnicBenches": 1024, "TrashBags": 1024, "ModularRoads": 1024, "VarioGuard": 1024,
             "RoadWorksSign": 1024, "RoadClosedSign": 1024}
 for f, mt in uk_files.items():
     J["jobs"].append({"name": "UKSP__" + f, "source": UK + "\\" + f + ".fbx", "mode": "uksp", "split": True, "max_tex": mt, "flip_normal_green": True, "tri_limit": 12000})
