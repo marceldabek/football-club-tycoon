@@ -8,10 +8,10 @@
 
 | | |
 |---|---|
-| Bought/downloaded source files | **69 FBX** across 3 packs |
-| Prepped as Roblox GLBs | **378** |
-| Uploaded to Roblox | **299** |
-| Loaded into the place (`Kit.Meshes`) | **96** |
+| Bought/downloaded source files | **69 FBX + 68 housing `.blend`** across 3 packs |
+| Prepped as Roblox GLBs | **464** |
+| Uploaded to Roblox | **497** (was 299 before 2026-09-19) |
+| Loaded into the place (`Kit.Meshes`) | **96** — run `fetch_kit.luau` to get the rest |
 | **Actually referenced in `src/`** | **2** |
 
 Two of 299. The two are `UKSP__LitterBin__LitterBin` and `UKSP__ParkBenches__ParkBench01`. Everything
@@ -62,44 +62,31 @@ LampVictorian. Plus 3 AI-generated hatchbacks (navy/red/silver).
 
 ---
 
-# 2. HAVE BUT NOT UPLOADED — 79 GLBs sitting ready on disk
+# 2. RESOLVED 2026-09-19 — everything bought is now uploaded
 
-**These are already prepped, Roblox-ready, and one `tools/upload_kit.py` run from being usable.**
-This is the biggest and cheapest win in the project.
+All three gaps below are closed. 198 new assets went up in one pass.
 
-| Pack | N | What it is | Why it matters |
-|---|---|---|---|
-| **ModularRoads** | **44** | Straight, StraightYellowLines ×2, Crossroads, TJunction (L/R), Fork, CulDeSac (5 variants), 45° and 90° turns, left/right turns — most with yellow-line variants | **Every road in Rivermere is a primitive asphalt slab.** This is a complete modular road system. |
-| **BondaryWall** | **6** | WallStraight, WallCorner, Post, GatePosts, LeftGate, RightGate | **Literally the club plot boundary wall + vehicle gates** that `PlotGrounds` builds from blocks |
-| MEH | 6 | 6 more housing variants | More terrace variety |
-| RoadClosedSign | 6 | New/old closed signs, trims | Matchday road closure |
-| ElectricityPoles | 5 | 5 pole types | Estate/industrial backdrop |
-| ConcreteWall | 4 | A, B, C, cap | Industrial estate |
-| ModernPhoneBox | 4 | Clean, dirty, doors | Street variety |
-| PicnicBenches | 2 | New, old | Riverside Park |
-| VarioGuard | 2 | Middle, cap | Roads |
-
-**Action: upload all 79.** One run of `tools/upload_kit.py`, no Blender work, no money.
-
----
-
-# 3. HAVE BUT NOT EXPORTED — 7 FBX packs needing Blender
-
-Bought, sitting in `_raw/`, never run through `tools/kit/export_glb_v3.py`:
-
-| FBX | Likely use | Note |
+| Was blocked | N | Why it had failed |
 |---|---|---|
-| **Bridge** | River Lune road bridges (currently 384 primitive parts) | |
-| **Overpass** | Ring road / railway | |
-| **Pylons** | Backdrop beyond the town | manifest says 61k tris — needs decimating |
-| **UtilityPoles** | Estates | 31k tris — needs decimating |
-| **ExteriorWall** | Building shells | |
-| **Cables** | Overhead wires (currently 184 primitive parts) | |
-| **SpeedCameras** | Road detail | |
+| **ModularRoads** | **44** | Every GLB was 23-29 MB against Open Cloud's **20 MB per-file limit**. Cause was `max_tex: 2048` selecting the 2k texture cache. Re-exported at 1024: largest is now 6.2 MB, the set went 1,110 MB -> 233 MB. |
+| **MEH modular pieces** | **68** | `build_jobs.py` named only 13 of 68, and **32 of the `.blend` files were saved in Edit Mode**, which makes `bpy.ops.object.select_all` fail its poll and kill the job. `export_glb_v3.py` now forces Object Mode and deselects via `select_set`. |
+| **7 never-exported packs** | **22** | Bridge, Overpass, Cables, Pylons, UtilityPoles, ExteriorWall, SpeedCameras were simply absent from the `uk_files` dict. Pylons/UtilityPoles decimated to 7,600 tris. |
+| Prepped but unsent | 35 | BondaryWall, ConcreteWall, ElectricityPoles, ModernPhoneBox, PicnicBenches, RoadClosedSign, VarioGuard, 6 MEH |
 
-**Action: one Blender export batch.** No money, but needs the export pipeline re-run.
+Two pieces are directly useful for the club plot:
+- **`UKSP__BondaryWall__*`** — WallStraight, WallCorner, Post, GatePosts, LeftGate, RightGate
+- **`UKSP__ExteriorWall__*`** — Wall, Post, GateLeft, GateRight, GatePosts (a second gate set)
 
----
+**Both fixes are pinned in the tracked scripts**, so a rebuild cannot regress: `build_jobs.py` globs
+the pieces directory rather than naming a few, and pins ModularRoads to 1024.
+
+## Still suspect: the remaining `max_tex: 2048` entries
+
+`build_jobs.py` still asks for 2048 on GardenWall, GardenWallA/B, BondaryWall, RailingWall,
+RedPhoneBoxes, Skips, dumpster and BusShelter. Roblox renders SurfaceAppearance maps above
+1024x1024 as **flat grey on MeshParts**, so these may already look broken in the place. They are
+small enough to have uploaded, so nobody noticed. **Check them in Studio; if grey, drop to 1024 and
+re-export.**
 
 # 4. MISSING — not owned, should be found
 
