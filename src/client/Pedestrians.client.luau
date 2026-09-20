@@ -43,7 +43,6 @@ local SPAWN_ATTEMPTS_PER_RECHECK = 24
 local MAX_SPAWNS_PER_RECHECK = 3 -- TEMP: trickle in so arrivals aren't all at once
 local SPEED_MIN = 5 -- TEMP studs/s
 local SPEED_MAX = 7 -- TEMP studs/s
-local LATERAL_JITTER = 2 -- TEMP: +- studs across the 8-stud pavement so walkers don't share one line
 local RIVER_BRIDGE_SLACK = 12 -- deck ends count as bridge this far out, see PedestrianMath.blockedByRiver
 
 -- Figure: Townsfolk's shared R6 rig. Metrics and palettes live there now, so
@@ -130,7 +129,7 @@ local function pathFor(roadIndex: number, side: number): Path
 		return cached
 	end
 	local road = TownLayout.ROADS[roadIndex]
-	local points = PedestrianMath.offsetPolyline(road.points, road.width, side)
+	local points = PedestrianMath.offsetPolyline(road.points, road.width, side, PedestrianMath.kitPavementDistance(road.kind))
 	local cumulative = PedestrianMath.cumulativeLengths(points)
 	local path: Path = {
 		points = points,
@@ -287,7 +286,7 @@ local function recheckSpawns(camPos: Vector3)
 			continue
 		end
 		local distance = segStart + math.random() * (segEnd - segStart)
-		local lateral = (math.random() * 2 - 1) * LATERAL_JITTER
+		local lateral = (math.random() * 2 - 1) * PedestrianMath.kitPavementJitter(road.kind)
 		local pos = positionOn(path, distance, lateral)
 		local d = flatDistance(pos, camPos)
 		if d < minDist or d > SPAWN_MAX_DIST or blocked(pos) then

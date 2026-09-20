@@ -2,6 +2,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local PedestrianMath = require(ReplicatedStorage.Shared.PedestrianMath)
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
+local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles)
 
 local T = {}
 
@@ -43,6 +44,21 @@ function T.pavementOffsetLandsMidPavement()
 	local offset = PedestrianMath.pavementOffset(direction, 20, 1)
 	assert(math.abs(offset:Dot(direction)) < EPS, "offset is perpendicular to the road")
 	assert(math.abs(offset.Magnitude - (10 + PAVE / 2)) < EPS, "offset is half the carriageway plus half a pavement")
+end
+
+-- v3: the kit road's paved strip is narrow and close to the kerb; the rest of the
+-- corridor is grass verge, so walkers must not use the v2 width-based distance.
+function T.kitPavementLineStaysOnThePavedStrip()
+	for _, kind in { "main", "residential" } do
+		local scale = RoadTiles.SCALE[kind]
+		local d = PedestrianMath.kitPavementDistance(kind)
+		local j = PedestrianMath.kitPavementJitter(kind)
+		assert(j >= 0, "jitter is not negative")
+		assert(d - j - 1 >= 8.6 * scale - EPS, kind .. ": walker clears the kerb")
+		assert(d + j + 1 <= 12.26 * scale + EPS, kind .. ": walker stays off the verge")
+	end
+	local line = PedestrianMath.offsetPolyline({ Vector3.new(0, 0, 0), Vector3.new(100, 0, 0) }, 20, 1, 8)
+	assert(math.abs(math.abs(line[1].Z) - 8) < EPS, "offsetPolyline honours an explicit distance")
 end
 
 function T.pavementOffsetSidesAreOpposite()

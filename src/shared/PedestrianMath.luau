@@ -13,12 +13,20 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
+local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles)
 
 local PedestrianMath = {}
 
 export type SegmentRef = { roadIndex: number, segment: number }
 
-PedestrianMath.PAVEMENT_TOP = 0.45
+PedestrianMath.PAVEMENT_TOP = RoadTiles.SURFACE_Y
+-- v3 kit roads: the paved strip of a ModularRoads piece (unscaled studs from the
+-- centreline, measured from the Straight mesh: carriageway edge 7.93, paving out to
+-- 12.26, kerb about 0.7). Beyond it is the grass verge, which is where the v2
+-- width-based offset put walkers.
+PedestrianMath.KIT_PAVING_INNER = 8.6
+PedestrianMath.KIT_PAVING_OUTER = 12.26
+PedestrianMath.WALKER_HALF_WIDTH = 1
 PedestrianMath.ROAD_TOP = { ring = 0.20, main = 0.21, residential = 0.22, lane = 0.23 } :: { [string]: number }
 PedestrianMath.FOOTWAY_ABOVE_ROAD = 0.75 -- deck +0.5, footway +0.25
 PedestrianMath.PARAPET_THICK = 1.5
@@ -63,6 +71,19 @@ function PedestrianMath.pavementDistance(roadWidth: number): number
 	return roadWidth / 2 + TownLayout.PAVEMENT_WIDTH / 2
 end
 
+-- v3: distance from the centreline to the middle of the kit road's paved strip.
+function PedestrianMath.kitPavementDistance(kind: string): number
+	local scale = RoadTiles.SCALE[kind] or RoadTiles.SCALE.residential
+	return scale * (PedestrianMath.KIT_PAVING_INNER + PedestrianMath.KIT_PAVING_OUTER) / 2
+end
+
+-- v3: how far a walker may stray either side of that line and keep both feet on it.
+function PedestrianMath.kitPavementJitter(kind: string): number
+	local scale = RoadTiles.SCALE[kind] or RoadTiles.SCALE.residential
+	local half = scale * (PedestrianMath.KIT_PAVING_OUTER - PedestrianMath.KIT_PAVING_INNER) / 2
+	return math.max(0, half - PedestrianMath.WALKER_HALF_WIDTH)
+end
+
 -- Offset from the road centreline to the middle of the pavement on `side`
 -- (-1 or 1), perpendicular to `direction` in the XZ plane.
 function PedestrianMath.pavementOffset(direction: Vector3, roadWidth: number, side: number): Vector3
@@ -76,13 +97,14 @@ end
 -- bends so the walker follows the corner instead of jumping across it.
 -- Zero-length road segments borrow the nearest real segment's direction. A
 -- closed road (first point == last point) mitres its seam as well.
-function PedestrianMath.offsetPolyline(points: { Vector3 }, roadWidth: number, side: number): { Vector3 }
+-- `distance` overrides the width-based pavement distance (kitPavementDistance).
+function PedestrianMath.offsetPolyline(points: { Vector3 }, roadWidth: number, side: number, distance: number?): { Vector3 }
 	local n = #points
 	local out: { Vector3 } = {}
 	if n == 0 then
 		return out
 	end
-	local dist = side * PedestrianMath.pavementDistance(roadWidth)
+	local dist = side * (distance or PedestrianMath.pavementDistance(roadWidth))
 	if n == 1 then
 		out[1] = points[1] + perp(FALLBACK_DIR) * dist
 		return out

@@ -88,6 +88,44 @@ function RoadTiler.vergeOf(model: Instance): MeshPart?
 	return nil
 end
 
+-- The kit export gave the carriageway the pack's Road texture, which has lane lines
+-- baked in and is meant for the bridge deck. The modular pieces' UVs tile it every
+-- 12 studs ACROSS the road, so the dashes ran kerb to kerb. The pack's own material
+-- for these meshes is plain asphalt, so the carriageway drops its SurfaceAppearance
+-- and uses the same asphalt look as the roundabout discs.
+-- The carriageway is the lowest layer of every piece; a yellow-lines layer can tie
+-- with it for top height and footprint but is always thinner.
+function RoadTiler.asphaltOf(model: Instance): MeshPart?
+	local lowest = math.huge
+	local parts: { MeshPart } = {}
+	for _, d in model:GetDescendants() do
+		if d:IsA("MeshPart") then
+			table.insert(parts, d)
+			lowest = math.min(lowest, d.Position.Y + d.Size.Y / 2)
+		end
+	end
+	local best: MeshPart? = nil
+	for _, p in parts do
+		if p.Position.Y + p.Size.Y / 2 <= lowest + 0.03 and (best == nil or p.Size.Y > best.Size.Y) then
+			best = p
+		end
+	end
+	return best
+end
+
+local function surfaceAsphalt(model: Instance)
+	local asphalt = RoadTiler.asphaltOf(model)
+	if not asphalt then
+		return
+	end
+	local sa = asphalt:FindFirstChildOfClass("SurfaceAppearance")
+	if sa then
+		sa:Destroy()
+	end
+	asphalt.Color = LOOKS.asphalt.color
+	asphalt.Material = LOOKS.asphalt.material
+end
+
 local function tintVerge(model: Instance, paved: boolean)
 	local verge = RoadTiler.vergeOf(model)
 	if not verge then
@@ -166,6 +204,7 @@ function RoadTiler.build(parent: Instance, origin: CFrame, filter: { district: s
 		if model:GetAttribute("KitMissing") then
 			counts.missing += 1
 		else
+			surfaceAsphalt(model)
 			stretchZ(model, tile.stretch)
 			tintVerge(model, RoadTiler.isPavedVerge(tile.cframe.Position))
 		end

@@ -141,6 +141,64 @@ function tests.vergeOfFindsTheGrassLayerOfEveryKitRoadPiece()
 	assert(checked >= 40, "expected the 44 ModularRoads pieces, saw " .. checked)
 end
 
+-- Same idea for the carriageway: found by shape at runtime, checked here against the
+-- textures. The Road texture was uploaded more than once (DegreeRight has its own
+-- copy), so the check is that the pick is none of the paving / grass / yellow layers.
+function tests.asphaltOfFindsTheCarriagewayOfEveryKitRoadPiece()
+	if not kitInstalled() then
+		return
+	end
+	local meshes = (ServerStorage :: any).Kit.Meshes
+	local function mapOf(part: Instance): string
+		local sa = part:FindFirstChildOfClass("SurfaceAppearance")
+		return if sa then sa.ColorMap else ""
+	end
+	local reference = meshes[RoadTiles.PREFIX .. "StraightYellowLines"]
+	local referenceAsphalt = RoadTiler.asphaltOf(reference)
+	local notRoad: { [string]: boolean } = {}
+	for _, d in reference:GetDescendants() do
+		if d:IsA("MeshPart") and d ~= referenceAsphalt then
+			notRoad[mapOf(d)] = true
+		end
+	end
+	assert(referenceAsphalt and mapOf(referenceAsphalt) ~= "" and not notRoad[mapOf(referenceAsphalt)], "reference piece has a distinct road layer")
+	local checked = 0
+	for _, piece in meshes:GetChildren() do
+		if piece.Name:sub(1, #RoadTiles.PREFIX) == RoadTiles.PREFIX then
+			local asphalt = RoadTiler.asphaltOf(piece)
+			assert(asphalt, piece.Name .. ": no carriageway found")
+			local map = mapOf(asphalt :: MeshPart)
+			assert(map ~= "" and not notRoad[map], piece.Name .. ": asphaltOf picked " .. (asphalt :: MeshPart).Name .. ", not the road layer")
+			checked += 1
+		end
+	end
+	assert(checked >= 40, "expected the 44 ModularRoads pieces, saw " .. checked)
+end
+
+-- The carriageway must clear the terrain (surface about y 0.02) on every level tile;
+-- the CulDeSac heads used to sit 0.27 low and the grass covered their asphalt.
+function tests.builtCarriagewaysAreAsphaltAndClearTheGround()
+	if not kitInstalled() then
+		return
+	end
+	withBuild("Northfields", function(holder, _counts)
+		local heads = 0
+		for _, d in holder:GetDescendants() do
+			if d:IsA("Model") and d:GetAttribute("TileKind") ~= nil then
+				local asphalt = RoadTiler.asphaltOf(d) :: MeshPart
+				assert(asphalt and asphalt:FindFirstChildOfClass("SurfaceAppearance") == nil, d.Name .. ": carriageway keeps the lined texture")
+				assert(asphalt.Material == Enum.Material.Asphalt, d.Name .. ": carriageway is asphalt")
+				if d:GetAttribute("TileKind") == "head" then
+					heads += 1
+					local top = asphalt.Position.Y + asphalt.Size.Y / 2
+					assert(top > 0.05, ("%s head asphalt top at %.3f, under the grass"):format(tostring(d:GetAttribute("Road")), top))
+				end
+			end
+		end
+		assert(heads > 0, "Northfields has cul-de-sac heads")
+	end)
+end
+
 function tests.builtTilesCarryTheVergeTint()
 	if not kitInstalled() then
 		return

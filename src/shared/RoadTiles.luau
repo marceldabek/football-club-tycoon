@@ -8,8 +8,9 @@
 --   44 studs across in total, so the kit brings its own pavements (register row
 --   E4 is not needed by this lane). Piece coordinates below are in the piece's
 --   own bounding-box-centre frame at identity rotation, unscaled: +X right,
---   +Z "down" on a top-down screenshot. The pavement top is the bbox top on every
---   piece, but heights differ (0.43 to 0.76), so tiles are aligned by their TOP.
+--   +Z "down" on a top-down screenshot. Heights differ (0.43 to 0.76), so tiles are
+--   aligned by their PAVEMENT top. That is the bbox top on every piece except the
+--   CulDeSac heads, whose grass mound rises above it (see `level` in PIECES).
 --
 -- SCALE PER KIND (uniform, markings stay in proportion)
 --   residential / lane 0.816 : 44 -> 35.9, the 36-stud corridor (20 road + 16 pavement).
@@ -54,7 +55,7 @@ export type RoadIn = {
 export type RoundaboutIn = { name: string?, centre: Vector3, radius: number }
 export type Tile = {
 	piece: string, -- full kit name
-	cframe: CFrame, -- centre of the piece's bounding-box TOP face (pavement level)
+	cframe: CFrame, -- centre of the piece's bounding box in XZ, at pavement level
 	scale: number, -- uniform scale
 	stretch: number, -- extra factor along the piece's local Z (straights only), 1 otherwise
 	kind: string, -- "straight" | "bend90" | "bend45" | "tee" | "cross" | "head"
@@ -92,9 +93,11 @@ RoadTiles.PIECES = {
 	bend90R = { name = "DegreeRight", yellow = "DegreeRight90YellowLines", height = 0.433, node = { 35.74, 37.12 }, dirA = { 0, -1 }, dirB = { -1, 0 }, legA = 96.23, legB = 93.48 },
 	bend45L = { name = "DegreeLeft45Degree", yellow = "DegreeLeft45DegreeYellowLines", height = 0.715, node = { -21.49, -2.23 }, dirA = { 0, -1 }, dirB = { S, S }, legA = 60.52, legB = 69.89 },
 	bend45R = { name = "DegreeRight45Degree", yellow = "DegreeRight45DegreeYellowLines", height = 0.715, node = { 21.49, -2.23 }, dirA = { 0, -1 }, dirB = { -S, S }, legA = 60.52, legB = 69.89 },
-	-- node = centre of the turning bulb
-	head = { name = "CulDeSac", height = 0.761, node = { -16.39, 0 }, dirA = { 1, 0 }, legA = 75.26 },
-	headYellow = { name = "CulDeSacYellowLines", height = 0.761, node = { 0, 16.57 }, dirA = { 0, -1 }, legA = 75.44 },
+	-- node = centre of the turning bulb. The bulb's grass has a small mound in it, so
+	-- the bbox (height) is taller than the pavement (level); the head is aligned by
+	-- its pavement or the whole piece sits 0.27 low and the terrain covers its asphalt.
+	head = { name = "CulDeSac", height = 0.761, level = 0.433, node = { -16.39, 0 }, dirA = { 1, 0 }, legA = 75.26 },
+	headYellow = { name = "CulDeSacYellowLines", height = 0.761, level = 0.433, node = { 0, 16.57 }, dirA = { 0, -1 }, legA = 75.44 },
 } :: { [string]: any }
 
 -- Recorded for completeness; not placed (see the header for why).
@@ -670,15 +673,15 @@ function RoadTiles.plan(roads: { RoadIn }, roundabouts: { RoundaboutIn }?, bridg
 	return { tiles = tiles, exempt = exempt, stats = stats }
 end
 
--- Height of a piece (unscaled), so the assembler can convert a tile's top-centre
--- CFrame into KitPlacer's bottom-centre one.
+-- Height of a piece's pavement above its bottom (unscaled), so the assembler can
+-- convert a tile's pavement-level CFrame into KitPlacer's bottom-centre one.
 local heightByName: { [string]: number } = {}
 local defByName: { [string]: any } = {}
 for _, def in RoadTiles.PIECES do
-	heightByName[PREFIX .. def.name] = def.height
+	heightByName[PREFIX .. def.name] = def.level or def.height
 	defByName[PREFIX .. def.name] = def
 	if def.yellow then
-		heightByName[PREFIX .. def.yellow] = def.height
+		heightByName[PREFIX .. def.yellow] = def.level or def.height
 		defByName[PREFIX .. def.yellow] = def
 	end
 end
