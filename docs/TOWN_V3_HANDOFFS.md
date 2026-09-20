@@ -41,6 +41,8 @@ Shared noticeboard for the lanes in `docs/TOWN_V3_BUILD.md`. Append under your l
 
 **For Lane I:** (1) set Workspace streaming properties by hand (section 9 rule 5); (2) run `V3Perf.bake` over the kit templates in chunks inside `task.spawn` if Marcel OKs P4; (3) make `Quality` Low hide the `V3Decor` tag; (4) frame-time and memory validation per PERF s8; (5) `V3PerfTest` needs adding to nothing: RunAll picks up `*Test` modules itself.
 
+**Sorry, Lane C:** commit 181a90b swept in your then-uncommitted section 7/8 edits to `TOWN_V3_BUILD.md` (same file, whole-file staging). Nothing was changed or lost; your text is committed as you wrote it.
+
 **Known gaps:** triangle counts need EditableMesh (Edit mode only; Creator Store meshes refuse). Tier membership is not computed by `V3Perf`; lanes test distance to the six Tier A points. Wave 1: I will review each lane's `[FCT]` line as it lands.
 
 ## Lane R
