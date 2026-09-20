@@ -17,6 +17,11 @@ Shared noticeboard for the lanes in `docs/TOWN_V3_BUILD.md`. Append under your l
 - **P3. MEH modular pieces are untextured.** All 68 `MEH__*__ts1` modular pieces have no SurfaceAppearance and no TextureID (flat pale grey in Studio); the MEH prefab houses are textured. This is an export problem, not a Lane H bug. *Recommendation: re-export the modular pieces with the trim-sheet texture at max_tex 1024 before Lane H's review screenshots; needs you or whoever runs the Blender export.*
 - **P4. OK to bake collision/render fidelity into `ServerStorage.Kit` templates?** Fidelity cannot be set by script per clone; `V3Perf.bake` rewrites the templates once (Box collision, ~2 minutes, Edit mode, reversible by re-running `fetch_kit.luau` on a cleared folder). It touches the shared kit, so I have not run it. *Recommendation: yes, Lane I runs it before integration.*
 
+**From Lane C (commercial, industrial, civic)**
+
+- **C1. Please approve buy-list items #1-#5 (about $25).** rik4000 UK Commercial Buildings Pack 1 and 2, UK Industrial Buildings Pack 1, UK Pub Pack 1 (Unity Asset Store, $5 each) and UK Service Buildings Pack 1 (GameDev Market, about $5, has 2 train stations). Full table with links and licences: `docs/TOWN_V3_BUILD.md` s8.2. The kit has no shopfront, pub, industrial unit or station, so today the High Street is MEH house walls with bay windows and reads as housing. These packs are one low-poly mesh per building, which is also lighter than my modular stand-ins. They are 2017-era and flatter than MEH up close. *Recommendation: yes, buy all five, judge them on the High Street, and only if they look too dated there buy #6 British Modular Buildings ($27.99), which would put 3D spend about $3 over the $120 cap.*
+- **C2. The church is 238 primitive Parts.** The `ChurchSpire` Creator Store keeper is not a mesh. No mesh church was found in the searches. *Recommendation: keep it for now (register EC7), AI-mesh or buy a church later; it is one building.*
+
 ## Lane A
 
 ## Lane P
@@ -50,6 +55,30 @@ Shared noticeboard for the lanes in `docs/TOWN_V3_BUILD.md`. Append under your l
 ## Lane H
 
 ## Lane C
+
+**Done 2026-09-20.** `TradeRecipes` (pure, seeded from `Lot.id`) and `TradeAssembler.build(parent, origin, filter)` build all 134 frontage lots of the seven trade uses plus 21 building-type specials (pubs, pub and cafes, park cafe, supermarket, 2 shop blocks, town hall, 3 schools, church, waterfront flats, sports hall, builders yard). Reads live `TownFrontage.generate()` and `TownLayout.DISTRICTS`; falls back to a fixture inside `TradeRecipes` if either is missing. Specials have no `front`, so they face whichever long side is nearer a road.
+
+- Whole town in `Workspace.V3Sandbox.C` at (-6000, 0, 0): `meshParts=2741` of 4,000, `uniqueMeshIds=43`, `kitMissing=0`, `parts=220` (all inside the church keeper, tagged `V3Exempt = "EC7"`). Builds in 1.5 s. One Atomic Model per lot named by `Lot.id`, district groups `Trade_<district>` Default, `V3Perf.applyDefaults` on every piece.
+- Tests: `TradeRecipesTest` 8/8, `TradeAssemblerTest` 7/7 (fit the lot box, deterministic, zero KitMissing, every primitive exempt, textured, within budget, district filter).
+- **No Part is created by Lane C code.** What is honest to say instead: almost everything is a *stand-in made of kit meshes*, registered as EC1-EC5 in s7. Parades are MEH bays and doors (read as housing, no fascia); industrial units are UKSP corrugated fence sheet stretched to wall panels with MEH garage doors scaled 1.5-2.5x; pubs are prefab houses; town hall and schools are `Office_01`. Buy list s8 fixes these.
+- **MEH modular pieces are untextured (same as P3).** Found that the prefab trim sheet fits the modular UVs, so `TradeAssembler` clones the SurfaceAppearance from `MEH__House_01_VAR01__ts1/ts3` onto any untextured MEH MeshPart. Lane H can do the same today; it is skipped automatically once the pieces are re-exported.
+- Cost savers worth knowing: blank back and side walls are covered by uniformly scaled `Wall_A` squares (6 x 4 modules = 3 pieces, brick looks 2-4x larger and shows a seam); rear roof slopes and flat roofs are one stretched piece.
+
+**Known bugs / rough edges**
+- Screenshots: the MCP capture returns the image to the agent only and cannot write to disk, so `docs/v3_review/C/` is empty. Four captures were taken (prefab facing probe, untextured modules, trim-sheet fix, High Street parade). To review: Studio camera at (-6150, 30, -5) looking at (-6230, 14, -34).
+- `PH__security_camera_01` orientation on the parades was not checked visually.
+- Scaled garage doors on warehouses are 20 studs tall: fine from a distance, cartoonish up close.
+- Corner shops are `House_02` scaled 0.87 to fit the 18 x 24 lot; doors are slightly under character height.
+- Specials that are ground or belong to a dresser are NOT built here: parks, pitches, marina, bandstand, station car park. There is no station building in the specials list at all (EC6).
+- Lots at 45 degrees are placed through `Lot.front`; not visually checked.
+
+**Integrator must wire**
+- Call `TradeAssembler.build(townFolder, CFrame.new(), nil)` from the town build; retire `ShopBuilder` and the building half of `ShopDresser` (anything that draws SurfaceGui shopfronts or primitive shop/industrial/pub/flat blocks). `SquareDresser` builds a church for `use == "church"` blocks (lines 816, 844) and `SportsCentreDresser` a sports hall (line 324): pick one owner for each or they will double up with mine.
+- When real shop/pub/industrial meshes arrive, only `TradeRecipes.recipeFor` changes: return one piece per lot and delete the EC rows.
+- The fixture inside `TradeRecipes` (between `FIXTURE BEGIN/END`) can be deleted once `TownFrontage` and the v3 `TownLayout` are committed.
+
+**District dresser coordinate check (Station, Marina, Park, School, SportsCentre, Square): nothing to fix.** None holds a literal world coordinate. All six find their blocks with `for _, district in TownLayout.DISTRICTS ... block.use == ...`, roads by name (`"Station Road"`) and landmarks from `TownLayout.LANDMARKS`, so the nudged pubs, supermarket and moved roads follow the data. Two assumptions to keep true: `StationDresser.yellowLineRuns` treats the LAST segment of Station Road as the straight past the station (v3: (-737,-337) to (-938,-337), still true), and `TownLayout.STATION_LAYBY` (z = -354, width 8) must stay on that segment's kerb (road centre -337, width 26, kerb -350: still true).
+
 
 ## Lane F
 
