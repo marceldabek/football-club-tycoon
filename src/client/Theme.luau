@@ -29,6 +29,21 @@ Theme.fonts = {
 	body = Enum.Font.Gotham,
 }
 
+-- X370: every ScreenGui here sets IgnoreGuiInset, so offsets are measured from
+-- the very top of the screen -- underneath Roblox's own top bar and its
+-- top-left menu button. Anything anchored to the top-left has to start below
+-- that or it sits under the menu. Roblox reports the inset as the first return
+-- of GetGuiInset(); it is 36 on desktop but taller on phones with a notch, so
+-- read it rather than hard-coding a number.
+local GuiService = game:GetService("GuiService")
+
+-- Y for the nth row of the top-left stack, clear of the Roblox top bar.
+-- Rows are 46 apart, which fits a 38-high pill or a 34-high button with a gap.
+function Theme.topLeftY(row: number): number
+	local inset = GuiService:GetGuiInset().Y
+	return inset + 12 + (row - 1) * 46
+end
+
 -- One outline for the whole game: same colour, same weight, same softness. Only
 -- state changes it (selected / drop target / danger), never decoration.
 Theme.outlineTransparency = 0.7

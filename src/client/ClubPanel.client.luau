@@ -1182,11 +1182,13 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt,
 	end
 end)
 
--- CLUB button (top-left under cash), handy on mobile and away from the office
+-- CLUB button (top-left under cash), handy on mobile and away from the office.
+-- X370: row 2 of the shared top-left stack, so it stays clear of Roblox's top
+-- bar and lines up with the cash pill and GO TO MY CLUB.
 local openButton = button(gui, "CLUB OFFICE", Theme.colors.info, {
 	Name = "Open",
 	Size = UDim2.fromOffset(140, 34),
-	Position = UDim2.fromOffset(20, 96),
+	Position = UDim2.fromOffset(20, Theme.topLeftY(2)),
 	TextSize = 15,
 })
 openButton.Activated:Connect(function()

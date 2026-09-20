@@ -39,51 +39,31 @@ gui.Parent = player:WaitForChild("PlayerGui")
 
 -- ------------------------------------------------------------ top-left stack
 
+-- X370: the stack is row 1 cash, row 2 CLUB OFFICE (built in ClubPanel), row 3
+-- GO TO MY CLUB. Rows start below Roblox's top bar so the cash pill no longer
+-- sits under the menu button.
 local cashLabel = Theme.pill(gui, "Cash", {
 	Size = UDim2.fromOffset(220, 38),
-	Position = UDim2.fromOffset(20, 50),
+	Position = UDim2.fromOffset(20, Theme.topLeftY(1)),
 	TextXAlignment = Enum.TextXAlignment.Left,
 	TextSize = 20,
 	TextColor3 = C.cash,
 })
 
--- (the CLUB button lives in ClubPanel at y = 96)
-
 -- GO TO MY CLUB (B4.2): teleports the owner home from anywhere in town.
--- Sits under the CLUB OFFICE button; the season line below it is wide, so
--- this row sits below that instead of squeezing beside it.
 local goHomeButton = Theme.button(gui, "GO TO MY CLUB", "info", {
 	Name = "GoHome",
 	Size = UDim2.fromOffset(140, 34),
-	Position = UDim2.fromOffset(20, 164),
+	Position = UDim2.fromOffset(20, Theme.topLeftY(3)),
 	TextSize = 14,
 })
 goHomeButton.Activated:Connect(function()
 	goHomeEvent:FireServer()
 end)
 
-local seasonLabel = Theme.text(gui, "", "muted", {
-	Name = "Season",
-	Size = UDim2.fromOffset(560, 22),
-	Position = UDim2.fromOffset(24, 136),
-	Font = Theme.fonts.bold,
-	TextSize = 15,
-	TextStrokeTransparency = 0.6,
-})
-
-local function refreshSeason()
-	local round, rounds = get("Round") or 0, get("Rounds") or 10
-	local division = get("DivisionName") or ""
-	if round == 0 then
-		seasonLabel.Text = ("%s   ·   Season %d   ·   Match 1 of %d next"):format(division, get("Season") or 1, rounds)
-	else
-		seasonLabel.Text = ("%s   ·   Match %d of %d played   ·   %s"):format(division, round, rounds, ordinal(get("Position") or 1))
-	end
-end
-for _, key in { "Round", "Position", "DivisionName", "Season" } do
-	state:GetAttributeChangedSignal(key):Connect(refreshSeason)
-end
-refreshSeason()
+-- X370: the "Division · Season n · Match n of 10" line used to sit here. It
+-- crowded the top-left stack and repeated what the club panel already shows,
+-- so it is gone. Season and fixture state still live on the club panel.
 
 -- --------------------------------------------------------------- top-right
 
@@ -984,7 +964,6 @@ local function refreshLoading()
 	local loading = phase == "Loading"
 	loadingCover.Visible = loading
 	cashLabel.Visible = not loading
-	seasonLabel.Visible = not loading
 	musicButton.Visible = not loading
 	-- X251: matchday keeps the owner at their ground; the server refuses anyway
 	goHomeButton.Visible = not loading and phase ~= "PreMatch" and phase ~= "Match"
