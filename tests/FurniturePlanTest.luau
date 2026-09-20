@@ -144,7 +144,7 @@ T["lamps alternate sides and keep their spacing"] = function()
 		assert(a.cframe.RightVector:Dot(toRoad) > 0.99, "lamp arm does not overhang the road")
 		for j = i + 1, #lamps do
 			local gap = (a.cframe.Position - lamps[j].cframe.Position).Magnitude
-			assert(gap >= FurniturePlan.RULES.main.lamp / 2 - 0.01, ("lamps %.1f apart"):format(gap))
+			assert(gap >= FurniturePlan.RULES.B.main.lamp / 2 - 0.01, ("lamps %.1f apart"):format(gap))
 		end
 	end
 	assert(math.abs(north - south) <= 2, ("lamps do not alternate: %d north, %d south"):format(north, south))
@@ -237,6 +237,25 @@ T["district filter keeps only that district's roads"] = function()
 	for _, pl in plan(nil, { district = FurniturePlan.NO_DISTRICT }) do
 		assert(pl.road == "High Road", "through-road filter leaked " .. pl.road)
 	end
+end
+
+T["Tier A is denser than Tier B, and only inside its radius"] = function()
+	local input = fixture()
+	local sparse = #ofCategory(plan(input), "lamp", "High Road")
+	input.tierACentres = { v(-600, 0) }
+	local list = plan(input)
+	local nearA, farA = 0, 0
+	for _, pl in ofCategory(list, "lamp", "High Road") do
+		if pl.cframe.Position.X < -600 + FurniturePlan.TIER_A_RADIUS then
+			nearA += 1
+		elseif pl.cframe.Position.X > 0 then
+			farA += 1
+		end
+	end
+	assert(#ofCategory(list, "lamp", "High Road") > sparse, "Tier A added no lamps")
+	-- 450 studs at one lamp per 20, against 600 studs at one per 35
+	assert(nearA >= 18 and farA <= 18, ("Tier A %d lamps, Tier B %d"):format(nearA, farA))
+	assert(#FurniturePlan.violations(input, list) == 0, "Tier A broke a placement rule")
 end
 
 T["stats count what was planned"] = function()

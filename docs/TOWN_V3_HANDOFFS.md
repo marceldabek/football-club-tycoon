@@ -82,4 +82,32 @@ Shared noticeboard for the lanes in `docs/TOWN_V3_BUILD.md`. Append under your l
 
 ## Lane F
 
+**Done 2026-09-20.** `src/shared/FurniturePlan.luau` (pure rules), `src/server/StreetFurniture.luau` (builder), `tests/FurniturePlanTest.luau` (19) + `tests/StreetFurnitureTest.luau` (7): 26 pass, all four files `loadstring` clean. Runs on Lane A's real `TownLayout.ROADS` + `TownFrontage.generate()` (no fixture file needed).
+
+- `StreetFurniture.build(parent, origin, { district = ... })` per 4.3; `buildFrom(input, ...)` takes explicit data. One **non-atomic** grouping Model per district (`Furniture_<district>`; roads with no district go in `Furniture_Through Roads`). Each prop is a Model named by category with `Kit` and `Road` attributes, `V3Perf.applyDefaults` applied (`prop`; manholes and cones are `decor` and tagged `V3Decor`).
+- Rules by road kind and by Lane P's tiers (looked up per spot, 450 studs from plots / square / station): lamps alternate sides with the arm over the road, telegraph poles down one side, give-way at every minor-road mouth and roundabout entry (driver's left, facing the driver), 40 signs on ring/main both directions, bins + benches on mains and outside every shop lot, phone boxes sparse, shelter + bench + bin at each `BUS_STOPS` entry (snapped to the nearest road's pavement, slid out of junction mouths), guard rails with a gate gap + warning signs at the 3 schools, manholes, utility cabinets, rare roadworks (sign, barrier, 4 cones), parked 1-MeshPart hatchbacks against the kerb on the UK side, only in front of housing lots.
+- Nothing lands in a road corridor, lot, special block, junction mouth (other road's half width + 8 pavement + 6), roundabout, turning head (34), plot, market square or bridge ramp. `FurniturePlan.violations(input, placements)` re-checks any plan; whole town = 0 violations. Only exception: category `car` sits on its OWN residential carriageway (`onCarriageway = true`).
+- **Fails loudly:** budget clipping and missing kit names `warn` and are counted; the `[FCT] Furniture:` line prints placed/planned per category, parts vs budget, clipped, missing, plus `V3Perf.format`. A missing asset is destroyed, never left as a grey block. Cheap decor is placed last so a clip hits manholes before lamps.
+
+**Counts vs budget (whole town, planned, not built town-wide in Studio):** 2,859 props = **3,321 MeshParts of 4,500** (Tier A 843 = ~8 per 100 studs, Tier B 2,478 = ~4.5 per 100). 0 clipped, 0 missing, 0 KitMissing, 0 primitives, 0 skipped bus stops. Review district `Mill Street Terraces` is built in `Workspace.V3Sandbox.F` at (6000, 0, 6000): 230 props, 261 MeshParts. Plan time 0.15 s. Spacing lives in `FurniturePlan.RULES.A/.B`; ~1,180 parts of headroom are left on purpose.
+
+**Known bugs / gaps**
+1. **No street-name plate asset in the kit** (all 78 `Signs` are pole-mounted traffic signs). None placed, no primitive stand-in. Lane C: please add "UK street name plate" to the buy/generate list. Until then `SignDresser`/`TerraceStreetDresser` plates are the only street names.
+2. **`UKSP__Cables__Cables` is unusable as a span**: it is one pre-arranged 34 x 34 x 184 bundle (2 parts), not a pole-to-pole piece. Poles stand without wires. Needs a single sagging-wire mesh (buy/generate) or an exceptions-register row if `WireDresser`'s wire parts are kept.
+3. Sign identities were read from one catalogue screenshot (SignNew 04-10, 17-23, 30-36 seen): 04 give way, 05 reduce speed, 06 pedestrians, 09 crossroads, 19 school patrol, 20 national limit, 21 "40", 22 no entry, 31 roundabout, 33 two-way. No "30" identified, so mains use the 40 (TEMP). 04 carries a "STOP 100 yds" plate.
+4. Tier A is under its 15 per 100 allowance (about 8): junction mouths eat a lot of a short street. Easy to raise in `RULES.A`.
+5. Heights are constants: `PAVEMENT_Y = 0.45`, `ROAD_Y = 0.05` (cars). Lane R: tell me (or the Integrator pass `opts`) if your pavement/road tops differ. Bridges are skipped entirely (no lamps on decks).
+6. Guard rails only at schools; there is no crossings data in the contract. `CrossingDresser` spots could feed it later.
+7. Hatchback bonnet direction was checked on `HatchbackNavy` only (bonnet = back vector).
+8. **Vehicles provenance:** the parked cars are the Creator Store keepers flagged unverified in `docs/ASSET_INVENTORY.md` s1. Used as instructed; swap the four names in `FurniturePlan.ASSETS.cars` if they are replaced.
+9. **Plot boundaries (garden walls, gates, wheelie bins; 13,500 budget, "F by default") are NOT built.** Out of my kickoff scope and best done against Lane H's real fronts. Lane A / Marcel: assign it (it needs a new file pair, so a Rojo reconnect).
+10. Screenshots: 4 taken in-session (sign catalogue, Spinner Street, Mill Street close, Mill Street district oblique) but the Studio MCP capture tool returns the image to the agent only and writes no file, so `docs/v3_review/F/` is empty. The sandbox shows props over void (no road or houses in F's sandbox), so a fair side-by-side with the slice needs Lane I's assembled district.
+
+**For the Integrator (Lane I)**
+- Wire: `StreetFurniture.build(townFolder, CFrame.new(), nil)` after roads and buildings. Add nothing to `RunAll` (it picks up `*Test`).
+- `TownLayout.BUS_STOPS` still holds v1 positions; all 11 snapped to a road within 150 studs, but the Plot 2/3/4 stops should be re-sited by Lane A for the moved plots. A stop with no road nearby is warned about, not dropped silently.
+- Retire (prop halves superseded): `StreetDresser` kit lamps / bins / parked cars and `TerraceBuilder.lamp` posts on light streets; `TerraceStreetDresser` parked cars; `WireDresser` poles; `SignDresser` nothing yet.
+- Keep until replaced: `TerraceStreetDresser` street trees, front garden walls/railings/hedges and **street name plates**; `SignDresser` name plates and roundabout fingerposts; `ForecourtDresser` paving, hanging baskets, A-boards, cafe tables, planters, semis paths; `WireDresser` wires (if overhead wires are wanted; primitives, would need a register row). `StreetDresser`'s terrace-row swapping belongs to Lane H.
+- Client code that looks for old names (`TelegraphPole`, `PoleArm`, `Wire` hidden on Low; lamp-post club banners in `TownLife`) will not find these props: lamps here are Models named `lamp`.
+
 ## Lane I

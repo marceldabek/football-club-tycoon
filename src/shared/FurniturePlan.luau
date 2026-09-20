@@ -46,6 +46,7 @@ export type Input = {
 	plots: { { centre: Vector3 } }?,
 	plotSize: number?,
 	square: { centre: Vector3, radius: number }?,
+	tierACentres: { Vector3 }?, -- nil or empty: the whole town is Tier B
 }
 export type Options = { pavementY: number?, roadY: number?, district: string? }
 export type Placement = {
@@ -70,16 +71,28 @@ FurniturePlan.MOUTH_MARGIN = 6 -- kept clear beyond the crossing road's own pave
 FurniturePlan.NO_DISTRICT = "Through Roads" -- ring, mains and lanes carry no district
 FurniturePlan.BUS_STOP_SNAP = 150 -- a stop further than this from any road is skipped and reported
 
--- Spacing is along ONE side. Lamps alternate sides, so `lamp = 100` is a lamp
--- every 50 studs of road. The slice is 40 (one every 20); town-wide that alone
--- would be 3,300 lamps against a 3,000 MeshPart budget, so the town runs wider.
--- TEMP numbers, tuned to the section 9 budget; Lane P may change them.
+-- Spacing is along ONE side. Lamps alternate sides, so `lamp = 40` is a lamp
+-- every 20 studs of road, which is what the slice has.
+-- Two tiers, from Lane P (docs/TOWN_V3_BUILD.md section 9): Tier A is slice
+-- density, about 15 MeshParts per 100 studs of road, within TIER_A_RADIUS of
+-- the plots, the market square and the station; Tier B is about 5 per 100
+-- studs everywhere else. The tier is looked up at each spot, so a road that
+-- runs out of a Tier A circle thins out along its length.
+FurniturePlan.TIER_A_RADIUS = 450
 FurniturePlan.RULES = {
-	ring = { lamp = 110, pole = 0, speed = 420, bin = 0, bench = 0, manhole = 260, car = 0, phoneChance = 0 },
-	main = { lamp = 90, pole = 0, speed = 380, bin = 170, bench = 230, manhole = 220, car = 0, phoneChance = 0.5 },
-	residential = { lamp = 120, pole = 95, speed = 0, bin = 0, bench = 0, manhole = 240, car = 85, phoneChance = 0.06 },
-	lane = { lamp = 160, pole = 110, speed = 0, bin = 0, bench = 0, manhole = 0, car = 0, phoneChance = 0 },
-} :: { [string]: { [string]: number } }
+	A = {
+		ring = { lamp = 50, pole = 0, speed = 300, bin = 0, bench = 0, manhole = 130, car = 0, phoneChance = 0 },
+		main = { lamp = 40, pole = 0, speed = 300, bin = 80, bench = 110, manhole = 110, car = 0, phoneChance = 0.6 },
+		residential = { lamp = 40, pole = 90, speed = 0, bin = 0, bench = 0, manhole = 120, car = 42, phoneChance = 0.15 },
+		lane = { lamp = 80, pole = 90, speed = 0, bin = 0, bench = 0, manhole = 0, car = 0, phoneChance = 0 },
+	},
+	B = {
+		ring = { lamp = 90, pole = 0, speed = 420, bin = 0, bench = 0, manhole = 260, car = 0, phoneChance = 0 },
+		main = { lamp = 70, pole = 0, speed = 380, bin = 170, bench = 230, manhole = 220, car = 0, phoneChance = 0.5 },
+		residential = { lamp = 90, pole = 95, speed = 0, bin = 0, bench = 0, manhole = 240, car = 65, phoneChance = 0.06 },
+		lane = { lamp = 160, pole = 110, speed = 0, bin = 0, bench = 0, manhole = 0, car = 0, phoneChance = 0 },
+	},
+} :: { [string]: { [string]: { [string]: number } } }
 FurniturePlan.ROADWORKS_CHANCE = 0.07 -- per road
 FurniturePlan.CAR_KEEP = 0.75 -- a car slot in front of housing is filled this often
 
@@ -370,6 +383,21 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 	local stats: Stats = { planned = {}, rejected = {}, skippedBusStops = {} }
 	local A = FurniturePlan.ASSETS
 
+	local function tierAt(p: Vector3): string
+		for _, centre in input.tierACentres or {} do
+			if flat(p - centre).Magnitude <= FurniturePlan.TIER_A_RADIUS then
+				return "A"
+			end
+		end
+		return "B"
+	end
+
+	-- The rule `key` for `road` at arc length `s` (the tier can change along a road).
+	local function rule(road: RoadIn, s: number, key: string): number
+		local tier = FurniturePlan.RULES[tierAt((FurniturePlan.pointAt(road, s)))]
+		return (tier[road.kind] or tier.residential)[key]
+	end
+
 	local function wanted(road: RoadIn): boolean
 		return opts.district == nil or (road.district or FurniturePlan.NO_DISTRICT) == opts.district
 	end
@@ -487,10 +515,9 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 		if not wanted(road) then
 			continue
 		end
-		local rules = FurniturePlan.RULES[road.kind] or FurniturePlan.RULES.residential
 		local rng = Random.new(FurniturePlan.seedFor(road.name))
 		local length = FurniturePlan.roadLength(road)
-		local half = road.width / 2
+		local mid = length / 2
 		local closed = flat(road.points[1] - road.points[#road.points]).Magnitude < 1
 
 		-- 3. Give way where this road runs into a bigger or equal one, or into a roundabout.
@@ -534,76 +561,76 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 		end
 
 		-- 4. Lamps, alternating sides, arm towards the road.
-		if rules.lamp > 0 then
-			local step = rules.lamp / 2
-			local s, i = step / 2, 0
+		if rule(road, mid, "lamp") > 0 then
+			local s, i = rule(road, 0, "lamp") / 4, 0
 			while s < length do
 				local side = if i % 2 == 0 then 1 else -1
 				local pos, _, n = onPavement(road, s, side, 6.5)
 				try(road, "lamp", A.lamps[(i // 2) % #A.lamps + 1], facingRight(pos, -n), 0.5, 1.5, nil)
-				s += step
+				s += rule(road, s, "lamp") / 2
 				i += 1
 			end
 		end
 
 		-- 5. Telegraph poles down one side (the side is the road's own coin toss).
 		local poleSide = if rng:NextNumber() < 0.5 then 1 else -1
-		if rules.pole > 0 then
-			local s = rules.pole * (0.3 + 0.4 * rng:NextNumber())
+		if rule(road, mid, "pole") > 0 then
+			local s = rule(road, 0, "pole") * (0.3 + 0.4 * rng:NextNumber())
 			while s < length do
 				local pos, t = onPavement(road, s, poleSide, 6.8)
 				local name = A.poles[rng:NextInteger(1, #A.poles)]
 				try(road, "pole", name, facing(pos, t) * CFrame.Angles(0, math.rad(rng:NextInteger(-20, 20)), 0), 0.5, 1.5, nil)
-				s += rules.pole
+				s += rule(road, s, "pole")
 			end
 		end
 
 		-- 6. Speed limits on the ring and mains, both directions, on the driver's left.
-		if rules.speed > 0 then
+		if rule(road, mid, "speed") > 0 then
 			local name = if road.kind == "ring" then A.speedRing else A.speedMain
-			local s = rules.speed * 0.25
+			local s = rule(road, 0, "speed") * 0.25
 			while s < length do
+				local gap = rule(road, s, "speed")
 				local pos, t = onPavement(road, s, 1, 6.8)
 				try(road, "sign", name, facing(pos, -t), 0.5, 1.2, nil)
-				local s2 = s + rules.speed / 2
+				local s2 = s + gap / 2
 				if s2 < length then
 					local pos2, t2 = onPavement(road, s2, -1, 6.8)
 					try(road, "sign", name, facing(pos2, t2), 0.5, 1.2, nil)
 				end
-				s += rules.speed
+				s += gap
 			end
 		end
 
 		-- 7. Bins and benches along main streets.
-		if rules.bin > 0 then
-			local s, i = rules.bin * rng:NextNumber(), 0
+		if rule(road, mid, "bin") > 0 then
+			local s, i = rule(road, 0, "bin") * rng:NextNumber(), 0
 			while s < length do
 				local pos, t = onPavement(road, s, if i % 2 == 0 then 1 else -1, 3.4)
 				try(road, "bin", A.bins[i % #A.bins + 1], facing(pos, t), 1.1, 1.2, nil)
-				s += rules.bin
+				s += rule(road, s, "bin")
 				i += 1
 			end
 		end
-		if rules.bench > 0 then
-			local s, i = rules.bench * rng:NextNumber(), 0
+		if rule(road, mid, "bench") > 0 then
+			local s, i = rule(road, 0, "bench") * rng:NextNumber(), 0
 			while s < length do
 				local pos, _, n = onPavement(road, s, if i % 2 == 0 then -1 else 1, 5.5)
 				try(road, "bench", A.benches[i % #A.benches + 1], facing(pos, n), 1.3, 3.8, nil)
-				s += rules.bench
+				s += rule(road, s, "bench")
 				i += 1
 			end
 		end
 
 		-- 8. A phone box, sometimes.
-		if rng:NextNumber() < rules.phoneChance and length > 120 then
+		if rng:NextNumber() < rule(road, mid, "phoneChance") and length > 120 then
 			local s = length * (0.25 + 0.5 * rng:NextNumber())
 			local pos, _, n = onPavement(road, s, -poleSide, 5.8)
 			try(road, "phoneBox", A.phones[rng:NextInteger(1, #A.phones)], facing(pos, -n), 1.4, 1.6, nil)
 		end
 
 		-- 9. Manhole covers and the odd utility cabinet.
-		if rules.manhole > 0 then
-			local s, i = rules.manhole * rng:NextNumber(), 0
+		if rule(road, mid, "manhole") > 0 then
+			local s, i = rule(road, 0, "manhole") * rng:NextNumber(), 0
 			while s < length do
 				local side = if rng:NextNumber() < 0.5 then 1 else -1
 				local pos, t, n = onPavement(road, s, side, 4)
@@ -612,7 +639,7 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 					local boxPos = onPavement(road, s + 14, side, 5.9)
 					try(road, "cabinet", A.cabinet, facing(boxPos, -n), 1.55, 1.8, nil)
 				end
-				s += rules.manhole
+				s += rule(road, s, "manhole")
 				i += 1
 			end
 		end
@@ -668,12 +695,11 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 		if not wanted(road) then
 			continue
 		end
-		local rules = FurniturePlan.RULES[road.kind] or FurniturePlan.RULES.residential
-		if rules.car <= 0 then
+		local length = FurniturePlan.roadLength(road)
+		if rule(road, length / 2, "car") <= 0 then
 			continue
 		end
 		local rng = Random.new(FurniturePlan.seedFor(road.name .. "|cars"))
-		local length = FurniturePlan.roadLength(road)
 		local fronting: { LotIn } = {}
 		for _, lot in input.lots do
 			if lot.street == road.name and PARKING_USES[lot.use] then
@@ -684,9 +710,10 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 			continue
 		end
 		for _, side in { 1, -1 } do
-			local s = rules.car * rng:NextNumber()
+			local s = rule(road, 0, "car") * rng:NextNumber()
 			while s < length do
-				local jitter = (rng:NextNumber() - 0.5) * rules.car * 0.4
+				local gap = rule(road, s, "car")
+				local jitter = (rng:NextNumber() - 0.5) * gap * 0.4
 				local keep = rng:NextNumber() < FurniturePlan.CAR_KEEP
 				local pick = rng:NextInteger(1, #A.cars)
 				local flip = rng:NextNumber() < 0.2
@@ -710,7 +737,7 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 					-- the keeper hatchbacks are modelled bonnet-to-back-vector, hence -look
 					try(road, "car", A.cars[pick], facing(Vector3.new(pos.X, roadY, pos.Z), -look), 5, 10.5, true)
 				end
-				s += rules.car
+				s += gap
 			end
 		end
 	end

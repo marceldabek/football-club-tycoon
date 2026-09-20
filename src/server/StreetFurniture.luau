@@ -1,6 +1,6 @@
 --!strict
 -- Rivermere v3, Lane F: street furniture at vertical-slice density. Turns the
--- pure FurniturePlan into kit models, one Model per district. No primitives:
+-- pure FurniturePlan into kit models, one (non-atomic) Model per district. No primitives:
 -- every prop is a ServerStorage.Kit asset placed through KitPlacer.
 --
 -- FAILS LOUDLY. The old budgeted dressers stopped placing props with no error
@@ -8,6 +8,7 @@
 -- that is missing, is warned about and counted in the `[FCT] Furniture:` line
 -- as placed/planned per category.
 
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local FurniturePlan = require(ReplicatedStorage.Shared.FurniturePlan)
@@ -18,7 +19,7 @@ local V3Perf = require(script.Parent.V3Perf)
 
 local StreetFurniture = {}
 
-StreetFurniture.PART_BUDGET = 3000 -- TEMP, docs/TOWN_V3_BUILD.md section 9 (MeshParts, whole town)
+StreetFurniture.PART_BUDGET = 4500 -- docs/TOWN_V3_BUILD.md section 9, published by Lane P (MeshParts, whole town)
 
 -- V3Perf.applyDefaults kind per category. "decor" has no collision at all.
 local PERF_KIND: { [string]: string } = {
@@ -57,6 +58,11 @@ function StreetFurniture.townInput(): FurniturePlan.Input
 	for i in layout.PLOTS or {} do
 		table.insert(plots, { centre = layout.plotCFrame(i).Position })
 	end
+	-- Tier A (section 9): the plots, the market square and the station.
+	local tierA = { Vector3.new(0, 0, 0), Vector3.new(-900, 0, -350) }
+	for _, plot in plots do
+		table.insert(tierA, plot.centre)
+	end
 	return {
 		roads = layout.ROADS,
 		lots = frontage.generate(),
@@ -67,6 +73,7 @@ function StreetFurniture.townInput(): FurniturePlan.Input
 		plots = plots,
 		plotSize = layout.PLOT_SIZE,
 		square = layout.SQUARE,
+		tierACentres = tierA,
 	}
 end
 
@@ -98,7 +105,8 @@ function StreetFurniture.buildFrom(input: FurniturePlan.Input, parent: Instance,
 		if not model then
 			model = Instance.new("Model")
 			model.Name = "Furniture_" .. name
-			model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+			-- section 9 rule 1: furniture is a plain grouping model, never Atomic
+			model.ModelStreamingMode = Enum.ModelStreamingMode.Default
 			model.Parent = parent
 			models[name] = model
 		end
@@ -140,7 +148,11 @@ function StreetFurniture.buildFrom(input: FurniturePlan.Input, parent: Instance,
 			end
 			model.Name = category
 			model:SetAttribute("Road", pl.road)
-			V3Perf.applyDefaults(model, (PERF_KIND[category] or "prop") :: any)
+			local kind = PERF_KIND[category] or "prop"
+			V3Perf.applyDefaults(model, kind :: any)
+			if kind == "decor" then
+				CollectionService:AddTag(model, "V3Decor") -- Quality Low hides these
+			end
 			result.parts += parts
 			result.placed += 1
 			placed += 1

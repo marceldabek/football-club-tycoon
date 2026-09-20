@@ -74,16 +74,18 @@ T["fixture builds with no missing kit, no primitives, nothing clipped"] = functi
 	end)
 end
 
-T["one atomic Model per district, props carry Kit and Road"] = function()
+T["one non-atomic Model per district, props carry Kit and Road, decor is tagged"] = function()
 	withFolder(function(folder)
 		StreetFurniture.buildFrom(fixture(), folder, ORIGIN, nil, nil)
 		local names = {}
 		for _, child in folder:GetChildren() do
 			assert(child:IsA("Model"), child.Name .. " is not a Model")
-			assert((child :: Model).ModelStreamingMode == Enum.ModelStreamingMode.Atomic, child.Name .. " is not Atomic")
+			assert((child :: Model).ModelStreamingMode == Enum.ModelStreamingMode.Default, child.Name .. " must not be Atomic (section 9 rule 1)")
 			names[child.Name] = true
 			for _, prop in child:GetChildren() do
 				assert(prop:GetAttribute("Kit") ~= nil and prop:GetAttribute("Road") ~= nil, prop.Name .. " lacks Kit/Road attributes")
+				local decor = prop.Name == "manhole" or prop.Name == "cone"
+				assert(game:GetService("CollectionService"):HasTag(prop, "V3Decor") == decor, prop.Name .. " has the wrong V3Decor tag")
 			end
 		end
 		assert(names["Furniture_Testfield"] and names["Furniture_" .. FurniturePlan.NO_DISTRICT], "district models missing")
