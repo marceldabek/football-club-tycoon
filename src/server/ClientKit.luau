@@ -22,6 +22,10 @@ ClientKit.CARS = { "HatchbackOrange", "HatchbackNavy", "HatchbackRed", "Hatchbac
 -- FrontYaw attribute (radians to add so the front faces -Z).
 ClientKit.FRONT_YAW = { HatchbackNavy = math.pi, HatchbackRed = math.pi, HatchbackSilver = math.pi } :: { [string]: number }
 
+-- X372: the town's double-decker, published to ReplicatedStorage.ClientKit.Bus.
+ClientKit.BUS = "BusDoubleDecker"
+ClientKit.BUS_FRONT_YAW = math.pi
+
 function ClientKit.publish(): string
 	local kit = ServerStorage:FindFirstChild("Kit")
 	local root = ReplicatedStorage:FindFirstChild("ClientKit")
@@ -70,7 +74,43 @@ function ClientKit.publish(): string
 		count += 1
 	end
 	cars.Parent = root
-	return ("client kit: %d cars"):format(count)
+
+	-- X372: the double-decker, same treatment as the cars. Traffic used to build
+	-- buses from primitives at 4.4 x 3.0 x 13.5 studs - three studs tall, so a
+	-- 5-stud townsperson stood taller than a bus. This one is scaled to a real
+	-- double-decker (2.55 x 4.4 x 11 m at 2.75 studs/m).
+	local oldBus = root:FindFirstChild("Bus")
+	if oldBus then
+		oldBus:Destroy()
+	end
+	local busTemplate = kit and kit:FindFirstChild(ClientKit.BUS, true)
+	local buses = 0
+	if busTemplate and busTemplate:IsA("Model") then
+		local copy = busTemplate:Clone()
+		copy.Name = "Bus"
+		for _, d in copy:GetDescendants() do
+			if d:IsA("LuaSourceContainer") or d:IsA("Sound") then
+				d:Destroy()
+			end
+		end
+		local mesh = copy:FindFirstChildWhichIsA("BasePart", true)
+		if mesh then
+			local part = mesh :: BasePart
+			part.Anchored = true
+			part.CanCollide = false
+			part.CanQuery = false
+			part.CanTouch = false
+			copy.WorldPivot = part.CFrame
+			-- checked in Studio against a marker cube: the windscreen faces +Z,
+			-- so it needs half a turn to match the cars' "-Z is the front" rule
+			copy:SetAttribute("FrontYaw", ClientKit.BUS_FRONT_YAW)
+			copy.Parent = root
+			buses = 1
+		else
+			copy:Destroy()
+		end
+	end
+	return ("client kit: %d cars, %d bus"):format(count, buses)
 end
 
 return ClientKit

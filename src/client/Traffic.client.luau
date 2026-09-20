@@ -334,6 +334,15 @@ local function kitCarTemplates(): { Instance }
 	return if cars then cars:GetChildren() else {}
 end
 
+-- X372: the double-decker from ClientKit. Unlike the cars it is NOT rescaled
+-- here: ClientKit already sizes it to a real bus (2.55 x 4.4 x 11 m). The
+-- primitive rig it replaces was 4.4 x 3.0 x 13.5 studs, so three studs tall -
+-- a 5-stud townsperson stood taller than a bus.
+local function kitBusTemplate(): Instance?
+	local clientKit = ReplicatedStorage:FindFirstChild("ClientKit")
+	return clientKit and clientKit:FindFirstChild("Bus")
+end
+
 -- ------------------------------------------------------------------ spawn / despawn
 
 local function spawnCar(roadIndex: number, distance: number, direction: number)
@@ -351,7 +360,16 @@ local function spawnCar(roadIndex: number, distance: number, direction: number)
 	local meshOffsets: { Vector3 }? = nil
 	local meshYaw = 0
 	local kitCars = kitCarTemplates()
-	if not isBike and not isBus and #kitCars > 0 then
+	local kitBus = if isBus then kitBusTemplate() else nil
+	if kitBus then
+		local mesh = (kitBus:FindFirstChildWhichIsA("BasePart", true) :: BasePart):Clone()
+		mesh.CastShadow = true
+		mesh.Parent = model
+		parts = { mesh }
+		meshOffsets = { Vector3.new(0, mesh.Size.Y / 2 + 0.05, 0) }
+		local yaw = kitBus:GetAttribute("FrontYaw")
+		meshYaw = if type(yaw) == "number" then yaw else 0
+	elseif not isBike and not isBus and #kitCars > 0 then
 		-- X128: one of the town's hatchback meshes (ClientKit.Cars; pivot Z is
 		-- the length, -Z the front, like the root), scaled to traffic size
 		local template = kitCars[math.random(1, #kitCars)]

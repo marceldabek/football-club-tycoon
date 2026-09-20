@@ -44,6 +44,8 @@ Small Hatchback Cars (toy look), Sport Stadium Seats (924 red blocks), Lada hatc
 - The white "Ford Transit" and "Fiesta 2017" meshes look like conversions of third-party car models. Fine for the review slice; replace with licensed or generated cars before release.
 - The Letaij oak pack's creator re-uploads Sketchfab models in other listings; treat the oaks the same way.
 
+| Roblox Creator Store (free, 2026-09-20, X372) | `ServerStorage.Kit.Vehicles.BusDoubleDecker`: "Double Decker Transit Bus (prop)" asset 8211334552 by InuB30; one textured MeshPart, no scripts, sounds, seats or click detectors. Scaled 0.781 to 8.3 x 12.1 x 27.4 studs, matching a real double-decker (2.55 x 4.4 x 11 m at 2.75 studs/m). Windscreen faces +Z, so ClientKit publishes FrontYaw = pi. | free Creator Store model | replaces the primitive Traffic bus rig, which was 4.4 x 3.0 x 13.5 studs - three studs tall, shorter than a 5-stud townsperson |
+
 ## Town kit (overnight 2026-09-17) — `ServerStorage.Kit.Town`
 
 Free Creator Store models, scripts/sounds/click detectors removed on insert. Checked against
