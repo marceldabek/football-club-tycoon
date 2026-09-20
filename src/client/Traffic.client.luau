@@ -448,11 +448,14 @@ end
 local function parkedStreets(): { [string]: boolean }
 	local out: { [string]: boolean } = {}
 	local town = workspace:FindFirstChild("Town")
-	local folder = town and town:FindFirstChild("TerraceStreets")
-	local list = folder and folder:GetAttribute("ParkedStreets")
-	if type(list) == "string" then
-		for name in list:gmatch("[^|]+") do
-			out[name] = true
+	-- v3: StreetFurniture parks the cars now and publishes the same attribute on its holder
+	for _, folderName in { "TerraceStreets", "V3Furniture" } do
+		local folder = town and town:FindFirstChild(folderName)
+		local list = folder and folder:GetAttribute("ParkedStreets")
+		if type(list) == "string" then
+			for name in list:gmatch("[^|]+") do
+				out[name] = true
+			end
 		end
 	end
 	return out

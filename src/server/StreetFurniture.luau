@@ -115,6 +115,7 @@ function StreetFurniture.buildFrom(input: FurniturePlan.Input, parent: Instance,
 
 	local result: Result = { planned = #placements, placed = 0, clipped = 0, missing = 0, parts = 0 }
 	local summary = {}
+	local parkedRoads: { [string]: boolean } = {}
 	for _, category in order do
 		local list = byCategory[category]
 		if not list then
@@ -156,6 +157,9 @@ function StreetFurniture.buildFrom(input: FurniturePlan.Input, parent: Instance,
 			result.parts += parts
 			result.placed += 1
 			placed += 1
+			if category == "car" then
+				parkedRoads[pl.road] = true
+			end
 		end
 		result[category] = placed
 		table.insert(summary, ("%s %d/%d"):format(category, placed, #list))
@@ -168,6 +172,16 @@ function StreetFurniture.buildFrom(input: FurniturePlan.Input, parent: Instance,
 		warn(("[FCT] Furniture: bus stop %q is not beside any road, no shelter placed (TownLayout.BUS_STOPS needs a v3 position)"):format(name))
 	end
 	result.skippedBusStops = #stats.skippedBusStops
+
+	-- Parked cars stand on the carriageway, one lane each side, so client Traffic must
+	-- keep off those streets (the v1 X36 contract: a "|" list in a ParkedStreets attribute).
+	local parkedNames: { string } = {}
+	for name in parkedRoads do
+		table.insert(parkedNames, name)
+	end
+	table.sort(parkedNames)
+	parent:SetAttribute("ParkedStreets", table.concat(parkedNames, "|"))
+	result.parkedStreets = #parkedNames
 
 	local perf = ""
 	local ok, counts = pcall(function()

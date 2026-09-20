@@ -27,8 +27,11 @@ local LOOKS: { [string]: { color: Color3, material: Enum.Material } } = {
 -- The kit's grass verge texture is a bright lime that reads as a green stripe
 -- against the town's terrain grass (Lane I stage 1 playtest, problem 1). The verge
 -- MeshPart's SurfaceAppearance is tinted toward the terrain colour instead.
--- TEMP value, tuned by eye against terrain grass (111, 126, 62).
-RoadTiler.VERGE_TINT = Color3.fromRGB(150, 158, 118)
+-- A tint only multiplies, and the texture has little red, so an even grey tint just
+-- makes a darker saturated green (tried: 150, 158, 118). Pulling green and blue down
+-- while leaving red alone moves it toward the terrain's olive (111, 126, 62).
+-- TEMP value, tuned by eye.
+RoadTiler.VERGE_TINT = Color3.fromRGB(255, 185, 200)
 
 -- The verge MeshPart of a placed kit road piece. SurfaceAppearance.ColorMap cannot
 -- be read in a running server, so it is found by shape: the verge has the largest

@@ -142,6 +142,22 @@ T["one real district fits the town budget with nothing clipped or missing"] = fu
 		assert(result.clipped == 0 and result.missing == 0 and missing == 0, ("clipped %d, missing %d"):format(result.clipped, result.missing))
 		assert(primitives == 0, primitives .. " primitive parts")
 		assert(result.parts <= StreetFurniture.PART_BUDGET, "over budget")
+		-- v3 Lane I stage 2: every street with a parked car is published for client Traffic
+		local published: { [string]: boolean } = {}
+		local list = folder:GetAttribute("ParkedStreets")
+		assert(type(list) == "string", "ParkedStreets attribute missing")
+		for name in (list :: string):gmatch("[^|]+") do
+			published[name] = true
+		end
+		local cars = 0
+		for _, d in folder:GetDescendants() do
+			if d:IsA("Model") and d.Name == "car" then
+				cars += 1
+				local road = d:GetAttribute("Road")
+				assert(published[road], "parked car on " .. tostring(road) .. " but the street is not in ParkedStreets")
+			end
+		end
+		assert(cars > 0, "review district should have parked cars")
 	end)
 end
 

@@ -853,7 +853,8 @@ function TerraceStreetDresser.build(): string
 	dressLight(false, TerraceStreetDresser.PART_BUDGET)
 	dressLight(true, math.max(partCount, TerraceStreetDresser.PART_BUDGET) + TerraceStreetDresser.PRIORITY_RESERVE)
 	-- X36: client Traffic keeps off streets with cars parked on both kerbs
-	root:SetAttribute("ParkedStreets", table.concat(parked, "|"))
+	-- v3: this dresser parks nothing now; StreetFurniture publishes the real list
+	root:SetAttribute("ParkedStreets", if TerraceStreetDresser.V3_PARKED_CARS_RETIRED then "" else table.concat(parked, "|"))
 	root.Parent = town
 	return ("terrace streets: %d parts (showpiece %d), %d light streets, %d over budget"):format(partCount, full, streets, skipped)
 end

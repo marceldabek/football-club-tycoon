@@ -22,7 +22,10 @@ GreeneryDresser.DISTRICT_KINDS = { terraced = true, estate = true }
 GreeneryDresser.STEP = 26
 GreeneryDresser.KEEP = 0.55 -- share of clear grid spots that get something (TEMP)
 GreeneryDresser.MAX_PER_DISTRICT = 120 -- TEMP part-budget cap, thinned evenly across the district
-GreeneryDresser.MAX = 520 -- TEMP overall cap
+-- v3 Lane I stage 2: halved. With lots as the district area all 7 housing districts
+-- fill their share, and 520 spots came to 1,188 primitive parts (it was 448 in v1).
+-- These stay primitives only until the town has a tree asset (register row EI1).
+GreeneryDresser.MAX = 260 -- TEMP overall cap
 GreeneryDresser.ROAD_CLEAR = 5 -- past the pavement's outer edge
 GreeneryDresser.BLOCK_CLEAR = 10
 GreeneryDresser.RIVER_CLEAR = 15
