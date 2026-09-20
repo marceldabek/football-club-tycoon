@@ -14,6 +14,7 @@ local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService") -- X289: the academy intake
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Townsfolk = require(script.Parent.Townsfolk)
 
 local player = Players.LocalPlayer
 
@@ -23,7 +24,9 @@ local SPEED = 7 -- studs a second along the loop
 local LOOP_SHARE = Vector2.new(0.32, 0.3) -- loop half-size as a share of the grass size (X, Z), inside the coach
 local SKIN = { Color3.fromRGB(232, 190, 150), Color3.fromRGB(180, 130, 95), Color3.fromRGB(110, 78, 55) }
 
-type Session = { folder: Folder, grass: BasePart, runners: { { BasePart } }, phase: number, scale: number }
+-- Youth runners are scaled, so `scale` is passed to Townsfolk.pose too:
+-- ScaleTo shrinks the parts but not the pose offsets.
+type Session = { folder: Folder, grass: BasePart, runners: { Townsfolk.Figure }, phase: number, scale: number }
 local sessions: { [BasePart]: Session } = {}
 
 local function part(parent: Instance, name: string, size: Vector3, colour: Color3, cf: CFrame?, ball: boolean?): BasePart
@@ -101,20 +104,33 @@ local function build(grass: BasePart, youth: boolean, count: number): Session
 		part(folder, "Cone", Vector3.new(0.9, 1.1, 0.9), Color3.fromRGB(240, 120, 30), top * CFrame.new(c + Vector3.new(0, 0.55, 0)))
 	end
 	local scale = if youth then 0.82 else 1
-	local runners = {}
+	-- runner shirts in the home kit, white shorts; feet at Townsfolk.pose's
+	-- `base` each frame in the RenderStepped loop below
+	local runners: { Townsfolk.Figure } = {}
 	for i = 1, math.max(count, 1) do
-		table.insert(runners, {
-			part(folder, "Legs", Vector3.new(1.2, 1.8, 0.6) * scale, Color3.fromRGB(245, 245, 245)),
-			part(folder, "Torso", Vector3.new(1.6, 1.8, 0.8) * scale, Config.HomeKit),
-			part(folder, "Head", Vector3.one * scale, SKIN[(i % #SKIN) + 1], nil, true),
+		local fig = Townsfolk.build(folder, {
+			shirt = Config.HomeKit,
+			trousers = Color3.fromRGB(245, 245, 245),
+			skin = SKIN[(i % #SKIN) + 1],
 		})
+		if fig then
+			if scale ~= 1 then
+				fig.model:ScaleTo(scale)
+			end
+			table.insert(runners, fig)
+		end
 	end
-	-- the coach on the touchline, watching the middle
+	-- the coach on the touchline, watching the middle, navy tracksuit top and bottoms
 	local coachAt = top * CFrame.new(grass.Size.X / 2 - 3, 0, 0)
 	local coach = CFrame.lookAt(coachAt.Position, top.Position)
-	part(folder, "CoachLegs", Vector3.new(1.2, 1.8, 0.6), Color3.fromRGB(24, 32, 60), coach * CFrame.new(0, 0.9, 0))
-	part(folder, "CoachTorso", Vector3.new(1.6, 1.8, 0.8), Color3.fromRGB(24, 32, 60), coach * CFrame.new(0, 2.7, 0))
-	part(folder, "CoachHead", Vector3.one, SKIN[1], coach * CFrame.new(0, 4.1, 0), true)
+	local coachFig = Townsfolk.build(folder, {
+		shirt = Color3.fromRGB(24, 32, 60),
+		trousers = Color3.fromRGB(24, 32, 60),
+		skin = SKIN[1],
+	})
+	if coachFig then
+		Townsfolk.pose(coachFig, coach)
+	end
 	return { folder = folder, grass = grass, runners = runners, phase = math.random() * 50, scale = scale }
 end
 
@@ -140,8 +156,6 @@ task.spawn(function()
 	plots.DescendantAdded:Connect(consider)
 end)
 
-local moveParts: { BasePart } = {}
-local moveCFrames: { CFrame } = {}
 local recheck = 0
 local elapsed = 0
 
@@ -184,28 +198,17 @@ RunService.RenderStepped:Connect(function(dt: number)
 			end
 		end
 	end
-	table.clear(moveParts)
-	table.clear(moveCFrames)
 	for _, s in sessions do
 		local g = s.grass
 		local top = g.CFrame * CFrame.new(0, g.Size.Y / 2, 0)
 		local hx, hz = g.Size.X * LOOP_SHARE.X, g.Size.Z * LOOP_SHARE.Y
-		for i, parts in s.runners do
+		for i, fig in s.runners do
 			local dist = (elapsed + s.phase) * SPEED + (i - 1) * 7
 			local p, dir = loopPoint(hx, hz, dist)
 			-- a jogger's bounce
 			local bob = math.abs(math.sin((elapsed + i) * 7)) * 0.2
 			local root = top * CFrame.lookAt(p, p + dir) * CFrame.new(0, bob, 0)
-			local k = s.scale or 1
-			table.insert(moveParts, parts[1])
-			table.insert(moveCFrames, root * CFrame.new(0, 0.9 * k, 0))
-			table.insert(moveParts, parts[2])
-			table.insert(moveCFrames, root * CFrame.new(0, 2.7 * k, 0))
-			table.insert(moveParts, parts[3])
-			table.insert(moveCFrames, root * CFrame.new(0, 4.1 * k, 0))
+			Townsfolk.pose(fig, root, nil, nil, s.scale)
 		end
-	end
-	if #moveParts > 0 then
-		workspace:BulkMoveTo(moveParts, moveCFrames, Enum.BulkMoveMode.FireCFrameChanged)
 	end
 end)

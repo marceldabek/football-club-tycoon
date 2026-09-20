@@ -198,34 +198,73 @@ end
 -- `base.Position` is between the feet on the ground, and `base` looks the way
 -- the figure faces. `swing` in radians drives the walk cycle; 0 is at rest.
 
-function Townsfolk.pose(fig: Figure, base: CFrame, swing: number?)
+-- `armRatio` scales the arm swing against the leg swing; Pedestrians walked with
+-- arms at 0.7 of the leg amplitude, which reads better than a full-amplitude
+-- march, so callers can keep their own feel rather than all moving identically.
+--
+-- `scale` must match whatever was passed to `fig.model:ScaleTo`. ScaleTo shrinks
+-- the PARTS but not these offsets, so a 0.6-scale child posed at scale 1 hangs
+-- in the air with its feet off the ground. Children in the play area and youth
+-- players at the academy are both scaled, so this is not a corner case.
+--
+-- Returns the six limb CFrames in `fig.all` order, so a caller moving many
+-- figures can batch them into one workspace:BulkMoveTo instead of writing 6
+-- properties each (matchday runs up to 48 fans a plot).
+function Townsfolk.limbCFrames(fig: Figure, base: CFrame, swing: number?, armRatio: number?, scale: number?): { CFrame }
 	local s = swing or 0
-	local halfLeg = Townsfolk.LEG_SIZE.Y / 2
-	local halfArm = Townsfolk.ARM_SIZE.Y / 2
+	local a = s * (armRatio or 1)
+	local k = scale or 1
+	local halfLeg = Townsfolk.LEG_SIZE.Y / 2 * k
+	local halfArm = Townsfolk.ARM_SIZE.Y / 2 * k
 
-	fig.torso.CFrame = base * CFrame.new(0, Townsfolk.TORSO_Y, 0)
-	fig.head.CFrame = base * CFrame.new(0, Townsfolk.HEAD_Y, 0)
-	-- limbs pivot about the hip/shoulder, not their own centres
-	fig.legL.CFrame = base * CFrame.new(-Townsfolk.LEG_X, Townsfolk.HIP_Y, 0) * CFrame.Angles(s, 0, 0) * CFrame.new(0, -halfLeg, 0)
-	fig.legR.CFrame = base * CFrame.new(Townsfolk.LEG_X, Townsfolk.HIP_Y, 0) * CFrame.Angles(-s, 0, 0) * CFrame.new(0, -halfLeg, 0)
-	fig.armL.CFrame = base * CFrame.new(-Townsfolk.ARM_X, Townsfolk.SHOULDER_Y, 0) * CFrame.Angles(-s, 0, 0) * CFrame.new(0, -halfArm, 0)
-	fig.armR.CFrame = base * CFrame.new(Townsfolk.ARM_X, Townsfolk.SHOULDER_Y, 0) * CFrame.Angles(s, 0, 0) * CFrame.new(0, -halfArm, 0)
+	return {
+		base * CFrame.new(0, Townsfolk.TORSO_Y * k, 0), -- torso
+		base * CFrame.new(0, Townsfolk.HEAD_Y * k, 0), -- head
+		-- limbs pivot about the hip/shoulder, not their own centres
+		base * CFrame.new(-Townsfolk.LEG_X * k, Townsfolk.HIP_Y * k, 0) * CFrame.Angles(s, 0, 0) * CFrame.new(0, -halfLeg, 0),
+		base * CFrame.new(Townsfolk.LEG_X * k, Townsfolk.HIP_Y * k, 0) * CFrame.Angles(-s, 0, 0) * CFrame.new(0, -halfLeg, 0),
+		base * CFrame.new(-Townsfolk.ARM_X * k, Townsfolk.SHOULDER_Y * k, 0) * CFrame.Angles(-a, 0, 0) * CFrame.new(0, -halfArm, 0),
+		base * CFrame.new(Townsfolk.ARM_X * k, Townsfolk.SHOULDER_Y * k, 0) * CFrame.Angles(a, 0, 0) * CFrame.new(0, -halfArm, 0),
+	}
+end
+
+function Townsfolk.pose(fig: Figure, base: CFrame, swing: number?, armRatio: number?, scale: number?)
+	local cfs = Townsfolk.limbCFrames(fig, base, swing, armRatio, scale)
+	fig.torso.CFrame = cfs[1]
+	fig.head.CFrame = cfs[2]
+	fig.legL.CFrame = cfs[3]
+	fig.legR.CFrame = cfs[4]
+	fig.armL.CFrame = cfs[5]
+	fig.armR.CFrame = cfs[6]
+end
+
+-- Batched form: appends this figure's parts and their CFrames to the caller's
+-- arrays, for one workspace:BulkMoveTo per frame across every figure.
+function Townsfolk.appendPose(fig: Figure, base: CFrame, swing: number?, armRatio: number?, scale: number?,
+	parts: { BasePart }, cframes: { CFrame })
+	local cfs = Townsfolk.limbCFrames(fig, base, swing, armRatio, scale)
+	for i = 1, 6 do
+		table.insert(parts, fig.all[i])
+		table.insert(cframes, cfs[i])
+	end
 end
 
 -- Seated: thighs forward and horizontal, shins down. `base` sits on the seat
 -- surface, looking the way the figure faces.
-function Townsfolk.poseSeated(fig: Figure, base: CFrame)
-	local halfLeg = Townsfolk.LEG_SIZE.Y / 2
-	local halfArm = Townsfolk.ARM_SIZE.Y / 2
-	fig.torso.CFrame = base * CFrame.new(0, Townsfolk.TORSO_SIZE.Y / 2, 0)
-	fig.head.CFrame = base * CFrame.new(0, Townsfolk.TORSO_SIZE.Y + 0.5, 0)
+-- `scale` must match fig.model:ScaleTo, for the same reason as in pose.
+function Townsfolk.poseSeated(fig: Figure, base: CFrame, scale: number?)
+	local k = scale or 1
+	local halfLeg = Townsfolk.LEG_SIZE.Y / 2 * k
+	local halfArm = Townsfolk.ARM_SIZE.Y / 2 * k
+	fig.torso.CFrame = base * CFrame.new(0, Townsfolk.TORSO_SIZE.Y / 2 * k, 0)
+	fig.head.CFrame = base * CFrame.new(0, (Townsfolk.TORSO_SIZE.Y + 0.5) * k, 0)
 	-- Rotating -90 about X maps the leg's local +Y onto the figure's forward
 	-- (-Z), so the thigh must be pushed along +Y to end up in FRONT of the hip.
 	-- Using -Y here sat everyone with their legs out behind them.
-	fig.legL.CFrame = base * CFrame.new(-Townsfolk.LEG_X, 0, 0) * CFrame.Angles(-math.pi / 2, 0, 0) * CFrame.new(0, halfLeg, 0)
-	fig.legR.CFrame = base * CFrame.new(Townsfolk.LEG_X, 0, 0) * CFrame.Angles(-math.pi / 2, 0, 0) * CFrame.new(0, halfLeg, 0)
-	fig.armL.CFrame = base * CFrame.new(-Townsfolk.ARM_X, Townsfolk.TORSO_SIZE.Y - 0.1, 0) * CFrame.new(0, -halfArm, 0)
-	fig.armR.CFrame = base * CFrame.new(Townsfolk.ARM_X, Townsfolk.TORSO_SIZE.Y - 0.1, 0) * CFrame.new(0, -halfArm, 0)
+	fig.legL.CFrame = base * CFrame.new(-Townsfolk.LEG_X * k, 0, 0) * CFrame.Angles(-math.pi / 2, 0, 0) * CFrame.new(0, halfLeg, 0)
+	fig.legR.CFrame = base * CFrame.new(Townsfolk.LEG_X * k, 0, 0) * CFrame.Angles(-math.pi / 2, 0, 0) * CFrame.new(0, halfLeg, 0)
+	fig.armL.CFrame = base * CFrame.new(-Townsfolk.ARM_X * k, (Townsfolk.TORSO_SIZE.Y - 0.1) * k, 0) * CFrame.new(0, -halfArm, 0)
+	fig.armR.CFrame = base * CFrame.new(Townsfolk.ARM_X * k, (Townsfolk.TORSO_SIZE.Y - 0.1) * k, 0) * CFrame.new(0, -halfArm, 0)
 end
 
 return Townsfolk

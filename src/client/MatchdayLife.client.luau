@@ -7,10 +7,12 @@
 -- folder, not just the local player's own plot.
 --
 -- Geometry is pure and lives in MatchdayRoutes (pitch-local); this script
--- only decides when to spawn/despawn per plot and moves the parts every
--- frame. One RenderStepped connection drives every plot's fans through a
--- single workspace:BulkMoveTo call, the same cheap-crowd approach as
--- BlockFootballer.
+-- only decides when to spawn/despawn per plot and poses everyone every
+-- frame. X371: everyone here is a Townsfolk figure now, not blocks; walking
+-- fans are posed individually each frame (Townsfolk.pose sets CFrames
+-- appended to one workspace:BulkMoveTo per frame, shared with
+-- BlockFootballer is gone. Static figures (stewards, queues, concourse,
+-- bar/kiosk) are posed once at spawn and never touched again.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -20,6 +22,7 @@ local player = Players.LocalPlayer -- X318: for the Quality attribute
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local MatchdayRoutes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MatchdayRoutes"))
+local Townsfolk = require(script.Parent.Townsfolk)
 
 -- ------------------------------------------------------------------ tuning
 
@@ -28,10 +31,8 @@ local FAR_RADIUS = 1000 -- stop showing it once the camera is this far (hysteres
 local RECHECK_INTERVAL = 2 -- seconds between camera-distance / fan-count rechecks
 local MAX_FANS_PER_PLOT = 48
 
-local LEG = Vector3.new(0.7, 2, 0.7)
-local TORSO = Vector3.new(2, 2.2, 1)
-local HEAD_SIZE = 1.2
-local SCARF = Vector3.new(2.1, 0.5, 1.1) -- stands in for either a scarf or a hat
+local SCARF = Vector3.new(2.1, 0.5, 1.1) -- stands in for either a scarf or a hat; a prop, not part of the Townsfolk figure
+local CHEST_Y = Townsfolk.SHOULDER_Y - 0.5 -- roughly chest height, for scarves and the bar drinkers' pints
 
 local SKIN_TONES = {
 	Color3.fromRGB(230, 190, 150),
@@ -50,8 +51,8 @@ local HI_VIS = Color3.fromRGB(255, 235, 20) -- bright yellow, no Neon (mobile-fr
 -- ------------------------------------------------------------------ types
 
 type Fan = {
-	model: Model,
-	parts: { BasePart }, -- legs, torso, head, [scarf]
+	fig: Townsfolk.Figure,
+	scarf: BasePart?,
 	route: MatchdayRoutes.Route,
 	distance: number,
 	length: number,
@@ -88,12 +89,10 @@ root.Parent = workspace
 local crowds: { [Folder]: PlotCrowd } = {}
 local ROUTE_LIST = { MatchdayRoutes.ROUTES.fromTown, MatchdayRoutes.ROUTES.fromCarPark }
 
--- Reused every frame so the single BulkMoveTo call never allocates a fresh table.
-local moveParts: { BasePart } = {}
-local moveCFrames: { CFrame } = {}
-
 -- ------------------------------------------------------------------ helpers
 
+-- X371: people are Townsfolk figures now; this only builds non-person props
+-- (barriers, the media van, parked cars, pints, scarves).
 local function part(name: string, size: Vector3, color: Color3, parent: Instance): BasePart
 	local p = Instance.new("Part")
 	p.Name = name
@@ -107,14 +106,6 @@ local function part(name: string, size: Vector3, color: Color3, parent: Instance
 	p.CastShadow = false
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
-	if name == "Head" then
-		-- X136: every matchday figure gets a face (front = the way it faces)
-		local face = Instance.new("Decal")
-		face.Name = "Face"
-		face.Face = Enum.NormalId.Front
-		face.Texture = "rbxasset://textures/face.png"
-		face.Parent = p
-	end
 	p.Parent = parent
 	return p
 end
@@ -140,26 +131,28 @@ end
 
 -- ------------------------------------------------------------------ fans
 
-local function makeFan(parent: Instance, route: MatchdayRoutes.Route, startDistance: number, loopsInMatch: boolean): Fan
-	local model = Instance.new("Model")
-	model.Name = "Fan"
-
-	local legs = part("Legs", LEG, DARK_TROUSERS, model)
+-- Returns nil when the shared rig could not be built; the caller must skip
+-- this fan rather than falling back to blocks.
+local function makeFan(parent: Instance, route: MatchdayRoutes.Route, startDistance: number, loopsInMatch: boolean): Fan?
 	local kit = if math.random() < 0.4 then Config.HomeKit else NEUTRAL_KITS[math.random(1, #NEUTRAL_KITS)]
-	local torso = part("Torso", TORSO, kit, model)
-	local head = part("Head", Vector3.new(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE), SKIN_TONES[math.random(1, #SKIN_TONES)], model)
-	head.Shape = Enum.PartType.Ball
+	local fig = Townsfolk.build(parent, {
+		shirt = kit,
+		trousers = DARK_TROUSERS,
+		skin = SKIN_TONES[math.random(1, #SKIN_TONES)],
+	})
+	if not fig then
+		return nil
+	end
+	fig.model.Name = "Fan"
 
-	local parts: { BasePart } = { legs, torso, head }
+	local scarf: BasePart? = nil
 	if math.random() < 0.5 then
-		table.insert(parts, part("Scarf", SCARF, Config.HomeKit, model))
+		scarf = part("Scarf", SCARF, Config.HomeKit, fig.model)
 	end
 
-	model.Parent = parent
-
 	return {
-		model = model,
-		parts = parts,
+		fig = fig,
+		scarf = scarf,
 		route = route,
 		distance = startDistance,
 		length = MatchdayRoutes.length(route),
@@ -175,39 +168,35 @@ local function addFan(crowd: PlotCrowd, index: number, total: number)
 	local route = ROUTE_LIST[(index % 2) + 1]
 	local length = MatchdayRoutes.length(route)
 	local startDistance = (index / math.max(total, 1)) * length
-	table.insert(crowd.fans, makeFan(crowd.model, route, startDistance, math.random() < 0.5))
+	local fan = makeFan(crowd.model, route, startDistance, math.random() < 0.5)
+	if fan then
+		table.insert(crowd.fans, fan)
+	end
 end
 
 local function removeFan(crowd: PlotCrowd, index: number)
 	local fan = table.remove(crowd.fans, index)
 	if fan then
-		fan.model:Destroy()
+		fan.fig.model:Destroy()
 	end
 end
 
--- Appends this frame's part CFrames for one fan to the shared move buffers.
-local function appendFanPose(fan: Fan, plotCFrame: CFrame)
+-- Appends one fan's figure (and scarf, if it has one) to the frame's batch.
+-- X371: a plot can run 48 fans and a server four plots, so writing six CFrame
+-- properties per fan per frame is worth avoiding -- Townsfolk.appendPose fills
+-- the arrays for a single workspace:BulkMoveTo at the end of the frame, which
+-- is what the block figures did before the shared rig landed.
+local function appendFanPose(fan: Fan, plotCFrame: CFrame, parts: { BasePart }, cframes: { CFrame })
 	local point, direction = MatchdayRoutes.pointAt(fan.route, fan.distance)
 	local offset = lateralOffset(direction, fan.lateral)
 	local bob = math.abs(math.sin(fan.phase)) * 0.15
 	local yaw = math.atan2(-direction.X, -direction.Z) + (if fan.leaving then math.pi else 0)
-	local root3 = plotCFrame * CFrame.new(point + offset + Vector3.new(0, bob, 0)) * CFrame.Angles(0, yaw, 0)
+	local base = plotCFrame * CFrame.new(point + offset + Vector3.new(0, bob, 0)) * CFrame.Angles(0, yaw, 0)
 
-	local legsY = LEG.Y / 2
-	local torsoY = LEG.Y + TORSO.Y / 2
-	local headY = LEG.Y + TORSO.Y + HEAD_SIZE / 2
-	local scarfY = LEG.Y + TORSO.Y * 0.85
-
-	local parts = fan.parts
-	table.insert(moveParts, parts[1])
-	table.insert(moveCFrames, root3 * CFrame.new(0, legsY, 0))
-	table.insert(moveParts, parts[2])
-	table.insert(moveCFrames, root3 * CFrame.new(0, torsoY, 0))
-	table.insert(moveParts, parts[3])
-	table.insert(moveCFrames, root3 * CFrame.new(0, headY, 0))
-	if parts[4] then
-		table.insert(moveParts, parts[4])
-		table.insert(moveCFrames, root3 * CFrame.new(0, scarfY, 0.1))
+	Townsfolk.appendPose(fan.fig, base, nil, nil, nil, parts, cframes)
+	if fan.scarf then
+		table.insert(parts, fan.scarf)
+		table.insert(cframes, base * CFrame.new(0, CHEST_Y, 0.1))
 	end
 end
 
@@ -215,21 +204,16 @@ end
 
 local function buildStewards(crowd: PlotCrowd)
 	for i, spot in MatchdayRoutes.STEWARD_SPOTS do
-		local model = Instance.new("Model")
-		model.Name = "Steward" .. i
-
-		local legs = part("Legs", LEG, DARK_TROUSERS, model)
-		local torso = part("Torso", TORSO, HI_VIS, model)
-		local head = part("Head", Vector3.new(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE), SKIN_TONES[math.random(1, #SKIN_TONES)], model)
-		head.Shape = Enum.PartType.Ball
-
-		local base = crowd.plotCFrame * spot
-		legs.CFrame = base * CFrame.new(0, LEG.Y / 2, 0)
-		torso.CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y / 2, 0)
-		head.CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y + HEAD_SIZE / 2, 0)
-
-		model.Parent = crowd.model
-		table.insert(crowd.stewards, model)
+		local fig = Townsfolk.build(crowd.model, {
+			shirt = HI_VIS,
+			trousers = DARK_TROUSERS,
+			skin = SKIN_TONES[math.random(1, #SKIN_TONES)],
+		})
+		if fig then
+			fig.model.Name = "Steward" .. i
+			Townsfolk.pose(fig, crowd.plotCFrame * spot)
+			table.insert(crowd.stewards, fig.model)
+		end
 	end
 end
 
@@ -291,23 +275,25 @@ local function rebuildQueue(crowd: PlotCrowd)
 	table.clear(crowd.queue)
 	local want = MatchdayRoutes.queueCount(numberAttribute(crowd.folder, "Attendance"), numberAttribute(crowd.folder, "Capacity"), crowd.folder:GetAttribute("Phase"))
 	for i, spot in MatchdayRoutes.queueSpots(want) do
-		local model = Instance.new("Model")
-		model.Name = "QueueFan" .. i
 		local kit = if math.random() < 0.5 then Config.HomeKit else NEUTRAL_KITS[math.random(1, #NEUTRAL_KITS)]
-		local base = crowd.plotCFrame
-			* spot
-			* CFrame.new(math.random() * 0.6 - 0.3, 0.3, math.random() * 0.6 - 0.3) -- on the forecourt paving
-			* CFrame.Angles(0, math.rad(math.random(-20, 20)), 0)
-		part("Legs", LEG, DARK_TROUSERS, model).CFrame = base * CFrame.new(0, LEG.Y / 2, 0)
-		part("Torso", TORSO, kit, model).CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y / 2, 0)
-		local head = part("Head", Vector3.new(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE), SKIN_TONES[math.random(1, #SKIN_TONES)], model)
-		head.Shape = Enum.PartType.Ball
-		head.CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y + HEAD_SIZE / 2, 0)
-		if math.random() < 0.5 then
-			part("Scarf", SCARF, Config.HomeKit, model).CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y * 0.85, 0.1)
+		local fig = Townsfolk.build(crowd.model, {
+			shirt = kit,
+			trousers = DARK_TROUSERS,
+			skin = SKIN_TONES[math.random(1, #SKIN_TONES)],
+		})
+		if fig then
+			fig.model.Name = "QueueFan" .. i
+			local base = crowd.plotCFrame
+				* spot
+				* CFrame.new(math.random() * 0.6 - 0.3, 0.3, math.random() * 0.6 - 0.3) -- on the forecourt paving
+				* CFrame.Angles(0, math.rad(math.random(-20, 20)), 0)
+			Townsfolk.pose(fig, base)
+			if math.random() < 0.5 then
+				local scarf = part("Scarf", SCARF, Config.HomeKit, fig.model)
+				scarf.CFrame = base * CFrame.new(0, CHEST_Y, 0.1)
+			end
+			table.insert(crowd.queue, fig.model)
 		end
-		model.Parent = crowd.model
-		table.insert(crowd.queue, model)
 	end
 end
 
@@ -391,21 +377,22 @@ end
 local BAR_DRINKERS = 4
 local function buildBarDrinkers(crowd: PlotCrowd)
 	for i, spot in MatchdayRoutes.barDrinkerSpots(BAR_DRINKERS) do
-		local model = Instance.new("Model")
-		model.Name = "BarDrinker" .. i
 		local kit = if i % 2 == 1 then Config.HomeKit else NEUTRAL_KITS[(i % #NEUTRAL_KITS) + 1]
-		local base = crowd.plotCFrame * spot
-		part("Legs", LEG, DARK_TROUSERS, model).CFrame = base * CFrame.new(0, LEG.Y / 2, 0)
-		part("Torso", TORSO, kit, model).CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y / 2, 0)
-		local head = part("Head", Vector3.new(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE), SKIN_TONES[(i % #SKIN_TONES) + 1], model)
-		head.Shape = Enum.PartType.Ball
-		head.CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y + HEAD_SIZE / 2, 0)
-		-- a pint held in front at chest height
-		local pint = part("Pint", Vector3.new(0.35, 0.6, 0.35), Color3.fromRGB(200, 140, 40), model)
-		pint.Transparency = 0.15
-		pint.CFrame = base * CFrame.new(0.7, LEG.Y + TORSO.Y * 0.55, -0.75)
-		model.Parent = crowd.model
-		table.insert(crowd.stewards, model)
+		local fig = Townsfolk.build(crowd.model, {
+			shirt = kit,
+			trousers = DARK_TROUSERS,
+			skin = SKIN_TONES[(i % #SKIN_TONES) + 1],
+		})
+		if fig then
+			fig.model.Name = "BarDrinker" .. i
+			local base = crowd.plotCFrame * spot
+			Townsfolk.pose(fig, base)
+			-- a pint held in front at chest height
+			local pint = part("Pint", Vector3.new(0.35, 0.6, 0.35), Color3.fromRGB(200, 140, 40), fig.model)
+			pint.Transparency = 0.15
+			pint.CFrame = base * CFrame.new(0.7, CHEST_Y, -0.75)
+			table.insert(crowd.stewards, fig.model)
+		end
 	end
 end
 
@@ -413,20 +400,22 @@ end
 local KIOSK_QUEUE = 3
 local function buildKioskQueue(crowd: PlotCrowd)
 	for i, spot in MatchdayRoutes.kioskQueueSpots(KIOSK_QUEUE) do
-		local model = Instance.new("Model")
-		model.Name = "KioskFan" .. i
 		local kit = if i == 2 then Config.HomeKit else NEUTRAL_KITS[(i % #NEUTRAL_KITS) + 1]
-		local base = crowd.plotCFrame * spot
-		part("Legs", LEG, DARK_TROUSERS, model).CFrame = base * CFrame.new(0, LEG.Y / 2, 0)
-		part("Torso", TORSO, kit, model).CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y / 2, 0)
-		local head = part("Head", Vector3.new(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE), SKIN_TONES[((i + 1) % #SKIN_TONES) + 1], model)
-		head.Shape = Enum.PartType.Ball
-		head.CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y + HEAD_SIZE / 2, 0)
-		if i ~= 2 then
-			part("Scarf", SCARF, Config.HomeKit, model).CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y * 0.85, 0.1)
+		local fig = Townsfolk.build(crowd.model, {
+			shirt = kit,
+			trousers = DARK_TROUSERS,
+			skin = SKIN_TONES[((i + 1) % #SKIN_TONES) + 1],
+		})
+		if fig then
+			fig.model.Name = "KioskFan" .. i
+			local base = crowd.plotCFrame * spot
+			Townsfolk.pose(fig, base)
+			if i ~= 2 then
+				local scarf = part("Scarf", SCARF, Config.HomeKit, fig.model)
+				scarf.CFrame = base * CFrame.new(0, CHEST_Y, 0.1)
+			end
+			table.insert(crowd.stewards, fig.model)
 		end
-		model.Parent = crowd.model
-		table.insert(crowd.stewards, model)
 	end
 end
 
@@ -451,19 +440,22 @@ local function buildConcourse(crowd: PlotCrowd)
 	local seed = if type(plot) == "number" then plot * 977 + math.floor(attendance) else 977
 
 	local function person(name: string, base: CFrame, i: number, scarf: boolean)
-		local model = Instance.new("Model")
-		model.Name = name
 		local kit = if i % 3 == 0 then Config.HomeKit else NEUTRAL_KITS[(i % #NEUTRAL_KITS) + 1]
-		part("Legs", LEG, DARK_TROUSERS, model).CFrame = base * CFrame.new(0, LEG.Y / 2, 0)
-		part("Torso", TORSO, kit, model).CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y / 2, 0)
-		local head = part("Head", Vector3.new(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE), SKIN_TONES[(i % #SKIN_TONES) + 1], model)
-		head.Shape = Enum.PartType.Ball
-		head.CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y + HEAD_SIZE / 2, 0)
-		if scarf then
-			part("Scarf", SCARF, Config.HomeKit, model).CFrame = base * CFrame.new(0, LEG.Y + TORSO.Y * 0.85, 0.1)
+		local fig = Townsfolk.build(crowd.model, {
+			shirt = kit,
+			trousers = DARK_TROUSERS,
+			skin = SKIN_TONES[(i % #SKIN_TONES) + 1],
+		})
+		if not fig then
+			return
 		end
-		model.Parent = crowd.model
-		table.insert(crowd.concourse, model)
+		fig.model.Name = name
+		Townsfolk.pose(fig, base)
+		if scarf then
+			local s = part("Scarf", SCARF, Config.HomeKit, fig.model)
+			s.CFrame = base * CFrame.new(0, CHEST_Y, 0.1)
+		end
+		table.insert(crowd.concourse, fig.model)
 	end
 
 	for i, spot in MatchdayRoutes.amenityQueueSpots(MatchdayRoutes.amenityQueueCount(amenity, attendance, capacity, phase)) do
@@ -528,8 +520,10 @@ local function startLeaving(crowd: PlotCrowd)
 	for i = 1, total do
 		local route = ROUTE_LIST[(i % 2) + 1]
 		local fan = makeFan(crowd.model, route, MatchdayRoutes.leavingStart(MatchdayRoutes.length(route), i, total), false)
-		fan.leaving = true
-		table.insert(crowd.fans, fan)
+		if fan then
+			fan.leaving = true
+			table.insert(crowd.fans, fan)
+		end
 	end
 end
 
@@ -677,10 +671,11 @@ RunService.RenderStepped:Connect(function(dt: number)
 		recheckTimer = 0
 	end
 
-	table.clear(moveParts)
-	table.clear(moveCFrames)
-
 	local camPos = if doRecheck then currentCameraPosition() else Vector3.zero
+
+	-- X371: one batch for every fan on every plot, moved in a single call below
+	local moveParts: { BasePart } = {}
+	local moveCFrames: { CFrame } = {}
 
 	for _, crowd in crowds do
 		if doRecheck then
@@ -701,7 +696,7 @@ RunService.RenderStepped:Connect(function(dt: number)
 					removeFan(crowd, i)
 					continue
 				end
-				appendFanPose(fan, crowd.plotCFrame)
+				appendFanPose(fan, crowd.plotCFrame, moveParts, moveCFrames)
 				i += 1
 				continue
 			end
@@ -713,7 +708,7 @@ RunService.RenderStepped:Connect(function(dt: number)
 				end
 				fan.distance = fan.distance % fan.length
 			end
-			appendFanPose(fan, crowd.plotCFrame)
+			appendFanPose(fan, crowd.plotCFrame, moveParts, moveCFrames)
 			i += 1
 		end
 	end

@@ -1,6 +1,6 @@
 --!strict
 -- Strollers where the road-pavement walkers never go (backlog X177 / X182).
--- Client-only, off on Quality "Low", 4 parts a figure:
+-- Client-only, off on Quality "Low", figures built from Shared.Townsfolk:
 --   square      SQUARE_WALKERS stroll a ring round the market square between
 --               the planters and the stalls (RivermereCenter.png), within
 --               SQUARE_NEAR of the camera
@@ -14,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local TownLayout = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TownLayout"))
+local Townsfolk = require(script.Parent:WaitForChild("Townsfolk"))
 
 local player = Players.LocalPlayer
 local town = workspace:WaitForChild("Town", math.huge)
@@ -26,49 +27,25 @@ local PROM_NEAR = 300
 local CHAIN_GAP = 12 -- promenade strips closer than this join one walk
 local SPEED_MIN, SPEED_MAX = 3.5, 5.5
 
-local SKIN = { Color3.fromRGB(232, 190, 150), Color3.fromRGB(180, 130, 95), Color3.fromRGB(110, 78, 55) }
-local TOPS = { Color3.fromRGB(70, 110, 160), Color3.fromRGB(200, 200, 196), Color3.fromRGB(160, 60, 70), Color3.fromRGB(60, 120, 90), Color3.fromRGB(220, 170, 60), Color3.fromRGB(120, 90, 150) }
-local TROUSERS = { Color3.fromRGB(40, 44, 60), Color3.fromRGB(80, 70, 60), Color3.fromRGB(30, 30, 34) }
+-- Figure: Townsfolk's shared R6 rig. Metrics and palettes live there now, so
+-- the walk cycle and the rig itself cannot drift apart.
 
 local folder = Instance.new("Folder")
 folder.Name = "Strollers"
 
 local rng = Random.new()
 
-local function part(name: string, size: Vector3, colour: Color3, face: boolean?): BasePart
-	local p = Instance.new("Part")
-	p.Name = name
-	p.Anchored = true
-	p.CanCollide = false
-	p.CanQuery = false
-	p.CanTouch = false
-	p.CastShadow = false
-	p.Size = size
-	p.Color = colour
-	p.Material = Enum.Material.SmoothPlastic
-	if face then
-		p.Shape = Enum.PartType.Ball
-		local d = Instance.new("Decal")
-		d.Name = "Face"
-		d.Face = Enum.NormalId.Front
-		d.Texture = "rbxasset://textures/face.png"
-		d.Parent = p
+type Walker = { figure: Townsfolk.Figure, speed: number, dist: number, dir: number, lateral: number, phase: number }
+
+-- Townsfolk.build can fail to produce a rig (e.g. the avatar pipeline is
+-- unavailable); the caller must skip that walker rather than falling back to parts.
+local function newWalker(): Walker?
+	local figure = Townsfolk.build(folder, { rng = rng })
+	if not figure then
+		return nil
 	end
-	p.Parent = folder
-	return p
-end
-
-type Walker = { parts: { BasePart }, speed: number, dist: number, dir: number, lateral: number, phase: number }
-
-local function newWalker(): Walker
-	local top = TOPS[rng:NextInteger(1, #TOPS)]
 	return {
-		parts = {
-			part("Legs", Vector3.new(1.2, 1.8, 0.6), TROUSERS[rng:NextInteger(1, #TROUSERS)]),
-			part("Torso", Vector3.new(1.6, 1.8, 0.8), top),
-			part("Head", Vector3.one, SKIN[rng:NextInteger(1, #SKIN)], true),
-			part("Hair", Vector3.new(1.02, 0.3, 0.95), Color3.fromRGB(60, 44, 30):Lerp(Color3.fromRGB(200, 170, 110), rng:NextNumber() * 0.6)),
-		},
+		figure = figure,
 		speed = rng:NextNumber(SPEED_MIN, SPEED_MAX),
 		dist = rng:NextNumber(0, 1000),
 		dir = if rng:NextNumber() < 0.5 then 1 else -1,
@@ -79,11 +56,17 @@ end
 
 local squareWalkers: { Walker } = {}
 for _ = 1, SQUARE_WALKERS do
-	table.insert(squareWalkers, newWalker())
+	local w = newWalker()
+	if w then
+		table.insert(squareWalkers, w)
+	end
 end
 local promWalkers: { Walker } = {}
 for _ = 1, PROM_WALKERS do
-	table.insert(promWalkers, newWalker())
+	local w = newWalker()
+	if w then
+		table.insert(promWalkers, w)
+	end
 end
 
 -- the market square disc's top (TownBuilder Y.SQUARE)
@@ -142,8 +125,6 @@ end
 
 local activeWalk: Walk? = nil
 local squareOn = false
-local moveParts: { BasePart } = {}
-local moveCFrames: { CFrame } = {}
 local check = 0
 local elapsed = 0
 local walksBuilt = false
@@ -155,22 +136,18 @@ town.DescendantAdded:Connect(function(d)
 	end
 end)
 
+-- `pos` is the walker's ground position (feet), matching what Townsfolk.pose
+-- wants as base.Position; the old figure had no leg/arm swing, just a body
+-- bob, so this still poses standing (swing left at 0).
 local function pose(w: Walker, pos: Vector3, facing: Vector3)
 	local bob = math.abs(math.sin((elapsed + w.phase) * 6)) * 0.12
-	local root = CFrame.lookAt(pos, pos + Vector3.new(facing.X, 0, facing.Z)) * CFrame.new(0, bob, 0)
-	table.insert(moveParts, w.parts[1])
-	table.insert(moveCFrames, root * CFrame.new(0, 0.9, 0))
-	table.insert(moveParts, w.parts[2])
-	table.insert(moveCFrames, root * CFrame.new(0, 2.7, 0))
-	table.insert(moveParts, w.parts[3])
-	table.insert(moveCFrames, root * CFrame.new(0, 4.1, 0))
-	table.insert(moveParts, w.parts[4])
-	table.insert(moveCFrames, root * CFrame.new(0, 4.55, 0.05))
+	local base = CFrame.lookAt(pos, pos + Vector3.new(facing.X, 0, facing.Z)) * CFrame.new(0, bob, 0)
+	Townsfolk.pose(w.figure, base)
 end
 
 local function hide(list: { Walker })
 	for _, w in list do
-		for _, p in w.parts do
+		for _, p in w.figure.all do
 			p.CFrame = CFrame.new(0, -500, 0)
 		end
 	end
@@ -225,8 +202,6 @@ RunService.RenderStepped:Connect(function(dt: number)
 	if folder.Parent == nil then
 		return
 	end
-	table.clear(moveParts)
-	table.clear(moveCFrames)
 	if squareOn then
 		local sq = TownLayout.SQUARE.centre
 		for _, w in squareWalkers do
@@ -251,8 +226,5 @@ RunService.RenderStepped:Connect(function(dt: number)
 			local side = Vector3.new(-along.Z, 0, along.X)
 			pose(w, p + side * w.lateral, along * w.dir)
 		end
-	end
-	if #moveParts > 0 then
-		workspace:BulkMoveTo(moveParts, moveCFrames, Enum.BulkMoveMode.FireCFrameChanged)
 	end
 end)

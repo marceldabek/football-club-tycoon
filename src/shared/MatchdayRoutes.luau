@@ -127,7 +127,11 @@ end
 -- -367 and -349, each 5 long) while the crowd is out. A huddle between the
 -- benches, each facing its centre. Pitch-local ground CFrames.
 MatchdayRoutes.BAR_HUDDLE = Vector3.new(-358, 0.3, -33.8)
-MatchdayRoutes.BAR_HUDDLE_RADIUS = 1.9
+-- X371: four drinkers stand on this circle. The old block figures were about 2
+-- studs wide with no arms, so 1.9 worked; a real R6 rig is 4 studs across the
+-- shoulders, which at 1.9 put them inside each other. 3.4 gives four of them
+-- about half a stud of daylight.
+MatchdayRoutes.BAR_HUDDLE_RADIUS = 3.4
 function MatchdayRoutes.barDrinkerSpots(count: number): { CFrame }
 	local out = {}
 	local c = MatchdayRoutes.BAR_HUDDLE

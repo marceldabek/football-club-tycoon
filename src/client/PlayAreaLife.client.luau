@@ -8,6 +8,8 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
+local Townsfolk = require(script.Parent.Townsfolk)
+
 local player = Players.LocalPlayer
 local town = workspace:WaitForChild("Town", math.huge)
 
@@ -22,45 +24,33 @@ local TOPS = { Color3.fromRGB(220, 60, 60), Color3.fromRGB(60, 120, 210), Color3
 type Area = { model: Model, parts: { BasePart }, swingParts: { BasePart }, swingRest: { CFrame }, pivot: CFrame, phase: number }
 local areas: { [Model]: Area } = {}
 
-local function part(parent: Instance, name: string, size: Vector3, cf: CFrame, colour: Color3, ball: boolean?): BasePart
-	local p = Instance.new("Part")
-	p.Name = name
-	p.Anchored = true
-	p.CanCollide = false
-	p.CanQuery = false
-	p.CanTouch = false
-	p.CastShadow = false
-	p.Size = size
-	p.CFrame = cf
-	p.Color = colour
-	p.Material = Enum.Material.SmoothPlastic
-	if ball then
-		p.Shape = Enum.PartType.Ball
-		local face = Instance.new("Decal")
-		face.Name = "Face"
-		face.Face = Enum.NormalId.Front
-		face.Texture = "rbxasset://textures/face.png"
-		face.Parent = p
+-- a figure standing (or sitting, legs forward) at `base`, scaled by `scale`.
+-- Standing: base.Position is between the feet, on the ground. Sitting: base
+-- sits on the seat surface. Both face -Z. Returns nil when the shared rig
+-- could not be built; the caller must skip this figure rather than falling
+-- back to blocks.
+--
+-- ScaleTo shrinks the parts but not the pose offsets, so `scale` is passed
+-- through to pose/poseSeated as well; without it a 0.6-scale child's feet
+-- float clear of `base`.
+local function personAt(parent: Instance, base: CFrame, scale: number, sitting: boolean, i: number): Townsfolk.Figure?
+	local fig = Townsfolk.build(parent, {
+		shirt = TOPS[(i % #TOPS) + 1],
+		trousers = Color3.fromRGB(40, 44, 60),
+		skin = SKIN[(i % #SKIN) + 1],
+	})
+	if not fig then
+		return nil
 	end
-	p.Parent = parent
-	return p
-end
-
--- a figure standing (or sitting, legs forward) at `base` (feet level, facing -Z)
-local function figure(parent: Instance, base: CFrame, scale: number, sitting: boolean, i: number): { BasePart }
-	local s = scale
-	local top = TOPS[(i % #TOPS) + 1]
-	local out = {}
+	if scale ~= 1 then
+		fig.model:ScaleTo(scale)
+	end
 	if sitting then
-		table.insert(out, part(parent, "Legs", Vector3.new(1.2, 0.5, 1.4) * s, base * CFrame.new(0, 0.25 * s, -0.55 * s), Color3.fromRGB(40, 44, 60)))
-		table.insert(out, part(parent, "Torso", Vector3.new(1.6, 1.8, 0.8) * s, base * CFrame.new(0, 1.4 * s, 0), top))
-		table.insert(out, part(parent, "Head", Vector3.one * 1.0 * s, base * CFrame.new(0, 2.8 * s, 0), SKIN[(i % #SKIN) + 1], true))
+		Townsfolk.poseSeated(fig, base, scale)
 	else
-		table.insert(out, part(parent, "Legs", Vector3.new(1.2, 1.8, 0.6) * s, base * CFrame.new(0, 0.9 * s, 0), Color3.fromRGB(40, 44, 60)))
-		table.insert(out, part(parent, "Torso", Vector3.new(1.6, 1.8, 0.8) * s, base * CFrame.new(0, 2.7 * s, 0), top))
-		table.insert(out, part(parent, "Head", Vector3.one * 1.0 * s, base * CFrame.new(0, 4.1 * s, 0), SKIN[(i % #SKIN) + 1], true))
+		Townsfolk.pose(fig, base, nil, nil, scale)
 	end
-	return out
+	return fig
 end
 
 local function build(area: Model): Area?
@@ -99,20 +89,29 @@ local function build(area: Model): Area?
 		end
 	end
 	-- a child sitting on that seat, facing the gate (-Z)
-	for _, p in figure(folder, swing * CFrame.new(-2.2, 1.9, 0), 0.6, true, 1) do
-		table.insert(swingParts, p)
-		table.insert(parts, p)
+	local swingChild = personAt(folder, swing * CFrame.new(-2.2, 1.9, 0), 0.6, true, 1)
+	if swingChild then
+		for _, p in swingChild.all do
+			table.insert(swingParts, p)
+			table.insert(parts, p)
+		end
 	end
 	local rest = {}
 	for _, p in swingParts do
 		table.insert(rest, p.CFrame)
 	end
 	-- a child at the foot of the slide and a grown-up on the bench
-	for _, p in figure(folder, cf * CFrame.new(-7, 0.3, -5.5) * CFrame.Angles(0, math.rad(200), 0), 0.6, false, 2) do
-		table.insert(parts, p)
+	local slideChild = personAt(folder, cf * CFrame.new(-7, 0.3, -5.5) * CFrame.Angles(0, math.rad(200), 0), 0.6, false, 2)
+	if slideChild then
+		for _, p in slideChild.all do
+			table.insert(parts, p)
+		end
 	end
-	for _, p in figure(folder, cf * CFrame.new(8, 1.65, -10) * CFrame.Angles(0, math.pi, 0), 1, true, 3) do
-		table.insert(parts, p)
+	local benchSitter = personAt(folder, cf * CFrame.new(8, 1.65, -10) * CFrame.Angles(0, math.pi, 0), 1, true, 3)
+	if benchSitter then
+		for _, p in benchSitter.all do
+			table.insert(parts, p)
+		end
 	end
 	return {
 		model = area,

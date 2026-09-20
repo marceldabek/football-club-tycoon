@@ -1,11 +1,12 @@
 --!strict
--- Ambient pedestrians on the town's pavements (backlog F3.1): cheap 6-part
+-- Ambient pedestrians on the town's pavements (backlog F3.1): Townsfolk
 -- figures stroll along main and residential road pavements near the camera,
 -- turn round at road ends, and are recycled as the camera moves. Client-only
 -- and purely visual, like Traffic.client.luau: geometry (pavement line, walk
 -- cycle, bridge footway height, river check) is pure and lives in
 -- Shared.PedestrianMath; this script only spawns/despawns near the camera and
--- moves every part through one workspace:BulkMoveTo per frame.
+-- poses each figure (Shared.Townsfolk) plus, for the dog, one
+-- workspace:BulkMoveTo per frame.
 --
 -- Known limits (TEMP): walkers keep walking straight through junction gaps
 -- where TownBuilder clipped the pavement (they read as crossing the road),
@@ -18,10 +19,15 @@ local TownLayout = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild
 local TrafficMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrafficMath"))
 local PedestrianMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("PedestrianMath"))
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Townsfolk = require(script.Parent:WaitForChild("Townsfolk"))
+
+-- Arms swing at 0.7 of the legs' amplitude: matching them exactly reads as a
+-- march rather than a walk.
+local ARM_SWING_RATIO = 0.7
 
 -- ------------------------------------------------------------------ tuning
 
-local MAX_PEDESTRIANS = 30 -- TEMP mobile budget: 30 x 7 parts = 210 parts (+4 per dog, about 1 in 6 on residential streets)
+local MAX_PEDESTRIANS = 30 -- TEMP mobile budget: 30 x 6 parts = 180 parts (+4 per dog, about 1 in 6 on residential streets)
 local MAX_PEDESTRIANS_LOW = 12 -- TEMP, Quality "Low" (mirrors Shared.Quality.BUDGETS.Low.pedestrians)
 
 -- C3.2: QualityController publishes "High" | "Low" on the LocalPlayer.
@@ -40,18 +46,8 @@ local SPEED_MAX = 7 -- TEMP studs/s
 local LATERAL_JITTER = 2 -- TEMP: +- studs across the 8-stud pavement so walkers don't share one line
 local RIVER_BRIDGE_SLACK = 12 -- deck ends count as bridge this far out, see PedestrianMath.blockedByRiver
 
--- Figure (feet at ground, -Z forward): about 5.3 studs tall, like MatchdayLife fans.
-local LEG_SIZE = Vector3.new(0.8, 2.1, 0.8)
-local TORSO_SIZE = Vector3.new(1.8, 2.0, 0.9)
-local ARM_SIZE = Vector3.new(0.45, 1.9, 0.5)
-local HEAD_SIZE = 1.1
-local HIP_Y = LEG_SIZE.Y
-local TORSO_Y = HIP_Y + TORSO_SIZE.Y / 2
-local SHOULDER_Y = HIP_Y + TORSO_SIZE.Y - 0.1
-local HEAD_Y = HIP_Y + TORSO_SIZE.Y + HEAD_SIZE / 2
-local LEG_X = 0.45
-local ARM_X = TORSO_SIZE.X / 2 + ARM_SIZE.X / 2 + 0.03
-local ARM_SWING_RATIO = 0.7 -- arms swing a little less than legs, opposite to them
+-- Figure: Townsfolk's shared R6 rig. Metrics and palettes live there now, so
+-- the walk cycle and the rig itself cannot drift apart.
 
 -- X142: some walkers on residential streets have a dog on a lead
 -- (RivermereNorthfields.png): body, head, tail and lead, trotting at heel on
@@ -63,61 +59,13 @@ local DOG_BODY = CFrame.new(0, 0.6, 0)
 local DOG_HEAD = CFrame.new(0, 1.15, -1.2)
 local DOG_TAIL = CFrame.new(0, 0.95, 1.25) * CFrame.Angles(math.rad(-35), 0, 0)
 local DOG_COLLAR = CFrame.new(0, 1.0, -0.8)
-local HAND_R = CFrame.new(ARM_X, SHOULDER_Y - ARM_SIZE.Y + 0.2, 0)
+local HAND_R = CFrame.new(Townsfolk.ARM_X, Townsfolk.SHOULDER_Y - Townsfolk.ARM_SIZE.Y + 0.2, 0)
 local LEAD_LENGTH = ((DOG_SIDE * DOG_COLLAR).Position - HAND_R.Position).Magnitude
 local DOG_COLOURS = {
 	Color3.fromRGB(60, 44, 30),
 	Color3.fromRGB(196, 160, 100),
 	Color3.fromRGB(30, 30, 32),
 	Color3.fromRGB(235, 232, 225),
-}
-
-local TORSO_OFFSET = CFrame.new(0, TORSO_Y, 0)
-local HEAD_OFFSET = CFrame.new(0, HEAD_Y, 0)
--- X135: a cap of hair on the crown, a little behind centre so the face shows
-local HAIR_SIZE = Vector3.new(HEAD_SIZE * 1.02, HEAD_SIZE * 0.3, HEAD_SIZE * 0.95)
-local HAIR_OFFSET = CFrame.new(0, HEAD_SIZE * 0.4, 0.08)
-local HIP_L = CFrame.new(-LEG_X, HIP_Y, 0)
-local HIP_R = CFrame.new(LEG_X, HIP_Y, 0)
-local SHOULDER_L = CFrame.new(-ARM_X, SHOULDER_Y, 0)
-local SHOULDER_R = CFrame.new(ARM_X, SHOULDER_Y, 0)
-local LEG_HANG = CFrame.new(0, -LEG_SIZE.Y / 2, 0)
-local ARM_HANG = CFrame.new(0, -ARM_SIZE.Y / 2 + 0.1, 0)
-
--- A grey-day UK high street: dark coats, navy, denim, the odd bright jacket.
-local TOPS = {
-	Color3.fromRGB(35, 38, 50), -- navy
-	Color3.fromRGB(28, 28, 30), -- black
-	Color3.fromRGB(95, 97, 100), -- charcoal
-	Color3.fromRGB(150, 150, 148), -- grey marl
-	Color3.fromRGB(110, 30, 40), -- burgundy
-	Color3.fromRGB(45, 70, 50), -- bottle green
-	Color3.fromRGB(165, 140, 100), -- beige mac
-	Color3.fromRGB(70, 95, 140), -- denim jacket
-	Color3.fromRGB(200, 90, 40), -- orange rain jacket
-	Color3.fromRGB(225, 225, 220), -- white top
-}
-local TROUSERS = {
-	Color3.fromRGB(40, 50, 75), -- dark denim
-	Color3.fromRGB(30, 30, 32), -- black
-	Color3.fromRGB(85, 85, 88), -- grey joggers
-	Color3.fromRGB(120, 105, 80), -- chinos
-	Color3.fromRGB(70, 90, 125), -- light denim
-}
--- X135
-local HAIR_COLOURS = {
-	Color3.fromRGB(40, 30, 22),
-	Color3.fromRGB(90, 60, 30),
-	Color3.fromRGB(170, 130, 70),
-	Color3.fromRGB(20, 20, 22),
-	Color3.fromRGB(150, 150, 150),
-}
-local SKIN_TONES = {
-	Color3.fromRGB(235, 200, 165),
-	Color3.fromRGB(225, 185, 145),
-	Color3.fromRGB(190, 140, 100),
-	Color3.fromRGB(140, 100, 70),
-	Color3.fromRGB(95, 65, 45),
 }
 
 -- ------------------------------------------------------------------ types
@@ -131,7 +79,8 @@ type Path = {
 
 type Pedestrian = {
 	model: Model,
-	parts: { BasePart }, -- torso, head, legL, legR, armL, armR
+	figure: Townsfolk.Figure,
+	dogParts: { BasePart }?, -- body, head, tail, lead (X142); nil when this walker has no dog
 	path: Path,
 	kind: string,
 	distance: number,
@@ -140,7 +89,6 @@ type Pedestrian = {
 	lateral: number,
 	phase: number, -- walk-cycle time offset so walkers aren't in step
 	lastPos: Vector3,
-	dog: boolean, -- parts 8..11 are the dog (X142)
 }
 
 -- ------------------------------------------------------------------ state
@@ -246,49 +194,38 @@ local function matchdayNear(p: Vector3): boolean
 	return false
 end
 
-local function buildFigure(parent: Instance, kit: Color3?): { BasePart }
-	local top = kit or pick(TOPS)
-	local trousers = pick(TROUSERS)
-	local skin = pick(SKIN_TONES)
-	local torso = part("Torso", TORSO_SIZE, top, true, parent)
-	local head = part("Head", Vector3.new(HEAD_SIZE, HEAD_SIZE, HEAD_SIZE), skin, false, parent)
-	head.Shape = Enum.PartType.Ball
-	local legL = part("LegL", LEG_SIZE, trousers, false, parent)
-	local legR = part("LegR", LEG_SIZE, trousers, false, parent)
-	local armL = part("ArmL", ARM_SIZE, top, false, parent)
-	local armR = part("ArmR", ARM_SIZE, top, false, parent)
-	-- X135: a face and a hair cap, like the stadium crowd (a head reads as a
-	-- person at street distance, not a skin-coloured ball)
-	local face = Instance.new("Decal")
-	face.Name = "Face"
-	face.Face = Enum.NormalId.Front
-	face.Texture = "rbxasset://textures/face.png"
-	face.Parent = head
-	local hair = part("Hair", HAIR_SIZE, pick(HAIR_COLOURS), false, parent)
-	return { torso, head, legL, legR, armL, armR, hair }
-end
-
 -- ------------------------------------------------------------------ spawn / despawn
 
+-- Townsfolk.build can fail to produce a rig (e.g. the avatar pipeline is
+-- unavailable); the caller must skip spawning rather than falling back to parts.
 local function spawnPedestrian(path: Path, kind: string, distance: number, lateral: number, pos: Vector3)
 	local model = Instance.new("Model")
 	model.Name = "Pedestrian"
 	local kit = if math.random() < MATCHDAY_KIT_SHARE and matchdayNear(pos) then Config.HomeKit else nil
-	local parts = buildFigure(model, kit)
+	local figure = Townsfolk.build(model, { shirt = kit })
+	if not figure then
+		model:Destroy()
+		return
+	end
+
 	-- no dogs on Low (walkers already spawned with one keep it until they despawn)
-	local dog = DOG_KINDS[kind] == true and math.random() < DOG_CHANCE and maxPedestrians() == MAX_PEDESTRIANS
-	if dog then
+	local wantsDog = DOG_KINDS[kind] == true and math.random() < DOG_CHANCE and maxPedestrians() == MAX_PEDESTRIANS
+	local dogParts: { BasePart }? = nil
+	if wantsDog then
 		local coat = pick(DOG_COLOURS)
-		table.insert(parts, part("DogBody", Vector3.new(0.8, 0.9, 2), coat, true, model))
-		table.insert(parts, part("DogHead", Vector3.new(0.7, 0.7, 0.8), coat, false, model))
-		table.insert(parts, part("DogTail", Vector3.new(0.15, 0.15, 0.8), coat, false, model))
-		table.insert(parts, part("DogLead", Vector3.new(0.08, 0.08, LEAD_LENGTH), Color3.fromRGB(180, 30, 40), false, model))
+		dogParts = {
+			part("DogBody", Vector3.new(0.8, 0.9, 2), coat, true, model),
+			part("DogHead", Vector3.new(0.7, 0.7, 0.8), coat, false, model),
+			part("DogTail", Vector3.new(0.15, 0.15, 0.8), coat, false, model),
+			part("DogLead", Vector3.new(0.08, 0.08, LEAD_LENGTH), Color3.fromRGB(180, 30, 40), false, model),
+		}
 	end
 	model.Parent = root
 
 	local ped: Pedestrian = {
 		model = model,
-		parts = parts,
+		figure = figure,
+		dogParts = dogParts,
 		path = path,
 		kind = kind,
 		distance = distance,
@@ -297,7 +234,6 @@ local function spawnPedestrian(path: Path, kind: string, distance: number, later
 		lateral = lateral,
 		phase = math.random() * 10,
 		lastPos = pos,
-		dog = dog,
 	}
 	table.insert(pedestrians, ped)
 end
@@ -387,37 +323,27 @@ local function movePedestrian(ped: Pedestrian, dt: number)
 	local yaw = math.atan2(-facing.X, -facing.Z)
 	local bob, swing = PedestrianMath.walkCycle(elapsed + ped.phase, ped.speed)
 	local y = PedestrianMath.groundY(pos, ped.kind, TownLayout.BRIDGES) + bob
+	-- Townsfolk.pose wants base.Position between the feet, on the ground --
+	-- exactly what rootCFrame already was before the limb offsets were applied.
 	local rootCFrame = CFrame.new(pos.X, y, pos.Z) * CFrame.Angles(0, yaw, 0)
-	local armSwing = swing * ARM_SWING_RATIO
 
-	local parts = ped.parts
-	table.insert(moveParts, parts[1])
-	table.insert(moveCFrames, rootCFrame * TORSO_OFFSET)
-	table.insert(moveParts, parts[2])
-	table.insert(moveCFrames, rootCFrame * HEAD_OFFSET)
-	table.insert(moveParts, parts[3])
-	table.insert(moveCFrames, rootCFrame * HIP_L * CFrame.Angles(swing, 0, 0) * LEG_HANG)
-	table.insert(moveParts, parts[4])
-	table.insert(moveCFrames, rootCFrame * HIP_R * CFrame.Angles(-swing, 0, 0) * LEG_HANG)
-	table.insert(moveParts, parts[5])
-	table.insert(moveCFrames, rootCFrame * SHOULDER_L * CFrame.Angles(-armSwing, 0, 0) * ARM_HANG)
-	table.insert(moveParts, parts[6])
-	table.insert(moveCFrames, rootCFrame * SHOULDER_R * CFrame.Angles(armSwing, 0, 0) * ARM_HANG)
-	table.insert(moveParts, parts[7])
-	table.insert(moveCFrames, rootCFrame * HEAD_OFFSET * HAIR_OFFSET)
-	if ped.dog then
+	-- X371: arms at 0.7 of the leg amplitude, as before the shared rig landed
+	Townsfolk.pose(ped.figure, rootCFrame, swing, ARM_SWING_RATIO)
+
+	local dogParts = ped.dogParts
+	if dogParts then
 		-- a quicker, smaller bounce than the walker's
 		local trot = math.abs(math.sin((elapsed + ped.phase) * 9)) * 0.12
 		local dogRoot = CFrame.new(pos.X, y - bob + trot, pos.Z) * CFrame.Angles(0, yaw, 0) * DOG_SIDE
-		table.insert(moveParts, parts[8])
+		table.insert(moveParts, dogParts[1])
 		table.insert(moveCFrames, dogRoot * DOG_BODY)
-		table.insert(moveParts, parts[9])
+		table.insert(moveParts, dogParts[2])
 		table.insert(moveCFrames, dogRoot * DOG_HEAD)
-		table.insert(moveParts, parts[10])
+		table.insert(moveParts, dogParts[3])
 		table.insert(moveCFrames, dogRoot * DOG_TAIL * CFrame.Angles(0, math.sin((elapsed + ped.phase) * 12) * 0.4, 0))
 		local hand = (rootCFrame * HAND_R).Position
 		local collar = (dogRoot * DOG_COLLAR).Position
-		table.insert(moveParts, parts[11])
+		table.insert(moveParts, dogParts[4])
 		table.insert(moveCFrames, CFrame.lookAt((hand + collar) / 2, collar))
 	end
 end

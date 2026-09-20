@@ -3,19 +3,17 @@
 -- benches in use). Client-only, like CafeSitters: of the kit park benches
 -- ("UKSP__ParkBenches__ParkBench01") within RADIUS of the camera, the nearest
 -- MAX_BENCHES are considered and about half get one or two sitters, chosen
--- stably from the bench's position. Off on Quality "Low". Pose maths in
--- TownLifeMath.seatedFigureCFrames.
+-- stably from the bench's position. Off on Quality "Low". Figures and pose
+-- maths are Shared.Townsfolk's (X371): no more block people.
 --
 -- The kit bench is one MeshPart: its seat faces the model pivot's LookVector
 -- and the seat top is about SEAT_Y above the pivot (ground level).
 
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local TownLifeMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TownLifeMath"))
 
 local player = Players.LocalPlayer
 local town = workspace:WaitForChild("Town", math.huge)
+local Townsfolk = require(script.Parent:WaitForChild("Townsfolk"))
 
 local BENCH_KIT = "UKSP__ParkBenches__ParkBench01"
 local RADIUS = 200 -- TEMP
@@ -23,9 +21,11 @@ local MAX_BENCHES = 8 -- TEMP benches considered at once
 local RECHECK = 2
 local SEAT_Y = 1.45
 local SEAT_Z = 0.15 -- seat centre forward of the pivot, towards the view
-local SKIN = { Color3.fromRGB(230, 190, 150), Color3.fromRGB(190, 140, 100), Color3.fromRGB(120, 85, 60) }
-local TOPS = { Color3.fromRGB(70, 110, 160), Color3.fromRGB(200, 200, 196), Color3.fromRGB(160, 60, 70), Color3.fromRGB(60, 120, 90), Color3.fromRGB(220, 170, 60) }
-local TROUSERS = { Color3.fromRGB(40, 44, 60), Color3.fromRGB(80, 70, 60), Color3.fromRGB(30, 30, 34) }
+-- Two-sitter spacing (X371): a real R6 figure is ~4 studs shoulder-to-shoulder
+-- (Townsfolk.ARM_X + half Townsfolk.ARM_SIZE.X either side of centre), wider
+-- than the old 6-part figure it replaces. The old +-1.6 spots (3.2 apart)
+-- overlapped by about 0.8 studs; +-2.2 (4.4 apart) clears them with room.
+local PAIR_SPOT = 2.2
 
 local folder = Instance.new("Folder")
 folder.Name = "BenchSitters"
@@ -44,22 +44,6 @@ for _, d in town:GetDescendants() do
 end
 town.DescendantAdded:Connect(consider)
 
-local function newPart(name: string, size: Vector3, cf: CFrame, colour: Color3, parent: Instance): BasePart
-	local p = Instance.new("Part")
-	p.Name = name
-	p.Anchored = true
-	p.CanCollide = false
-	p.CanQuery = false
-	p.CanTouch = false
-	p.CastShadow = false
-	p.Size = size
-	p.CFrame = cf
-	p.Color = colour
-	p.Material = Enum.Material.SmoothPlastic
-	p.Parent = parent
-	return p
-end
-
 -- nil when this bench stays empty
 local function seatSitters(bench: Model): Model?
 	local pivot = bench:GetPivot()
@@ -67,29 +51,19 @@ local function seatSitters(bench: Model): Model?
 	if rng:NextNumber() < 0.5 then
 		return nil
 	end
-	local spots = if rng:NextNumber() < 0.4 then { -1.6, 1.6 } else { rng:NextNumber(-1.8, 1.8) }
+	local spots = if rng:NextNumber() < 0.4 then { -PAIR_SPOT, PAIR_SPOT } else { rng:NextNumber(-1.8, 1.8) }
 	local m = Instance.new("Model")
 	m.Name = "Sitters"
-	local F, S = TownLifeMath.FIGURE, TownLifeMath.SEATED
-	local sizes = { F.torso, Vector3.one * F.head, S.thigh, S.thigh, S.shin, S.shin, F.arm, F.arm }
-	local names = { "Torso", "Head", "ThighL", "ThighR", "ShinL", "ShinR", "ArmL", "ArmR" }
 	for _, x in spots do
-		-- seatedFigureCFrames wants -Z facing the view: the bench pivot's own -Z
+		-- Townsfolk.poseSeated wants -Z facing the view: the bench pivot's own -Z
 		local seat = pivot * CFrame.new(x, SEAT_Y, -SEAT_Z)
-		local skin = SKIN[rng:NextInteger(1, #SKIN)]
-		local topColour = TOPS[rng:NextInteger(1, #TOPS)]
-		local trousers = TROUSERS[rng:NextInteger(1, #TROUSERS)]
-		local colours = { topColour, skin, trousers, trousers, trousers, trousers, topColour, topColour }
-		for i, cf in TownLifeMath.seatedFigureCFrames(seat) do
-			local p = newPart(names[i], sizes[i], cf, colours[i], m)
-			if names[i] == "Head" then
-				(p :: any).Shape = Enum.PartType.Ball
-				local face = Instance.new("Decal")
-				face.Name = "Face"
-				face.Face = Enum.NormalId.Front
-				face.Texture = "rbxasset://textures/face.png"
-				face.Parent = p
-			end
+		local fig = Townsfolk.build(m, {
+			skin = Townsfolk.pick(Townsfolk.SKIN, rng),
+			shirt = Townsfolk.pick(Townsfolk.SHIRTS, rng),
+			trousers = Townsfolk.pick(Townsfolk.TROUSERS, rng),
+		})
+		if fig then
+			Townsfolk.poseSeated(fig, seat)
 		end
 	end
 	m.Parent = folder

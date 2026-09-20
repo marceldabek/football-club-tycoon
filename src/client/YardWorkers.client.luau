@@ -10,6 +10,8 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
+local Townsfolk = require(script.Parent.Townsfolk)
+
 local player = Players.LocalPlayer
 local town = workspace:WaitForChild("Town", math.huge)
 
@@ -22,8 +24,9 @@ local PACE_SPEED = 0.18 -- radians a second along the sine
 local VEST = Color3.fromRGB(236, 214, 40)
 local TROUSERS = Color3.fromRGB(40, 44, 56)
 local SKIN = { Color3.fromRGB(232, 190, 150), Color3.fromRGB(180, 130, 95), Color3.fromRGB(110, 78, 55) }
+local HAT_ABOVE_HEAD = 0.52 -- old figure had head at y=4.1, hat at y=4.62
 
-type Worker = { parts: { BasePart }, offsets: { CFrame }, base: CFrame, pace: boolean, phase: number }
+type Worker = { fig: Townsfolk.Figure, hat: BasePart, base: CFrame, pace: boolean, phase: number }
 type Yard = { folder: Folder, workers: { Worker } }
 local yards: { [Model]: Yard } = {}
 
@@ -45,31 +48,24 @@ local function part(parent: Instance, name: string, size: Vector3, colour: Color
 	return p
 end
 
--- a standing worker with feet at the frame's origin, facing its -Z
-local function worker(parent: Instance, base: CFrame, pace: boolean, i: number): Worker
-	local head = part(parent, "Head", Vector3.one, SKIN[(i % #SKIN) + 1], Enum.PartType.Ball)
-	local face = Instance.new("Decal")
-	face.Name = "Face"
-	face.Face = Enum.NormalId.Front
-	face.Texture = "rbxasset://textures/face.png"
-	face.Parent = head
-	local parts = {
-		part(parent, "Legs", Vector3.new(1.2, 1.8, 0.6), TROUSERS),
-		part(parent, "Vest", Vector3.new(1.6, 1.8, 0.8), VEST),
-		head,
-		-- a cylinder's axis is its local X: stand the hat up
-		part(parent, "HardHat", Vector3.new(0.35, 1.1, 1.1), Color3.fromRGB(245, 245, 240), Enum.PartType.Cylinder),
-	}
-	local offsets = {
-		CFrame.new(0, 0.9, 0),
-		CFrame.new(0, 2.7, 0),
-		CFrame.new(0, 4.1, 0),
-		CFrame.new(0, 4.62, 0) * CFrame.Angles(0, 0, math.pi / 2),
-	}
-	for k, p in parts do
-		p.CFrame = base * offsets[k]
+-- a standing worker with feet at `base` (base.Position is between the feet,
+-- on the ground, base looks the way the figure faces). Returns nil when the
+-- shared rig could not be built; the caller must skip this spot rather than
+-- falling back to blocks.
+local function worker(parent: Instance, base: CFrame, pace: boolean, i: number): Worker?
+	local fig = Townsfolk.build(parent, {
+		shirt = VEST,
+		trousers = TROUSERS,
+		skin = SKIN[(i % #SKIN) + 1],
+	})
+	if not fig then
+		return nil
 	end
-	return { parts = parts, offsets = offsets, base = base, pace = pace, phase = i * 1.7 }
+	Townsfolk.pose(fig, base)
+	-- a cylinder's axis is its local X: stand the hard hat up, just above the head
+	local hat = part(parent, "HardHat", Vector3.new(0.35, 1.1, 1.1), Color3.fromRGB(245, 245, 240), Enum.PartType.Cylinder)
+	hat.CFrame = base * CFrame.new(0, Townsfolk.HEAD_Y + HAT_ABOVE_HEAD, 0) * CFrame.Angles(0, 0, math.pi / 2)
+	return { fig = fig, hat = hat, base = base, pace = pace, phase = i * 1.7 }
 end
 
 local function build(shed: Model, budget: number): Yard?
@@ -108,7 +104,10 @@ local function build(shed: Model, budget: number): Yard?
 			break
 		end
 		-- seeded from the yard's position so neighbouring workers differ
-		table.insert(workers, worker(folder, spot.cf, spot.pace, i + math.floor(math.abs(yardPart.Position.X + yardPart.Position.Z))))
+		local w = worker(folder, spot.cf, spot.pace, i + math.floor(math.abs(yardPart.Position.X + yardPart.Position.Z)))
+		if w then
+			table.insert(workers, w)
+		end
 	end
 	return { folder = folder, workers = workers }
 end
@@ -124,8 +123,6 @@ for _, d in town:GetDescendants() do
 end
 town.DescendantAdded:Connect(consider)
 
-local moveParts: { BasePart } = {}
-local moveCFrames: { CFrame } = {}
 local elapsed = 0
 local recheck = 0
 RunService.RenderStepped:Connect(function(dt: number)
@@ -178,8 +175,6 @@ RunService.RenderStepped:Connect(function(dt: number)
 			end
 		end
 	end
-	table.clear(moveParts)
-	table.clear(moveCFrames)
 	for _, y in yards do
 		for _, w in y.workers do
 			if w.pace then
@@ -187,14 +182,9 @@ RunService.RenderStepped:Connect(function(dt: number)
 				-- figures face -Z, so walking toward +Z turns them round
 				local heading = if math.cos(elapsed * PACE_SPEED + w.phase) >= 0 then math.pi else 0
 				local base = w.base * CFrame.new(0, 0, s * PACE_HALF) * CFrame.Angles(0, heading, 0)
-				for k, p in w.parts do
-					table.insert(moveParts, p)
-					table.insert(moveCFrames, base * w.offsets[k])
-				end
+				Townsfolk.pose(w.fig, base)
+				w.hat.CFrame = base * CFrame.new(0, Townsfolk.HEAD_Y + HAT_ABOVE_HEAD, 0) * CFrame.Angles(0, 0, math.pi / 2)
 			end
 		end
-	end
-	if #moveParts > 0 then
-		workspace:BulkMoveTo(moveParts, moveCFrames, Enum.BulkMoveMode.FireCFrameChanged)
 	end
 end)
