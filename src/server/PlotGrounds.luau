@@ -104,9 +104,15 @@ local KIOSK_W, KIOSK_H, KIOSK_D = 12, 9, 8 -- along X, height, along Z
 -- X97: a supporters' bar just inside the pedestrian gate, north of the
 -- footpath and facing it (+Z), with a patio of picnic benches
 -- (RivermereTurnstileEntrance.png has a pub right by the entrance). TEMP.
-local PUB_X0, PUB_X1 = -372, -344
-local PUB_Z0, PUB_Z1 = -70, -38
-local PUB_WALL_H, PUB_ROOF_H, PUB_EAVE = 12, 5, 0.8
+-- X374: was 28 x 32 studs with a 12-high wall, about 10 x 12 x 6 m. A real
+-- two-storey pub is nearer 12 x 15 x 7, and this one has to hold its own
+-- beside a stadium, so the shell is up about a fifth on every axis.
+local PUB_X0, PUB_X1 = -374, -341
+-- the extra depth goes BACKWARDS, away from the footpath: growing the front
+-- edge instead pushed the patio boundary into the pathside tree line
+-- (PlotGroundsTest.pathsideTreesAndLampsKeepOffThePathAndBuildings).
+local PUB_Z0, PUB_Z1 = -78, -38
+local PUB_WALL_H, PUB_ROOF_H, PUB_EAVE = 13.5, 5.5, 0.9
 local PUB_PATIO_D = 8
 local SHOP_W, SHOP_H, SHOP_D = 26, 14, 30 -- along X, height, along Z
 local SHOP_WALL_T = 1
@@ -356,22 +362,25 @@ local function buildSupportersBar(parent: Instance)
 	local cream = Color3.fromRGB(236, 230, 212)
 	extents("Body", x0, x1, GROUND_Y, GROUND_Y + PUB_WALL_H, z0, z1, BRICK, Enum.Material.Brick, m)
 	-- painted ground-floor frontage with two lit windows and a door, then the fascia
-	extents("Frontage", x0 + 0.5, x1 - 0.5, GROUND_Y, GROUND_Y + 5.2, z1, z1 + 0.3, paint, Enum.Material.WoodPlanks, m)
+	extents("Frontage", x0 + 0.5, x1 - 0.5, GROUND_Y, GROUND_Y + 6.2, z1, z1 + 0.3, paint, Enum.Material.WoodPlanks, m)
 	for _, wx in { x0 + 6, x1 - 6 } do
-		local glass = extents("Window", wx - 3.5, wx + 3.5, GROUND_Y + 1.6, GROUND_Y + 4.6, z1 + 0.3, z1 + 0.45, Color3.fromRGB(96, 78, 52), Enum.Material.Glass, m)
+		local glass = extents("Window", wx - 3.5, wx + 3.5, GROUND_Y + 2.0, GROUND_Y + 5.4, z1 + 0.3, z1 + 0.45, Color3.fromRGB(96, 78, 52), Enum.Material.Glass, m)
 		glass.Transparency = 0.1
 	end
-	extents("Door", xc - 1.6, xc + 1.6, GROUND_Y, GROUND_Y + 4.8, z1 + 0.3, z1 + 0.5, Color3.fromRGB(60, 36, 24), Enum.Material.Wood, m)
-	local fascia = extents("Fascia", x0 + 0.5, x1 - 0.5, GROUND_Y + 5.2, GROUND_Y + 7, z1, z1 + 0.5, Config.HomeKit, Enum.Material.SmoothPlastic, m)
+	-- X374: the door was 3.2 x 4.8 studs, so SHORTER than the 5-stud characters
+	-- walking up to it - the single clearest reason the pub read as a doll's
+	-- house. A real door is 0.9 x 2.0 m, which at 2.75 studs/m is 2.5 x 5.5.
+	extents("Door", xc - 1.3, xc + 1.3, GROUND_Y, GROUND_Y + 5.8, z1 + 0.3, z1 + 0.5, Color3.fromRGB(60, 36, 24), Enum.Material.Wood, m)
+	local fascia = extents("Fascia", x0 + 0.5, x1 - 0.5, GROUND_Y + 6.2, GROUND_Y + 8.2, z1, z1 + 0.5, Config.HomeKit, Enum.Material.SmoothPlastic, m)
 	addSign(fascia, "SUPPORTERS' BAR", { Enum.NormalId.Back })
 	for _, wx in { x0 + 6, xc, x1 - 6 } do
-		extents("UpperWindow", wx - 1.6, wx + 1.6, GROUND_Y + 8, GROUND_Y + 11, z1, z1 + 0.15, cream, Enum.Material.SmoothPlastic, m)
-		extents("UpperPane", wx - 1.3, wx + 1.3, GROUND_Y + 8.3, GROUND_Y + 10.7, z1 + 0.15, z1 + 0.25, Color3.fromRGB(58, 74, 90), Enum.Material.Glass, m)
+		extents("UpperWindow", wx - 1.6, wx + 1.6, GROUND_Y + 9.2, GROUND_Y + 12.4, z1, z1 + 0.15, cream, Enum.Material.SmoothPlastic, m)
+		extents("UpperPane", wx - 1.3, wx + 1.3, GROUND_Y + 9.5, GROUND_Y + 12.1, z1 + 0.15, z1 + 0.25, Color3.fromRGB(58, 74, 90), Enum.Material.Glass, m)
 		-- X257: a flower box on the sill of every upper window (the reference pubs
 		-- are covered in flowers); it sits proud of the pane, not through it
-		extents("WindowBox", wx - 1.7, wx + 1.7, GROUND_Y + 7.4, GROUND_Y + 8, z1 + 0.25, z1 + 1.1,
+		extents("WindowBox", wx - 1.7, wx + 1.7, GROUND_Y + 8.6, GROUND_Y + 9.2, z1 + 0.25, z1 + 1.1,
 			Color3.fromRGB(70, 48, 34), Enum.Material.Wood, m)
-		extents("WindowBlooms", wx - 1.6, wx + 1.6, GROUND_Y + 8, GROUND_Y + 8.5, z1 + 0.3, z1 + 1.05,
+		extents("WindowBlooms", wx - 1.6, wx + 1.6, GROUND_Y + 9.2, GROUND_Y + 9.7, z1 + 0.3, z1 + 1.05,
 			Color3.fromRGB(196, 74, 92), Enum.Material.LeafyGrass, m)
 	end
 	-- X257: two hanging baskets on brackets between the ground-floor windows
@@ -379,11 +388,11 @@ local function buildSupportersBar(parent: Instance)
 		-- bracket arm from the frontage face (z1 + 0.3), basket hung under it,
 		-- blooms spilling below. Above head height and walk-through, so nobody
 		-- bumps into them on the patio.
-		local bracket = extents("BasketBracket", bx - 0.15, bx + 0.15, GROUND_Y + 6.1, GROUND_Y + 6.4, z1 + 0.3, z1 + 1.6,
+		local bracket = extents("BasketBracket", bx - 0.15, bx + 0.15, GROUND_Y + 7.1, GROUND_Y + 7.4, z1 + 0.3, z1 + 1.6,
 			Color3.fromRGB(24, 26, 30), Enum.Material.Metal, m)
-		local basket = extents("Basket", bx - 0.9, bx + 0.9, GROUND_Y + 5.2, GROUND_Y + 6.1, z1 + 0.7, z1 + 1.5,
+		local basket = extents("Basket", bx - 0.9, bx + 0.9, GROUND_Y + 6.2, GROUND_Y + 7.1, z1 + 0.7, z1 + 1.5,
 			Color3.fromRGB(70, 48, 34), Enum.Material.Wood, m)
-		local blooms = extents("BasketBlooms", bx - 1.1, bx + 1.1, GROUND_Y + 4.7, GROUND_Y + 5.2, z1 + 0.6, z1 + 1.6,
+		local blooms = extents("BasketBlooms", bx - 1.1, bx + 1.1, GROUND_Y + 5.7, GROUND_Y + 6.2, z1 + 0.6, z1 + 1.6,
 			Color3.fromRGB(226, 158, 62), Enum.Material.LeafyGrass, m)
 		bracket.CanCollide = false
 		basket.CanCollide = false
