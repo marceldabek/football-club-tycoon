@@ -1,6 +1,7 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
+local TownFrontage = require(ReplicatedStorage.Shared.TownFrontage)
 
 local T = {}
 
@@ -178,13 +179,19 @@ function T.plotLanesRunFromTheRingToTheVehicleGate()
 		)
 		local first = lane.points[1]
 		local joined = TownLayout.distanceToPolyline(first, ring.points) <= ring.width / 2
+		-- v3: Plot 3 sits outside the ring in Westdale, so its lane leaves a main road instead
+		for _, road in TownLayout.ROADS do
+			if road.kind == "main" and TownLayout.distanceToPolyline(first, road.points) <= road.width / 2 then
+				joined = true
+			end
+		end
 		for _, r in TownLayout.ROUNDABOUTS do
 			local offset = first - r.centre
 			if Vector3.new(offset.X, 0, offset.Z).Magnitude <= r.radius then
 				joined = true
 			end
 		end
-		assert(joined, lane.name .. " does not start on the ring road")
+		assert(joined, lane.name .. " does not start on the ring road, a roundabout or a main road")
 		local stop = plot.busStop
 		assert(TownLayout.distanceToPolyline(stop, lane.points) <= 30, plot.name .. " bus stop is not beside its lane")
 		assert(Vector3.new(stop.X - gate.X, 0, stop.Z - gate.Z).Magnitude <= 60, plot.name .. " bus stop is far from the gate")
@@ -198,84 +205,93 @@ function T.plotLanesRunFromTheRingToTheVehicleGate()
 	end
 end
 
--- District blocks ---------------------------------------------------------------
+-- District blocks (v3: the hand-placed specials only) ---------------------------
+-- v3 allows a special at any yaw (the Hollingford river meadow sits at 45 on its
+-- 45-degree estate), so every check works on the rotated footprint.
 
-type Rect = { minX: number, maxX: number, minZ: number, maxZ: number }
-type Placed = { district: string, block: TownLayout.Box, rect: Rect }
+type Placed = { district: string, block: TownLayout.Box, frame: CFrame, corners: { Vector3 } }
 
-local function blockRect(block: TownLayout.Box): Rect
-	assert(block.yaw % 90 == 0, block.use .. " yaw is not a multiple of 90")
-	local sx, sz = block.size.X, block.size.Z
-	if block.yaw % 180 ~= 0 then
-		sx, sz = sz, sx
-	end
-	local c = block.centre
-	return { minX = c.X - sx / 2, maxX = c.X + sx / 2, minZ = c.Z - sz / 2, maxZ = c.Z + sz / 2 }
+local function blockCorners(frame: CFrame, size: Vector3, grow: number): { Vector3 }
+	local hx, hz = size.X / 2 + grow, size.Z / 2 + grow
+	return {
+		frame * Vector3.new(-hx, 0, -hz),
+		frame * Vector3.new(hx, 0, -hz),
+		frame * Vector3.new(hx, 0, hz),
+		frame * Vector3.new(-hx, 0, hz),
+	}
 end
 
 local function allBlocks(): { Placed }
 	local out: { Placed } = {}
 	for _, district in TownLayout.DISTRICTS do
 		for _, block in district.blocks do
-			table.insert(out, { district = district.name, block = block, rect = blockRect(block) })
+			local frame = CFrame.new(block.centre.X, 0, block.centre.Z) * CFrame.Angles(0, math.rad(block.yaw), 0)
+			table.insert(out, { district = district.name, block = block, frame = frame, corners = blockCorners(frame, block.size, 0) })
 		end
 	end
 	return out
 end
 
 -- The block's centre plus its outline every 5 studs, at ground level.
-local function rectSamples(r: Rect): { Vector3 }
-	local out = { Vector3.new((r.minX + r.maxX) / 2, 0, (r.minZ + r.maxZ) / 2) }
-	local nx = math.max(1, math.ceil((r.maxX - r.minX) / 5))
-	local nz = math.max(1, math.ceil((r.maxZ - r.minZ) / 5))
-	for k = 0, nx do
-		local x = r.minX + (r.maxX - r.minX) * k / nx
-		table.insert(out, Vector3.new(x, 0, r.minZ))
-		table.insert(out, Vector3.new(x, 0, r.maxZ))
-	end
-	for k = 1, nz - 1 do
-		local z = r.minZ + (r.maxZ - r.minZ) * k / nz
-		table.insert(out, Vector3.new(r.minX, 0, z))
-		table.insert(out, Vector3.new(r.maxX, 0, z))
-	end
+local function blockSamples(p: Placed): { Vector3 }
+	local corners = table.clone(p.corners)
+	table.insert(corners, corners[1])
+	local out = samplePolyline(corners, 5)
+	table.insert(out, p.frame.Position)
 	return out
 end
 
-local function rectPointDistance(r: Rect, p: Vector3): number
-	local dx = math.max(r.minX - p.X, 0, p.X - r.maxX)
-	local dz = math.max(r.minZ - p.Z, 0, p.Z - r.maxZ)
+local function blockPointDistance(p: Placed, point: Vector3): number
+	local l = p.frame:PointToObjectSpace(Vector3.new(point.X, 0, point.Z))
+	local dx = math.max(math.abs(l.X) - p.block.size.X / 2, 0)
+	local dz = math.max(math.abs(l.Z) - p.block.size.Z / 2, 0)
 	return math.sqrt(dx * dx + dz * dz)
 end
 
 local function describe(p: Placed): string
-	local r = p.rect
-	return ("%s %s x %.0f..%.0f z %.0f..%.0f"):format(p.district, p.block.use, r.minX, r.maxX, r.minZ, r.maxZ)
+	local c, s = p.block.centre, p.block.size
+	return ("%s %s at (%.0f, %.0f) %.0f x %.0f yaw %.0f"):format(p.district, p.block.use, c.X, c.Z, s.X, s.Z, p.block.yaw)
 end
 
 -- A building may stand on a flat ground piece (the bandstand on the park lawn).
 local function standsOn(ground: Placed, other: Placed): boolean
-	local g, o = ground.rect, other.rect
-	return ground.block.size.Y <= 2
-		and other.block.size.Y > 2
-		and o.minX >= g.minX
-		and o.maxX <= g.maxX
-		and o.minZ >= g.minZ
-		and o.maxZ <= g.maxZ
+	if ground.block.size.Y > 2 or other.block.size.Y <= 2 then
+		return false
+	end
+	for _, c in other.corners do
+		if blockPointDistance(ground, c) > 0 then
+			return false
+		end
+	end
+	return true
 end
 
+-- v1 asserted >= 400 authored blocks. In v3 the authored blocks are only the
+-- specials and the town is filled by TownFrontage, so "built up" means both.
 function T.townIsBuiltUp()
-	local count = #allBlocks()
-	assert(count >= 400, ("only %d district blocks; the greybox reads as empty grass"):format(count))
+	local specials = #allBlocks()
+	assert(specials >= 30, ("only %d special blocks; the town has lost its civic buildings"):format(specials))
+	local lots = #TownFrontage.generate()
+	assert(specials + lots >= 700, ("only %d blocks + lots; the town reads as empty grass"):format(specials + lots))
+end
+
+-- v3: nothing generated is authored. If a terrace or a shop parade turns up in
+-- DISTRICTS it will be built twice (once here, once by TownFrontage).
+function T.districtsHoldOnlySpecials()
+	for _, placed in allBlocks() do
+		assert(TownFrontage.TYPES[placed.block.use] == nil or placed.block.use == "shops", describe(placed) .. " is a generated use; it belongs to TownFrontage")
+		assert(placed.block.centre.Y == placed.block.size.Y / 2, describe(placed) .. " does not sit on the ground")
+	end
 end
 
 function T.districtBlocksDoNotOverlap()
 	local blocks = allBlocks()
 	for i = 1, #blocks do
-		local a = blocks[i].rect
+		-- 1-stud tolerance: faces that touch or graze are fine
+		local a = blockCorners(blocks[i].frame, blocks[i].block.size, -0.5)
 		for j = i + 1, #blocks do
-			local b = blocks[j].rect
-			-- 1-stud tolerance: faces that touch or graze are fine
-			if a.maxX - b.minX > 1 and b.maxX - a.minX > 1 and a.maxZ - b.minZ > 1 and b.maxZ - a.minZ > 1 then
+			local b = blockCorners(blocks[j].frame, blocks[j].block.size, -0.5)
+			if polygonsOverlap(a, b) then
 				assert(
 					standsOn(blocks[i], blocks[j]) or standsOn(blocks[j], blocks[i]),
 					("%s overlaps %s"):format(describe(blocks[i]), describe(blocks[j]))
@@ -287,21 +303,22 @@ end
 
 function T.districtBlocksClearOfRoads()
 	for _, placed in allBlocks() do
-		local r = placed.rect
+		local reach = (placed.block.size.X + placed.block.size.Z) / 2
+		local c = placed.block.centre
 		local samples: { Vector3 }? = nil
 		for _, road in TownLayout.ROADS do
 			local clear = road.width / 2 + TownLayout.PAVEMENT_WIDTH - 0.5
 			for i = 1, #road.points - 1 do
 				local a, b = road.points[i], road.points[i + 1]
 				if
-					math.min(a.X, b.X) - clear > r.maxX
-					or math.max(a.X, b.X) + clear < r.minX
-					or math.min(a.Z, b.Z) - clear > r.maxZ
-					or math.max(a.Z, b.Z) + clear < r.minZ
+					math.min(a.X, b.X) - clear - reach > c.X
+					or math.max(a.X, b.X) + clear + reach < c.X
+					or math.min(a.Z, b.Z) - clear - reach > c.Z
+					or math.max(a.Z, b.Z) + clear + reach < c.Z
 				then
 					continue
 				end
-				local points = samples or rectSamples(r)
+				local points = samples or blockSamples(placed)
 				samples = points
 				for _, p in points do
 					local d = TownLayout.segmentDistance(p, a, b)
@@ -318,7 +335,7 @@ function T.districtBlocksClearOfRiver()
 		if placed.block.use == "marina" then
 			continue -- the marina basin opens onto the river by design
 		end
-		for _, p in rectSamples(placed.rect) do
+		for _, p in blockSamples(placed) do
 			local d = TownLayout.distanceToPolyline(p, TownLayout.RIVER.points)
 			assert(d > clear, ("%s is %.1f from the river"):format(describe(placed), d))
 		end
@@ -334,15 +351,16 @@ function T.districtBlocksClearOfRailPlotsStopsAndLandmarks()
 	end
 	local square = TownLayout.SQUARE
 	table.insert(circles, { name = square.name, centre = square.centre, radius = square.radius + TownLayout.PAVEMENT_WIDTH })
+	-- v3: cul-de-sac turning heads are road too
+	for _, road in TownLayout.ROADS do
+		if road.head then
+			table.insert(circles, { name = road.name .. " turning head", centre = road.points[#road.points], radius = TownLayout.HEAD_RADIUS })
+		end
+	end
 	for _, placed in allBlocks() do
-		local r = placed.rect
-		for _, p in rectSamples(r) do
+		for _, p in blockSamples(placed) do
 			local d = TownLayout.distanceToPolyline(p, TownLayout.RAIL.points)
 			assert(d > railClear, ("%s is %.1f from the railway"):format(describe(placed), d))
-			for _, c in circles do
-				local offset = p - c.centre
-				assert(Vector3.new(offset.X, 0, offset.Z).Magnitude > c.radius, describe(placed) .. " is on " .. c.name)
-			end
 			for i = 1, #TownLayout.PLOTS do
 				local localP = TownLayout.plotCFrame(i):PointToObjectSpace(p)
 				assert(
@@ -351,12 +369,15 @@ function T.districtBlocksClearOfRailPlotsStopsAndLandmarks()
 				)
 			end
 		end
+		for _, c in circles do
+			assert(blockPointDistance(placed, c.centre) > c.radius, describe(placed) .. " is on " .. c.name)
+		end
 		for _, stop in TownLayout.BUS_STOPS do
-			local d = rectPointDistance(r, stop.position)
+			local d = blockPointDistance(placed, stop.position)
 			assert(d > 12, ("%s is %.1f from the %s bus stop"):format(describe(placed), d, stop.name))
 		end
 		for _, landmark in TownLayout.LANDMARKS do
-			local d = rectPointDistance(r, landmark.position)
+			local d = blockPointDistance(placed, landmark.position)
 			if placed.block.use == "church" and d == 0 then
 				continue -- the church nave stands under its own spire
 			end
@@ -365,14 +386,194 @@ function T.districtBlocksClearOfRailPlotsStopsAndLandmarks()
 	end
 end
 
+-- v1 pinned >= 8 authored blocks here. The rows are generated now, so pin the
+-- generated ones: the district must still read as streets of terraces.
 function T.millStreetTerracesKeepTheirRows()
-	for _, district in TownLayout.DISTRICTS do
-		if district.name == "Mill Street Terraces" then
-			assert(#district.blocks >= 8, "Mill Street Terraces lost blocks")
-			return
+	local rows = 0
+	for _, lot in TownFrontage.lotsByDistrict()["Mill Street Terraces"] or {} do
+		if lot.use == "terraced row" then
+			rows += 1
 		end
 	end
-	error("no Mill Street Terraces district")
+	assert(rows >= 30, ("Mill Street Terraces has only %d terraced rows"):format(rows))
+end
+
+-- Roads (v3) ------------------------------------------------------------------------
+
+-- The bought road kit only tiles straight and 45-degree runs.
+function T.everyRoadSegmentIsAxisAlignedOr45()
+	for _, road in TownLayout.ROADS do
+		for i = 1, #road.points - 1 do
+			local d = road.points[i + 1] - road.points[i]
+			local dx, dz = math.abs(d.X), math.abs(d.Z)
+			assert(d.Y == 0 and dx + dz > 0, ("%s segment %d is degenerate"):format(road.name, i))
+			assert(
+				dx < EPS or dz < EPS or math.abs(dx - dz) < EPS,
+				("%s segment %d runs (%.0f, %.0f): not axis-aligned or 45 degrees"):format(road.name, i, d.X, d.Z)
+			)
+		end
+	end
+end
+
+function T.roadFieldsAreValid()
+	local widths = { ring = 32, main = 26, residential = 20, lane = 20 }
+	local districts: { [string]: boolean } = {}
+	for _, district in TownLayout.DISTRICTS do
+		assert(not districts[district.name], "duplicate district " .. district.name)
+		districts[district.name] = true
+	end
+	local seen: { [string]: boolean } = {}
+	for _, road in TownLayout.ROADS do
+		assert(not seen[road.name], "duplicate road name " .. road.name)
+		seen[road.name] = true
+		assert(widths[road.kind] == road.width, ("%s is a %s but %d wide"):format(road.name, road.kind, road.width))
+		assert(road.front == "both" or road.front == "left" or road.front == "right" or road.front == "none", road.name .. " front")
+		if road.district then
+			assert(districts[road.district], ("%s is in %s, which is not a district"):format(road.name, road.district))
+		end
+		if road.kind == "ring" or road.kind == "lane" then
+			assert(road.front == "none", road.name .. " must not be fronted")
+		end
+	end
+	assert(#TownLayout.ROADS >= 90, "v3 has 94 roads; got " .. #TownLayout.ROADS)
+end
+
+-- A turning head is a dead end: nothing else may join it, and it keeps clear of
+-- the river, the rail, the plots and every other road.
+function T.turningHeadsAreRealDeadEnds()
+	local heads = 0
+	local reach = TownLayout.HEAD_RADIUS
+	for _, road in TownLayout.ROADS do
+		if not road.head then
+			continue
+		end
+		heads += 1
+		assert(road.kind == "residential", road.name .. " has a turning head but is not residential")
+		local h = road.points[#road.points]
+		for _, other in TownLayout.ROADS do
+			if other ~= road then
+				local d = TownLayout.distanceToPolyline(h, other.points)
+				local need = reach + other.width / 2 + TownLayout.PAVEMENT_WIDTH
+				assert(d > need, ("%s turning head is %.0f from %s (needs %.0f)"):format(road.name, d, other.name, need))
+			end
+		end
+		assert(TownLayout.distanceToPolyline(h, TownLayout.RIVER.points) > reach + TownLayout.RIVER.width / 2 + 20, road.name .. " head is at the river")
+		assert(TownLayout.distanceToPolyline(h, TownLayout.RAIL.points) > reach + TownLayout.RAIL.width / 2 + 10, road.name .. " head is on the railway")
+		local e = TownLayout.EXTENT
+		assert(h.X - reach > e.minX and h.X + reach < e.maxX and h.Z - reach > e.minZ and h.Z + reach < e.maxZ, road.name .. " head leaves the extent")
+		local plotReach = TownLayout.PLOT_SIZE / 2 + reach
+		for i = 1, #TownLayout.PLOTS do
+			local l = TownLayout.plotCFrame(i):PointToObjectSpace(h)
+			assert(math.abs(l.X) > plotReach or math.abs(l.Z) > plotReach, ("%s head is inside plot %d"):format(road.name, i))
+		end
+	end
+	assert(heads >= 20, "v3 has cul-de-sac estates; only " .. heads .. " turning heads")
+end
+
+-- Every road end either joins another road / roundabout, leaves town at the
+-- extent, reaches a plot gate, or is a turning head. v3 fixed Westdale's streets
+-- stopping dead at the railway; this keeps it fixed.
+-- KNOWN dead ends carried from the approved drawing are listed, so a NEW one fails.
+-- Do not add to this list to get a test green: give the street a turning head.
+local KNOWN_DEAD_ENDS = {
+	["Station Road"] = true, -- ends in the station car park (X51)
+	["Quay Street"] = true, -- ends at the pub and cafes on the waterfront
+	["Wharf Road"] = true, -- ends at the last yard on the river bank
+	["Moss Lane"] = true, -- both ends: a back lane between Greenbridge Road and the river
+	["Lune View"] = true, -- its west end stops short of the ring; the east end has the head
+	["Fellmonger Street"] = true, -- starts blind behind Lunebank Road
+	-- these eight stop at the central railway, as they did in v1 (handoffs: Lane A question 2)
+	["Weaver Street"] = true,
+	["Elm Grove"] = true,
+	["Signal Street"] = true,
+	["Lock Street"] = true,
+	["Lune Street"] = true,
+	["Viaduct Road"] = true,
+	["Weir Road"] = true,
+	["Fuller Street"] = true,
+}
+
+function T.roadsDoNotStopDead()
+	local e = TownLayout.EXTENT
+	for _, road in TownLayout.ROADS do
+		if (road.points[1] - road.points[#road.points]).Magnitude < EPS then
+			continue -- a closed loop (the ring) has no ends
+		end
+		for _, which in { 1, #road.points } do
+			local p = road.points[which]
+			if which == #road.points and (road.head or road.kind == "lane") then
+				continue
+			end
+			if math.abs(p.X - e.minX) < EPS or math.abs(p.X - e.maxX) < EPS or math.abs(p.Z - e.minZ) < EPS or math.abs(p.Z - e.maxZ) < EPS then
+				continue
+			end
+			local joined = false
+			for _, other in TownLayout.ROADS do
+				if other ~= road and TownLayout.distanceToPolyline(p, other.points) <= other.width / 2 + EPS then
+					joined = true
+					break
+				end
+			end
+			for _, r in TownLayout.ROUNDABOUTS do
+				if Vector3.new(p.X - r.centre.X, 0, p.Z - r.centre.Z).Magnitude <= r.radius then
+					joined = true
+				end
+			end
+			local square = TownLayout.SQUARE
+			if Vector3.new(p.X - square.centre.X, 0, p.Z - square.centre.Z).Magnitude <= square.radius + EPS then
+				joined = true
+			end
+			assert(joined or KNOWN_DEAD_ENDS[road.name], ("%s stops dead at %s"):format(road.name, tostring(p)))
+		end
+	end
+end
+
+function T.roundaboutsSitOnTheirRoads()
+	local names: { [string]: boolean } = {}
+	for _, r in TownLayout.ROUNDABOUTS do
+		names[r.name] = true
+		local arms = 0
+		for _, road in TownLayout.ROADS do
+			if TownLayout.distanceToPolyline(r.centre, road.points) < 1 then
+				arms += 1
+			end
+		end
+		assert(arms >= 2, ("%s has %d roads through its centre"):format(r.name, arms))
+	end
+	assert(names["Lunebank Roundabout"] and not names["Plot 3 Roundabout"], "v3 renamed Plot 3 Roundabout to Lunebank Roundabout")
+end
+
+-- X51 / X71: the taxi lay-by is cut into Station Road's station-side pavement.
+function T.stationLaybyLiesInStationRoadsPavement()
+	local layby = TownLayout.STATION_LAYBY
+	local road = roadNamed("Station Road")
+	assert(road, "no Station Road")
+	local station = TownLayout.RAIL.station
+	local inner, outer = road.width / 2, road.width / 2 + TownLayout.PAVEMENT_WIDTH
+	for _, p in { layby.from, layby.to } do
+		local d = TownLayout.distanceToPolyline(p, road.points)
+		assert(d - layby.width / 2 >= inner - EPS and d + layby.width / 2 <= outer + EPS, ("lay-by end %s is %.1f from Station Road, outside its pavement"):format(tostring(p), d))
+		assert(math.abs(p.X - station.centre.X) <= station.size.X / 2, "lay-by runs past the station building")
+		local roadZ = p.Z + (if p.Z > station.centre.Z then d else -d)
+		assert(math.abs(p.Z - station.centre.Z) < math.abs(roadZ - station.centre.Z), "lay-by is on the far side of Station Road from the station")
+	end
+end
+
+-- Every bus stop stands on the pavement of a road, not in it and not in a field.
+function T.busStopsStandOnAPavement()
+	for _, stop in TownLayout.BUS_STOPS do
+		local best, bestRoad = math.huge, nil :: TownLayout.Road?
+		for _, road in TownLayout.ROADS do
+			local d = TownLayout.distanceToPolyline(stop.position, road.points) - road.width / 2
+			if d < best then
+				best, bestRoad = d, road
+			end
+		end
+		assert(bestRoad, "no roads")
+		assert(best >= 0, ("%s bus stop is in %s's carriageway"):format(stop.name, (bestRoad :: TownLayout.Road).name))
+		assert(best <= 14, ("%s bus stop is %.0f from the kerb of %s"):format(stop.name, best, (bestRoad :: TownLayout.Road).name))
+		assert(stop.yaw % 90 == 0, stop.name .. " bus stop yaw")
+	end
 end
 
 function T.roadPointsInsideExtent()
@@ -533,7 +734,9 @@ function T.namesPresentAndNoOldTownName()
 		assert(type(item.name) == "string" and #item.name > 0, "missing name")
 	end
 	for _, district in TownLayout.DISTRICTS do
-		assert(#district.blocks > 0, district.name .. " has no blocks")
+		-- v3: a district may have no hand-placed specials, but then it must have generated lots
+		local lots = TownFrontage.lotsByDistrict()[district.name]
+		assert(#district.blocks > 0 or (lots and #lots > 0), district.name .. " has no blocks and no lots")
 		for _, block in district.blocks do
 			assert(#block.use > 0, district.name .. " block without a use")
 		end

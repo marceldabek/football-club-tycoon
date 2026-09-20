@@ -132,6 +132,14 @@ def parse():
                 {"name": nm.group(1), "at": (float(pm.group(1)), float(pm.group(2)))}
             )
 
+    out["bus_stops"] = []
+    stops = src[src.index("TownLayout.BUS_STOPS"):]
+    for line in stops[: stops.index("} :: { BusStop }")].splitlines():
+        nm = re.search(r'name\s*=\s*"([^"]+)"', line)
+        pm = re.search(r"position\s*=\s*" + VEC, line)
+        if nm and pm:
+            out["bus_stops"].append({"name": nm.group(1), "at": (float(pm.group(1)), float(pm.group(2)))})
+
     ext = re.search(
         r"EXTENT\s*=\s*\{\s*minX\s*=\s*(-?\d+),\s*maxX\s*=\s*(-?\d+),\s*minZ\s*=\s*(-?\d+),\s*maxZ\s*=\s*(-?\d+)",
         src,
