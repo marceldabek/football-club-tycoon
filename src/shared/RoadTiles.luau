@@ -13,8 +13,8 @@
 --   CulDeSac heads, whose grass mound rises above it (see `level` in PIECES).
 --
 -- SCALE PER KIND (uniform, markings stay in proportion)
---   residential / lane 0.816 : 44 -> 35.9, the 36-stud corridor (20 road + 16 pavement).
---   main / ring        0.93  : 44 -> 40.9. Main's corridor is 42 (half a stud of
+--   residential        0.816 : 44 -> 35.9, the 36-stud corridor (20 road + 16 pavement).
+--   main / ring / lane 0.93  : 44 -> 40.9. Main's corridor is 42 (half a stud of
 --     verge each side); the ring's is 48 (3.5-stud grass verge each side, right for
 --     a ring road). 0.93 is the largest scale at which the ring's tightest pair of
 --     45-degree bends (113 studs apart, north of Northfields) still fits two kit
@@ -71,7 +71,10 @@ export type Plan = { tiles: { Tile }, exempt: { Exempt }, stats: { [string]: num
 local PREFIX = "UKSP__ModularRoads__"
 RoadTiles.PREFIX = PREFIX
 RoadTiles.SURFACE_Y = 0.35 -- pavement top above ground
-RoadTiles.SCALE = { ring = 0.93, main = 0.93, residential = 0.816, lane = 0.816 } :: { [string]: number }
+-- Lanes are the four plot lanes. Each is a short dead end hanging off a ring / main
+-- junction piece (0.93), and at 0.816 the lane stepped in 14% where it left that
+-- piece's arm, so they take the scale of the road they leave.
+RoadTiles.SCALE = { ring = 0.93, main = 0.93, residential = 0.816, lane = 0.93 } :: { [string]: number }
 RoadTiles.RANK = { ring = 4, main = 3, residential = 2, lane = 1 } :: { [string]: number }
 RoadTiles.ARTERIAL = "Arterial"
 -- TEMP: the Town Centre box (yellow lines, and the district for roads with none).

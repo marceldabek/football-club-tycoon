@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles)
+local RoadCarve = require(ReplicatedStorage.Shared.RoadCarve)
 local KitPlacer = require(script.Parent.KitPlacer)
 
 local RoadTiler = {}
@@ -24,21 +25,16 @@ local LOOKS: { [string]: { color: Color3, material: Enum.Material } } = {
 	paint = { color = Color3.fromRGB(235, 235, 230), material = Enum.Material.SmoothPlastic },
 }
 
--- The kit's grass verge texture is a bright lime that reads as a green stripe
--- against the town's terrain grass (Lane I stage 1 playtest, problem 1). The verge
--- MeshPart's SurfaceAppearance is tinted toward the terrain colour instead.
--- Observed in Play (rendered verge colour, eyeballed from screenshots):
---   (240, 212, 235) -> lime (150, 190, 45)        stage 3, Elder Close
---   (255, 185, 200) -> mustard                    stage 2
---   (150, 158, 118) -> dark saturated green       stage 2
---   (160, 158, 255) -> dark bluish green (25, 80, 45)   stage 3, West Bridge approach
--- The tint does NOT act linearly on the rendered colour: those four fit
--- rendered = base * (tint / 255) ^ 2.4 per channel. The texture has almost no blue,
--- so blue stays at 255. Solving that for the terrain grass beside the road (rendered
--- about (100, 130, 60); Terrain grass material colour is (111, 126, 62)) gives the
--- value below. It is the model's answer from four observations and has NOT itself
--- been looked at (stage 3 used its last screenshot finding that 160/158 was too dark).
-RoadTiler.VERGE_TINT = Color3.fromRGB(203, 181, 255)
+-- The kit's grass verge texture is a bright lime, and tinting its SurfaceAppearance
+-- toward the terrain never matched (the tint is not linear; Lane I stages 1-3 went
+-- lime, mustard, then dark green). The verge now drops the texture and takes the
+-- terrain's own grass material and colour, so it reads as the same lawn as the
+-- ground beside it and follows any later change to the terrain colour.
+RoadTiler.VERGE_MATERIAL = Enum.Material.LeafyGrass -- what Scenery fills the town with
+
+function RoadTiler.vergeColor(): Color3
+	return workspace.Terrain:GetMaterialColor(RoadTiler.VERGE_MATERIAL)
+end
 
 -- Town Centre streets are fronted by shops, where a grass verge reads wrong. Inside
 -- RoadTiles.CENTRE the verge mesh loses its grass SurfaceAppearance and is shown as
@@ -140,10 +136,34 @@ local function tintVerge(model: Instance, paved: boolean)
 		verge.Material = RoadTiler.PAVED_VERGE.material
 		verge:SetAttribute("V3Exempt", "E4")
 		model:SetAttribute("PavedVerge", true)
-	elseif sa then
-		pcall(function()
-			sa.Color = RoadTiler.VERGE_TINT
-		end)
+	else
+		if sa then
+			sa:Destroy()
+		end
+		verge.Color = RoadTiler.vergeColor()
+		verge.Material = RoadTiler.VERGE_MATERIAL
+	end
+end
+
+-- The terrain surface sits only ~0.1 under the carriageway and undulates, so it
+-- poked through along the kerbs, and it buried the dipped end of every tucked arm.
+-- Shared/RoadCarve has each piece's carriageway + paving footprint (not the verge,
+-- which hides the edge of the cut); the terrain inside it is cleared.
+local CARVE_TOP, CARVE_BOTTOM = 0.6, -3.5
+
+local function carveTerrain(origin: CFrame, tile: RoadTiles.Tile)
+	local rects = RoadCarve[tile.piece]
+	if not rects then
+		return
+	end
+	local look = tile.cframe.LookVector
+	local at = tile.cframe.Position
+	local flat = origin * CFrame.lookAt(Vector3.new(at.X, 0, at.Z), Vector3.new(at.X + look.X, 0, at.Z + look.Z))
+	local s = tile.scale
+	local height = CARVE_TOP - CARVE_BOTTOM
+	for _, r in rects do
+		local cf = flat * CFrame.new(r[1] * s, (CARVE_TOP + CARVE_BOTTOM) / 2, r[2] * s * tile.stretch)
+		workspace.Terrain:FillBlock(cf, Vector3.new(r[3] * s, height, r[4] * s * tile.stretch), Enum.Material.Air)
 	end
 end
 
@@ -188,7 +208,9 @@ local function nearestDistrict(tiles: { RoadTiles.Tile }, pos: Vector3): string
 	return best
 end
 
-function RoadTiler.build(parent: Instance, origin: CFrame, filter: { district: string? }?): { [string]: number }
+-- opts.carve clears the terrain under the tiles (the live town only: tests and the
+-- sandbox build into throwaway holders and must not dig up the place's terrain).
+function RoadTiler.build(parent: Instance, origin: CFrame, filter: { district: string? }?, opts: { carve: boolean? }?): { [string]: number }
 	local plan = RoadTiles.plan(TownLayout.ROADS :: any, TownLayout.ROUNDABOUTS :: any, TownLayout.BRIDGES :: any)
 	local want = filter and filter.district
 	local models: { [string]: Model } = {}
@@ -207,6 +229,9 @@ function RoadTiler.build(parent: Instance, origin: CFrame, filter: { district: s
 			surfaceAsphalt(model)
 			stretchZ(model, tile.stretch)
 			tintVerge(model, RoadTiler.isPavedVerge(tile.cframe.Position))
+		end
+		if opts and opts.carve then
+			carveTerrain(origin, tile)
 		end
 		model:SetAttribute("Road", tile.road)
 		model:SetAttribute("TileKind", tile.kind)

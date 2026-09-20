@@ -194,7 +194,7 @@ do
 	-- resume, and Studio's script timeout killed Main part-way down the dressers
 	-- (Lane I stage 2 playtest: "EstateDresser:958 exhausted allowed execution time").
 	-- task.wait() between steps starts a fresh timeout window for each.
-	require(script.Parent.RoadTiler).build(holder("V3Roads"), origin, nil)
+	require(script.Parent.RoadTiler).build(holder("V3Roads"), origin, nil, { carve = true })
 	task.wait()
 	require(script.Parent.HouseAssembler).build(holder("V3Housing"), origin, nil)
 	task.wait()

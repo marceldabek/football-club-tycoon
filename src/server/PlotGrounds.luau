@@ -17,7 +17,7 @@
 --   boundary wall      edge of -380..380  edge of -380..380 1 thick, 3 high
 --   vehicle gate       x = -380           60..100          40-wide gap, road behind it
 --   pedestrian gate    x = -380           -20..-4          16-wide gap, footpath behind it
---   access road        -379..-349         68..92           ends on the car park asphalt
+--   access road        -381..-349         70..90           kit lane section; ends on the car park asphalt
 --   car park           -350..-250         40..190          kerb included (TEMP: halved, X9)
 --   club shop          -313..-287         -165..-135       front (door, window) faces +X;
 --                      (-313.5..-286)     (-165.5..-134.5) with fascia and roof overhang
@@ -46,6 +46,7 @@ local CrestBadge = require(ReplicatedStorage.Shared.CrestBadge)
 local HttpService = game:GetService("HttpService") -- X289: the academy intake
 local PlotContext = require(script.Parent.PlotContext)
 local KitPlacer = require(script.Parent.KitPlacer)
+local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles)
 
 local PlotGrounds = {}
 
@@ -76,10 +77,17 @@ local KIT_POSTS_W = 9.3 -- both piers; the opening between them is 6.5
 local KIT_GATE_SCALE = 0.39 -- the gate leaves are modelled ~3.6x the wall height
 local KIT_GATE_W = 8.9 * KIT_GATE_SCALE
 
--- access road
-local ROAD_W = 24
+-- access road. It carries on from the town's kit lane (UKSP ModularRoads at
+-- RoadTiles.SCALE.lane), which ends on the gate line at x = -381, so it keeps that
+-- road's section (unscaled kit numbers from the Straight mesh: carriageway 15.85
+-- wide with its top 0.281 below the pavement, paving 4.33 wide each side).
+local LANE_SCALE = RoadTiles.SCALE.lane
+local ROAD_W = 15.85 * LANE_SCALE
+local ROAD_PAVE_W = 4.33 * LANE_SCALE
+local ROAD_PAVE_TOP = RoadTiles.SURFACE_Y
+local ROAD_START_X = -HALF - 1 -- TownLayout.PLOT_LANE_END.X
 local ROAD_Z = (VEHICLE_GATE[1] + VEHICLE_GATE[2]) / 2 -- 80
-local ROAD_TOP = 0.2
+local ROAD_TOP = RoadTiles.SURFACE_Y - 0.281 * LANE_SCALE
 
 -- car park (kerb included in the rectangle)
 -- TEMP (X9): was z 40..340 (100 x 300), which ran most of the way down the
@@ -548,9 +556,13 @@ end
 -- ------------------------------------------------------------ road + car park
 
 local function buildRoad(parent: Instance)
-	-- from just inside the wall to the car park asphalt, through the kerb gap
-	extents("AccessRoad", -HALF + WALL_T, PARK_X0 + KERB_T, GROUND_Y, GROUND_Y + ROAD_TOP,
-		ROAD_Z - ROAD_W / 2, ROAD_Z + ROAD_W / 2, ASPHALT, Enum.Material.Asphalt, parent)
+	-- from the end of the town lane on the gate line to the car park asphalt,
+	-- through the kerb gap
+	local z0, z1 = ROAD_Z - ROAD_W / 2, ROAD_Z + ROAD_W / 2
+	extents("AccessRoad", ROAD_START_X, PARK_X0 + KERB_T, GROUND_Y, GROUND_Y + ROAD_TOP, z0, z1, ASPHALT, Enum.Material.Asphalt, parent)
+	-- paved strips stop at the car park kerb
+	extents("AccessPavement", ROAD_START_X, PARK_X0, GROUND_Y, GROUND_Y + ROAD_PAVE_TOP, z0 - ROAD_PAVE_W, z0, KERB, Enum.Material.Concrete, parent)
+	extents("AccessPavement", ROAD_START_X, PARK_X0, GROUND_Y, GROUND_Y + ROAD_PAVE_TOP, z1, z1 + ROAD_PAVE_W, KERB, Enum.Material.Concrete, parent)
 end
 
 local function buildLamp(x: number, z: number, parent: Instance)

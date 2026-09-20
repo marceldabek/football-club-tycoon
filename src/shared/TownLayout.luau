@@ -30,7 +30,7 @@
 --                        (and district) from the position along the street
 --               head   = the last point is a cul-de-sac turning head, HEAD_RADIUS
 --               "Plot N Lane" starts on the ring road / a roundabout and ends at
---               plotCFrame(N) * PLOT_LANE_END, 10 studs outside the vehicle gate
+--               plotCFrame(N) * PLOT_LANE_END, on the vehicle gate line
 --               (PlotGrounds: gate at plot-local x = -380, z 60..100).
 --   RIVER       the River Lune centreline, flowing west -> east, with its width
 --   BRIDGES     from/to are the deck ends (both on dry land); kind "road" | "rail" | "foot"
@@ -83,7 +83,7 @@ TownLayout.EXTENT = { minX = -2400, maxX = 2400, minZ = -1700, maxZ = 1700 }
 TownLayout.PLOT_SIZE = 760 -- TEMP: fits a ~30k stadium (~480 x 560) + car park, shop, two training pitches
 TownLayout.PAVEMENT_WIDTH = 8
 TownLayout.HEAD_RADIUS = 34 -- cul-de-sac turning head (kit CulDeSac is 96 x 69 at town scale)
-TownLayout.PLOT_LANE_END = Vector3.new(-390, 0, 80) -- plot-local, 10 outside the vehicle gate centre
+TownLayout.PLOT_LANE_END = Vector3.new(-381, 0, 80) -- plot-local, on the vehicle gate line (1 outside the plot); PlotGrounds' access road starts here
 
 TownLayout.SQUARE = { name = "Market Square", centre = Vector3.new(0, 0, 0), radius = 60 }
 
@@ -546,7 +546,7 @@ TownLayout.ROADS = {
 	{
 		name = "Plot 1 Lane", kind = "lane", width = 20, front = "none",
 		points = {
-			Vector3.new(970, 0, 800), Vector3.new(970, 0, 860),
+			Vector3.new(970, 0, 800), Vector3.new(970, 0, 869),
 		},
 	},
 	{
@@ -627,13 +627,13 @@ TownLayout.ROADS = {
 	{
 		name = "Plot 3 Lane", kind = "lane", width = 20, front = "none",
 		points = {
-			Vector3.new(-1860, 0, 560), Vector3.new(-1860, 0, 630),
+			Vector3.new(-1860, 0, 560), Vector3.new(-1860, 0, 639),
 		},
 	},
 	{
 		name = "Plot 4 Lane", kind = "lane", width = 20, front = "none",
 		points = {
-			Vector3.new(-1350, 0, -750), Vector3.new(-1350, 0, -1210), Vector3.new(-1400, 0, -1210),
+			Vector3.new(-1350, 0, -750), Vector3.new(-1350, 0, -1210), Vector3.new(-1409, 0, -1210),
 		},
 	},
 	{
@@ -681,7 +681,7 @@ TownLayout.ROADS = {
 	{
 		name = "Plot 2 Lane", kind = "lane", width = 20, front = "none",
 		points = {
-			Vector3.new(1400, 0, -600), Vector3.new(1400, 0, -1080), Vector3.new(1440, 0, -1080),
+			Vector3.new(1400, 0, -600), Vector3.new(1400, 0, -1080), Vector3.new(1449, 0, -1080),
 		},
 	},
 	{

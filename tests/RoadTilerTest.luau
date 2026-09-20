@@ -199,24 +199,44 @@ function tests.builtCarriagewaysAreAsphaltAndClearTheGround()
 	end)
 end
 
-function tests.builtTilesCarryTheVergeTint()
+function tests.builtVergesAreTheTerrainsOwnGrass()
 	if not kitInstalled() then
 		return
 	end
 	withBuild("Northfields", function(holder, _counts)
-		local tinted, tiles = 0, 0
+		local matched, tiles = 0, 0
 		for _, d in holder:GetDescendants() do
 			if d:IsA("Model") and d:GetAttribute("TileKind") ~= nil then
 				tiles += 1
 				local verge = RoadTiler.vergeOf(d)
-				local sa = verge and verge:FindFirstChildOfClass("SurfaceAppearance")
-				if sa and sa.Color == RoadTiler.VERGE_TINT then
-					tinted += 1
+				if verge and verge:FindFirstChildOfClass("SurfaceAppearance") == nil
+					and verge.Material == RoadTiler.VERGE_MATERIAL and verge.Color == RoadTiler.vergeColor() then
+					matched += 1
 				end
 			end
 		end
-		assert(tiles > 0 and tinted == tiles, ("%d of %d tiles tinted"):format(tinted, tiles))
+		assert(tiles > 0 and matched == tiles, ("%d of %d verges match the terrain grass"):format(matched, tiles))
 	end)
+end
+
+-- Every piece the tiler places has a terrain-clearing footprint, and it stays inside
+-- the piece (the verge has to cover the edge of the cut).
+function tests.everyPlacedPieceHasACarveFootprintInsideItsVerge()
+	if not kitInstalled() then
+		return
+	end
+	local RoadCarve = require(ReplicatedStorage.Shared.RoadCarve)
+	for _, def in RoadTiles.PIECES do
+		for _, name in { def.name, def.yellow } do
+			local rects = RoadCarve[RoadTiles.PREFIX .. name]
+			assert(rects and #rects > 0, name .. " has no carve footprint")
+			local _, size = ((ServerStorage :: any).Kit.Meshes[RoadTiles.PREFIX .. name] :: Model):GetBoundingBox()
+			for _, r in rects do
+				-- the footprints are rastered on a 2-stud grid, so a mouth can overhang by under a cell
+				assert(math.abs(r[1]) + r[3] / 2 <= size.X / 2 + 2 and math.abs(r[2]) + r[4] / 2 <= size.Z / 2 + 2, name .. " carves outside its bbox")
+			end
+		end
+	end
 end
 
 -- Lane I stage 3: inside the centre box the verge is a paving stand-in (E4), and
@@ -243,7 +263,7 @@ function tests.centreTilesGetAPavedVerge()
 					assert(verge:GetAttribute("V3Exempt") == "E4", "paved verge is registered as E4")
 					paved += 1
 				else
-					assert(sa and sa.Color == RoadTiler.VERGE_TINT, "grass verge outside the centre is tinted")
+					assert(sa == nil and verge.Material == RoadTiler.VERGE_MATERIAL, "grass verge outside the centre is the terrain grass")
 					grass += 1
 				end
 			end
