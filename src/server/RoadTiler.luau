@@ -239,7 +239,19 @@ function RoadTiler.build(parent: Instance, origin: CFrame, filter: { district: s
 			local alley = tile.roadKind == "alley"
 			surfaceAsphalt(model, alley)
 			stretchZ(model, tile.stretch)
-			tintVerge(model, alley or RoadTiler.isPavedVerge(tile.cframe.Position))
+			local paved = alley or RoadTiler.isPavedVerge(tile.cframe.Position)
+			tintVerge(model, paved)
+			if tile.entry and not paved then
+				-- a raised entry runs over the through road's pavement: its grass verge would
+				-- bury that pavement either side of the mouth. Hidden, the terrain (the same
+				-- grass) shows along the rest of the tile and the pavement shows at the mouth.
+				local verge = RoadTiler.vergeOf(model)
+				if verge then
+					verge.Transparency = 1
+					verge.CastShadow = false
+				end
+			end
+			model:SetAttribute("Entry", tile.entry or nil)
 		end
 		if opts and opts.carve then
 			carveTerrain(origin, tile)
