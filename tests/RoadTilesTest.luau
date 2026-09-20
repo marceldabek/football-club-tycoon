@@ -143,7 +143,7 @@ function tests.yellowHeadInTheCentreJoinsUpToo()
 	assert(#looseMouths(plan) == 1, "joined to its straights")
 end
 
-function tests.crowdedTeesAreDowngradedToRaisedEntries()
+function tests.crowdedTeesAreDowngradedToTucks()
 	-- two branches 30 studs apart: two 90-long T pieces cannot both fit
 	local plan = RoadTiles.plan({
 		road("Through", { v(0, 0), v(600, 0) }),
@@ -152,11 +152,12 @@ function tests.crowdedTeesAreDowngradedToRaisedEntries()
 	}, {})
 	assert(plan.stats.unresolved == 0, "conflict resolved")
 	assert(plan.stats.downgraded >= 1, "at least one T downgraded")
-	assert((plan.stats.entries or 0) >= 1 and (plan.stats.tucked or 0) == 0, "its branch comes in as a raised entry, not a tuck")
+	assert((plan.stats.tucked or 0) >= 1, "its branch is tucked")
+	assert(#plan.makeshift >= 1, "and reported as makeshift")
 	for _, t in plan.tiles do
-		if t.entry then
-			assert(t.cframe.Position.Y > RoadTiles.SURFACE_Y, "entry tile is ramped above the surface")
-			assert(t.cframe.Position.Y < RoadTiles.SURFACE_Y + 0.5, "but only slightly")
+		if t.tucked then
+			assert(t.cframe.Position.Y < RoadTiles.SURFACE_Y, "tucked tile is pitched below the surface")
+			assert(t.cframe.Position.Y > RoadTiles.SURFACE_Y - 1, "but only slightly")
 		end
 	end
 end
@@ -274,45 +275,17 @@ function tests.alleyTilesAreHalfWidthAndFlaggedForPaving()
 	end
 end
 
--- A side road that meets a plain through road square on must open into it: it comes
--- in as a raised entry ending on the through road's kerb line, never tucked under.
-function tests.squareSideRoadsComeInAsRaisedEntries()
-	local plan = RoadTiles.plan({
-		{ name = "Main", kind = "main", points = { Vector3.new(-400, 0, 0), Vector3.new(400, 0, 0) } },
-		-- two side streets 40 apart: too close for two T pieces (90 long each)
-		{ name = "Side A", kind = "residential", points = { Vector3.new(0, 0, 0), Vector3.new(0, 0, 300) } },
-		{ name = "Side B", kind = "residential", points = { Vector3.new(40, 0, 0), Vector3.new(40, 0, -300) } },
-	} :: any, {}, {})
-	local entries = 0
-	for _, t in plan.tiles do
-		if t.road ~= "Main" then
-			assert(not t.tucked, t.road .. " still tucks under the main road")
-		end
-		if t.entry then
-			entries += 1
-			local kerb = RoadTiles.KIT_CARRIAGEWAY / 2 * RoadTiles.STREET_SCALE
-			local nearest, high = math.huge, -math.huge
-			for _, m in RoadTiles.mouths(t) do
-				nearest = math.min(nearest, math.abs(m.Z))
-			end
-			assert(math.abs(nearest - kerb) < 0.1, ("%s entry ends %.2f from the main centreline, kerb line is %.2f"):format(t.road, nearest, kerb))
-			-- the mouth end is the high end, and clears the through pavement
-			local look = t.cframe.LookVector
-			assert(math.abs(look.Y) > 1e-4, t.road .. " entry is not ramped")
-			assert(t.cframe.Position.Y > RoadTiles.SURFACE_Y, t.road .. " entry does not rise")
-		end
-	end
-	assert(entries >= 1, "at least one of the two side streets is a raised entry, got " .. entries)
-end
-
-function tests.theTownHasNoSquareTucksLeft()
+-- Marcel 2026-09-20: no makeshift junctions. Every junction in town gets a real kit
+-- piece (T, crossroads, bend); no side road tucks under a through road. The layout is
+-- spaced for it (docs/TOWN_V3_JUNCTION_MOVES.md). If this fails after a layout edit,
+-- plan.makeshift says which junction and how much room its neighbours want.
+function tests.everyTownJunctionGetsARealKitPiece()
 	local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 	local plan = RoadTiles.plan(TownLayout.ROADS :: any, TownLayout.ROUNDABOUTS :: any, TownLayout.BRIDGES :: any)
-	assert((plan.stats.entries or 0) >= 20, "raised entries in town: " .. tostring(plan.stats.entries))
-	-- what still tucks is only the skew junctions: three 45-degree arms (Station Road,
-	-- Riverside Road, Ferry Lane) and four arms that arrive at another road's bend
-	-- (Fern Street, Cooper Street, Lune Street x2)
-	assert((plan.stats.tucked or 0) <= 7, "tucked tiles left: " .. tostring(plan.stats.tucked))
+	local first = plan.makeshift[1]
+	assert(#plan.makeshift == 0, ("%d makeshift junctions, first at (%.0f, %.0f)"):format(#plan.makeshift, first and first.pos.X or 0, first and first.pos.Z or 0))
+	assert((plan.stats.tucked or 0) == 0 and plan.stats.downgraded == 0, "no tucked tiles, no downgraded pieces")
+	assert(plan.stats.unresolved == 0, "no unresolved conflicts")
 end
 
 -- The kit's 45-degree bend is modelled with leg B's mouth 0.282 lower than leg A's.

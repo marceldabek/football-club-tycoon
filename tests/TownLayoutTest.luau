@@ -448,7 +448,9 @@ function T.turningHeadsAreRealDeadEnds()
 			continue
 		end
 		heads += 1
-		assert(road.kind == "residential", road.name .. " has a turning head but is not residential")
+		-- every street is one kit size now, so a main road can carry the CulDeSac piece too
+		-- (Riverside Road ends at Riverside Park: no kit junction fits at East Bridge)
+		assert(road.kind == "residential" or road.kind == "main", road.name .. " has a turning head but is not a street")
 		local h = road.points[#road.points]
 		for _, other in TownLayout.ROADS do
 			if other ~= road then
@@ -482,6 +484,10 @@ local KNOWN_DEAD_ENDS = {
 	["Moss Lane"] = true, -- both ends: a back lane between Greenbridge Road and the river
 	["Lune View"] = true, -- its west end stops short of the ring; the east end has the head
 	["Fellmonger Street"] = true, -- starts blind behind Lunebank Road
+	-- junction moves (docs/TOWN_V3_JUNCTION_MOVES.md): their west ends stop short of the ring
+	-- road, where a T piece cannot fit beside the ring's bend (as Lune View already does)
+	["Cooper Street"] = true,
+	["Signal Street"] = true,
 	-- these eight stop at the central railway, as they did in v1 (handoffs: Lane A question 2)
 	["Weaver Street"] = true,
 	["Elm Grove"] = true,

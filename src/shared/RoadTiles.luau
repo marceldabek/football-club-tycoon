@@ -28,9 +28,6 @@
 --   4 arms, all 90         -> Crossroads
 --   head road's last point -> CulDeSac (bulb centred on the point)
 --   big roundabout         -> arms trimmed short, E3 stand-in disc on top
---   square T / cross that does not fit between its neighbours
---                          -> the through road runs straight past and each side road
---                             comes in as a RAISED ENTRY (see setEntry)
 --   anything else (45-degree T, skew cross, the High Street / Station Road split)
 --                          -> the best pair of arms becomes the through line or a
 --                             bend, and the other arms TUCK: their last straight
@@ -41,7 +38,9 @@
 --                             a 45-degree spur, so Fork cannot be placed there
 --                             without moving Station Road 60 studs off its houses.
 --   Junction pieces that do not fit between their neighbours (the layout has T's
---   10 to 70 studs apart; a T piece is 90 long) are DOWNGRADED to a raised entry.
+--   10 to 70 studs apart; a T piece is 90 long) are DOWNGRADED to a tuck as well.
+--   A tuck leaves the through road's pavement across the side road's mouth, so the
+--   layout is spaced to need none: see Plan.makeshift and TOWN_V3_JUNCTION_MOVES.md.
 --   CulDeSac_Left/Right90Degree are a 90 bend with a bulb on the corner and TWO
 --   mouths, so they are not a terminal head; no v3 road needs one.
 
@@ -66,11 +65,11 @@ export type Tile = {
 	district: string,
 	yellow: boolean,
 	tucked: boolean,
-	entry: boolean, -- a raised side-road entry: the assembler hides this tile's verge
 }
 export type BridgeIn = { from: Vector3, to: Vector3, kind: string? }
 export type Exempt = { id: string, shape: string, centre: Vector3, radius: number, height: number, look: string }
--- A junction that got no proper kit piece (a side road tucks under or ramps over).
+-- A junction that got no proper kit piece: a side road tucks under the through road.
+-- TownLayout is spaced so that there are none (docs/TOWN_V3_JUNCTION_MOVES.md); a test holds it there.
 export type Makeshift = { pos: Vector3, kind: string, downgraded: boolean, arms: { { road: string, dir: Vector3, run: number, how: string, nextAt: number, nextKind: string, nextTrim: number, nextPos: Vector3 } } }
 export type Plan = { tiles: { Tile }, exempt: { Exempt }, stats: { [string]: number }, makeshift: { Makeshift } }
 
@@ -283,29 +282,7 @@ local function rankOf(arm): number
 	return RoadTiles.RANK[arm.road.kind] or 1
 end
 
--- A side road meeting a plain through road square on, where no T piece fits, used to
--- tuck UNDER it, which left the through road's verge, pavement and kerb across the
--- mouth. It now comes in as a RAISED ENTRY instead: its last tile climbs until its
--- carriageway clears the through road's pavement, runs over that pavement and stops
--- on the through road's kerb line. From above the asphalt is continuous; the side
--- road's own pavements carry across the main pavement. (Real UK streets do this too:
--- a continuous-footway side entry.)
-local ENTRY_CLEAR = 0.03 -- the entry's asphalt sits this far above the through pavement
-local ENTRY_MAX_LIFT = 0.6
-local function setEntry(arm, throughScale: number)
-	arm.entry = true
-	arm.tuck = false
-	arm.trim = RoadTiles.KIT_CARRIAGEWAY / 2 * throughScale
-	arm.crit = 0
-	-- the stretch of the arm that lies over the through road piece (kerb line to the back of its verge)
-	arm.over = (RoadTiles.KIT_HALF_WIDTH - RoadTiles.KIT_CARRIAGEWAY / 2) * throughScale
-end
-
 local function setTuck(node, arm, throughScale: number, angleDeg: number)
-	if node.kind == "through" and near(angleDeg, 90) and arm.road.kind ~= "alley" then
-		setEntry(arm, throughScale)
-		return
-	end
 	arm.tuck = true
 	arm.trim = -OVERSHOOT
 	local sinA = math.max(0.5, math.sin(math.rad(angleDeg)))
@@ -337,7 +314,7 @@ local function classifyWithAlleys(node): boolean
 		streetScale = math.max(streetScale, scaleOf(a))
 	end
 	for _, a in alleys do
-		a.trim, a.tuck, a.pass, a.partner, a.crit, a.entry = RoadTiles.KIT_PAVING_OUTER * streetScale, false, false, nil, 0, false
+		a.trim, a.tuck, a.pass, a.partner, a.crit = RoadTiles.KIT_PAVING_OUTER * streetScale, false, false, nil, 0
 	end
 	return true
 end
@@ -348,7 +325,7 @@ function classify(node)
 	end
 	local arms = node.arms
 	for _, a in arms do
-		a.trim, a.tuck, a.pass, a.partner, a.crit, a.entry = 0, false, false, nil, 0, false
+		a.trim, a.tuck, a.pass, a.partner, a.crit = 0, false, false, nil, 0
 	end
 	node.piece = nil
 	local n = #arms
@@ -535,7 +512,7 @@ local function emitNode(node, tiles: { Tile }, exempt: { Exempt })
 	local function add(def, cf: CFrame, tileKind: string, r)
 		table.insert(tiles, {
 			piece = pieceName(def, yellow), cframe = cf, scale = node.scale, stretch = 1, kind = tileKind,
-			road = r.name, roadKind = r.kind, district = RoadTiles.districtOf(r), yellow = yellow, tucked = false, entry = false,
+			road = r.name, roadKind = r.kind, district = RoadTiles.districtOf(r), yellow = yellow, tucked = false,
 		})
 	end
 	if kind == "bend90" or kind == "bend45" then
@@ -570,7 +547,7 @@ local function emitNode(node, tiles: { Tile }, exempt: { Exempt })
 		table.insert(tiles, {
 			piece = PREFIX .. def.name, cframe = anchored(node.pos, { node = { def.node[1] * s, def.node[2] * s } }, arm.dir, def.dirA),
 			scale = s, stretch = 1, kind = "head", road = arm.road.name, roadKind = arm.road.kind, district = RoadTiles.districtOf(arm.road),
-			yellow = yellow, tucked = false, entry = false,
+			yellow = yellow, tucked = false,
 		})
 	end
 	if node.rb then
@@ -614,8 +591,8 @@ local function emitRun(run, tiles: { Tile }, stats: { [string]: number }, bridge
 					local function piece(s: number, e: number, fromArm, toArm)
 						if e - s >= 1 then
 							emitRun({
-								from = { node = from.node, dir = dir, road = from.road, trim = s, tuck = fromArm and fromArm.tuck, crit = fromArm and fromArm.crit, entry = fromArm and fromArm.entry, over = fromArm and fromArm.over },
-								to = { node = to.node, road = to.road, trim = run.len - e, tuck = toArm and toArm.tuck, crit = toArm and toArm.crit, entry = toArm and toArm.entry, over = toArm and toArm.over },
+								from = { node = from.node, dir = dir, road = from.road, trim = s, tuck = fromArm and fromArm.tuck, crit = fromArm and fromArm.crit },
+								to = { node = to.node, road = to.road, trim = run.len - e, tuck = toArm and toArm.tuck, crit = toArm and toArm.crit },
 								len = run.len,
 							}, tiles, stats, nil, true)
 						end
@@ -632,7 +609,7 @@ local function emitRun(run, tiles: { Tile }, stats: { [string]: number }, bridge
 	local def = RoadTiles.PIECES.straight
 	local tileLen = def.length * scale
 	local n = math.max(1, math.round(rem / tileLen))
-	if (from.tuck or from.entry) and (to.tuck or to.entry) and n < 2 then
+	if from.tuck and to.tuck and n < 2 then
 		n = 2
 	end
 	local each = rem / n
@@ -651,26 +628,13 @@ local function emitRun(run, tiles: { Tile }, stats: { [string]: number }, bridge
 			end
 			return math.min(1.5, 0.34 * each / span)
 		end
-		-- a raised entry: the tile is a straight line, so to be clear of the through
-		-- pavement over the whole of `over` it has to finish a little higher than that
-		local entry = false
-		local function lift(arm): number
-			local need = RoadTiles.KIT_ASPHALT_BELOW * scale + ENTRY_CLEAR
-			return math.min(ENTRY_MAX_LIFT, need / math.max(0.3, 1 - arm.over / each))
-		end
 		if i == 1 and from.tuck then
 			p0 -= Vector3.new(0, drop(from), 0)
 			tucked = true
-		elseif i == 1 and from.entry then
-			p0 += Vector3.new(0, lift(from), 0)
-			entry = true
 		end
 		if i == n and to.tuck then
 			p1 -= Vector3.new(0, drop(to), 0)
 			tucked = true
-		elseif i == n and to.entry then
-			p1 += Vector3.new(0, lift(to), 0)
-			entry = true
 		end
 		local mid = (p0 + p1) / 2
 		local axis = (p1 - p0).Unit
@@ -678,7 +642,7 @@ local function emitRun(run, tiles: { Tile }, stats: { [string]: number }, bridge
 		table.insert(tiles, {
 			piece = pieceName(def, yellow), cframe = CFrame.lookAt(mid, mid - axis), scale = scale,
 			stretch = each / tileLen, kind = "straight", road = road.name, roadKind = road.kind, district = district,
-			yellow = yellow, tucked = tucked, entry = entry,
+			yellow = yellow, tucked = tucked,
 		})
 	end
 end
@@ -769,10 +733,10 @@ function RoadTiles.plan(roads: { RoadIn }, roundabouts: { RoundaboutIn }?, bridg
 		local any = false
 		local arms = {}
 		for _, a in node.arms do
-			any = any or a.tuck or a.entry
+			any = any or a.tuck
 			local far = if a.edge.armA == a then a.edge.armB else a.edge.armA
 			table.insert(arms, {
-				road = a.road.name, dir = a.dir, run = a.run, how = if a.tuck then "tuck" elseif a.entry then "entry" else "through",
+				road = a.road.name, dir = a.dir, run = a.run, how = if a.tuck then "tuck" else "through",
 				-- the next junction along this arm: how far, what it is, how much road its piece wants
 				nextAt = a.edge.len, nextKind = far.node.kind, nextTrim = far.trim, nextPos = far.node.pos,
 			})
@@ -792,9 +756,6 @@ function RoadTiles.plan(roads: { RoadIn }, roundabouts: { RoundaboutIn }?, bridg
 	end
 	for _, t in tiles do
 		stats[t.kind] = (stats[t.kind] or 0) + 1
-		if t.entry then
-			stats.entries = (stats.entries or 0) + 1
-		end
 		if t.tucked then
 			stats.tucked = (stats.tucked or 0) + 1
 		end

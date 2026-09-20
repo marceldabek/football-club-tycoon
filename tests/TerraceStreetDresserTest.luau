@@ -119,7 +119,7 @@ function T.signsStandOnTheCornersPastTheMouth()
 	-- Church Lane Ts into Weaver Street from +Z: signs only on that side
 	local church = 0
 	for _, cf in TerraceStreetDresser.signSpots(road("Weaver Street"), TownLayout.ROADS) do
-		if math.abs(cf.Position.X + 360) < 40 then
+		if math.abs(cf.Position.X + 295) < 40 then -- Church Lane runs at x -295 since the junction moves
 			church += 1
 			assert(cf.Position.Z > -330, "sign on the far side of the T at z " .. cf.Position.Z)
 		end

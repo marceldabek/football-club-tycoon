@@ -164,20 +164,19 @@ TownLayout.ROADS = {
 	{
 		name = "Station Road", kind = "main", width = 26, front = "both", use = "shops", district = "Station",
 		points = {
-			Vector3.new(-505, 0, -105), Vector3.new(-737, 0, -337), Vector3.new(-938, 0, -337),
+			Vector3.new(-610, 0, -105), Vector3.new(-610, 0, -337), Vector3.new(-938, 0, -337),
 		},
 	},
 	{
-		name = "Riverside Road", kind = "main", width = 26, front = "both", useAt = "centre",
+		name = "Riverside Road", kind = "main", width = 26, front = "both", useAt = "centre", head = true,
 		points = {
-			Vector3.new(60, 0, 0), Vector3.new(1340, 0, 0), Vector3.new(1400, 0, -60),
+			Vector3.new(60, 0, 0), Vector3.new(1290, 0, 0),
 		},
 	},
 	{
 		name = "Bridge Street", kind = "main", width = 26, front = "both", useAt = "bridge street",
 		points = {
-			Vector3.new(0, 0, 60), Vector3.new(0, 0, 200), Vector3.new(100, 0, 300),
-			Vector3.new(100, 0, 700), Vector3.new(0, 0, 800),
+			Vector3.new(0, 0, 60), Vector3.new(0, 0, 800),
 		},
 	},
 	{
@@ -210,19 +209,19 @@ TownLayout.ROADS = {
 	{
 		name = "Guild Street", kind = "residential", width = 20, front = "both", useAt = "centre",
 		points = {
-			Vector3.new(-330, 0, 130), Vector3.new(0, 0, 130),
+			Vector3.new(-295, 0, 105), Vector3.new(0, 0, 105),
 		},
 	},
 	{
 		name = "Quay Street", kind = "residential", width = 20, front = "both", useAt = "centre",
 		points = {
-			Vector3.new(0, 0, 130), Vector3.new(480, 0, 130),
+			Vector3.new(0, 0, 105), Vector3.new(480, 0, 105),
 		},
 	},
 	{
 		name = "Tanner Row", kind = "residential", width = 20, front = "both", useAt = "centre",
 		points = {
-			Vector3.new(-330, 0, 0), Vector3.new(-330, 0, 260),
+			Vector3.new(-295, 0, 0), Vector3.new(-295, 0, 260),
 		},
 	},
 	{
@@ -252,13 +251,13 @@ TownLayout.ROADS = {
 	{
 		name = "Dyers Lane", kind = "residential", width = 20, front = "both", useAt = "centre",
 		points = {
-			Vector3.new(500, 0, 0), Vector3.new(500, 0, -200),
+			Vector3.new(450, 0, 0), Vector3.new(450, 0, -200),
 		},
 	},
 	{
 		name = "Park Street", kind = "residential", width = 20, front = "both", useAt = "centre",
 		points = {
-			Vector3.new(750, 0, 0), Vector3.new(750, 0, -200),
+			Vector3.new(760, 0, 0), Vector3.new(760, 0, -200),
 		},
 	},
 	{
@@ -275,10 +274,9 @@ TownLayout.ROADS = {
 		},
 	},
 	{
-		name = "Loom Street", kind = "residential", width = 20, front = "both", use = "terraced row",
-		district = "Mill Street Terraces",
+		name = "Loom Street", kind = "residential", width = 20, front = "none", district = "Mill Street Terraces",
 		points = {
-			Vector3.new(-200, 0, -330), Vector3.new(-200, 0, -600),
+			Vector3.new(-150, 0, -330), Vector3.new(-150, 0, -600),
 		},
 	},
 	{
@@ -313,7 +311,7 @@ TownLayout.ROADS = {
 		name = "Linden Way", kind = "residential", width = 20, front = "both", use = "terraced row",
 		district = "Northfields",
 		points = {
-			Vector3.new(-1000, 0, -920), Vector3.new(850, 0, -920),
+			Vector3.new(-1000, 0, -920), Vector3.new(900, 0, -920),
 		},
 	},
 	{
@@ -355,7 +353,7 @@ TownLayout.ROADS = {
 		name = "Rowan Close", kind = "residential", width = 20, front = "both", use = "terraced row",
 		district = "Northfields",
 		points = {
-			Vector3.new(-200, 0, -600), Vector3.new(-200, 0, -920),
+			Vector3.new(-150, 0, -600), Vector3.new(-150, 0, -920),
 		},
 	},
 	{
@@ -369,7 +367,7 @@ TownLayout.ROADS = {
 		name = "Hayfield Close", kind = "residential", width = 20, front = "both", use = "terraced row",
 		district = "Northfields",
 		points = {
-			Vector3.new(400, 0, -600), Vector3.new(400, 0, -920),
+			Vector3.new(450, 0, -600), Vector3.new(450, 0, -920),
 		},
 	},
 	{
@@ -383,7 +381,7 @@ TownLayout.ROADS = {
 		name = "Maple Close", kind = "residential", width = 20, front = "both", use = "semis",
 		district = "Northfields",
 		points = {
-			Vector3.new(850, 0, -600), Vector3.new(850, 0, -920),
+			Vector3.new(900, 0, -600), Vector3.new(900, 0, -920),
 		},
 	},
 	{
@@ -396,21 +394,21 @@ TownLayout.ROADS = {
 	{
 		name = "Church Lane", kind = "residential", width = 20, front = "none", district = "Town Centre",
 		points = {
-			Vector3.new(-360, 0, 0), Vector3.new(-360, 0, -330),
+			Vector3.new(-295, 0, 0), Vector3.new(-295, 0, -330),
 		},
 	},
 	{
 		name = "Cooper Street", kind = "residential", width = 20, front = "both", use = "terraced row",
-		district = "Station",
+		district = "Station", head = true,
 		points = {
-			Vector3.new(-1350, 0, -240), Vector3.new(-640, 0, -240),
+			Vector3.new(-1290, 0, -240), Vector3.new(-720, 0, -240),
 		},
 	},
 	{
 		name = "Signal Street", kind = "residential", width = 20, front = "both", use = "terraced row",
 		district = "Station",
 		points = {
-			Vector3.new(-1150, 0, 25), Vector3.new(-560, 0, 25),
+			Vector3.new(-1090, 0, 25), Vector3.new(-560, 0, 25),
 		},
 	},
 	{
@@ -466,21 +464,21 @@ TownLayout.ROADS = {
 		name = "Meadow Road", kind = "residential", width = 20, front = "both", use = "terraced row",
 		district = "Riverside", head = true,
 		points = {
-			Vector3.new(100, 0, 560), Vector3.new(1180, 0, 560),
+			Vector3.new(0, 0, 560), Vector3.new(1180, 0, 560),
 		},
 	},
 	{
 		name = "Tannery Row", kind = "residential", width = 20, front = "both", use = "terraced row",
 		district = "Riverside", head = true,
 		points = {
-			Vector3.new(100, 0, 680), Vector3.new(1100, 0, 680),
+			Vector3.new(0, 0, 680), Vector3.new(1100, 0, 680),
 		},
 	},
 	{
 		name = "Viaduct Road", kind = "residential", width = 20, front = "both", use = "terraced row",
 		district = "Riverside",
 		points = {
-			Vector3.new(-545, 0, 620), Vector3.new(100, 0, 620),
+			Vector3.new(-545, 0, 560), Vector3.new(0, 0, 560),
 		},
 	},
 	{
@@ -513,13 +511,13 @@ TownLayout.ROADS = {
 		name = "Osier Lane", kind = "residential", width = 20, front = "both", use = "terraced row",
 		district = "Riverside",
 		points = {
-			Vector3.new(-250, 0, 620), Vector3.new(-250, 0, 800),
+			Vector3.new(-250, 0, 560), Vector3.new(-250, 0, 800),
 		},
 	},
 	{
 		name = "Sports Centre Road", kind = "residential", width = 20, front = "none", district = "Riverside",
 		points = {
-			Vector3.new(0, 0, 800), Vector3.new(0, 0, 1200), Vector3.new(590, 0, 1200),
+			Vector3.new(0, 0, 800), Vector3.new(0, 0, 1200), Vector3.new(600, 0, 1200),
 		},
 	},
 	{
@@ -540,7 +538,7 @@ TownLayout.ROADS = {
 		name = "Hollins Road", kind = "residential", width = 20, front = "both", use = "terraced row",
 		district = "Riverside", head = true,
 		points = {
-			Vector3.new(590, 0, 800), Vector3.new(590, 0, 1500),
+			Vector3.new(600, 0, 800), Vector3.new(600, 0, 1500),
 		},
 	},
 	{
@@ -584,9 +582,9 @@ TownLayout.ROADS = {
 	},
 	{
 		name = "Fern Street", kind = "residential", width = 20, front = "both", use = "terraced row",
-		district = "Westdale",
+		district = "Westdale", head = true,
 		points = {
-			Vector3.new(-1310, 0, 800), Vector3.new(-1000, 0, 800),
+			Vector3.new(-1310, 0, 800), Vector3.new(-1090, 0, 800),
 		},
 	},
 	{
@@ -621,7 +619,7 @@ TownLayout.ROADS = {
 		name = "Westdale Road", kind = "residential", width = 20, front = "both", use = "terraced row",
 		district = "Westdale",
 		points = {
-			Vector3.new(-915, 0, 800), Vector3.new(-915, 0, 1480),
+			Vector3.new(-850, 0, 800), Vector3.new(-850, 0, 1480),
 		},
 	},
 	{
@@ -640,14 +638,14 @@ TownLayout.ROADS = {
 		name = "Mapleford Lane", kind = "residential", width = 20, front = "both", use = "terraced row",
 		district = "Mapleford",
 		points = {
-			Vector3.new(-2250, 0, -670), Vector3.new(-1350, 0, -670),
+			Vector3.new(-2250, 0, -600), Vector3.new(-1350, 0, -600),
 		},
 	},
 	{
 		name = "Drift Close", kind = "residential", width = 20, front = "both", use = "detached house",
 		district = "Mapleford", head = true,
 		points = {
-			Vector3.new(-2250, 0, -670), Vector3.new(-2250, 0, -1060),
+			Vector3.new(-2250, 0, -600), Vector3.new(-2250, 0, -1060),
 		},
 	},
 	{
@@ -668,7 +666,7 @@ TownLayout.ROADS = {
 		name = "Pinfold Close", kind = "residential", width = 20, front = "both", use = "detached house",
 		district = "Mapleford", head = true,
 		points = {
-			Vector3.new(-950, 0, -1210), Vector3.new(-950, 0, -1110),
+			Vector3.new(-950, 0, -1210), Vector3.new(-950, 0, -1100),
 		},
 	},
 	{
@@ -730,66 +728,72 @@ TownLayout.ROADS = {
 		name = "Lunebank Road", kind = "residential", width = 20, front = "both", use = "terraced row",
 		district = "Hollingford",
 		points = {
-			Vector3.new(1400, 0, 300), Vector3.new(1500, 0, 300), Vector3.new(1940, 0, 740),
-			Vector3.new(1940, 0, 800),
+			Vector3.new(1400, 0, 300), Vector3.new(1500, 0, 300), Vector3.new(1905, 0, 705),
+			Vector3.new(1905, 0, 800),
 		},
 	},
 	{
 		name = "Ferry Lane", kind = "residential", width = 20, front = "none", district = "Hollingford",
 		points = {
-			Vector3.new(1500, 0, 300), Vector3.new(1593, 0, 207),
+			Vector3.new(1578, 0, 378), Vector3.new(1671, 0, 285),
 		},
 	},
 	{
 		name = "Fellmonger Street", kind = "residential", width = 20, front = "both", use = "terraced row",
 		district = "Hollingford",
 		points = {
-			Vector3.new(1500, 0, 480), Vector3.new(1760, 0, 740), Vector3.new(1760, 0, 800),
+			Vector3.new(1500, 0, 480), Vector3.new(1725, 0, 705), Vector3.new(1725, 0, 800),
 		},
 	},
 	{
 		name = "Bleach Street", kind = "residential", width = 20, front = "both", use = "semis",
 		district = "Hollingford",
 		points = {
-			Vector3.new(1593, 0, 207), Vector3.new(2126, 0, 740), Vector3.new(2126, 0, 800),
+			Vector3.new(1671, 0, 285), Vector3.new(2091, 0, 705), Vector3.new(2091, 0, 800),
 		},
 	},
 	{
 		name = "Garth Road", kind = "residential", width = 20, front = "both", use = "detached house",
 		district = "Hollingford", head = true,
 		points = {
-			Vector3.new(1510, 0, 800), Vector3.new(1510, 0, 1560),
+			Vector3.new(1610, 0, 800), Vector3.new(1610, 0, 1560),
 		},
 	},
 	{
 		name = "Ropewalk", kind = "residential", width = 20, front = "none", district = "Hollingford",
 		points = {
-			Vector3.new(1660, 0, 640), Vector3.new(1843, 0, 457),
+			Vector3.new(1650, 0, 630), Vector3.new(1833, 0, 447),
 		},
 	},
-	-- Back alleys (Marcel, 2026-09-20): the small, fully paved road size
-	-- (RoadTiles.ALLEY_SCALE, 22 studs across). Each runs down the middle of the gap
-	-- between two terraced rows that stand back to back, where that gap is 29 to 36
-	-- studs, and opens onto the streets it meets. width is the paved carriageway.
 	{
 		name = "Back Cooper Street", kind = "alley", width = 10, front = "none", district = "Station",
-		points = { Vector3.new(-1190, 0, -174), Vector3.new(-740, 0, -174) },
+		points = {
+			Vector3.new(-1190, 0, -174), Vector3.new(-740, 0, -174),
+		},
 	},
 	{
 		name = "Back Signal Street", kind = "alley", width = 10, front = "none", district = "Station",
-		points = { Vector3.new(-1100, 0, -38), Vector3.new(-745, 0, -38) },
+		points = {
+			Vector3.new(-1100, 0, -38), Vector3.new(-745, 0, -38),
+		},
 	},
 	{
 		name = "Back Lock Street", kind = "alley", width = 10, front = "none", district = "Station",
-		points = { Vector3.new(-1100, 0, 88), Vector3.new(-595, 0, 88) },
+		points = {
+			Vector3.new(-1100, 0, 88), Vector3.new(-595, 0, 88),
+		},
 	},
 	{
 		name = "Back Mill Street", kind = "alley", width = 10, front = "none", district = "Mill Street Terraces",
-		points = { Vector3.new(0, 0, -265), Vector3.new(900, 0, -265) },
+		points = {
+			Vector3.new(0, 0, -265), Vector3.new(900, 0, -265),
+		},
 	},
 	{
 		name = "Back Fuller Street", kind = "alley", width = 10, front = "none", district = "Riverside",
-		points = { Vector3.new(-1060, 0, 625), Vector3.new(-655, 0, 625) },
+		points = {
+			Vector3.new(-1060, 0, 625), Vector3.new(-655, 0, 625),
+		},
 	},
 } :: { Road }
 
@@ -806,7 +810,7 @@ TownLayout.RIVER = {
 
 TownLayout.BRIDGES = {
 	{ name = "West Bridge", kind = "road", from = Vector3.new(-1150, 0, 400), to = Vector3.new(-1150, 0, 215), width = 32 },
-	{ name = "Lune Bridge", kind = "road", from = Vector3.new(100, 0, 330), to = Vector3.new(100, 0, 510), width = 26 },
+	{ name = "Lune Bridge", kind = "road", from = Vector3.new(0, 0, 330), to = Vector3.new(0, 0, 510), width = 26 },
 	{ name = "East Bridge", kind = "road", from = Vector3.new(1400, 0, -60), to = Vector3.new(1400, 0, 150), width = 32 },
 	{ name = "Lune Viaduct", kind = "rail", from = Vector3.new(-530, 0, 260), to = Vector3.new(-570, 0, 540), width = 16 },
 } :: { Bridge }
@@ -886,8 +890,8 @@ TownLayout.DISTRICTS = {
 		name = "Town Centre",
 		kind = "centre",
 		blocks = {
-			{ centre = Vector3.new(400, 15, -41), size = Vector3.new(100, 30, 30), yaw = 0, use = "pub" }, -- v3: was (400, -35), placed clear of the v3 roads
-			{ centre = Vector3.new(-260, 17, 36), size = Vector3.new(100, 34, 30), yaw = 0, use = "supermarket" }, -- v3: was (-260, 30), placed clear of the v3 roads
+			{ centre = Vector3.new(360, 15, -41), size = Vector3.new(100, 30, 30), yaw = 0, use = "pub" }, -- junction moves: was x 400, Dyers Lane now runs at x 450
+			{ centre = Vector3.new(-220, 17, 36), size = Vector3.new(100, 34, 30), yaw = 0, use = "supermarket" }, -- junction moves: was x -260, Tanner Row now runs at x -295
 			{ centre = Vector3.new(-150, 15, 200), size = Vector3.new(120, 30, 60), yaw = 0, use = "town hall" },
 			{ centre = Vector3.new(-220, 20, -230), size = Vector3.new(40, 40, 90), yaw = 0, use = "church" },
 			{ centre = Vector3.new(-50, 15, -87), size = Vector3.new(30, 30, 30), yaw = 0, use = "pub" },
@@ -910,10 +914,10 @@ TownLayout.DISTRICTS = {
 		blocks = {
 			{ centre = Vector3.new(-1100, 15, -750), size = Vector3.new(140, 30, 90), yaw = 0, use = "school" },
 			{ centre = Vector3.new(1155, 0.5, -675), size = Vector3.new(150, 1, 106), yaw = 0, use = "park" }, -- v3: new, the green where Poplar Close was, inside the ring chamfer
-			{ centre = Vector3.new(-100, 0.5, -760), size = Vector3.new(100, 1, 180), yaw = 0, use = "park" }, -- v3: new
+			{ centre = Vector3.new(-80, 0.5, -760), size = Vector3.new(90, 1, 180), yaw = 0, use = "park" }, -- v3: new; junction moves: was 100 wide at x -100, Rowan Close now runs at x -150
 			{ centre = Vector3.new(525, 0.5, -760), size = Vector3.new(110, 1, 180), yaw = 0, use = "park" }, -- v3: new
 			{ centre = Vector3.new(80, 15, -645), size = Vector3.new(110, 30, 30), yaw = 0, use = "shops" }, -- v3: new
-			{ centre = Vector3.new(-80, 15, -555), size = Vector3.new(110, 30, 30), yaw = 0, use = "shops" }, -- v3: new
+			{ centre = Vector3.new(-76, 15, -555), size = Vector3.new(100, 30, 30), yaw = 0, use = "shops" }, -- v3: new; junction moves: was 110 wide at x -80, Loom Street now runs at x -150
 		},
 	},
 	{
@@ -939,7 +943,7 @@ TownLayout.DISTRICTS = {
 		kind = "station",
 		blocks = {
 			{ centre = Vector3.new(-1020, 0.5, -350), size = Vector3.new(120, 1, 60), yaw = 0, use = "station car park" },
-			{ centre = Vector3.new(-668, 17, -330), size = Vector3.new(30, 34, 30), yaw = 0, use = "pub" },
+			{ centre = Vector3.new(-668, 17, -296), size = Vector3.new(30, 34, 30), yaw = 0, use = "pub" }, -- junction moves: was z -330, Station Road now runs along z -337 here
 		},
 	},
 	{
@@ -954,7 +958,7 @@ TownLayout.DISTRICTS = {
 		kind = "estate",
 		blocks = {
 			{ centre = Vector3.new(-1110, 15, 1025), size = Vector3.new(140, 30, 90), yaw = 0, use = "school" }, -- v3: new
-			{ centre = Vector3.new(-820, 0.5, 1175), size = Vector3.new(140, 1, 80), yaw = 0, use = "park" }, -- v3: new
+			{ centre = Vector3.new(-940, 0.5, 1175), size = Vector3.new(140, 1, 80), yaw = 0, use = "park" }, -- v3: new; junction moves: was x -820, Westdale Road now runs at x -850, so the park sits on its west side
 		},
 	},
 	{
@@ -991,7 +995,7 @@ TownLayout.DISTRICTS = {
 TownLayout.LANDMARKS = {
 	{ name = "Church Spire", position = Vector3.new(-220, 0, -240), height = 130 },
 	{ name = "Lune Viaduct", position = Vector3.new(-550, 0, 400), height = 45 },
-	{ name = "Lune Bridge", position = Vector3.new(100, 0, 420), height = 14 },
+	{ name = "Lune Bridge", position = Vector3.new(0, 0, 420), height = 14 },
 } :: { Landmark }
 
 -- X268 (review): `yaw` is the direction the shelter opens. Four stops had it

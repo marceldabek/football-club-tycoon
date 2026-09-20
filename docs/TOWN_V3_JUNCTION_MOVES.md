@@ -1,6 +1,21 @@
 # Rivermere v3: layout moves that give every junction a real kit piece
 
-Status: PROPOSED 2026-09-20, not applied. `TownLayout` is unchanged.
+Status: APPLIED 2026-09-20 (Marcel approved groups A, B and C), in `tools/town_plan_v3.py` and
+emitted to `TownLayout`. The raised-entry (ramp) code is removed; `RoadTilesTest.everyTownJunctionGetsARealKitPiece`
+holds the town at 0 makeshift junctions.
+
+Differences from the proposal:
+- **Riverside Road does NOT go north to the ring**: that route runs through Riverside Park. It
+  ends in a turning head at (1290, 0) by the park instead. OPEN for Marcel: keep this, or take
+  about a fifth off the park's east side so the road can reach the ring at z -170.
+- Cooper Street ends at x -720 with a turning head (not a bare dead end at -700).
+- Loom Street is `front = "none"`: the rows on the streets it crosses take its corners.
+- Osier Lane follows Viaduct Road to z 560.
+- Specials moved clear of the new lines: supermarket x -260 -> -220, town-centre pub x 400 -> 360,
+  Station pub z -330 -> -296, Northfields park 100 -> 90 wide at x -80, Northfields shops 110 -> 100
+  wide, Westdale park to the west side of Westdale Road (x -940).
+- Built town after the moves: 0 tucked junctions, crossroads 25 -> 37, lots 868 -> 861,
+  housing units 2,681 -> 2,638 (-1.6%), trade lots 156 -> 148, all part budgets still met.
 
 Why: 26 junctions have no proper piece (`RoadTiles.plan().makeshift`). 21 are raised
 entries (ramps), which Marcel does not want; 5 still tuck under. The kit's T piece and

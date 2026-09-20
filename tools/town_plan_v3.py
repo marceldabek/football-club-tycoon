@@ -108,8 +108,8 @@ HEAD = 34.0       # cul-de-sac turning head radius (kit CulDeSac is 96 x 69 at t
 
 # ------------------------------------------------------------------ roads
 
-R, M, S, L = "ring", "main", "residential", "lane"
-WIDTH = {R: 32.0, M: 26.0, S: 20.0, L: 20.0}
+R, M, S, L, A = "ring", "main", "residential", "lane", "alley"
+WIDTH = {R: 32.0, M: 26.0, S: 20.0, L: 20.0, A: 10.0}
 
 
 def road(name, kind, pts, front=None, use="terraced row", district=None, use_at=None, head=False):
@@ -176,10 +176,13 @@ def roads():
         road("North Road", M, [(0, -60), (0, -1080)], front="both", use_at="north road"),
         road("High Street", M, [(-60, 0), (-400, 0), (-505, -105), (-1255, -105)], front="both",
              use_at="high street"),
-        road("Station Road", M, [(-505, -105), (-737, -337), (-938, -337)], front="both",
-             use="shops", district="Station"),
-        road("Riverside Road", M, [(60, 0), (1340, 0), (1400, -60)], front="both", use_at="centre"),
-        road("Bridge Street", M, [(0, 60), (0, 200), (100, 300), (100, 700), (0, 800)], front="both",
+        road("Station Road", M, [(-610, -105), (-610, -337), (-938, -337)], front="both",
+             use="shops", district="Station"),   # junction moves: leaves High Street square, not at its 45 bend
+        # junction moves: it met the ring at 45 degrees on East Bridge's abutment, where no kit junction
+        # fits. A square route north to the ring would cut through Riverside Park, so it ends in a
+        # turning head at the park instead (TEMP: Marcel to choose between this and a smaller park).
+        road("Riverside Road", M, [(60, 0), (1290, 0)], front="both", use_at="centre", head=True),
+        road("Bridge Street", M, [(0, 60), (0, 800)], front="both",
              use_at="bridge street"),
         road("Mapleford Road", M, [(-1350, -400), (-2400, -400)], front="both", use_at="industrial"),
         road("Estate Road", M, [(-1255, -105), (-2400, -105)], front="both", use_at="industrial"),
@@ -195,19 +198,19 @@ def roads():
     # stands behind anything else.
     tc = "Town Centre"
     out += [
-        road("Guild Street", S, [(-330, 130), (0, 130)], use_at="centre"),              # NEW
-        road("Quay Street", S, [(0, 130), (480, 130)], use_at="centre"),                # NEW
-        road("Tanner Row", S, [(-330, 0), (-330, 260)], use_at="centre"),               # NEW
+        road("Guild Street", S, [(-295, 105), (0, 105)], use_at="centre"),              # NEW
+        road("Quay Street", S, [(0, 105), (480, 105)], use_at="centre"),                # NEW
+        road("Tanner Row", S, [(-295, 0), (-295, 260)], use_at="centre"),               # NEW
         road("Wharf Street", S, [(250, 0), (250, 260)], front="none"),  # its corners are taken by the streets it joins               # NEW
         road("Marina Way", S, [(760, 0), (760, 190)], use_at="centre", head=True),      # NEW
         road("Chapel Street", S, [(-150, 0), (-150, -330)], use_at="centre"),           # NEW
         road("Fountain Street", S, [(250, 0), (250, -200)], use_at="centre"),           # NEW
-        road("Dyers Lane", S, [(500, 0), (500, -200)], use_at="centre"),                # NEW
-        road("Park Street", S, [(750, 0), (750, -200)], use_at="centre"),               # NEW
+        road("Dyers Lane", S, [(450, 0), (450, -200)], use_at="centre"),                # NEW
+        road("Park Street", S, [(760, 0), (760, -200)], use_at="centre"),               # NEW
         # side streets tying the terraces together
         road("Spinner Street", S, [(450, -200), (450, -600)], district="Mill Street Terraces", front="none"),   # NEW
         road("Park Road", S, [(900, -200), (900, -600)], district="Mill Street Terraces"),        # NEW
-        road("Loom Street", S, [(-200, -330), (-200, -600)], district="Mill Street Terraces"),    # NEW
+        road("Loom Street", S, [(-150, -330), (-150, -600)], district="Mill Street Terraces", front="none"),  # a connecting street: gable ends face it    # NEW
     ]
 
     # ---- Mill Street Terraces: untouched
@@ -222,13 +225,13 @@ def roads():
     nf = "Northfields"
     out += [
         road("Northfields Avenue", S, [(-1350, -600), (1400, -600)], district=nf),
-        road("Linden Way", S, [(-1000, -920), (850, -920)], district=nf),
+        road("Linden Way", S, [(-1000, -920), (900, -920)], district=nf),
     ]
     for name, x, end in [("Elder Close", -1200, -815), ("Ash Close", -1000, -920),
                          ("Birch Close", -800, -920), ("Cherry Close", -600, -920),
-                         ("Hazel Close", -400, -920), ("Rowan Close", -200, -920),
-                         ("Holly Close", 225, -920), ("Hayfield Close", 400, -920),
-                         ("Laurel Close", 650, -920), ("Maple Close", 850, -920),
+                         ("Hazel Close", -400, -920), ("Rowan Close", -150, -920),
+                         ("Holly Close", 225, -920), ("Hayfield Close", 450, -920),
+                         ("Laurel Close", 650, -920), ("Maple Close", 900, -920),
                          ("Oak Close", 1050, -865)]:
         semis = abs(x) >= 800
         out.append(road(name, S, [(x, -600), (x, end)], district=nf,
@@ -237,9 +240,9 @@ def roads():
     # ---- Station quarter: one new street where rows stood five deep
     st = "Station"
     out += [
-        road("Church Lane", S, [(-360, 0), (-360, -330)], district="Town Centre", front="none"),
-        road("Cooper Street", S, [(-1350, -240), (-640, -240)], district=st),
-        road("Signal Street", S, [(-1150, 25), (-560, 25)], district=st),          # NEW
+        road("Church Lane", S, [(-295, 0), (-295, -330)], district="Town Centre", front="none"),
+        road("Cooper Street", S, [(-1290, -240), (-720, -240)], district=st, head=True),  # stops short of the ring; turning head short of Station Road
+        road("Signal Street", S, [(-1090, 25), (-560, 25)], district=st),          # NEW
         road("Lock Street", S, [(-1150, 150), (-540, 150)], district=st),
         road("Foundry Way", S, [(-1480, -400), (-1480, 110)], use_at="industrial"),
         # runs on east to the waterfront flats, which v1 left 130 studs from any street
@@ -255,24 +258,24 @@ def roads():
     # ---- Riverside (south bank, inside the ring): one new street
     rv = "Riverside"
     out += [
-        road("Meadow Road", S, [(100, 560), (1180, 560)], district=rv, head=True),
-        road("Tannery Row", S, [(100, 680), (1100, 680)], district=rv, head=True),            # NEW
-        road("Viaduct Road", S, [(-545, 620), (100, 620)], district=rv),
+        road("Meadow Road", S, [(0, 560), (1180, 560)], district=rv, head=True),
+        road("Tannery Row", S, [(0, 680), (1100, 680)], district=rv, head=True),            # NEW
+        road("Viaduct Road", S, [(-545, 560), (0, 560)], district=rv),
         road("Weir Road", S, [(-1150, 560), (-615, 560)], district=rv),
         road("Fuller Street", S, [(-1090, 690), (-615, 690)], district=rv),         # NEW
         road("Sluice Lane", S, [(-850, 560), (-850, 800)], district=rv, front="none"),            # NEW
         road("Dye Works Lane", S, [(600, 560), (600, 800)], district=rv, front="none"),           # NEW
-        road("Osier Lane", S, [(-250, 620), (-250, 800)], district=rv),             # NEW
+        road("Osier Lane", S, [(-250, 560), (-250, 800)], district=rv),             # NEW
     ]
 
     # ---- south of the ring
     out += [
-        road("Sports Centre Road", S, [(0, 800), (0, 1200), (590, 1200)], district=rv,
+        road("Sports Centre Road", S, [(0, 800), (0, 1200), (600, 1200)], district=rv,
              front="none"),
         road("Cedar Road", S, [(-470, 800), (-470, 1500)], district=rv, head=True),
         road("Paddock Road", S, [(400, 800), (400, 1500)], district=rv, head=True, use="semis"),           # NEW
-        road("Hollins Road", S, [(590, 800), (590, 1500)], district=rv, head=True),           # was x=520
-        road("Plot 1 Lane", L, [(970, 800), (970, 860)]),
+        road("Hollins Road", S, [(600, 800), (600, 1500)], district=rv, head=True),           # was x=520
+        road("Plot 1 Lane", L, [(970, 800), (970, 869)]),
     ]
 
     # ---- Westdale, rebuilt round Plot 3
@@ -284,13 +287,13 @@ def roads():
         road("Tanner's Lane", S, [(-2240, 560), (-2240, 1480)], district=wd, use="semis"),      # NEW
         # the E-W streets used to stop dead at the railway: now each ends in a turning head short of it
         road("Orchard Road", S, [(-2240, 1480), (-730, 1480)], district=wd, head=True),
-        road("Fern Street", S, [(-1310, 800), (-1000, 800)], district=wd),
+        road("Fern Street", S, [(-1310, 800), (-1090, 800)], district=wd, head=True),
         road("Westdale Avenue", S, [(-1310, 950), (-730, 950)], district=wd, head=True),
         road("Brook Street", S, [(-1310, 1100), (-730, 1100)], district=wd, head=True),
         road("Westdale Crescent", S, [(-1310, 1250), (-730, 1250)], district=wd, head=True),
         road("Coronation Street", S, [(-1310, 1365), (-730, 1365)], district=wd, head=True),   # NEW
-        road("Westdale Road", S, [(-915, 800), (-915, 1480)], district=wd),
-        road("Plot 3 Lane", L, [(-1860, 560), (-1860, 630)]),
+        road("Westdale Road", S, [(-850, 800), (-850, 1480)], district=wd),
+        road("Plot 3 Lane", L, [(-1860, 560), (-1860, 639)]),
     ]
 
     # ---- Mapleford: Plot 4's estate (north-west). Not a box round the plot:
@@ -298,12 +301,12 @@ def roads():
     # plot and the ring, so the club sits at the end of somebody's road.
     p4 = "Mapleford"
     out += [
-        road("Plot 4 Lane", L, [(-1350, -750), (-1350, -1210), (-1400, -1210)]),
-        road("Mapleford Lane", S, [(-2250, -670), (-1350, -670)], district=p4),
-        road("Drift Close", S, [(-2250, -670), (-2250, -1060)], district=p4, head=True, use="detached house"),
+        road("Plot 4 Lane", L, [(-1350, -750), (-1350, -1210), (-1409, -1210)]),
+        road("Mapleford Lane", S, [(-2250, -600), (-1350, -600)], district=p4),
+        road("Drift Close", S, [(-2250, -600), (-2250, -1060)], district=p4, head=True, use="detached house"),
         road("Tollgate Road", S, [(-1350, -1210), (-1350, -1590), (-2120, -1590)], district=p4, head=True),
         road("Drovers Road", S, [(-1350, -1210), (-760, -1210)], district=p4, head=True),
-        road("Pinfold Close", S, [(-950, -1210), (-950, -1110)], district=p4, head=True, use="detached house"),
+        road("Pinfold Close", S, [(-950, -1210), (-950, -1100)], district=p4, head=True, use="detached house"),
         road("Smithy Close", S, [(-1120, -1210), (-1120, -1460), (-880, -1460)], district=p4,
              use="semis", head=True),
     ]
@@ -311,7 +314,7 @@ def roads():
     # ---- Millbrook: Plot 2's estate (north-east), deliberately not Mapleford's mirror
     p2 = "Millbrook"
     out += [
-        road("Plot 2 Lane", L, [(1400, -600), (1400, -1080), (1440, -1080)]),
+        road("Plot 2 Lane", L, [(1400, -600), (1400, -1080), (1449, -1080)]),
         road("Millbrook Road", S, [(1400, -700), (2300, -700)], district=p2),
         road("Lune View", S, [(1560, -570), (2250, -570)], district=p2, head=True, use="detached house"),
         road("Fell Lane", S, [(2300, -700), (2300, -1320)], district=p2, head=True, use="semis"),
@@ -324,13 +327,26 @@ def roads():
     # street is parallel to Hollingford Road's own 45 leg off the roundabout.
     hf = "Hollingford"
     out += [
-        road("Lunebank Road", S, [(1400, 300), (1500, 300), (1940, 740), (1940, 800)], district=hf),
-        road("Ferry Lane", S, [(1500, 300), (1593, 207)], district=hf, front="none"),
-        road("Fellmonger Street", S, [(1500, 480), (1760, 740), (1760, 800)], district=hf),
-        road("Bleach Street", S, [(1593, 207), (2126, 740), (2126, 800)], district=hf, use="semis"),
+        road("Lunebank Road", S, [(1400, 300), (1500, 300), (1905, 705), (1905, 800)], district=hf),
+        road("Ferry Lane", S, [(1578, 378), (1671, 285)], district=hf, front="none"),
+        road("Fellmonger Street", S, [(1500, 480), (1725, 705), (1725, 800)], district=hf),
+        road("Bleach Street", S, [(1671, 285), (2091, 705), (2091, 800)], district=hf, use="semis"),
         # beside Plot 1
-        road("Garth Road", S, [(1510, 800), (1510, 1560)], district=hf, head=True, use="detached house"),
-        road("Ropewalk", S, [(1660, 640), (1843, 457)], district=hf, front="none"),               # NEW, ties the three diagonals
+        road("Garth Road", S, [(1610, 800), (1610, 1560)], district=hf, head=True, use="detached house"),
+        road("Ropewalk", S, [(1650, 630), (1833, 447)], district=hf, front="none"),               # NEW, ties the three diagonals
+    ]
+
+    # ---- back alleys (Marcel, 2026-09-20): the small, fully paved road size
+    # (RoadTiles.ALLEY_SCALE, 22 studs across). Each runs down the middle of the gap between
+    # two terraced rows that stand back to back, where that gap is 29 to 36 studs, and opens
+    # onto the streets it meets. width is the paved carriageway. Nothing fronts an alley and
+    # it takes no pavement setback (like a plot lane).
+    out += [
+        road("Back Cooper Street", A, [(-1190, -174), (-740, -174)], district="Station"),
+        road("Back Signal Street", A, [(-1100, -38), (-745, -38)], district="Station"),
+        road("Back Lock Street", A, [(-1100, 88), (-595, 88)], district="Station"),
+        road("Back Mill Street", A, [(0, -265), (900, -265)], district="Mill Street Terraces"),
+        road("Back Fuller Street", A, [(-1060, 625), (-655, 625)], district="Riverside"),
     ]
     return out
 
@@ -461,7 +477,7 @@ class Town:
     def road_clear(self, blk, skip=None, extra=GARDEN - 2):
         pts = samples(blk)
         for r in self.roads:
-            need = r["width"] / 2 + (0 if r["kind"] == L else PAVE) + extra
+            need = r["width"] / 2 + (0 if r["kind"] in (L, A) else PAVE) + extra
             for a, b in segments(r):
                 if skip is not None and (r is skip[0] and (a, b) == skip[1]):
                     continue
