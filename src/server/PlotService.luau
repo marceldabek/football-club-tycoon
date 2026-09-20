@@ -36,7 +36,16 @@ local PER_CLUB = {
 	"SaveLock",
 	"Scenery",
 	"PlotGrounds",
+	-- X369: PlotGrounds builds the entrance wall from the kit. Every module here
+	-- reaches its neighbours as script.Parent.<name>, which resolves against the
+	-- per-plot folder, so anything a cloned module requires must be cloned too.
+	-- PerClubModulesTest checks that; it is not obvious from reading PlotGrounds.
+	"KitPlacer",
 }
+
+-- exposed so PerClubModulesTest can check the list against what the cloned
+-- modules actually require
+PlotService.PER_CLUB = PER_CLUB
 
 -- TEMP plot sites until Shared.TownLayout exists: the four corners of the
 -- town, entrances (pitch-local -X) facing the middle.
