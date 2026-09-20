@@ -197,6 +197,45 @@ tiered 10,100; tiered with a whole-house terrace kit about 5,500.
 4. If 30 fps fails: first cut boundary triangles, then Tier B furniture, then radius. Do not cut
    houses or roads.
 
+## 8b. Lane I stage 3 measurements (2026-09-20, in Play)
+
+**This is a desktop Studio measurement on Marcel's PC, not a phone, and it could not measure
+frame rate.** Studio was not the focused window while the agent drove it, and an unfocused Studio
+caps rendering at 15 fps: wall-clock frame time read 65-69 ms at every spot and both quality
+levels, which is the cap, not the town. What is left is `Stats.RenderCPUFrameTime`,
+`Stats.HeartbeatTime`, scene triangles and draw calls, averaged over 5 s per level, camera at head
+height looking down the street. `RenderGPUFrameTime` read 0 throughout.
+
+"Low" = what `QualityController` does on a touch device (hide decorative parts, `Quality = "Low"`
+budgets for traffic and town life), applied by the measuring script because the toggle is a GUI
+button. From stage 3 on, Low also hides every model tagged `V3Decor` (`Quality.isDecorative`).
+
+| Spot | Instances streamed in | MeshParts streamed in | MeshParts within 640 | Other parts | Parts hidden on Low | Render CPU High / Low | Heartbeat High / Low | Triangles High / Low | Draw calls High / Low |
+|---|---|---|---|---|---|---|---|---|---|
+| Market Square (30, 5, 50), looking at (200, -300) | 69,701 | 23,071 | 6,226 | 4,719 | 1,890 | 17.4 / 4.7 ms | 1.2 / 0.4 ms | 279k / 237k | 210 / 196 |
+| Elder Close, Northfields (-1200, 5, -650) | 60,057 | 18,938 | 4,752 | 3,822 | 1,542 | 16.4 / 4.5 ms | 1.1 / 0.4 ms | 130k / 89k | 111 / 106 |
+| Outside Plot 3 (-1860, 5, 600) | 50,772 | 16,812 | 2,938 | 2,292 | 646 | 15.4 / 3.8 ms | 0.8 / 0.4 ms | 75k / 62k | 110 / 108 |
+
+Client memory at the Market Square: 4,438 MB total (Studio client, includes Studio itself).
+
+Against Lane P's expectation:
+
+- **MeshParts within radius 640 are inside the ~10,000 worst case** (6,226 at the densest spot
+  measured). The whole town is 39,991 MeshParts against the ~49,000 budget.
+- **But the client holds 17,000-23,000 MeshParts, two to four times what is within 640**, because
+  nothing streams out. The Workspace streaming properties (s9 rule 5: min 192, target 640,
+  `StreamOutBehavior = Opportunistic`, `ModelStreamingBehavior = Improved`) are not readable or
+  writable from scripts, so this lane could neither check nor set them. **Marcel: set them by hand
+  in Properties**, then this table wants redoing.
+- The High -> Low drop in render CPU (about 16 -> 4.5 ms) was measured High first, Low second at
+  every spot, so part of it may be warm-up rather than the preset. Treat it as "Low is not slower",
+  not as a 3.5x gain.
+- Render CPU of 15-17 ms on a desktop at High is not comfortable headroom for a phone at 30 fps
+  (33 ms). Nothing here shows the town fits a phone; nothing shows it does not. It needs a real
+  device, or at least a focused Studio window with the MicroProfiler.
+- Not done from s8: the (200, 0, -300) spot itself (the Market Square camera looked at it from
+  320 studs), memory categories after a ring-road lap, the 512 / 768 radius comparison.
+
 ## 9. How lanes use `V3Perf`
 
 ```lua

@@ -295,6 +295,10 @@ Anything over ~2 minutes is what the bus stops and the "go to my club" button ar
 
 v3 moved the three plot stops with their lanes, and put Riverside and Riverside Park on Riverside Road's pavement (they stood 50 and 27 behind the kerb). `yaw` is the way the shelter opens.
 
+**As built (Lane I stages 2-3, 2026-09-20):** the positions above are where a stop is *wanted*. The shelter itself is a kit `UKSP__BusShelter` placed by `StreetFurniture` on the nearest clear stretch of pavement, and `BusService` moves each stop's prompt and arrival point onto that shelter. Town stops land 0-7 studs from the table; the plot stops 19-56 studs (Plot 1 shelter (1004, 821), Plot 2 (1364, −1065), Plot 3 (−1826, 578), Plot 4 (−1365, −1244)), each 34-36 studs from its lane's centreline. `yaw` is no longer used when a shelter is found. The kit shelter carries no stop name yet.
+
+**Roads at bridges and plots (stage 3):** kit road tiles stop at each road bridge's `from` / `to` and the bridge deck carries the road across. A tee or crossroads may run up to `RoadTiles.END_OVERSHOOT` (10 studs) past a plot lane's end; nothing else crosses a plot boundary.
+
 ## 7. Landmarks and sightlines
 
 | Landmark | Position (x, z) | Top height | Seen from |

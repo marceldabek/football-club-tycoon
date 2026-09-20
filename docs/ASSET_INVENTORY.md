@@ -12,13 +12,27 @@
 | Prepped as Roblox GLBs | **464** |
 | Uploaded to Roblox | **497** (was 299 before 2026-09-19) |
 | Loaded into the place (`Kit.Meshes`) | **96** — run `fetch_kit.luau` to get the rest |
-| **Actually referenced in `src/`** | **2** |
+| **Actually used by `src/`** (recounted 2026-09-20, Rivermere v3) | **111 placed in the town** / 56 named literally in `src/` |
 
-Two of 497. The two are `UKSP__LitterBin__LitterBin` and `UKSP__ParkBenches__ParkBench01`. Everything
-else in Rivermere is primitives.
+Two counts, because most kit names are composed at run time (`"UKSP__ModularRoads__" .. piece`,
+`"MEH__" .. module .. trim`), so a grep undercounts:
 
-| Pack | Exported | Uploaded | Used in `src/` |
+- **Placed:** distinct `Kit` attribute values under `Workspace.Town` in a playtest (no club claimed):
+  **111** = 61 UKSP, 37 MEH, 4 PH, 9 others (Creator Store keepers and vehicles).
+- **Literal in `src/`:** distinct `UKSP__` / `MEH__` / `PH__` names, leaving out the id table
+  `Shared/KitIds.luau` (which lists all 447): **56** = 36 UKSP, 13 MEH, 7 PH.
+
+On 2026-09-19 this number was 2 (`UKSP__LitterBin__LitterBin`, `UKSP__ParkBenches__ParkBench01`) and
+the rest of Rivermere was primitives. About 4,800 primitive parts remain in the old dressers
+(`docs/TOWN_V3_HANDOFFS.md`, Lane I stage 2 audit table).
+
+| Pack | Exported | Uploaded | Placed in the v3 town |
 |---|---|---|---|
+| UK Street Props (UKSP) | 355 | **355** | **61** |
+| Modular English Housing (MEH) | 83 | **83** | **37** |
+| Poly Haven (PH, CC0) | 26 | 26 | **4** |
+
+---|---|---|---|
 | UK Street Props (UKSP) | 355 | **355** | **2** |
 | Modular English Housing (MEH) | 83 | **83** | **0** |
 | Poly Haven (PH, CC0) | 26 | 26 | **0** |

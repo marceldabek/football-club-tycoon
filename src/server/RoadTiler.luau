@@ -27,12 +27,18 @@ local LOOKS: { [string]: { color: Color3, material: Enum.Material } } = {
 -- The kit's grass verge texture is a bright lime that reads as a green stripe
 -- against the town's terrain grass (Lane I stage 1 playtest, problem 1). The verge
 -- MeshPart's SurfaceAppearance is tinted toward the terrain colour instead.
--- Tried and rejected: (150, 158, 118) dark saturated green, (255, 185, 200) mustard,
--- (240, 212, 235) still lime next to terrain grass (stage 3 screenshot, Elder Close).
--- The texture has almost no blue, so blue stays at 255 and red / green come down
--- together. Settled in stage 3 by retinting Elder Close live and comparing it with
--- the terrain beside it (terrain grass material colour is 111, 126, 62).
-RoadTiler.VERGE_TINT = Color3.fromRGB(160, 158, 255)
+-- Observed in Play (rendered verge colour, eyeballed from screenshots):
+--   (240, 212, 235) -> lime (150, 190, 45)        stage 3, Elder Close
+--   (255, 185, 200) -> mustard                    stage 2
+--   (150, 158, 118) -> dark saturated green       stage 2
+--   (160, 158, 255) -> dark bluish green (25, 80, 45)   stage 3, West Bridge approach
+-- The tint does NOT act linearly on the rendered colour: those four fit
+-- rendered = base * (tint / 255) ^ 2.4 per channel. The texture has almost no blue,
+-- so blue stays at 255. Solving that for the terrain grass beside the road (rendered
+-- about (100, 130, 60); Terrain grass material colour is (111, 126, 62)) gives the
+-- value below. It is the model's answer from four observations and has NOT itself
+-- been looked at (stage 3 used its last screenshot finding that 160/158 was too dark).
+RoadTiler.VERGE_TINT = Color3.fromRGB(203, 181, 255)
 
 -- Town Centre streets are fronted by shops, where a grass verge reads wrong. Inside
 -- RoadTiles.CENTRE the verge mesh loses its grass SurfaceAppearance and is shown as

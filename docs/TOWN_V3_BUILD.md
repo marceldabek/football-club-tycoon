@@ -347,7 +347,7 @@ A primitive may exist only if it has a row here. Tag the instance `V3Exempt = "<
 | E1 | Ground, grass, water, pitch surfaces | terrain-like, not objects | — | permanent |
 | E2 | Invisible collision and trigger volumes | not rendered | — | permanent |
 | E3 | Roundabout islands (10) | ModularRoads has no roundabout | Lane R | buy or AI-mesh; see s8 |
-| E4 | Pavements and kerbs | ModularRoads has no kerb piece | Lane R | buy; see s8 |
+| E4 | Town Centre paving: inside `RoadTiles.CENTRE` (67 tiles) the kit road piece's grass-verge MeshPart has its grass SurfaceAppearance removed and is shown as plain `Pavement` material, grey (150, 148, 142). Still the kit mesh, not a Part, but an untextured stand-in; tagged `V3Exempt = "E4"`, tile attribute `PavedVerge`. Shop-fronted roads outside the box keep grass verges. (Kerbs and ordinary pavements come with the kit road pieces, so the original E4 was never needed.) | kit has no paving-slab verge or wide town pavement piece | Integrator (Lane I stage 3) | buy a paving / pavement set with a texture, or a tiling slab texture to put on the same mesh; see s8 |
 | EC1 | Shopfronts: ground floors of 53 shop lots, 29 corner shops, 2 shop specials are MEH house bays and doors (kit meshes, not Parts) | kit has no shopfront, fascia or awning | Lane C | s8 #1, #5 (or #6) |
 | EC2 | Industrial units: 25 workshop / trade counter / warehouse lots + builders yard are UKSP corrugated fence sheet stretched to panel size with scaled MEH garage doors | kit has no industrial unit or vehicle shutter | Lane C | s8 #2 (or #9) |
 | EC3 | Pubs and cafes: 9 specials are MEH prefab houses | kit has no pub | Lane C | s8 #3 |
@@ -356,6 +356,11 @@ A primitive may exist only if it has a row here. Tag the instance `V3Exempt = "<
 | EC6 | Station building, marina, bandstand: NOT built by Lane C; the existing primitive dressers remain | kit has none | Integrator | s8 #4 for the station; marina and bandstand unresolved |
 | EC7 | `ChurchSpire` Creator Store keeper is 238 primitive Parts, not a mesh; its Parts are tagged `V3Exempt = "EC7"` | approved kit item, but built from Parts | Lane C | replace with a mesh church (none found yet) |
 | EI1 | Trees and shrubs: GreeneryDresser (599 parts), CentreTreeDresser (72), TerraceStreetDresser street trees, park / riverside / square planter trees are trunk-and-ball primitives | the only kit tree is `Kit.Vegetation.OakPack6` (6 oaks, 2-3 MeshParts each): FREE_ASSETS.md flags its provenance as unverified, and its triangle count cannot be measured (EditableMesh: no permission) | Integrator | buy or AI-mesh one low-poly tree set (2-3 trees, 1 MeshPart each, under 1,500 tris), then swap `TerraceStreetDresser.lightTree` and GreeneryDresser's tree in one place each |
+| EI2 | Road bridge decks, parapets, piers and arches (3 bridges, 384 parts) and the rail viaduct (56). Kit road tiles stop at each bridge span (`RoadTiles.plan(..., bridges)`), so the primitive deck IS the road there and has no markings. Parts are not tagged yet | kit has no bridge | Integrator | buy or AI-mesh one stone road bridge and one viaduct span |
+| EI3 | Railway track bed and rails (66 parts), not tagged yet | kit has no track | Integrator | buy a modular track piece |
+| EI4 | Market stalls and clock tower in the Square (part of 419), planters; not tagged yet | kit has none | Integrator | AI-mesh a stall and a clock tower |
+| EI5 | Street name plates, finger posts, welcome and route signs (Signs 222, Gateways 18): flat plates carrying generated text, not tagged yet | text must be generated per street; a kit sign cannot carry it | Integrator | keep; move the text onto a kit sign-post mesh with a SurfaceGui when one is chosen |
+| EI6 | Play-area equipment, estate name stones and totem (Estates 110), not tagged yet | kit has no play equipment | Integrator | buy a small playground set |
 | … | *(lanes append here)* | | | |
 
 ## 8. Buy / generate list (Lane C maintains; Marcel approves)
