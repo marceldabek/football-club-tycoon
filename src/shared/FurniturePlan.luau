@@ -18,11 +18,19 @@
 --   car         the bonnet is at the BACK vector (checked on HatchbackNavy), so
 --               LookVector is opposite to the way it is parked facing
 --
+-- The kerb is where the KIT road piece has it (RoadTiles.kerbDistance, 7.0 on a
+-- street), not TownLayout's nominal road.width / 2 (10 to 16): that put furniture
+-- past the back of the piece on main roads, floating over the terrain. Behind the
+-- kerb the piece is 3 studs of paving then grass verge, both at pavement level, so
+-- guard rails and bins land on the paving and lamps, signs and benches in the verge.
 -- The pavement strip is kerb .. kerb + PAVEMENT_WIDTH. Nothing lands in a road
 -- corridor, a lot, a special block, a junction mouth, a roundabout, a turning
 -- head, a plot, the market square or on a bridge. The ONE exception is category
 -- "car": parked cars sit on their own residential carriageway against the kerb
 -- (placement.onCarriageway = true), and still obey every other rule.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles) -- pure too: the kit road section
 
 local FurniturePlan = {}
 
@@ -57,6 +65,7 @@ export type Placement = {
 	road: string,
 	district: string,
 	onCarriageway: boolean?,
+	scale: number?, -- uniform scale for the assembler (parked cars); nil = 1
 }
 export type Stats = {
 	planned: { [string]: number },
@@ -65,8 +74,21 @@ export type Stats = {
 }
 
 FurniturePlan.PAVEMENT_WIDTH = 8
-FurniturePlan.PAVEMENT_Y = 0.45 -- TownBuilder.Y.PAVEMENT; the slice uses 0.5
-FurniturePlan.ROAD_Y = 0.05 -- TEMP: Lane R owns the road surface height
+FurniturePlan.PAVEMENT_Y = RoadTiles.SURFACE_Y
+FurniturePlan.ROAD_Y = RoadTiles.roadTop("residential")
+-- Parked hatchbacks at the size client Traffic drives them (KIT_CAR_SCALE): full
+-- size they are 9.8 wide on a 12.9 carriageway.
+FurniturePlan.CAR_SCALE = 0.5
+FurniturePlan.CAR_HALF_WIDTH = 9.8 * 0.5 / 2
+FurniturePlan.CAR_KERB_GAP = 0.4
+
+-- Centreline to the back of the kerb / to the carriageway edge of `road`.
+function FurniturePlan.kerbOf(road: { kind: string }): number
+	return RoadTiles.kerbDistance(road.kind)
+end
+function FurniturePlan.parkingOffset(road: { kind: string }): number
+	return RoadTiles.carriagewayWidth(road.kind) / 2 - FurniturePlan.CAR_KERB_GAP - FurniturePlan.CAR_HALF_WIDTH
+end
 FurniturePlan.HEAD_RADIUS = 34
 FurniturePlan.MOUTH_MARGIN = 6 -- kept clear beyond the crossing road's own pavement
 FurniturePlan.NO_DISTRICT = "Through Roads" -- ring, mains and lanes carry no district
@@ -274,10 +296,10 @@ local function blockedBy(ctx: Context, p: Vector3, r: number, own: RoadIn?, onCa
 		local d = FurniturePlan.polylineDistance(p, road.points)
 		if road == own then
 			if not onCarriageway then
-				if d < road.width / 2 + r - 0.01 then
+				if d < FurniturePlan.kerbOf(road) + r - 0.01 then
 					return "corridor"
 				end
-				if d > road.width / 2 + FurniturePlan.PAVEMENT_WIDTH - r + 0.01 then
+				if d > FurniturePlan.kerbOf(road) + FurniturePlan.PAVEMENT_WIDTH - r + 0.01 then
 					return "offPavement"
 				end
 			end
@@ -408,6 +430,9 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 	end
 
 	local function wanted(road: RoadIn): boolean
+		if road.kind == "alley" then
+			return false -- back alleys are bare paving
+		end
 		return opts.district == nil or (road.district or FurniturePlan.NO_DISTRICT) == opts.district
 	end
 
@@ -428,6 +453,7 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 			road = road.name,
 			district = road.district or FurniturePlan.NO_DISTRICT,
 			onCarriageway = onCarriageway,
+			scale = if category == "car" then FurniturePlan.CAR_SCALE else nil,
 		})
 		return true
 	end
@@ -436,7 +462,7 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 	local function onPavement(road: RoadIn, s: number, side: number, kerb: number): (Vector3, Vector3, Vector3)
 		local p, t = FurniturePlan.pointAt(road, s)
 		local n = FurniturePlan.leftOf(t) * side
-		local pos = p + n * (road.width / 2 + kerb)
+		local pos = p + n * (FurniturePlan.kerbOf(road) + kerb)
 		return Vector3.new(pos.X, pavY, pos.Z), t, n
 	end
 
@@ -741,10 +767,10 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 					end
 				end
 				if keep and housed then
-					local pos = p + n * (road.width / 2 - 5.3)
+					local pos = p + n * FurniturePlan.parkingOffset(road)
 					local look = if flip then -t * side else t * side -- parked on the left, facing the way of travel
 					-- the keeper hatchbacks are modelled bonnet-to-back-vector, hence -look
-					try(road, "car", A.cars[pick], facing(Vector3.new(pos.X, roadY, pos.Z), -look), 5, 10.5, true)
+					try(road, "car", A.cars[pick], facing(Vector3.new(pos.X, roadY, pos.Z), -look), FurniturePlan.CAR_HALF_WIDTH, 10.5 * FurniturePlan.CAR_SCALE + 1, true)
 				end
 				s += gap
 			end

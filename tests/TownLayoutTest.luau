@@ -416,7 +416,7 @@ function T.everyRoadSegmentIsAxisAlignedOr45()
 end
 
 function T.roadFieldsAreValid()
-	local widths = { ring = 32, main = 26, residential = 20, lane = 20 }
+	local widths = { ring = 32, main = 26, residential = 20, lane = 20, alley = 10 }
 	local districts: { [string]: boolean } = {}
 	for _, district in TownLayout.DISTRICTS do
 		assert(not districts[district.name], "duplicate district " .. district.name)
@@ -503,6 +503,9 @@ function T.roadsDoNotStopDead()
 			local p = road.points[which]
 			if which == #road.points and (road.head or road.kind == "lane") then
 				continue
+			end
+			if road.kind == "alley" then
+				continue -- a back alley may stop at the end of its terrace
 			end
 			if math.abs(p.X - e.minX) < EPS or math.abs(p.X - e.maxX) < EPS or math.abs(p.Z - e.minZ) < EPS or math.abs(p.Z - e.maxZ) < EPS then
 				continue

@@ -128,7 +128,7 @@ function StreetFurniture.buildFrom(input: FurniturePlan.Input, parent: Instance,
 				result.clipped += 1
 				continue
 			end
-			local model = KitPlacer.place(pl.name, origin * pl.cframe, districtModel(pl.district))
+			local model = KitPlacer.place(pl.name, origin * pl.cframe, districtModel(pl.district), if pl.scale then { scale = pl.scale } else nil)
 			local missing = false
 			for _, d in model:GetDescendants() do
 				if d:GetAttribute("KitMissing") ~= nil then

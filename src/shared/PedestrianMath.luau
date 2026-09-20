@@ -24,8 +24,8 @@ PedestrianMath.PAVEMENT_TOP = RoadTiles.SURFACE_Y
 -- centreline, measured from the Straight mesh: carriageway edge 7.93, paving out to
 -- 12.26, kerb about 0.7). Beyond it is the grass verge, which is where the v2
 -- width-based offset put walkers.
-PedestrianMath.KIT_PAVING_INNER = 8.6
-PedestrianMath.KIT_PAVING_OUTER = 12.26
+PedestrianMath.KIT_PAVING_INNER = RoadTiles.KIT_KERB_BACK
+PedestrianMath.KIT_PAVING_OUTER = RoadTiles.KIT_PAVING_OUTER
 PedestrianMath.WALKER_HALF_WIDTH = 1
 PedestrianMath.ROAD_TOP = { ring = 0.20, main = 0.21, residential = 0.22, lane = 0.23 } :: { [string]: number }
 PedestrianMath.FOOTWAY_ABOVE_ROAD = 0.75 -- deck +0.5, footway +0.25

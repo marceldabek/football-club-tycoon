@@ -121,6 +121,14 @@ local function surfaceAsphalt(model: Instance, paved: boolean)
 	local look = if paved then RoadTiler.PAVED_VERGE else LOOKS.asphalt
 	asphalt.Color = look.color
 	asphalt.Material = look.material
+	if paved and model:IsA("Model") then
+		-- an alley is one flat paved surface: lift the sunken carriageway to just under
+		-- the paving top. It also has to clear the street verge it overlaps at its mouth.
+		local boxCFrame, boxSize = model:GetBoundingBox()
+		local top = boxCFrame.Position.Y + boxSize.Y / 2
+		local asphaltTop = asphalt.Position.Y + asphalt.Size.Y / 2
+		asphalt.CFrame += Vector3.new(0, top - 0.005 - asphaltTop, 0)
+	end
 end
 
 local function tintVerge(model: Instance, paved: boolean)

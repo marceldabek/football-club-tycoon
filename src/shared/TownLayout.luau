@@ -20,7 +20,7 @@
 --   PLOTS[i]    i = map plot number. Plot frame = plotCFrame(i): origin is the
 --               pitch centre, pitch long axis along local Z, local -X faces the
 --               access road (office / entrance side). yaw is degrees about +Y.
---   ROADS       polylines with a kind ("ring" | "main" | "residential" | "lane")
+--   ROADS       polylines with a kind ("ring" | "main" | "residential" | "lane" | "alley")
 --               and a full carriageway width (pavements come on top, 8 each side).
 --               Every segment is axis-aligned or 45 degrees so the road kit tiles.
 --               front  = which sides TownFrontage builds along ("left" is left of
@@ -55,7 +55,7 @@
 local TownLayout = {}
 
 export type Plot = { index: number, name: string, centre: Vector3, yaw: number, busStop: Vector3 }
-export type RoadKind = "ring" | "main" | "residential" | "lane"
+export type RoadKind = "ring" | "main" | "residential" | "lane" | "alley"
 export type Front = "both" | "left" | "right" | "none"
 export type Road = {
 	name: string,
@@ -766,6 +766,30 @@ TownLayout.ROADS = {
 		points = {
 			Vector3.new(1660, 0, 640), Vector3.new(1843, 0, 457),
 		},
+	},
+	-- Back alleys (Marcel, 2026-09-20): the small, fully paved road size
+	-- (RoadTiles.ALLEY_SCALE, 22 studs across). Each runs down the middle of the gap
+	-- between two terraced rows that stand back to back, where that gap is 29 to 36
+	-- studs, and opens onto the streets it meets. width is the paved carriageway.
+	{
+		name = "Back Cooper Street", kind = "alley", width = 10, front = "none", district = "Station",
+		points = { Vector3.new(-1190, 0, -174), Vector3.new(-740, 0, -174) },
+	},
+	{
+		name = "Back Signal Street", kind = "alley", width = 10, front = "none", district = "Station",
+		points = { Vector3.new(-1100, 0, -38), Vector3.new(-745, 0, -38) },
+	},
+	{
+		name = "Back Lock Street", kind = "alley", width = 10, front = "none", district = "Station",
+		points = { Vector3.new(-1100, 0, 88), Vector3.new(-595, 0, 88) },
+	},
+	{
+		name = "Back Mill Street", kind = "alley", width = 10, front = "none", district = "Mill Street Terraces",
+		points = { Vector3.new(0, 0, -265), Vector3.new(900, 0, -265) },
+	},
+	{
+		name = "Back Fuller Street", kind = "alley", width = 10, front = "none", district = "Riverside",
+		points = { Vector3.new(-1060, 0, 625), Vector3.new(-655, 0, 625) },
 	},
 } :: { Road }
 

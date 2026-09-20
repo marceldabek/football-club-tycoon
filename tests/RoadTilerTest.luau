@@ -199,6 +199,38 @@ function tests.builtCarriagewaysAreAsphaltAndClearTheGround()
 	end)
 end
 
+-- Back alleys: the small road size, paved wall to wall and flat.
+function tests.alleysArePavedFlatAndHalfSize()
+	if not kitInstalled() then
+		return
+	end
+	withBuild("Station", function(holder, _counts)
+		local alleys = 0
+		for _, d in holder:GetDescendants() do
+			if d:IsA("Model") and d:GetAttribute("TileKind") ~= nil and tostring(d:GetAttribute("Road")):sub(1, 5) == "Back " then
+				alleys += 1
+				assert(math.abs(d:GetScale() - RoadTiles.ALLEY_SCALE) < 1e-3, "alley tile scale " .. d:GetScale())
+				local cf, size = d:GetBoundingBox()
+				local top = cf.Position.Y + size.Y / 2
+				local textured = 0
+				for _, p in d:GetDescendants() do
+					if p:IsA("MeshPart") then
+						-- only the kit paving layer keeps its texture; carriageway and verge are repaved
+						if p:FindFirstChildOfClass("SurfaceAppearance") then
+							textured += 1
+						else
+							assert(p.Material == RoadTiler.PAVED_VERGE.material, p.Name .. " is not paved")
+						end
+						assert(top - (p.Position.Y + p.Size.Y / 2) < 0.02, p.Name .. " sits below the alley surface")
+					end
+				end
+				assert(textured == 1, d.Name .. " keeps " .. textured .. " textured layers")
+			end
+		end
+		assert(alleys > 0, "Station has back alleys")
+	end)
+end
+
 function tests.builtVergesAreTheTerrainsOwnGrass()
 	if not kitInstalled() then
 		return

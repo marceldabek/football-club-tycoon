@@ -266,7 +266,7 @@ function TownFrontage.build(): { Lot }
 	-- skipRoad / skipSegment: the cell's own street segment, which it is meant to be near.
 	local function roadClear(cell: Cell, pts: { number }, skipRoad: TownLayout.Road?, skipSegment: number): boolean
 		for _, road in roads do
-			local need = road.width / 2 + (if road.kind == "lane" then 0 else PAVE) + TownFrontage.ROAD_EXTRA
+			local need = road.width / 2 + (if road.kind == "lane" or road.kind == "alley" then 0 else PAVE) + TownFrontage.ROAD_EXTRA
 			for s = 1, #road.points - 1 do
 				if road == skipRoad and s == skipSegment then
 					continue

@@ -68,7 +68,7 @@ T["nothing but parked cars stands in a road corridor"] = function()
 	for _, pl in plan(input) do
 		for _, road in input.roads do
 			local d = FurniturePlan.polylineDistance(pl.cframe.Position, road.points)
-			if d < road.width / 2 then
+			if d < FurniturePlan.kerbOf(road) then
 				assert(pl.category == "car", pl.category .. " is in the carriageway of " .. road.name)
 				assert(pl.road == road.name and road.kind == "residential", "car parked on the wrong road: " .. road.name)
 				assert(pl.onCarriageway == true, "car not flagged onCarriageway")
@@ -83,7 +83,8 @@ T["furniture stands on its own road's pavement strip"] = function()
 		if pl.category ~= "car" then
 			local road = roadNamed(input, pl.road)
 			local d = FurniturePlan.polylineDistance(pl.cframe.Position, road.points)
-			assert(d >= road.width / 2 and d <= road.width / 2 + FurniturePlan.PAVEMENT_WIDTH, ("%s on %s is %.1f from the centreline"):format(pl.category, pl.road, d))
+			-- behind the KIT kerb and still on the kit road piece (paving or verge), never past its back edge
+			assert(d >= FurniturePlan.kerbOf(road) and d <= FurniturePlan.kerbOf(road) + FurniturePlan.PAVEMENT_WIDTH and d <= 22 * 0.816, ("%s on %s is %.1f from the centreline"):format(pl.category, pl.road, d))
 			assert(math.abs(pl.cframe.Position.Y - FurniturePlan.PAVEMENT_Y) < 1e-4, pl.category .. " is not on the pavement top")
 		end
 	end
@@ -175,7 +176,7 @@ T["bus stop gets a shelter facing the road, with a bench and a bin"] = function(
 	local shelters = ofCategory(list, "shelter")
 	assert(#shelters == 1 and #stats.skippedBusStops == 0, "shelter missing")
 	local cf = shelters[1].cframe
-	assert(cf.Position.Z > 13 and cf.LookVector.Z < -0.99, "shelter is not on the south pavement facing the road")
+	assert(cf.Position.Z > FurniturePlan.kerbOf({ kind = "main" }) and cf.LookVector.Z < -0.99, "shelter is not on the south pavement facing the road")
 	assert(math.abs(cf.Position.X - -120) <= 60, "shelter wandered from its stop")
 end
 
@@ -192,7 +193,9 @@ T["cars park only in front of housing, along the kerb"] = function()
 	for _, pl in cars do
 		local p = pl.cframe.Position
 		assert(pl.road == "Side Street", "car on " .. pl.road)
-		assert(math.abs(math.abs(p.X) - (10 - 5.3)) < 0.01, "car is not against the kerb")
+		assert(math.abs(math.abs(p.X) - FurniturePlan.parkingOffset({ kind = "residential" })) < 0.01, "car is not against the kerb")
+		assert(math.abs(p.X) + FurniturePlan.CAR_HALF_WIDTH < 15.85 * 0.816 / 2, "car hangs over the kerb")
+		assert(pl.scale == FurniturePlan.CAR_SCALE, "parked cars are traffic sized")
 		local z = p.Z
 		assert((z > 110 - 66 and z < 110 + 66) or (z > 250 - 66 and z < 250 + 66), ("car at z=%.0f is not in front of a terrace"):format(z))
 		assert(math.abs(pl.cframe.LookVector.Z) > 0.99, "car is not parked along the street")

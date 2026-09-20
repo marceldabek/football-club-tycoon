@@ -19,7 +19,7 @@
 --     0.93 and 34 junctions jogged 14%. Main (42) and ring (48) corridors are wider
 --     than the piece; the spare is terrain grass, the same as the verge.
 --   ALLEY  0.5   : back alleys, 44 -> 22. RoadTiler paves the whole piece (no grass
---     verge, no asphalt). No alley is in TownLayout yet.
+--     verge, no asphalt). TownLayout has five, behind back-to-back terraced rows.
 --
 -- JUNCTION RULES
 --   2 arms, collinear      -> nothing (the run passes through)
@@ -73,12 +73,25 @@ RoadTiles.PREFIX = PREFIX
 RoadTiles.SURFACE_Y = 0.35 -- pavement top above ground
 RoadTiles.STREET_SCALE = 0.816
 RoadTiles.ALLEY_SCALE = 0.5
+RoadTiles.ALLEY_LIFT = 0.02 -- alley tiles overlap street verges; keeps the two tops off one plane
 RoadTiles.SCALE = {
 	ring = RoadTiles.STREET_SCALE, main = RoadTiles.STREET_SCALE, residential = RoadTiles.STREET_SCALE,
 	lane = RoadTiles.STREET_SCALE, alley = RoadTiles.ALLEY_SCALE,
 } :: { [string]: number }
 -- Unscaled kit section, from the Straight mesh.
 RoadTiles.KIT_CARRIAGEWAY = 15.85
+RoadTiles.KIT_KERB_BACK = 8.6 -- centreline to the back of the kerb, where the paving starts
+RoadTiles.KIT_PAVING_OUTER = 12.26 -- centreline to the back of the paving; grass verge beyond
+RoadTiles.KIT_HALF_WIDTH = 22 -- centreline to the back of the verge
+RoadTiles.KIT_ASPHALT_BELOW = 0.281 -- carriageway top below the pavement top
+-- Centreline to the back of the kerb on a `kind` road, in studs.
+function RoadTiles.kerbDistance(kind: string): number
+	return RoadTiles.KIT_KERB_BACK * (RoadTiles.SCALE[kind] or RoadTiles.STREET_SCALE)
+end
+-- Top of the carriageway on a `kind` road.
+function RoadTiles.roadTop(kind: string): number
+	return RoadTiles.SURFACE_Y - RoadTiles.KIT_ASPHALT_BELOW * (RoadTiles.SCALE[kind] or RoadTiles.STREET_SCALE)
+end
 function RoadTiles.carriagewayWidth(kind: string): number
 	return RoadTiles.KIT_CARRIAGEWAY * (RoadTiles.SCALE[kind] or RoadTiles.STREET_SCALE)
 end
@@ -273,7 +286,38 @@ local function setTuck(node, arm, throughScale: number, angleDeg: number)
 	arm.crit = OVERSHOOT + 12.25 * throughScale / sinA + 22 * scaleOf(arm) * cotA
 end
 
-local function classify(node)
+local classify
+
+-- An alley never takes part in a street junction: the streets are classified as if
+-- it were not there, and the alley runs level up to the back of the street's paving
+-- (over the street's verge; alley tiles sit ALLEY_LIFT higher so the tops do not
+-- share a plane). No junction piece, so no width step at the mouth.
+local function classifyWithAlleys(node): boolean
+	local streets, alleys = {}, {}
+	for _, a in node.arms do
+		table.insert(if a.road.kind == "alley" then alleys else streets, a)
+	end
+	if #alleys == 0 or #streets == 0 then
+		return false
+	end
+	local all = node.arms
+	node.arms = streets
+	classify(node)
+	node.arms = all
+	local streetScale = 0
+	for _, a in streets do
+		streetScale = math.max(streetScale, scaleOf(a))
+	end
+	for _, a in alleys do
+		a.trim, a.tuck, a.pass, a.partner, a.crit = RoadTiles.KIT_PAVING_OUTER * streetScale, false, false, nil, 0
+	end
+	return true
+end
+
+function classify(node)
+	if classifyWithAlleys(node) then
+		return
+	end
 	local arms = node.arms
 	for _, a in arms do
 		a.trim, a.tuck, a.pass, a.partner, a.crit = 0, false, false, nil, 0
@@ -554,8 +598,9 @@ local function emitRun(run, tiles: { Tile }, stats: { [string]: number }, bridge
 	for i = 1, n do
 		local t0 = startT + each * (i - 1)
 		local t1 = t0 + each
-		local p0 = topAt(from.node.pos + dir * t0)
-		local p1 = topAt(from.node.pos + dir * t1)
+		local lift = if road.kind == "alley" then Vector3.new(0, RoadTiles.ALLEY_LIFT, 0) else Vector3.zero
+		local p0 = topAt(from.node.pos + dir * t0) + lift
+		local p1 = topAt(from.node.pos + dir * t1) + lift
 		local tucked = false
 		local function drop(arm): number
 			local span = each - arm.crit
@@ -574,7 +619,7 @@ local function emitRun(run, tiles: { Tile }, stats: { [string]: number }, bridge
 		end
 		local mid = (p0 + p1) / 2
 		local axis = (p1 - p0).Unit
-		local yellow = road.kind == "lane" or inCentre(mid)
+		local yellow = road.kind ~= "alley" and (road.kind == "lane" or inCentre(mid))
 		table.insert(tiles, {
 			piece = pieceName(def, yellow), cframe = CFrame.lookAt(mid, mid - axis), scale = scale,
 			stretch = each / tileLen, kind = "straight", road = road.name, roadKind = road.kind, district = district,

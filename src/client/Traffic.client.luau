@@ -471,7 +471,7 @@ local function randomSpawnCandidate(camPos: Vector3): (number?, number?, number?
 	for _ = 1, SPAWN_ATTEMPTS_PER_RECHECK do
 		local roadIndex = math.random(1, #roads)
 		local road = roads[roadIndex]
-		if #road.points < 2 or parked[road.name] then
+		if #road.points < 2 or parked[road.name] or road.kind == "alley" then
 			continue
 		end
 		local length = TrafficMath.polylineLength(road.points)
@@ -634,7 +634,8 @@ local function moveCar(car: Car, dt: number)
 		local options = TrafficMath.connections(TownLayout.ROADS, car.roadIndex, atEnd, tolerance)
 		local parked = parkedStreets()
 		for i = #options, 1, -1 do
-			if parked[TownLayout.ROADS[options[i].roadIndex].name] then
+			local option = TownLayout.ROADS[options[i].roadIndex]
+			if parked[option.name] or option.kind == "alley" then
 				table.remove(options, i)
 			end
 		end
