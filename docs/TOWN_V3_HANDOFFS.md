@@ -326,3 +326,45 @@ The "what the primitives are" column comes from file headers and greps, not a pa
 - Stage 1 to-do C, client files keyed to retired names, NOT done except Traffic: `TownLife.client` (TerraceLamp banners; the park lamps are now named `ParkLamp`), `ClubStickers.client` 76, `LitWindows.client`, `YardWorkers.client`, `CafeSitters.client` (no cafe sets exist now), `PlayAreaLife.client`, `TownLifeMath` Shopfront drinkers. ClubStickers, GreeneryDresser, SquareDresser and others still measure from `BUS_STOPS` positions rather than the shelters (small drift, harmless so far).
 - Bus stop name: nothing on the kit shelter says which stop it is. A SurfaceGui on the invisible anchor would do it without a primitive.
 - Docs: TOWN_PLAN / PLOTS / ASSET_KIT still describe the v1 dressers; register rows wanted for bridges + viaduct, rail, square stalls + clock tower, name plates / text signs, play equipment.
+
+### Lane I stage 3 (verify, measure, document) - done 2026-09-20 17:17
+
+**ROJO: six files were deleted (3 modules + 3 tests). Marcel: Disconnect and Connect the Rojo plugin once.** Rojo was live during this stage and the deletes did reach Studio (checked: the six ModuleScripts are gone from the Edit place), so this is a precaution for a stale plugin, not a known breakage.
+
+**Suite (Edit mode, after all changes): 736 passed, 0 failed** (750, minus the tests of the deleted modules, plus 8 new). 3 playtests and 4 screenshots used. Last playtest: 0 errors, 0 warnings, 0 KitMissing, 11 of 11 stops on a kit shelter. Town: 39,991 MeshParts, 4,807 primitives.
+
+**1. Walk test (by script over the built `workspace.Town`, playtest 1).** Units checked by bounding-box centre + 4 footprint corners: 732 house lots, 10,830 boundary pieces, 156 trade lots, 2,865 furniture items, 696 road tiles.
+- Inside a plot (`pointInPlot`): **0**. On a plot lane: **0**. In the river (bridge spans excused): **0**. Houses / shops / boundaries inside a road's `width`: **0**.
+- On the railway: **5 furniture items** (4 lamps, 1 sign, at (-628,822), (-1372,-461), (-463,-35), (-460,-88)) where roads cross the track. Fixed: `FurniturePlan.blockedBy` takes `rail` and returns `"rail"`; playtest 2: 0.
+- Plot lanes vs `PLOT_LANE_END`: Plots 1, 3, 4 end exactly on it. **Lane R bug 3 confirmed on Plot 2**: the crossroads at (1400,-1080) was downgraded to a 90 bend because its east arm (44.9) is longer than the 40-stud lane, and the bend's leg ran **38.5 studs past the lane end into the plot**. Plot 4 has a 50-stud leg and kept its crossroads, so it was never affected. Fixed in `RoadTiles.inConflict`: a tee / cross may run `END_OVERSHOOT = 10` past a plain dead end. Playtest 2: 0 tile corners inside any plot.
+- **Lane R bug 5 confirmed**: tiles ran flat across all three road bridges under the primitive decks. Fixed: `RoadTiles.plan(roads, roundabouts, bridges)` stops the straights at each bridge's `from` / `to`; RoadTiler passes `TownLayout.BRIDGES`. Playtest 2: 0 tiles on a bridge; the screenshot of West Bridge shows the road meeting the deck cleanly. The deck is plain grey with no markings (register EI2).
+- Office spawn: claimed Plot 3, the character stood on `Plots.Plot3.Club.Office.OfficeSpawn` under the office roof. The vehicle gate gap is plot-local x -380, z 60..100; three rays from 50 studs outside to 40 inside along the lane were clear. Only Plot 3 was claimed; the other three were checked by geometry only (same code, different `plotCFrame`).
+- Plot bus shelters: 34-36 studs from their lane's centreline, 49-77 from the lane end (Plot 2 is the far one, 56 studs from its layout position).
+- Bus travel (client fired `BusTravel`, all five worked): Town Centre (90,-14), Plot 1 (1004,818), Plot 2 (1364,-1068), Plot 4 (-1362,-1244), Plot 3 (-1826,574). Every plot arrival stands on a kit road piece's pavement.
+- **Found by the bus test: a whole club stood in the Market Square.** The Edit place holds a saved `Workspace.Club` (461 parts, at the origin); most likely the Edit-mode suite built a club with no plot context and it got saved (not proven). Main now destroys it before the town builds. It is still in the Edit place; deleting it there is Marcel's call.
+
+**2. Verge.** Screenshot 1 (Elder Close): the committed (240,212,235) was still lime against the terrain. Screenshot 4 showed (160,158,255) is a dark bluish green, so the tint is not linear; four observed tints fit rendered = base x (tint/255)^2.4. **`VERGE_TINT` is now (203,181,255), solved from that curve for the terrain colour, and has NOT been looked at** (no screenshots left). The reasoning is in the RoadTiler header. Town Centre: inside `RoadTiles.CENTRE` (67 tiles) the verge mesh drops its grass SurfaceAppearance and shows as grey `Pavement` material; screenshot 3 shows it reading as one wide pavement. Registered as **E4** (rewritten: a stand-in for a missing paving asset). Shop-fronted roads outside the centre box still have grass verges.
+
+**3. Performance** (full table: `docs/TOWN_V3_PERF.md` s8b). **Desktop Studio, not a phone, and no frame rate**: Studio was unfocused and capped at 15 fps (65-69 ms wall at every spot), so only render CPU time, counts and triangles mean anything.
+
+| Spot | Instances in | MeshParts in | within 640 | Render CPU High / Low | Triangles High / Low |
+|---|---|---|---|---|---|
+| Market Square | 69,701 | 23,071 | 6,226 | 17.4 / 4.7 ms | 279k / 237k |
+| Elder Close, Northfields | 60,057 | 18,938 | 4,752 | 16.4 / 4.5 ms | 130k / 89k |
+| Outside Plot 3 | 50,772 | 16,812 | 2,938 | 15.4 / 3.8 ms | 75k / 62k |
+
+Within-640 counts are inside Lane P's ~10,000. The client holds 2-4x that because nothing streams out: **the Workspace streaming properties (s9 rule 5) cannot be read or set by script and still need setting by hand.** The High -> Low drop was always measured High first, so treat it as "Low is not slower". `Quality.isDecorative` now hides `V3Decor`-tagged models on Low (new test). `V3Perf.bake` NOT run (P4).
+
+**4. Dead code.** Deleted: `ImperfectionDresser`, `WireDresser`, `CrossingDresser` and their three tests; Main's three off-switches went with them. **NOT deleted, because live code still requires them:** `StreetDresser` (CentreTreeDresser, GreeneryDresser, TerraceStreetDresser and two tests), `EstateBuilder` (EstateDresser, ForecourtDresser), `ShopDresser` + `ShopBuilder` (ForecourtDresser and its test), `TerraceBuilder` (TerraceStreetDresser). Stage 2's list called these dead; their `build()` is, their helpers are not. Untangling is a refactor of five live dressers, not a delete.
+
+**5. Docs.** TOWN_PLAN s6 (bus stops as built, roads at bridges and plots). ASSET_INVENTORY headline: **111 distinct kit assets placed in the town** at run time (61 UKSP, 37 MEH, 4 PH, 9 other); 56 named literally in `src/` outside `KitIds` (names are composed at run time, so grep undercounts). Register: E4 rewritten, new rows EI2 bridges, EI3 rail, EI4 stalls + clock tower, EI5 text signs, EI6 play equipment (parts not tagged yet). **`Workspace.V3Sandbox` is left in place: Marcel has not reviewed the sandboxes.** Memory note `football-club-tycoon-town-v3` written.
+
+**Still primitive:** the stage 2 audit table stands unchanged (about 4,800 parts: Riverside 955, Greenery 599, Bridges 504, Square 419, Park 419, StationFront 319, Marina 296, Signs 222, Church 220, ...). Cheap wins not taken: park picnic tables and fences from UKSP.
+
+**Left**
+- Look at the verge tint (203,181,255) and the paved centre verges; one screenshot each.
+- Set the streaming properties by hand, then redo the perf table in a focused Studio window or on a phone.
+- Client files keyed to retired names: none errored or visibly broke in three playtests, so none were touched. Still listed: `TownLife.client` (TerraceLamp banners, `ParkLamp`), `ClubStickers.client`, `LitWindows.client`, `YardWorkers.client`, `CafeSitters.client`, `PlayAreaLife.client`, `TownLifeMath` Shopfront drinkers.
+- Seen in screenshot 1, not chased: a white hatchback tilted half onto the pavement on Elder Close (client Traffic or a parked kit car). `HatchbackWhite` is banned by s9 rule 6; check which it was.
+- Tag the old dressers' parts with their register ids; bus stop names on the kit shelters; park / marina lamp facing (not looked at).
+- Untangle StreetDresser / EstateBuilder / ShopBuilder / ShopDresser / TerraceBuilder helpers, then delete them.
