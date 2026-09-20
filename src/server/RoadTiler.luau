@@ -24,6 +24,58 @@ local LOOKS: { [string]: { color: Color3, material: Enum.Material } } = {
 	paint = { color = Color3.fromRGB(235, 235, 230), material = Enum.Material.SmoothPlastic },
 }
 
+-- The kit's grass verge texture is a bright lime that reads as a green stripe
+-- against the town's terrain grass (Lane I stage 1 playtest, problem 1). The verge
+-- MeshPart's SurfaceAppearance is tinted toward the terrain colour instead.
+-- TEMP value, tuned by eye against terrain grass (111, 126, 62).
+RoadTiler.VERGE_TINT = Color3.fromRGB(150, 158, 118)
+
+-- The verge MeshPart of a placed kit road piece. SurfaceAppearance.ColorMap cannot
+-- be read in a running server, so it is found by shape: the verge has the largest
+-- footprint; where every layer is the same square (the crossroads) it is the part
+-- named <piece>2. RoadTilerTest checks this against the grass texture for all 44.
+function RoadTiler.vergeOf(model: Instance): MeshPart?
+	local parts: { MeshPart } = {}
+	local maxArea = 0
+	for _, d in model:GetDescendants() do
+		if d:IsA("MeshPart") then
+			table.insert(parts, d)
+			maxArea = math.max(maxArea, d.Size.X * d.Size.Z)
+		end
+	end
+	local tied: { MeshPart } = {}
+	for _, p in parts do
+		if p.Size.X * p.Size.Z >= maxArea * 0.99 then
+			table.insert(tied, p)
+		end
+	end
+	if #tied <= 1 then
+		return tied[1]
+	end
+	local base = tied[1].Name
+	for _, p in tied do
+		if #p.Name < #base then
+			base = p.Name
+		end
+	end
+	for _, p in tied do
+		if p.Name == base .. "2" then
+			return p
+		end
+	end
+	return nil
+end
+
+local function tintVerge(model: Instance)
+	local verge = RoadTiler.vergeOf(model)
+	local sa = verge and verge:FindFirstChildOfClass("SurfaceAppearance")
+	if sa then
+		pcall(function()
+			sa.Color = RoadTiler.VERGE_TINT
+		end)
+	end
+end
+
 -- Stretches a placed straight along its own length. KitPlacer only scales
 -- uniformly; remainder fitting needs the last few percent along one axis.
 local function stretchZ(model: Model, factor: number)
@@ -45,7 +97,8 @@ local function districtModel(parent: Instance, cache: { [string]: Model }, distr
 	if not model then
 		model = Instance.new("Model")
 		model.Name = "Roads_" .. district
-		model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+		-- TOWN_V3_BUILD.md s9 rule 1: a district is a grouping model, never Atomic
+		model.ModelStreamingMode = Enum.ModelStreamingMode.Default
 		model:SetAttribute("District", district)
 		model.Parent = parent
 		cache[district] = model
@@ -81,6 +134,7 @@ function RoadTiler.build(parent: Instance, origin: CFrame, filter: { district: s
 			counts.missing += 1
 		else
 			stretchZ(model, tile.stretch)
+			tintVerge(model)
 		end
 		model:SetAttribute("Road", tile.road)
 		model:SetAttribute("TileKind", tile.kind)

@@ -65,7 +65,8 @@ function tests.districtBuildHasNoMissingAndNoUntaggedPrimitives()
 			assert(counts.missing == 0, counts.missing .. " KitMissing")
 			assert(counts.models == 1, "one Model per district, got " .. counts.models)
 			local model = holder:FindFirstChild("Roads_" .. district) :: Model
-			assert(model and model.ModelStreamingMode == Enum.ModelStreamingMode.Atomic, "atomic district model")
+			-- TOWN_V3_BUILD.md s9 rule 1 (Lane P): districts are grouping models, never Atomic
+			assert(model and model.ModelStreamingMode == Enum.ModelStreamingMode.Default, "district model must not be Atomic")
 			for _, d in holder:GetDescendants() do
 				assert(d:GetAttribute("KitMissing") == nil, "KitMissing: " .. d.Name)
 				if d:IsA("BasePart") and not d:IsA("MeshPart") then
@@ -117,6 +118,47 @@ function tests.originMovesTheWholeBuild()
 	local a = centreOf(CFrame.new(0, 0, 0))
 	local b = centreOf(CFrame.new(100, 0, 6000))
 	assert((b - a - Vector3.new(100, 0, 6000)).Magnitude < 0.5, "origin offsets the build")
+end
+
+-- The verge is found by shape because ColorMap cannot be read in a running server;
+-- here (Edit mode) it can, so check the rule against the real grass texture.
+function tests.vergeOfFindsTheGrassLayerOfEveryKitRoadPiece()
+	if not kitInstalled() then
+		return
+	end
+	local GRASS = "rbxassetid://135371299103691"
+	local meshes = (ServerStorage :: any).Kit.Meshes
+	local checked = 0
+	for _, piece in meshes:GetChildren() do
+		if piece.Name:sub(1, #RoadTiles.PREFIX) == RoadTiles.PREFIX then
+			local verge = RoadTiler.vergeOf(piece)
+			assert(verge, piece.Name .. ": no verge found")
+			local sa = (verge :: MeshPart):FindFirstChildOfClass("SurfaceAppearance")
+			assert(sa and sa.ColorMap == GRASS, piece.Name .. ": vergeOf picked " .. (verge :: MeshPart).Name .. ", not the grass layer")
+			checked += 1
+		end
+	end
+	assert(checked >= 40, "expected the 44 ModularRoads pieces, saw " .. checked)
+end
+
+function tests.builtTilesCarryTheVergeTint()
+	if not kitInstalled() then
+		return
+	end
+	withBuild("Northfields", function(holder, _counts)
+		local tinted, tiles = 0, 0
+		for _, d in holder:GetDescendants() do
+			if d:IsA("Model") and d:GetAttribute("TileKind") ~= nil then
+				tiles += 1
+				local verge = RoadTiler.vergeOf(d)
+				local sa = verge and verge:FindFirstChildOfClass("SurfaceAppearance")
+				if sa and sa.Color == RoadTiler.VERGE_TINT then
+					tinted += 1
+				end
+			end
+		end
+		assert(tiles > 0 and tinted == tiles, ("%d of %d tiles tinted"):format(tinted, tiles))
+	end)
 end
 
 return tests

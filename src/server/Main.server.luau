@@ -196,7 +196,14 @@ print("[FCT] " .. require(script.Parent.SquareDresser).build())
 print("[FCT] " .. require(script.Parent.EstateDresser).build())
 print("[FCT] " .. require(script.Parent.ForecourtDresser).build())
 print("[FCT] " .. require(script.Parent.SchoolDresser).build()) -- X320
-print("[FCT] " .. require(script.Parent.ImperfectionDresser).build())
+-- ImperfectionDresser is OFF in v3 (Lane I stage 2): about 900 primitive parts (lane
+-- dashes, give-way lines, manholes, grates, patches) laid at v1 road heights on top of
+-- kit roads that carry their own markings, while StreetFurniture places kit manholes,
+-- give-ways, bins and cones. Its skips / bins walked v1 terrace blocks and built nothing.
+local V3_PRIMITIVE_IMPERFECTIONS = false
+if V3_PRIMITIVE_IMPERFECTIONS then
+	print("[FCT] " .. require(script.Parent.ImperfectionDresser).build())
+end
 print("[FCT] " .. require(script.Parent.RiverDresser).build())
 print("[FCT] " .. require(script.Parent.MarinaDresser).build())
 print("[FCT] " .. require(script.Parent.ParkDresser).build())

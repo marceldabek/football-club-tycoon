@@ -77,4 +77,31 @@ function T.excludingAClubStopDoesNotAffectOthers()
 	assert(names["Town Centre"] == true, "town stops should still be listed")
 end
 
+-- v3: stops live on StreetFurniture's kit shelters
+local ROADS = {
+	{ name = "A", kind = "main", width = 30, points = { Vector3.new(0, 0, 0), Vector3.new(200, 0, 0) } },
+	{ name = "L", kind = "lane", width = 10, points = { Vector3.new(100, 0, 18), Vector3.new(100, 0, 200) } },
+} :: any
+
+function T.nearestRoadPointIgnoresLanes()
+	local p = BusService.nearestRoadPoint(Vector3.new(101, 0, 20), ROADS)
+	assert(p and (p - Vector3.new(101, 0, 0)).Magnitude < 0.01, "expected the point on road A, got " .. tostring(p))
+end
+
+function T.travellerArrivesBetweenShelterAndKerbFacingTheShelter()
+	local shelter = Vector3.new(100, 0.4, 20)
+	local cf = BusService.shelterStand(shelter, ROADS)
+	assert(math.abs(cf.Position.X - 100) < 0.01, "stand should be square to the road")
+	assert(math.abs(cf.Position.Z - (20 - BusService.SHELTER_STAND)) < 0.01, "stand should be toward the road, got z " .. cf.Position.Z)
+	assert(cf.Position.Z > 15, "stand must stay on the pavement, not the carriageway")
+	assert(cf.LookVector:Dot(Vector3.new(0, 0, 1)) > 0.99, "traveller should face the shelter")
+end
+
+function T.nearestShelterRespectsTheRange()
+	local shelters = { Vector3.new(0, 0, 50), Vector3.new(0, 0, 400) }
+	local got = BusService.nearestShelter(Vector3.zero, shelters, 300)
+	assert(got == shelters[1], "nearest shelter expected")
+	assert(BusService.nearestShelter(Vector3.new(0, 0, 1000), shelters, 300) == nil, "out of range should be nil")
+end
+
 return T

@@ -63,6 +63,10 @@ local Y = {
 }
 TownBuilder.Y = Y
 
+-- v3 Lane I stage 2: the primitive shelter, pad, pole, flag, timetable and painted
+-- bay (about 11 parts a stop) are OFF; StreetFurniture's kit shelter replaces them.
+TownBuilder.V3_PRIMITIVE_BUS_SHELTERS = false
+
 local PAVEMENT_WIDTH = TownLayout.PAVEMENT_WIDTH
 local RIVER_BANK = 12 -- Mud strip each side of the water
 local RIVER_END_EXTENSION = 400 -- run the river off the grass edge instead of stopping in a pit
@@ -822,6 +826,24 @@ end
 local function buildBusStop(parent: Instance, stop: TownLayout.BusStop)
 	local m = model(stop.name, parent)
 	m:SetAttribute("BusStop", stop.name)
+	if not TownBuilder.V3_PRIMITIVE_BUS_SHELTERS then
+		-- v3 Lane I stage 2: StreetFurniture places the kit shelter, bench and bin.
+		-- All that is left here is an invisible anchor for BusService's prompt
+		-- (register E2); BusService moves it onto the kit shelter once that exists.
+		local anchor = part({
+			Name = "Sign",
+			Size = Vector3.new(1, 1, 1),
+			CFrame = CFrame.new(stop.position.X, 4, stop.position.Z),
+			Transparency = 1,
+			CanCollide = false,
+			CanQuery = false,
+			CanTouch = false,
+			CastShadow = false,
+			Parent = m,
+		})
+		anchor:SetAttribute("V3Exempt", "E2")
+		return
+	end
 	busStopBay(m, stop)
 	-- shelter opens toward local -Z (the yaw direction)
 	local base = CFrame.new(stop.position.X, 0, stop.position.Z) * CFrame.Angles(0, math.rad(stop.yaw), 0)

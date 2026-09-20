@@ -110,13 +110,77 @@ local function currentClubNames(): { [number]: string? }
 	return names
 end
 
+-- v3: StreetFurniture snaps each stop's kit shelter onto the nearest pavement, which
+-- can be tens of studs from TownLayout.BUS_STOPS' position. Once start() has found
+-- the shelters, shelterAt[name] is where the stop really is.
+local shelterAt: { [string]: Vector3 } = {}
+BusService.SHELTER_SEARCH = 300 -- FurniturePlan slides a shelter up to 240 along its road
+BusService.SHELTER_STAND = 3.5 -- studs from the shelter toward the kerb
+
+local function flat(v: Vector3): Vector3
+	return Vector3.new(v.X, 0, v.Z)
+end
+
+-- Pure: nearest point on any non-lane carriageway centreline to `p` (Y ignored).
+function BusService.nearestRoadPoint(p: Vector3, roads: { TownLayout.Road }): Vector3?
+	local best: Vector3? = nil
+	local bestD = math.huge
+	for _, road in roads do
+		if road.kind == "lane" then
+			continue
+		end
+		for i = 1, #road.points - 1 do
+			local a, b = flat(road.points[i]), flat(road.points[i + 1])
+			local ab = b - a
+			local len2 = ab:Dot(ab)
+			local t = if len2 > 0 then math.clamp((flat(p) - a):Dot(ab) / len2, 0, 1) else 0
+			local q = a + ab * t
+			local d = (flat(p) - q).Magnitude
+			if d < bestD then
+				best, bestD = q, d
+			end
+		end
+	end
+	return best
+end
+
+-- Pure: where a traveller arrives at a kit shelter standing at `shelter`: a few
+-- studs toward the road, looking back at the shelter.
+function BusService.shelterStand(shelter: Vector3, roads: { TownLayout.Road }): CFrame
+	local at = Vector3.new(shelter.X, STAND_Y, shelter.Z)
+	local roadPoint = BusService.nearestRoadPoint(shelter, roads)
+	local toRoad = if roadPoint then flat(roadPoint - shelter) else Vector3.zero
+	if toRoad.Magnitude < 0.01 then
+		return CFrame.new(at)
+	end
+	local stand = at + toRoad.Unit * BusService.SHELTER_STAND
+	return CFrame.lookAt(stand, at)
+end
+
+-- Pure: the nearest of `shelters` to `stop`, or nil when none is within range.
+function BusService.nearestShelter(stop: Vector3, shelters: { Vector3 }, range: number): Vector3?
+	local best: Vector3? = nil
+	local bestD = range
+	for _, s in shelters do
+		local d = flat(s - stop).Magnitude
+		if d <= bestD then
+			best, bestD = s, d
+		end
+	end
+	return best
+end
+
+local function stopPosition(stop: TownLayout.BusStop): Vector3
+	return shelterAt[stop.name] or stop.position
+end
+
 local function nearAnyStop(character: Model, range: number): boolean
 	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if not root then
 		return false
 	end
 	for _, stop in TownLayout.BUS_STOPS do
-		if (root.Position - stop.position).Magnitude <= range then
+		if flat(root.Position - stopPosition(stop)).Magnitude <= range then
 			return true
 		end
 	end
@@ -126,6 +190,10 @@ end
 -- Standing point 5 studs in front of the shelter (local -Z of the stop frame,
 -- the same convention TownBuilder.buildBusStop uses), facing back toward it.
 local function travelCFrame(stop: TownLayout.BusStop): CFrame
+	local shelter = shelterAt[stop.name]
+	if shelter then
+		return BusService.shelterStand(shelter, TownLayout.ROADS)
+	end
 	local frame = CFrame.new(stop.position) * CFrame.Angles(0, math.rad(stop.yaw), 0)
 	local standPos = (frame * CFrame.new(0, 0, -STAND_OFFSET)).Position
 	local facing = frame.Rotation * CFrame.Angles(0, math.pi, 0)
@@ -143,12 +211,35 @@ function BusService.start()
 			from = stopName,
 			destinations = BusService.destinationsFor(stopName, currentClubNames()),
 			-- the client closes the card once the player walks out of travel range
-			stopPosition = if stop then stop.position else nil,
+			stopPosition = if stop then stopPosition(stop) else nil,
 		})
 	end
 
 	local town = workspace:WaitForChild("Town")
 	local stops = town:WaitForChild("BusStops")
+
+	-- v3: find the kit shelters StreetFurniture placed and move each stop onto its own
+	local shelters: { Vector3 } = {}
+	local furniture = town:FindFirstChild("V3Furniture")
+	if furniture then
+		for _, d in furniture:GetDescendants() do
+			if d:IsA("Model") and d.Name == "shelter" then
+				table.insert(shelters, d:GetPivot().Position)
+			end
+		end
+	end
+	local snapped = 0
+	for _, stop in TownLayout.BUS_STOPS do
+		local s = BusService.nearestShelter(stop.position, shelters, BusService.SHELTER_SEARCH)
+		if s then
+			shelterAt[stop.name] = s
+			snapped += 1
+		else
+			warn(("[FCT] BusService: no kit shelter near %q, using its layout position"):format(stop.name))
+		end
+	end
+	print(("[FCT] BusService: %d of %d stops on a kit shelter"):format(snapped, #TownLayout.BUS_STOPS))
+
 	for _, stopModel in stops:GetChildren() do
 		if not stopModel:IsA("Model") then
 			continue
@@ -160,6 +251,10 @@ function BusService.start()
 		local signPart = (stopModel:FindFirstChild("Sign") :: BasePart?) or stopModel:FindFirstChildWhichIsA("BasePart")
 		if not signPart then
 			continue
+		end
+		local shelter = shelterAt[stopName]
+		if shelter then
+			signPart.CFrame = CFrame.new(shelter.X, 4, shelter.Z)
 		end
 		local prompt = Instance.new("ProximityPrompt")
 		prompt.ActionText = "Catch the bus"

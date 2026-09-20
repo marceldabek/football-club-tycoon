@@ -808,6 +808,12 @@ type ShopRecord = { block: TownLayout.Box, frame: CFrame, length: number, depth:
 ForecourtDresser.cafeSet = cafeSet
 ForecourtDresser.aBoard = aBoard
 
+-- v3 Lane I stage 2: shop forecourts, cafe sets, A-boards, baskets, awnings, pub signs
+-- and semis front paths were all positioned off ShopBuilder / EstateBuilder facades,
+-- which TradeAssembler and HouseAssembler replaced. OFF; only the Market Square
+-- pedestrian zone and its planters still build.
+ForecourtDresser.V3_SHOPS_RETIRED = true
+
 function ForecourtDresser.build(): string
 	local town = workspace:FindFirstChild("Town")
 	if not town then
@@ -837,7 +843,7 @@ function ForecourtDresser.build(): string
 
 	-- X22: shop row forecourts
 	local shops: { ShopRecord } = {}
-	for _, district in TownLayout.DISTRICTS do
+	for _, district in if ForecourtDresser.V3_SHOPS_RETIRED then {} else TownLayout.DISTRICTS do
 		for _, block in district.blocks do
 			if not ShopDresser.SHOP_USES[block.use] then
 				continue
@@ -859,7 +865,7 @@ function ForecourtDresser.build(): string
 	-- X22: semis front paths, one per house, lined up on its front door
 	local semiModels = modelsByName(town:FindFirstChild("Estates"), "SemiPair")
 	local paths = 0
-	for _, district in TownLayout.DISTRICTS do
+	for _, district in if ForecourtDresser.V3_SHOPS_RETIRED then {} else TownLayout.DISTRICTS do
 		for _, block in district.blocks do
 			if block.use ~= "semis" then
 				continue
