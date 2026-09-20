@@ -12,15 +12,14 @@
 --   aligned by their PAVEMENT top. That is the bbox top on every piece except the
 --   CulDeSac heads, whose grass mound rises above it (see `level` in PIECES).
 --
--- SCALE PER KIND (uniform, markings stay in proportion)
---   residential        0.816 : 44 -> 35.9, the 36-stud corridor (20 road + 16 pavement).
---   main / ring / lane 0.93  : 44 -> 40.9. Main's corridor is 42 (half a stud of
---     verge each side); the ring's is 48 (3.5-stud grass verge each side, right for
---     a ring road). 0.93 is the largest scale at which the ring's tightest pair of
---     45-degree bends (113 studs apart, north of Northfields) still fits two kit
---     bends leg to leg, and it keeps ring, main and their junctions one width so
---     nothing steps where they meet. A true 48-wide ring would need bends scaled
---     1.09, which do not fit the approved layout.
+-- TWO ROAD SIZES (Marcel, 2026-09-20), uniform scale so markings stay in proportion
+--   STREET 0.816 : every street (ring, main, residential, plot lane). 44 -> 35.9, the
+--     36-stud residential corridor (20 road + 16 pavement). One size means no width
+--     step where a side street leaves a bigger road: v3 first built ring / main at
+--     0.93 and 34 junctions jogged 14%. Main (42) and ring (48) corridors are wider
+--     than the piece; the spare is terrain grass, the same as the verge.
+--   ALLEY  0.5   : back alleys, 44 -> 22. RoadTiler paves the whole piece (no grass
+--     verge, no asphalt). No alley is in TownLayout yet.
 --
 -- JUNCTION RULES
 --   2 arms, collinear      -> nothing (the run passes through)
@@ -60,6 +59,7 @@ export type Tile = {
 	stretch: number, -- extra factor along the piece's local Z (straights only), 1 otherwise
 	kind: string, -- "straight" | "bend90" | "bend45" | "tee" | "cross" | "head"
 	road: string,
+	roadKind: string, -- the TownLayout road kind ("alley" is paved by the assembler)
 	district: string,
 	yellow: boolean,
 	tucked: boolean,
@@ -71,11 +71,18 @@ export type Plan = { tiles: { Tile }, exempt: { Exempt }, stats: { [string]: num
 local PREFIX = "UKSP__ModularRoads__"
 RoadTiles.PREFIX = PREFIX
 RoadTiles.SURFACE_Y = 0.35 -- pavement top above ground
--- Lanes are the four plot lanes. Each is a short dead end hanging off a ring / main
--- junction piece (0.93), and at 0.816 the lane stepped in 14% where it left that
--- piece's arm, so they take the scale of the road they leave.
-RoadTiles.SCALE = { ring = 0.93, main = 0.93, residential = 0.816, lane = 0.93 } :: { [string]: number }
-RoadTiles.RANK = { ring = 4, main = 3, residential = 2, lane = 1 } :: { [string]: number }
+RoadTiles.STREET_SCALE = 0.816
+RoadTiles.ALLEY_SCALE = 0.5
+RoadTiles.SCALE = {
+	ring = RoadTiles.STREET_SCALE, main = RoadTiles.STREET_SCALE, residential = RoadTiles.STREET_SCALE,
+	lane = RoadTiles.STREET_SCALE, alley = RoadTiles.ALLEY_SCALE,
+} :: { [string]: number }
+-- Unscaled kit section, from the Straight mesh.
+RoadTiles.KIT_CARRIAGEWAY = 15.85
+function RoadTiles.carriagewayWidth(kind: string): number
+	return RoadTiles.KIT_CARRIAGEWAY * (RoadTiles.SCALE[kind] or RoadTiles.STREET_SCALE)
+end
+RoadTiles.RANK = { ring = 4, main = 3, residential = 2, lane = 1, alley = 0 } :: { [string]: number }
 RoadTiles.ARTERIAL = "Arterial"
 -- TEMP: the Town Centre box (yellow lines, and the district for roads with none).
 RoadTiles.CENTRE = { minX = -520, maxX = 520, minZ = -340, maxZ = 340 }
@@ -251,7 +258,7 @@ end
 -- Node classification: decides each arm's trim / tuck / pass and the node's piece.
 
 local function scaleOf(arm): number
-	return RoadTiles.SCALE[arm.road.kind] or 0.816
+	return RoadTiles.SCALE[arm.road.kind] or RoadTiles.STREET_SCALE
 end
 local function rankOf(arm): number
 	return RoadTiles.RANK[arm.road.kind] or 1
@@ -456,7 +463,7 @@ local function emitNode(node, tiles: { Tile }, exempt: { Exempt })
 	local function add(def, cf: CFrame, tileKind: string, r)
 		table.insert(tiles, {
 			piece = pieceName(def, yellow), cframe = cf, scale = node.scale, stretch = 1, kind = tileKind,
-			road = r.name, district = RoadTiles.districtOf(r), yellow = yellow, tucked = false,
+			road = r.name, roadKind = r.kind, district = RoadTiles.districtOf(r), yellow = yellow, tucked = false,
 		})
 	end
 	if kind == "bend90" or kind == "bend45" then
@@ -476,7 +483,7 @@ local function emitNode(node, tiles: { Tile }, exempt: { Exempt })
 		local arm = node.arms[1]
 		table.insert(tiles, {
 			piece = PREFIX .. def.name, cframe = anchored(node.pos, { node = { def.node[1] * s, def.node[2] * s } }, arm.dir, def.dirA),
-			scale = s, stretch = 1, kind = "head", road = arm.road.name, district = RoadTiles.districtOf(arm.road),
+			scale = s, stretch = 1, kind = "head", road = arm.road.name, roadKind = arm.road.kind, district = RoadTiles.districtOf(arm.road),
 			yellow = yellow, tucked = false,
 		})
 	end
@@ -570,7 +577,7 @@ local function emitRun(run, tiles: { Tile }, stats: { [string]: number }, bridge
 		local yellow = road.kind == "lane" or inCentre(mid)
 		table.insert(tiles, {
 			piece = pieceName(def, yellow), cframe = CFrame.lookAt(mid, mid - axis), scale = scale,
-			stretch = each / tileLen, kind = "straight", road = road.name, district = district,
+			stretch = each / tileLen, kind = "straight", road = road.name, roadKind = road.kind, district = district,
 			yellow = yellow, tucked = tucked,
 		})
 	end

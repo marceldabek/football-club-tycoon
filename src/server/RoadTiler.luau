@@ -109,7 +109,7 @@ function RoadTiler.asphaltOf(model: Instance): MeshPart?
 	return best
 end
 
-local function surfaceAsphalt(model: Instance)
+local function surfaceAsphalt(model: Instance, paved: boolean)
 	local asphalt = RoadTiler.asphaltOf(model)
 	if not asphalt then
 		return
@@ -118,8 +118,9 @@ local function surfaceAsphalt(model: Instance)
 	if sa then
 		sa:Destroy()
 	end
-	asphalt.Color = LOOKS.asphalt.color
-	asphalt.Material = LOOKS.asphalt.material
+	local look = if paved then RoadTiler.PAVED_VERGE else LOOKS.asphalt
+	asphalt.Color = look.color
+	asphalt.Material = look.material
 end
 
 local function tintVerge(model: Instance, paved: boolean)
@@ -226,9 +227,11 @@ function RoadTiler.build(parent: Instance, origin: CFrame, filter: { district: s
 		if model:GetAttribute("KitMissing") then
 			counts.missing += 1
 		else
-			surfaceAsphalt(model)
+			-- an alley is paved wall to wall: no asphalt, no grass verge
+			local alley = tile.roadKind == "alley"
+			surfaceAsphalt(model, alley)
 			stretchZ(model, tile.stretch)
-			tintVerge(model, RoadTiler.isPavedVerge(tile.cframe.Position))
+			tintVerge(model, alley or RoadTiler.isPavedVerge(tile.cframe.Position))
 		end
 		if opts and opts.carve then
 			carveTerrain(origin, tile)

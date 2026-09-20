@@ -249,6 +249,31 @@ end
 
 -- Lane I stage 3: a crossroads whose arm is a few studs longer than a dead-end
 -- lane keeps its piece (it was downgraded to a bend that ran 38 studs into Plot 2).
+-- Marcel 2026-09-20: two road sizes only. Every street is one scale, so no tile
+-- meets a tile of another width; alleys are the one smaller, paved size.
+function tests.everyStreetIsOneSizeAndNoJunctionSteps()
+	local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
+	for _, kind in { "ring", "main", "residential", "lane" } do
+		assert(RoadTiles.SCALE[kind] == RoadTiles.STREET_SCALE, kind .. " is not street sized")
+	end
+	assert(RoadTiles.SCALE.alley == RoadTiles.ALLEY_SCALE and RoadTiles.ALLEY_SCALE < RoadTiles.STREET_SCALE, "alleys are the smaller size")
+	local plan = RoadTiles.plan(TownLayout.ROADS :: any, TownLayout.ROUNDABOUTS :: any, TownLayout.BRIDGES :: any)
+	for _, t in plan.tiles do
+		local want = if t.roadKind == "alley" then RoadTiles.ALLEY_SCALE else RoadTiles.STREET_SCALE
+		assert(t.scale == want, ("%s (%s) tile at scale %.3f"):format(t.road, t.roadKind, t.scale))
+	end
+end
+
+function tests.alleyTilesAreHalfWidthAndFlaggedForPaving()
+	local plan = RoadTiles.plan({
+		{ name = "Test Alley", kind = "alley", points = { Vector3.new(0, 0, 0), Vector3.new(0, 0, 200) }, district = "Test" },
+	} :: any, {}, {})
+	assert(#plan.tiles > 0, "alley tiled")
+	for _, t in plan.tiles do
+		assert(t.roadKind == "alley" and t.scale == RoadTiles.ALLEY_SCALE, "alley tile is alley sized")
+	end
+end
+
 function tests.plotLanesDoNotOvershootTheirEnd()
 	local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 	local plan = RoadTiles.plan(TownLayout.ROADS :: any, TownLayout.ROUNDABOUTS :: any, TownLayout.BRIDGES :: any)

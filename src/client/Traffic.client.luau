@@ -20,6 +20,7 @@ local RunService = game:GetService("RunService")
 
 local TownLayout = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TownLayout"))
 local TrafficMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrafficMath"))
+local RoadTiles = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoadTiles"))
 local Townsfolk = require(script.Parent:WaitForChild("Townsfolk"))
 
 -- ------------------------------------------------------------------ tuning
@@ -654,10 +655,13 @@ local function moveCar(car: Car, dt: number)
 	-- polyline's own direction put cars going the other way in the same lane,
 	-- driving backwards, which the old box cars hid.
 	local direction = lineDirection * car.direction
+	-- the kit carriageway, not TownLayout's nominal road width (26 on a main road
+	-- put cars on the kerb of the 12.9-wide kit street)
+	local carriageway = RoadTiles.carriagewayWidth(currentRoad.kind)
 	local flatPos = point
 		+ (if car.isBike
-			then TrafficMath.kerbOffset(direction, currentRoad.width, BIKE_KERB_INSET)
-			else TrafficMath.laneOffset(direction, currentRoad.width, -1))
+			then TrafficMath.kerbOffset(direction, carriageway, BIKE_KERB_INSET)
+			else TrafficMath.laneOffset(direction, carriageway, -1))
 	-- X79: round roundabout islands, not over them
 	flatPos, direction = TrafficMath.aroundIslands(flatPos, direction, TownLayout.ROUNDABOUTS, if car.isBus then ISLAND_CLEAR_BUS else ISLAND_CLEAR)
 	car.lastPos = flatPos
