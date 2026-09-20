@@ -30,8 +30,10 @@ local LOOKS: { [string]: { color: Color3, material: Enum.Material } } = {
 -- A tint only multiplies, and the texture has little red, so an even grey tint just
 -- makes a darker saturated green (tried: 150, 158, 118). Pulling green and blue down
 -- while leaving red alone moves it toward the terrain's olive (111, 126, 62).
--- TEMP value, tuned by eye.
-RoadTiler.VERGE_TINT = Color3.fromRGB(255, 185, 200)
+-- (255, 185, 200) went too far: mustard. This value sits between the two and has NOT
+-- been looked at yet (stage 2 ran out of screenshots): stage 3 should eyeball it.
+-- TEMP value.
+RoadTiler.VERGE_TINT = Color3.fromRGB(240, 212, 235)
 
 -- The verge MeshPart of a placed kit road piece. SurfaceAppearance.ColorMap cannot
 -- be read in a running server, so it is found by shape: the verge has the largest

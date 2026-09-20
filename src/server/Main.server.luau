@@ -182,20 +182,33 @@ do
 		return folder
 	end
 	local origin = CFrame.identity
+	-- The town build runs for well over ten seconds. Without a yield it is one
+	-- resume, and Studio's script timeout killed Main part-way down the dressers
+	-- (Lane I stage 2 playtest: "EstateDresser:958 exhausted allowed execution time").
+	-- task.wait() between steps starts a fresh timeout window for each.
 	require(script.Parent.RoadTiler).build(holder("V3Roads"), origin, nil)
+	task.wait()
 	require(script.Parent.HouseAssembler).build(holder("V3Housing"), origin, nil)
+	task.wait()
 	require(script.Parent.TradeAssembler).build(holder("V3Trade"), origin, nil)
+	task.wait()
 	require(script.Parent.StreetFurniture).build(holder("V3Furniture"), origin, nil)
+	task.wait()
 end
 
 -- Retired by v3 Lane I: StreetDresser.build and ShopDresser.build (gone), the
 -- housing / parked-car halves of TerraceStreetDresser, EstateDresser's building
 -- pass and SportsCentreDresser's hall (V3_*_RETIRED constants in those files).
 print("[FCT] " .. require(script.Parent.TerraceStreetDresser).build())
+task.wait()
 print("[FCT] " .. require(script.Parent.SquareDresser).build())
+task.wait()
 print("[FCT] " .. require(script.Parent.EstateDresser).build())
+task.wait()
 print("[FCT] " .. require(script.Parent.ForecourtDresser).build())
+task.wait()
 print("[FCT] " .. require(script.Parent.SchoolDresser).build()) -- X320
+task.wait()
 -- ImperfectionDresser is OFF in v3 (Lane I stage 2): about 900 primitive parts (lane
 -- dashes, give-way lines, manholes, grates, patches) laid at v1 road heights on top of
 -- kit roads that carry their own markings, while StreetFurniture places kit manholes,
@@ -203,20 +216,29 @@ print("[FCT] " .. require(script.Parent.SchoolDresser).build()) -- X320
 local V3_PRIMITIVE_IMPERFECTIONS = false
 if V3_PRIMITIVE_IMPERFECTIONS then
 	print("[FCT] " .. require(script.Parent.ImperfectionDresser).build())
+	task.wait()
 end
 print("[FCT] " .. require(script.Parent.RiverDresser).build())
+task.wait()
 print("[FCT] " .. require(script.Parent.MarinaDresser).build())
+task.wait()
 print("[FCT] " .. require(script.Parent.ParkDresser).build())
+task.wait()
 print("[FCT] " .. require(script.Parent.StationDresser).build())
+task.wait()
 print("[FCT] " .. require(script.Parent.SportsCentreDresser).build())
+task.wait()
 print("[FCT] " .. require(script.Parent.ViaductDresser).build())
+task.wait()
 print("[FCT] " .. require(script.Parent.BridgeDresser).build())
+task.wait()
 -- WireDresser is OFF in v3: its poles are superseded by StreetFurniture's telegraph
 -- poles, which stand elsewhere, so its wires would hang from nothing. Stage 2 either
 -- strings wires between FurniturePlan's poles or deletes the module.
 local V3_OVERHEAD_WIRES = false
 if V3_OVERHEAD_WIRES then
 	print("[FCT] " .. require(script.Parent.WireDresser).build())
+	task.wait()
 end
 -- CrossingDresser is OFF in v3 (Lane I stage 2): it looked for TownBuilder's "Pavement"
 -- parts under each slab, which the kit roads replaced, so it placed 0 of 264 slabs; its
@@ -224,13 +246,18 @@ end
 local V3_PRIMITIVE_TACTILE_SLABS = false
 if V3_PRIMITIVE_TACTILE_SLABS then
 	print("[FCT] " .. require(script.Parent.CrossingDresser).build())
+	task.wait()
 end
 -- X341: after the street and estate passes, so it can see which roads they
 -- have already signed
 print("[FCT] " .. require(script.Parent.SignDresser).build())
+task.wait()
 print("[FCT] " .. require(script.Parent.CentreTreeDresser).build())
+task.wait()
 print("[FCT] " .. require(script.Parent.GreeneryDresser).build())
+task.wait()
 print("[FCT] " .. require(script.Parent.GatewayDresser).build())
+task.wait()
 print("[FCT] " .. require(script.Parent.ClientKit).publish())
 PlotService.start()
 require(script.Parent.BusService).start()

@@ -39,7 +39,20 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local RiverDresser = require(script.Parent.RiverDresser)
 local KitPlacer = require(script.Parent.KitPlacer)
-local TerraceBuilder = require(script.Parent.TerraceBuilder)
+local V3Perf = require(script.Parent.V3Perf)
+
+-- v3 Lane I stage 2: the kit street light replaces TerraceBuilder's 6-part primitive
+-- lamp. `cframe` keeps the old convention (lantern toward local -Z); the kit lamp's
+-- arm overhangs along its RightVector, hence the quarter turn.
+local KIT_LAMP = "UKSP__StreetLights__StreetLight01"
+local function kitLamp(cframe: CFrame, parent: Instance): Model
+	local lamp = KitPlacer.place(KIT_LAMP, cframe * CFrame.Angles(0, math.pi / 2, 0), parent, {
+		fallbackSize = Vector3.new(1, 14, 1),
+	})
+	lamp.Name = "ParkLamp"
+	V3Perf.applyDefaults(lamp, "prop")
+	return lamp
+end
 
 local MarinaDresser = {}
 
@@ -339,7 +352,7 @@ local function buildQuay(parent: Instance, f: Frame): number
 			fallbackMaterial = Enum.Material.Wood,
 		})
 		local lamp = at(f, bs + 8, QUAY_W + 1.2, PROM_TOP)
-		TerraceBuilder.lamp(CFrame.lookAt(lamp, lamp - f.inward), parent)
+		kitLamp(CFrame.lookAt(lamp, lamp - f.inward), parent)
 	end
 	return count
 end
