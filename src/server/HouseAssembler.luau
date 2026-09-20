@@ -20,6 +20,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local HouseRecipes = require(ReplicatedStorage.Shared.HouseRecipes)
 local TownFrontage = require(ReplicatedStorage.Shared.TownFrontage)
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
+local BackYards = require(ReplicatedStorage.Shared.BackYards)
 local KitPlacer = require(ServerScriptService.Server.KitPlacer)
 local V3Perf = require(ServerScriptService.Server.V3Perf)
 
@@ -199,13 +200,13 @@ end
 
 -- A straight boundary from x0 to x1 (in `frame`) at depth z. One piece per run wherever a
 -- stretch of up to detail.boundaryStretch covers it, so a frontage is 2 pieces, not 4-6.
-local function boundaryRun(ctx: Ctx, frame: CFrame, x0: number, x1: number, z: number, style: HouseRecipes.GardenStyle, trim: string, role: string)
+local function boundaryRun(ctx: Ctx, frame: CFrame, x0: number, x1: number, z: number, style: HouseRecipes.GardenStyle, trim: string, role: string, maxStretch: number?)
 	local length = x1 - x0
 	if length < 1.5 then
 		return
 	end
 	local native = style.length * (style.scale or 1)
-	local n = math.max(1, math.ceil(length / (native * ctx.detail.boundaryStretch)))
+	local n = math.max(1, math.ceil(length / (native * math.max(ctx.detail.boundaryStretch, maxStretch or 0))))
 	local each = length / n
 	for i = 1, n do
 		local cf = frame * CFrame.new(x0 + each * (i - 0.5), 0, z)
@@ -284,8 +285,47 @@ local function buildLot(ctx: Ctx, lot: Lot, origin: CFrame)
 			boundaryRun(ctx, lotCF, gate + half, x + width / 2, gz, style, trim, "garden")
 		end
 
+		-- A terrace that backs onto a back alley gets a walled yard out to the alley's edge,
+		-- in every tier that builds boundaries (the alley is bare without it): a brick wall
+		-- along the alley with a wooden gate, and a fence to the neighbour. Gates alternate
+		-- sides so neighbours' gates pair up. Row ends are closed after the loop.
+		local unitBack = (HouseAssembler.lotFrame(lot) * CFrame.new(x, 0, depth / 2)).Position
+		local yardDepth = if isTerrace and detail.gardens ~= "none"
+			then BackYards.depthBehind(unitBack, lot.front, TownLayout.ROADS :: any)
+			else nil
+		if yardDepth then
+			local partsBefore = ctx.counts.boundaryParts
+			local wallZ = -depth / 2 - yardDepth
+			local gateSide = if i % 2 == 1 then -1 else 1 -- in backCF's X
+			local gateX = -x + gateSide * (width / 2 - BackYards.GATE_GAP / 2 - 0.4)
+			local gate = BackYards.GATE
+			put(ctx, gate.piece, backCF * CFrame.new(gateX, 0, wallZ), 1, nil, trim, "yard")
+			if gateSide < 0 then
+				boundaryRun(ctx, backCF, gateX + BackYards.GATE_GAP / 2, -x + width / 2, wallZ, BackYards.WALL :: any, trim, "yard", BackYards.WALL_MAX_STRETCH)
+				boundaryRun(ctx, backCF, -x - width / 2, gateX - BackYards.GATE_GAP / 2, wallZ, BackYards.WALL :: any, trim, "yard", BackYards.WALL_MAX_STRETCH)
+			else
+				boundaryRun(ctx, backCF, -x - width / 2, gateX - BackYards.GATE_GAP / 2, wallZ, BackYards.WALL :: any, trim, "yard", BackYards.WALL_MAX_STRETCH)
+				boundaryRun(ctx, backCF, gateX + BackYards.GATE_GAP / 2, -x + width / 2, wallZ, BackYards.WALL :: any, trim, "yard", BackYards.WALL_MAX_STRETCH)
+			end
+			-- side returns, running back from the lot: a party fence between neighbours,
+			-- the brick wall at the two ends of the row
+			local sideCF = backCF * CFrame.Angles(0, math.pi / 2, 0)
+			local function side(atX: number, style)
+				-- sideCF's local X is backCF's -Z (out from the back of the lot), its local Z is backCF's X
+				boundaryRun(ctx, sideCF, depth / 2, depth / 2 + yardDepth, atX, style, trim, "yard")
+			end
+			if i == 1 then
+				side(-x - width / 2, BackYards.WALL :: any)
+			end
+			side(-x + width / 2, if i == #plans then BackYards.WALL :: any else BackYards.PARTY_FENCE :: any)
+			ctx.counts.yards += 1
+			ctx.counts.yardParts += ctx.counts.boundaryParts - partsBefore
+		end
+
 		if wants(detail.yards, lot) then
-			boundaryRun(ctx, backCF, -x - width / 2, -x + width / 2, -depth / 2 + 0.3, HouseRecipes.BACK_FENCE, trim, "yard")
+			if not yardDepth then
+				boundaryRun(ctx, backCF, -x - width / 2, -x + width / 2, -depth / 2 + 0.3, HouseRecipes.BACK_FENCE, trim, "yard")
+			end
 			local h = HouseRecipes.hash(lot.id .. "#yard" .. tostring(i))
 			if detail.bins and h % 3 == 0 then
 				local bin = HouseRecipes.BIN
@@ -323,7 +363,7 @@ end
 
 -- Builds the given lots. `detail` overrides the per-tier presets (tests, reviews, Lane P trials).
 function HouseAssembler.buildLots(parent: Instance, origin: CFrame, lots: { Lot }, filter: { district: string? }?, detail: Detail?): { [string]: number }
-	local counts = { lots = 0, units = 0, houseParts = 0, boundaryParts = 0, meshParts = 0, missing = 0, districts = 0, tierA = 0 }
+	local counts = { lots = 0, units = 0, houseParts = 0, boundaryParts = 0, meshParts = 0, missing = 0, districts = 0, tierA = 0, yards = 0, yardParts = 0 }
 	local districtModels: { [string]: Model } = {}
 	local boundaryModels: { [string]: Model } = {}
 	local wantDistrict = filter and filter.district

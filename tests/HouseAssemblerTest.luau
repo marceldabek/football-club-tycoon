@@ -228,8 +228,15 @@ function tests.boundaries_meet_the_tier_allowances()
 	for _, use in { "terraced row", "semis", "detached house" } do
 		local a = buildUse(use, HouseAssembler.PRESETS.tierA)
 		local b = buildUse(use, HouseAssembler.PRESETS.tierB)
-		assert(a.boundaryParts / a.units <= 11, ("%s Tier A boundaries cost %.1f a unit, allowance 11"):format(use, a.boundaryParts / a.units))
-		assert(b.boundaryParts / b.units <= 4, ("%s Tier B boundaries cost %.1f a unit, allowance 4"):format(use, b.boundaryParts / b.units))
+		-- alley back yards are costed apart (town_projection adds them at their real count):
+		-- the sample is the Station district, where most of the town's back alleys are
+		local aRate, bRate = (a.boundaryParts - a.yardParts) / a.units, (b.boundaryParts - b.yardParts) / b.units
+		assert(aRate <= 11, ("%s Tier A boundaries cost %.1f a unit, allowance 11"):format(use, aRate))
+		assert(bRate <= 4, ("%s Tier B boundaries cost %.1f a unit, allowance 4"):format(use, bRate))
+		if a.yards > 0 then
+			-- 2 brick wall pieces (2 MeshParts each) + gate + party fence, plus the row-end walls shared out
+			assert(a.yardParts / a.yards <= 7, ("a walled back yard costs %.1f MeshParts, allowance 7"):format(a.yardParts / a.yards))
+		end
 	end
 end
 
@@ -243,8 +250,27 @@ function tests.town_projection_is_inside_both_budgets()
 		local a = buildUse(use, HouseAssembler.PRESETS.tierA)
 		local b = buildUse(use, HouseAssembler.PRESETS.tierB)
 		houses += (0.17 * a.houseParts / a.units + 0.83 * b.houseParts / b.units) * unitsInTown
-		boundaries += (0.17 * a.boundaryParts / a.units + 0.83 * b.boundaryParts / b.units) * unitsInTown
+		boundaries += (0.17 * (a.boundaryParts - a.yardParts) / a.units + 0.83 * (b.boundaryParts - b.yardParts) / b.units) * unitsInTown
 	end
+	-- plus every walled back yard in town, at the sample's cost per yard
+	local BackYards = require(ReplicatedStorage.Shared.BackYards)
+	local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
+	local townYards = 0
+	for _, lot in TownFrontage.generate() do
+		if lot.use == "terraced row" then
+			local frame = HouseAssembler.lotFrame(lot :: any)
+			local width = lot.size.X / lot.units
+			for i = 1, lot.units do
+				local back = (frame * CFrame.new(-lot.size.X / 2 + width * (i - 0.5), 0, lot.size.Z / 2)).Position
+				if BackYards.depthBehind(back, lot.front, TownLayout.ROADS :: any) then
+					townYards += 1
+				end
+			end
+		end
+	end
+	local terraces = buildUse("terraced row", HouseAssembler.PRESETS.tierB)
+	assert(terraces.yards > 0 and townYards >= terraces.yards, "the sample has alley back yards")
+	boundaries += townYards * terraces.yardParts / terraces.yards
 	assert(houses <= HouseAssembler.PART_BUDGET, ("houses project to %d MeshParts, budget %d"):format(houses, HouseAssembler.PART_BUDGET))
 	assert(boundaries <= HouseAssembler.BOUNDARY_BUDGET, ("boundaries project to %d MeshParts, budget %d"):format(boundaries, HouseAssembler.BOUNDARY_BUDGET))
 end
@@ -269,6 +295,46 @@ function tests.tiers_follow_section_9()
 	assert(HouseAssembler.tierFor(Vector3.new(-900, 0, -350)) == "A", "station is Tier A")
 	assert(HouseAssembler.tierFor(Vector3.new(1050, 0, 1250 - 400)) == "A", "400 studs from Plot 1 is Tier A")
 	assert(HouseAssembler.tierFor(Vector3.new(-2291, 0, -691)) == "B" or HouseAssembler.tierFor(Vector3.new(600, 0, 600)) == "B", "open town is Tier B")
+end
+
+-- Terraces backing onto a back alley get a walled yard: kit wall + wooden gate, all of it
+-- between the back of the lot and the alley's edge.
+function tests.terraces_on_a_back_alley_get_walled_yards_with_gates()
+	if not kitInstalled() then
+		return
+	end
+	local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
+	local BackYards = require(ReplicatedStorage.Shared.BackYards)
+	local holder = Instance.new("Model")
+	local ok, err = pcall(function()
+		local counts = HouseAssembler.build(holder, CFrame.new(0, 0, 0), { district = "Station" })
+		assert(counts.yards > 20, "Station has three back alleys, got " .. counts.yards .. " yards")
+		assert(counts.missing == 0, counts.missing .. " KitMissing")
+		local gates, walls = 0, 0
+		for _, d in holder:GetDescendants() do
+			-- the default preset flattens placements: MeshParts named after their kit piece
+			if d:IsA("MeshPart") and (d.Name == BackYards.GATE.piece or d.Name == BackYards.WALL.piece) then
+				if d.Name == BackYards.GATE.piece then
+					gates += 1
+				else
+					walls += 1
+				end
+				local cf = d.CFrame
+				for _, road in TownLayout.ROADS do
+					if road.kind == "alley" then
+						local clear = TownLayout.distanceToPolyline(cf.Position, road.points)
+						if clear < 30 then
+							assert(clear >= BackYards.alleyHalfWidth(), ("%s stands %.1f from the centre of %s, inside the alley"):format(d.Name, clear, road.name))
+						end
+					end
+				end
+			end
+		end
+		assert(gates == counts.yards, ("%d gates for %d yards"):format(gates, counts.yards))
+		assert(walls >= counts.yards, "every yard has a wall along the alley")
+	end)
+	holder:Destroy()
+	assert(ok, err)
 end
 
 function tests.lots_are_atomic_and_districts_are_not()
