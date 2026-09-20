@@ -52,6 +52,30 @@ Shared noticeboard for the lanes in `docs/TOWN_V3_BUILD.md`. Append under your l
 
 ## Lane R
 
+**Done 2026-09-20.** `Shared/RoadTiles` (pure: `plan(roads, roundabouts) -> { tiles, exempt, stats }`, piece table measured from the kit) and `Server/RoadTiler.build(parent, origin, filter)` per s4.3. Reads `TownLayout.ROADS` / `ROUNDABOUTS` directly. Whole town built in `Workspace.V3Sandbox.R` at (0,0,6000): one Atomic `Roads_<district>` Model per district (10; roads with no district go to "Town Centre" if wholly inside the centre box, else "Arterial"). Tests: `RoadTilesTest` 15 + `RoadTilerTest` 5, all passing; 0 `KitMissing`, 0 untagged primitives, 0 unresolved conflicts, max gap 0.57 stud.
+
+`[FCT] Roads: 676 tiles (2107 MeshParts, budget 1200) ...` = 517 straight, 40 bends (28 x 45, 12 x 90), 70 T, 24 cross, 25 heads, 19 E3 parts. Build time 0.17 s.
+
+**Budget (Lane P):** s9's 1,200 assumed one MeshPart per tile. Kit road pieces are 3 MeshParts each (4 with yellow lines), all sharing MeshIds. 676 tiles is inside the tile estimate; 2,107 MeshParts is not. Please rule: raise R to ~2,200, or count tiles.
+
+**Decisions (detail in the RoadTiles header):**
+- Scale: residential/lane 0.816 (36 corridor); main AND ring 0.93 (40.9 wide). Ring at its true 48 would need 1.09 bends, which do not fit the ring's 113-stud double 45 north of Northfields; 0.93 is the largest that does, and keeping ring = main means no width step at their junctions. The ring keeps a 3.5-stud bare strip each side inside its corridor.
+- Straights are remainder-fitted by stretching along their length (0.67 to 1.35 typical; markings checked, dashes just lengthen). KitPlacer only scales uniformly, so RoadTiler resizes the MeshParts along local Z after placing.
+- **Fork is NOT used.** Its branches are 90 apart (each 135 from the stem); the split at (-505,-105) is a through line plus a 45 spur. High Street keeps a proper 45 bend there and Station Road tucks under it. `CulDeSac_Left/Right90Degree` are a bend with a bulb and two mouths, not a terminal head: unused. All 25 heads use `CulDeSac` with the bulb centred on the head point (34.5 radius vs HEAD_RADIUS 34).
+- **Tuck** = stand-in for junctions the kit cannot make (no 45 T) or that do not fit: the branch's last straight is pitched down <=1.5 studs so its end slides under the through road. Visible result: the through road's verge and pavement run unbroken across the branch mouth. 30 tucked tiles, 21 downgraded junctions.
+- **Every kit road piece already carries kerb + pavement + a green verge** (carriageway 15.9, pavement ~4.3 each side, verge ~9.75 each side, unscaled). So **E4 is not used by Lane R**. But in terraced streets and the Town Centre the outer 8 studs each side are GRASS, not paving. Lane F / Integrator: decide whether the centre wants a paving overlay (that would be the real E4).
+- E3: big roundabouts (9) = asphalt disc + grass island, arms trimmed 8 inside the radius, disc hides the overlap. Foundry Way mini (r 16) = normal Crossroads + a painted 5-stud disc. No new register rows.
+
+**Known bugs / limits:**
+1. Tucked mouths have verge across them (see above). Lane A could remove most: these junction pairs are closer than one T piece (~90 studs): High St (-330/-360/-400), Riverside Rd (750/760), Ring (590/600 south; -850/-915; -1150,0..25; -1350,-200..-240; -1350,-600..-670), Bridge St (100, 560/620/680/700 and 0,130..200), Hollingford Rd (1500/1510), Mill St, Weaver St, Northfields Ave (400/450, 850/900), the three 60-stud stubs at z 740-800 (Bleach/Fellmonger/Lunebank). Spacing junctions >= 100 apart (>= 150 from a bend) makes them real T pieces with no code change.
+2. 45-degree junctions (Station Rd, Cooper St, Ferry Lane, Fern St, Riverside Rd at the ring, Lune St x Bridge St) will always tuck until a 45 T asset exists. Buy-list candidate.
+3. Plot 2 / Plot 4 lanes end 40-50 studs after a 90 bend; the bend's leg runs ~35 studs past the lane's end point into the plot entrance. Harmless if the plot has a car-park apron there.
+4. A few sliver straights (down to 3 studs) where a run leaves a tiny remainder.
+5. Roads cross the river and railway at ground level: no bridge awareness. Tiles carry a `Road` attribute; Integrator should either skip tiles inside `TownLayout.BRIDGES` spans or let BridgeDresser decks cover them.
+6. Screenshots: taken via MCP (`R_northfields_west`, `R_fork_highstreet`, `R_ring_roundabouts`) but the capture tool returns images inline only, so nothing could be saved to `docs/v3_review/R/`. To re-take, top-down from sandbox coords (-1000,420,5250), (-440,330,5940), (1320,340,6470).
+
+**Integrator must wire:** call `RoadTiler.build(townFolder, CFrame.new(), nil)` and retire the primitive road / pavement / kerb / roundabout drawing in `TownBuilder` (and any road-marking decals). Ground under roads should be plain grass (tile bottoms sit ~0.1 to 0.5 below y=0, pavement top at y=0.35, carriageway ~0.1). Add `RoadTilesTest` and `RoadTilerTest` to the suite (they are picked up by name already).
+
 ## Lane H
 
 ## Lane C
