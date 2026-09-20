@@ -20,6 +20,7 @@ local RunService = game:GetService("RunService")
 
 local TownLayout = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TownLayout"))
 local TrafficMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrafficMath"))
+local Townsfolk = require(script.Parent:WaitForChild("Townsfolk"))
 
 -- ------------------------------------------------------------------ tuning
 
@@ -303,26 +304,40 @@ end
 
 -- Bike rig: 2 wheels, frame, rider torso, head, 2 legs = 7 parts.
 local BIKE_WHEEL_RADIUS = 1.05
+-- X371: the rider is a real R6 figure, so its six parts follow the two wheels
+-- and the frame here, in Townsfolk.Figure.all order (torso, head, legL, legR,
+-- armL, armR). The old rider was a 1.7-stud torso on 1.5-stud legs -- about a
+-- 3.5-stud person, well short of the 5 studs everyone else in town now stands.
+-- Saddle height is 2.4; the offsets are translations only, so limbs stay
+-- upright exactly as the block rider's did.
+local BIKE_SADDLE_Y = 2.4
 local BIKE_OFFSETS: { Vector3 } = {
 	Vector3.new(0, 0.1 + BIKE_WHEEL_RADIUS, -1.35), -- front wheel
 	Vector3.new(0, 0.1 + BIKE_WHEEL_RADIUS, 1.35), -- rear wheel
 	Vector3.new(0, 1.55, 0), -- frame
-	Vector3.new(0, 3.05, 0.25), -- torso
-	Vector3.new(0, 4.3, -0.05), -- head
-	Vector3.new(-0.35, 1.9, 0.05), -- leg
-	Vector3.new(0.35, 1.9, 0.05), -- leg
+	Vector3.new(0, BIKE_SADDLE_Y + 1.0, 0.25), -- torso centre, one above the saddle
+	Vector3.new(0, BIKE_SADDLE_Y + 2.5, 0.05), -- head
+	Vector3.new(-0.5, BIKE_SADDLE_Y - 0.8, -0.2), -- left leg, down to the pedals
+	Vector3.new(0.5, BIKE_SADDLE_Y - 0.8, -0.2), -- right leg
+	Vector3.new(-1.1, BIKE_SADDLE_Y + 0.9, -0.7), -- left arm, forward to the bars
+	Vector3.new(1.1, BIKE_SADDLE_Y + 0.9, -0.7), -- right arm
 }
 
-local function buildBike(parent: Instance, color: Color3): { BasePart }
+-- Returns nil when the shared rig is unavailable: a bike with no rider would
+-- read worse than no bike, so the caller skips the spawn.
+local function buildBike(parent: Instance, color: Color3): { BasePart }?
+	local fig = Townsfolk.build(parent)
+	if not fig then
+		return nil
+	end
 	local front = wheel("WheelF", BIKE_WHEEL_RADIUS, 0.15, parent)
 	local rear = wheel("WheelR", BIKE_WHEEL_RADIUS, 0.15, parent)
 	local frame = part("Frame", Vector3.new(0.18, 0.25, 2.7), color, false, parent)
-	local torso = part("Rider", Vector3.new(1.3, 1.7, 0.7), PALETTE[math.random(1, #PALETTE)], false, parent)
-	local head = part("Head", Vector3.new(0.9, 0.9, 0.9), Color3.fromRGB(200, 160, 120), false, parent)
-	head.Shape = Enum.PartType.Ball
-	local legL = part("LegL", Vector3.new(0.45, 1.5, 0.45), Color3.fromRGB(40, 44, 60), false, parent)
-	local legR = part("LegR", Vector3.new(0.45, 1.5, 0.45), Color3.fromRGB(40, 44, 60), false, parent)
-	return { front, rear, frame, torso, head, legL, legR }
+	local parts: { BasePart } = { front, rear, frame }
+	for _, limb in fig.all do
+		table.insert(parts, limb)
+	end
+	return parts
 end
 
 -- X128: kit hatchbacks published by the server's ClientKit, if any. Scaled so
@@ -381,8 +396,17 @@ local function spawnCar(roadIndex: number, distance: number, direction: number)
 		meshOffsets = { Vector3.new(0, mesh.Size.Y / 2 + 0.05, 0) }
 		local yaw = template:GetAttribute("FrontYaw")
 		meshYaw = if type(yaw) == "number" then yaw else 0
+	elseif isBike then
+		-- X371: buildBike needs the shared rig for its rider and returns nil
+		-- without it; a riderless bike would look worse than no bike at all
+		local built = buildBike(model, color)
+		if not built then
+			model:Destroy()
+			return
+		end
+		parts = built
 	else
-		parts = if isBike then buildBike(model, color) elseif isBus then buildBus(model, color) else buildCar(model, color)
+		parts = if isBus then buildBus(model, color) else buildCar(model, color)
 	end
 
 	local car: Car = {
