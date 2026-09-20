@@ -351,21 +351,111 @@ A primitive may exist only if it has a row here. Tag the instance `V3Exempt = "<
 
 ## 8. Buy / generate list (Lane C maintains; Marcel approves)
 
-*(empty until Lane C's gap audit; known candidates from `docs/ASSET_INVENTORY.md` s4: shopfront
-units, pub, station building, industrial units, kerbs/pavement, roundabout, a bus, bay-window
-terraces "UK Housing – Terraced Set 1" $39.99.)*
+> Lane C gap audit, 2026-09-20. **Nothing here is bought. Marcel approves each line.** Prices are
+> USD list, ex VAT. Fab and GameDev Market pages block automated fetching (HTTP 403), so every
+> Fab/GDM price below comes from search snippets or the 2026-09-16 research in `docs/ASSET_KIT.md`:
+> **confirm the price and the "Included formats" box on the listing before paying.**
+> Money: $500 total, $380 protected for marketing, so the 3D cap is $120; $69.98 is spent (MEH +
+> UKSP), leaving **about $50** under the cap.
+
+### 8.1 Gap audit (what Lane C needs vs what the kit has)
+
+Lane C builds 117 frontage lots + about 20 building-type specials. Measured in Studio: the MEH
+module is 8.27 studs (2.52 m), every MEH piece is one MeshPart, prefab houses are one MeshPart.
+
+| Need (lots) | Kit has | Verdict | Register |
+|---|---|---|---|
+| Shops with flats (36 lots, ~100 units) | MEH walls/windows/roofs for the upper floors | **Upper floors OK. No shopfront**: no fascia, no display window, no stall riser, no awning. Ground floor is faked with `Wall_WideDoor` + `Door_Double` + `Wall_WindowCentre` and reads as a house, not a shop | E5 |
+| Shops, single storey (17 lots + 2 specials) | same | same gap, worse: nothing but the shopfront is visible | E5 |
+| Corner shop (29) | MEH `House_0x` prefabs | OK as a building; **no shop sign or window**; reads as a house with a UKSP sign | E5 |
+| Flats (10) + waterfront flats (1) | MEH modules stack to 4 storeys; `Office_01` prefab 83x39x36 is too wide for the 54-stud lot | **Buildable** from modules (about 90 MeshParts each); no balconies, no communal entrance | none |
+| Workshop (17), trade counter (3) | `Wall_Garage_A`, `Wall_A`, PH `rollershutter_door` (3.0 x 6.6 studs, a personnel door, not a vehicle shutter), `CorrugatedFence` | **Weak.** Brick house walls with a garage door; no steel-clad portal-frame unit, no big roller shutter, no shallow metal roof | E6 |
+| Warehouse (5), builders yard (1) | same | **Bad.** 136 x 100 studs from 8-stud house modules is about 250 MeshParts each and still looks like a giant house | E6 |
+| Pubs (8 specials + "pub and cafes") | MEH `House_05`, `Mansion_01` | Stand-in only: a big house with a UKSP sign. No pub frontage, hanging sign, beer garden kit | E7 |
+| Supermarket (1) | nothing | **No asset.** Flat-roofed box from `Wall_A` modules is the honest best | E8 |
+| Town hall (1), schools (3), sports hall (1), park cafe (1) | MEH `Office_01`, `Mansion_01` | Stand-in: `Office_01` reads as a plain civic/office block; acceptable for school, weak for town hall | E9 |
+| Church (1) | Creator Store `ChurchSpire` | Spire only, no nave. MEH modules + steep roof for the nave | E9 |
+| Station building | nothing (StationDresser is primitive, not Lane C's) | **No asset** | E10 |
+| Marina, bandstand | nothing | **No asset**; existing dressers are primitive | E10 |
+
+### 8.2 Buy list, in priority order
+
+| # | Item | Price | Licence | Link | Replaces |
+|---|---|---|---|---|---|
+| 1 | **UK Commercial Buildings Pack 1** — rik4000. Low-poly British shop parades (shops with flats over), one mesh + 1024 diffuse/normal per building, 350-3,500 tris | $5 | Unity Asset Store EULA, Extension Asset: no engine restriction, commercial OK. `.unitypackage` is a tar.gz of FBX+PNG, no Unity needed | https://assetstore.unity.com/packages/3d/environments/urban/uk-commercial-buildings-pack-1-77499 | E5: the faked MEH shopfronts on all 53 shop lots. One MeshPart per building instead of ~18 per unit, so it also cuts Lane C's count by more than half |
+| 2 | **UK Industrial Buildings Pack 1** — rik4000 | $5 | same | https://assetstore.unity.com/packages/3d/environments/industrial/uk-industrial-buildings-pack-1-75596 | E6: all 25 workshop / trade counter / warehouse lots + builders yard |
+| 3 | **UK Pub Pack 1** — rik4000 | $5 | same | https://assetstore.unity.com/packages/3d/environments/urban/uk-pub-pack-1-72906 | E7: 9 pub specials |
+| 4 | **UK Service Buildings Pack 1** — rik4000: 2 train stations, fire and police station, medical practice, hotel, public toilets | about $5 (confirm) | GameDev Market licence (commercial game use; confirm on page). FBX + PNG direct, no unpacking | https://www.gamedevmarket.net/asset/uk-service-buildings-pack-1-7498 | E10 station building; hotel/police as town hall and civic stand-ins (E9) |
+| 5 | **UK Commercial Buildings Pack 2** — rik4000 (more parade variety; pack 3 is a further $5 if 1+2 repeat too visibly) | $5 (listed EUR 4.60) | Unity EULA as #1 | https://assetstore.unity.com/packages/3d/environments/urban/uk-commercial-buildings-pack-2-79315 | E5 variety; supermarket (E8) if one is in the pack: check the gallery |
+| 6 | **British Modular Buildings** — Lou Chevreux. Georgian/Victorian 3-4 storey brick blocks, modular, PBR. The quality option for the High Street and flats if the rik4000 packs look too dated next to MEH at street level | $27.99 (2026-09-16 price) | Fab Standard Licence: any engine, commercial, no credit; never republish meshes | https://www.fab.com/listings/e4ac5ea4-9072-4e2a-b579-9709ea3ff089 | E5 on High Street / Market Square only; flats |
+| 7 | Kerb / pavement modular set (for Lane R's E4). "Pavement Border Pack" FBX $9 or "Sidewalk set 1" $19.99 | $9-20 | TurboSquid royalty-free (game use OK, assets must not be extractable) | https://www.turbosquid.com/Search/3D-Models/curb | E4 |
+| 8 | A bus for the bus-stop fast travel. "Low Poly London Bus" | $4.99 | TurboSquid royalty-free | https://www.turbosquid.com/Search/3D-Models/double+decker+bus | nothing today (no bus exists) |
+| 9 | Modular Warehouse — Hivemind (FBX archive included). Only if #2 looks too poor for the 5 big warehouses | $34.99 on sale, $69.99 list | Fab Standard | https://www.fab.com/listings/b1388540-f6a5-4a0f-ba9e-339050fcb3e1 | E6 warehouses only |
+| 10 | UK Housing – Terraced Set 1 — Macwelshman (bay-window terraces; Lane H's call, carried over from the inventory) | $39.99 | Fab Standard | https://www.fab.com/listings/6ff1fd7a-0330-4404-b49d-14b2a0797c44 | MEH flat fronts in Westdale |
+
+**Recommendation: buy #1-#5 now, about $25**, which closes E5, E6, E7, E10 and most of E9 and stays
+inside the cap. They are 2017-era, Cities: Skylines-style baked buildings: the right weight for a
+phone (one draw per building) and the only British shop/pub/industrial/station meshes found at any
+price with a plain FBX route, but visibly flatter than MEH up close. Judge them on the High Street
+first; **only if they fail there**, buy #6 ($27.99, takes the total to about $53, $3 over the cap).
+Buying the $45 "UK Asset Collection Part 1" instead of single packs is NOT recommended: most of it
+is housing, which MEH already covers.
+#7 and #8 are other lanes' gaps, listed here because this section is the one buy list. #9 and #10
+are not recommended yet.
+
+### 8.3 Generate rather than buy (AI mesh, props only)
+
+Shop awnings, a hanging pub sign bracket, an A-board, a projecting shop sign, a roundabout island
+(Lane R's E3). Fascia text itself can stay a SurfaceGui on a kit mesh.
+
+### 8.4 Not found at any sensible price
+
+A British supermarket, a marina/boat set, a bandstand. Kept as E8/E10 stand-ins.
 
 ## 9. Budgets (Lane P maintains)
 
-TEMP until the spike lands. Counts are Instances under the lane's output for the whole town.
+**PUBLISHED 2026-09-20 from the Lane P spike** (reasoning and measurements: `docs/TOWN_V3_PERF.md`).
+Budgets are **MeshParts** under the lane's whole-town output, as reported by
+`V3Perf.count(...).meshParts`. Set `M.PART_BUDGET` to the whole-town number. The per-unit /
+per-100-stud allowance is what to design against; a single-district build is judged on that.
+Frame time is NOT yet measured (needs Play): these come from counts, and Lane I validates.
 
-| Lane | TEMP budget | Notes |
-|---|---|---|
-| R roads | 1,200 MeshParts | ~66,000 studs / 90 per tile ≈ 740 + junctions |
-| H housing | 9,000 MeshParts | ~2,900 units × ~3 modules; expect Lane P to cut or tier this |
-| C trade/civic | 2,000 MeshParts | |
-| F furniture | 3,000 MeshParts | |
-| Frame-time target | TEMP 30 fps on the mid-range preset | Lane P to confirm device and method |
+| Lane | Whole-town budget | Allowance | Notes |
+|---|---|---|---|
+| R roads | **2,600** | 3 per 90-stud tile (a tile IS 3 MeshParts; YellowLines variants are 4, use only on main/ring) | 65,952 studs = 735 tiles + junctions. 56 tris per straight, 806 per crossroads: roads are nearly free |
+| H housing | **24,000** | terraced **10 per unit** averaged over the row; semis/detached **1-2 per unit** (prefabs) | 2,212 terraced + 511 semis/detached. Measured naive modular unit = 15.8, so assemble per ROW: shared party walls, 16-stud pieces, gables at row ends only, no floors/ceilings/foundations |
+| Plot boundaries (garden walls, gates, bins; whichever lane builds them, F by default) | **13,500** | Tier A **11 per unit**, Tier B **4 per unit**; **max 1,000 triangles per piece** | `UKSP__GardenWall__Wall` is 3,620 tris and fails the cap: pick a cheaper piece |
+| F furniture | **4,500** | Tier A **15 per 100 studs of road**, Tier B **5 per 100 studs**; Tier B props max 1,500 tris | slice measures 17 / 100 studs. Many UKSP props are 2 MeshParts, the phone box is 6 |
+| C trade/civic | **4,000** | 12 per commercial unit (204 units), 40 per special block (35) | same per-row assembly rule as housing |
+| Whole town | **~49,000 MeshParts, ~150,000 instances** | worst case loaded at radius 640: ~10,000 | full slice density would be ~89,000 / 275,000 / 75 M triangles: does not fit |
+| Unique MeshIds | max **60 per district per lane** | | repetition is instanced and cheap, variety is not |
+| Frame-time target | 30 fps, mid-range preset, densest spot (200, 0, -300) | | deferred to Lane I; method in TOWN_V3_PERF.md s8 |
+
+**Tiers.** Tier A (full slice density) = within **450 studs** of any of the 4 plot centres, the
+Market Square (0,0,0) or the station (-900,0,-350). Tier B = everywhere else: same roads and
+houses, lighter boundaries and furniture, still kit assets only. (Pending Marcel, Question P1;
+build to it meanwhile.) `V3Perf` does not compute the tier; test distance from `Lot.centre` / the
+road point to those six points.
+
+**Rules every builder lane follows**
+
+1. Streaming: **do not make a district one Atomic model** (overrides 4.3). District = grouping
+   `Model`, `ModelStreamingMode = Default`. **One Model per lot, `Atomic`** for buildings. Roads,
+   furniture and boundaries `Default` (non-atomic). Special blocks `Atomic` each.
+2. After every `KitPlacer.place`, call `V3Perf.applyDefaults(model, kind)` with kind =
+   `"structure"` (walls, roofs, houses), `"road"`, `"prop"` or `"decor"`. It sets Anchored,
+   CanTouch off, shadows off for roads / decor / props under 12 studs tall, and collision off for
+   decor. Tag decor models `V3Decor`.
+3. Collision/Render fidelity cannot be set from scripts. Targets: Box for everything, Hull for
+   prefab houses, `RenderFidelity` Automatic (Performance for decor). They get baked into the kit
+   templates once with `V3Perf.bake` (Integrator / Lane P); do not try to set them per clone.
+4. Report `print("[FCT] <Lane>: " .. V3Perf.format(V3Perf.count(parent)))` and assert
+   `V3Perf.withinBudget`.
+5. Workspace streaming settings (hand-set in Properties by the Integrator): Min radius 192, Target
+   radius 640, `StreamOutBehavior = Opportunistic`, `ModelStreamingBehavior = Improved`.
+6. Parked cars: only the 1-MeshPart vehicles (`HatchbackOrange/Silver/Red/Navy`,
+   `BusDoubleDecker`, `ForkliftYellow`). `VanWhite` (66) and `HatchbackWhite` (131) are banned
+   from the town.
 
 ---
 

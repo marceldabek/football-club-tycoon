@@ -108,4 +108,18 @@ function T.structureDefaultsKeepShadowAndCollision()
 	assert(collide and shadow)
 end
 
+function T.bakeRejectsUnknownKind()
+	local root = Instance.new("Model")
+	local ok = pcall(V3Perf.bake, root, "nonsense")
+	root:Destroy()
+	assert(not ok, "unknown kind must error rather than silently bake nothing")
+end
+
+function T.everyKindHasBoxOrHullCollision()
+	for kind, f in V3Perf.FIDELITY :: any do
+		local c = f.collision
+		assert(c == Enum.CollisionFidelity.Box or c == Enum.CollisionFidelity.Hull, kind .. " must not use decomposition")
+	end
+end
+
 return T

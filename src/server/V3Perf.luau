@@ -170,16 +170,57 @@ function V3Perf.applyDefaults(model: Instance, kind: "structure" | "road" | "pro
 				d.CanCollide = false
 				d.CanQuery = false
 			end
-			if d:IsA("MeshPart") and kind ~= "structure" then
-				-- CollisionFidelity is plugin/command-bar writable only; in a running
-				-- server this throws, so runtime builds rely on the template already
-				-- being Box (see TOWN_V3_PERF.md "Bake the templates").
-				pcall(function()
-					(d :: any).CollisionFidelity = Enum.CollisionFidelity.Box
-				end)
+			-- CollisionFidelity / RenderFidelity cannot be written from a script
+			-- (the assignment is silently ignored, measured 2026-09-20). They are
+			-- baked into the kit TEMPLATES once with V3Perf.bake; clones inherit them.
+		end
+	end
+end
+
+-- Fidelity per kind. Walls and road slabs are boxes already, so Box is exact.
+-- Prefab houses are L-shaped, so they get Hull. Nothing in the town needs
+-- Default/Precise decomposition: nobody walks inside a town house.
+V3Perf.FIDELITY = {
+	structure = { collision = Enum.CollisionFidelity.Box, render = Enum.RenderFidelity.Automatic },
+	prefab = { collision = Enum.CollisionFidelity.Hull, render = Enum.RenderFidelity.Automatic },
+	road = { collision = Enum.CollisionFidelity.Box, render = Enum.RenderFidelity.Automatic },
+	prop = { collision = Enum.CollisionFidelity.Box, render = Enum.RenderFidelity.Automatic },
+	decor = { collision = Enum.CollisionFidelity.Box, render = Enum.RenderFidelity.Performance },
+}
+
+-- EDIT MODE ONLY (command bar / MCP). Rebuilds every MeshPart under `root`
+-- with the fidelity for `kind` via CreateMeshPartAsync + ApplyMesh, the only
+-- scripted route that changes fidelity. Size, SurfaceAppearance, children and
+-- properties survive. Yields per distinct part (~50 ms each); run it on kit
+-- templates in ServerStorage.Kit, not on a built town. Returns baked, failed.
+function V3Perf.bake(root: Instance, kind: string): (number, number)
+	local f = (V3Perf.FIDELITY :: any)[kind]
+	assert(f, "V3Perf.bake: unknown kind " .. tostring(kind))
+	local baked, failed = 0, 0
+	local list = root:GetDescendants()
+	if root:IsA("MeshPart") then
+		table.insert(list, root)
+	end
+	for _, d in list do
+		if d:IsA("MeshPart") and (d.CollisionFidelity ~= f.collision or d.RenderFidelity ~= f.render) then
+			local size = d.Size
+			local ok = pcall(function()
+				local fresh = (AssetService :: any):CreateMeshPartAsync(
+					(Content :: any).fromUri(d.MeshId),
+					{ CollisionFidelity = f.collision, RenderFidelity = f.render }
+				);
+				(d :: any):ApplyMesh(fresh)
+				d.Size = size
+				fresh:Destroy()
+			end)
+			if ok then
+				baked += 1
+			else
+				failed += 1
 			end
 		end
 	end
+	return baked, failed
 end
 
 return V3Perf
