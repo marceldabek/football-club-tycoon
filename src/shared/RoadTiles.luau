@@ -70,7 +70,9 @@ export type Tile = {
 }
 export type BridgeIn = { from: Vector3, to: Vector3, kind: string? }
 export type Exempt = { id: string, shape: string, centre: Vector3, radius: number, height: number, look: string }
-export type Plan = { tiles: { Tile }, exempt: { Exempt }, stats: { [string]: number } }
+-- A junction that got no proper kit piece (a side road tucks under or ramps over).
+export type Makeshift = { pos: Vector3, kind: string, downgraded: boolean, arms: { { road: string, dir: Vector3, run: number, how: string, nextAt: number, nextKind: string, nextTrim: number, nextPos: Vector3 } } }
+export type Plan = { tiles: { Tile }, exempt: { Exempt }, stats: { [string]: number }, makeshift: { Makeshift } }
 
 local PREFIX = "UKSP__ModularRoads__"
 RoadTiles.PREFIX = PREFIX
@@ -118,8 +120,8 @@ RoadTiles.PIECES = {
 	tee = { name = "TJunctionRight", yellow = "TJunctionRightYellowLines", height = 0.433, node = { 16.5, 0 }, branch = { -1, 0 }, arm = 55 },
 	bend90L = { name = "DegreeLeft2", yellow = "DegreeLeft90YellowLines", height = 0.433, node = { -35.74, 37.12 }, dirA = { 0, -1 }, dirB = { 1, 0 }, legA = 96.23, legB = 93.48 },
 	bend90R = { name = "DegreeRight", yellow = "DegreeRight90YellowLines", height = 0.433, node = { 35.74, 37.12 }, dirA = { 0, -1 }, dirB = { -1, 0 }, legA = 96.23, legB = 93.48 },
-	bend45L = { name = "DegreeLeft45Degree", yellow = "DegreeLeft45DegreeYellowLines", height = 0.715, node = { -21.49, -2.23 }, dirA = { 0, -1 }, dirB = { S, S }, legA = 60.52, legB = 69.89 },
-	bend45R = { name = "DegreeRight45Degree", yellow = "DegreeRight45DegreeYellowLines", height = 0.715, node = { 21.49, -2.23 }, dirA = { 0, -1 }, dirB = { -S, S }, legA = 60.52, legB = 69.89 },
+	bend45L = { name = "DegreeLeft45Degree", yellow = "DegreeLeft45DegreeYellowLines", height = 0.715, node = { -21.49, -2.23 }, dirA = { 0, -1 }, dirB = { S, S }, legA = 60.52, legB = 69.89, mouthBDrop = 0.282 },
+	bend45R = { name = "DegreeRight45Degree", yellow = "DegreeRight45DegreeYellowLines", height = 0.715, node = { 21.49, -2.23 }, dirA = { 0, -1 }, dirB = { -S, S }, legA = 60.52, legB = 69.89, mouthBDrop = 0.282 },
 	-- node = centre of the turning bulb. The bulb's grass has a small mound in it, so
 	-- the bbox (height) is taller than the pavement (level); the head is aligned by
 	-- its pavement or the whole piece sits 0.27 low and the terrain covers its asphalt.
@@ -540,7 +542,21 @@ local function emitNode(node, tiles: { Tile }, exempt: { Exempt })
 		local def = RoadTiles.PIECES[node.piece]
 		local s = node.scale
 		local scaled = { node = { def.node[1] * s, def.node[2] * s } }
-		add(def, anchored(node.pos, scaled, node.armA.dir, def.dirA), kind, node.armA.road)
+		local cf = anchored(node.pos, scaled, node.armA.dir, def.dirA)
+		if def.mouthBDrop then
+			-- The kit's 45-degree bends are modelled with a built-in ramp: the curve and
+			-- leg A sit mouthBDrop higher than the mouth of leg B (the diagonal leg slopes
+			-- down to it). Placed level, the joint at B stepped by a quarter of a stud.
+			-- The piece is tilted about mouth A, across the line A -> B, until B is back
+			-- at road level; the knee ends up ~0.14 proud, over 60 studs.
+			local ax, az = (def.node[1] + def.dirA[1] * def.legA) * s, (def.node[2] + def.dirA[2] * def.legA) * s
+			local bx, bz = (def.node[1] + def.dirB[1] * def.legB) * s, (def.node[2] + def.dirB[2] * def.legB) * s
+			local d = Vector3.new(bx - ax, 0, bz - az)
+			local axis = d:Cross(Vector3.yAxis).Unit
+			local angle = math.asin(def.mouthBDrop * s / d.Magnitude)
+			cf = cf * CFrame.new(ax, 0, az) * CFrame.fromAxisAngle(axis, angle) * CFrame.new(-ax, 0, -az)
+		end
+		add(def, cf, kind, node.armA.road)
 	elseif kind == "tee" then
 		local def = RoadTiles.PIECES.tee
 		local s = node.scale
@@ -748,6 +764,24 @@ function RoadTiles.plan(roads: { RoadIn }, roundabouts: { RoundaboutIn }?, bridg
 		end
 	end
 
+	local makeshift: { Makeshift } = {}
+	for _, node in nodeList do
+		local any = false
+		local arms = {}
+		for _, a in node.arms do
+			any = any or a.tuck or a.entry
+			local far = if a.edge.armA == a then a.edge.armB else a.edge.armA
+			table.insert(arms, {
+				road = a.road.name, dir = a.dir, run = a.run, how = if a.tuck then "tuck" elseif a.entry then "entry" else "through",
+				-- the next junction along this arm: how far, what it is, how much road its piece wants
+				nextAt = a.edge.len, nextKind = far.node.kind, nextTrim = far.trim, nextPos = far.node.pos,
+			})
+		end
+		if any then
+			table.insert(makeshift, { pos = node.pos, kind = node.kind, downgraded = node.downgraded == true, arms = arms })
+		end
+	end
+
 	local tiles: { Tile } = {}
 	local exempt: { Exempt } = {}
 	for _, node in nodeList do
@@ -767,7 +801,7 @@ function RoadTiles.plan(roads: { RoadIn }, roundabouts: { RoundaboutIn }?, bridg
 	end
 	stats.tiles = #tiles
 	stats.exempt = #exempt
-	return { tiles = tiles, exempt = exempt, stats = stats }
+	return { tiles = tiles, exempt = exempt, stats = stats, makeshift = makeshift }
 end
 
 -- Height of a piece's pavement above its bottom (unscaled), so the assembler can

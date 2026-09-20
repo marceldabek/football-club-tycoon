@@ -315,6 +315,28 @@ function tests.theTownHasNoSquareTucksLeft()
 	assert((plan.stats.tucked or 0) <= 7, "tucked tiles left: " .. tostring(plan.stats.tucked))
 end
 
+-- The kit's 45-degree bend is modelled with leg B's mouth 0.282 lower than leg A's.
+-- The tile is tilted so BOTH mouths come out at road level (the joint at B used to step).
+function tests.bend45IsTiltedSoBothMouthsSitAtRoadLevel()
+	local plan = RoadTiles.plan({
+		road("Bendy", { v(0, 0), v(400, 0), v(700, 300) }),
+	}, {})
+	local bends = 0
+	for _, t in plan.tiles do
+		if t.kind == "bend45" then
+			bends += 1
+			local def = RoadTiles.PIECES.bend45L.name == t.piece:sub(#RoadTiles.PREFIX + 1) and RoadTiles.PIECES.bend45L or RoadTiles.PIECES.bend45R
+			local s = t.scale
+			local a = t.cframe * Vector3.new((def.node[1] + def.dirA[1] * def.legA) * s, 0, (def.node[2] + def.dirA[2] * def.legA) * s)
+			local b = t.cframe * Vector3.new((def.node[1] + def.dirB[1] * def.legB) * s, 0, (def.node[2] + def.dirB[2] * def.legB) * s)
+			-- the tile frame is at leg A's pavement level; leg B's pavement is mouthBDrop lower in the mesh
+			assert(math.abs(a.Y - RoadTiles.SURFACE_Y) < 1e-3, ("mouth A at %.3f"):format(a.Y))
+			assert(math.abs((b.Y - def.mouthBDrop * s) - RoadTiles.SURFACE_Y) < 1e-3, ("mouth B pavement at %.3f"):format(b.Y - def.mouthBDrop * s))
+		end
+	end
+	assert(bends == 1, "one 45 bend, got " .. bends)
+end
+
 function tests.plotLanesDoNotOvershootTheirEnd()
 	local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 	local plan = RoadTiles.plan(TownLayout.ROADS :: any, TownLayout.ROUNDABOUTS :: any, TownLayout.BRIDGES :: any)
