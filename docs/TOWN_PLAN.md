@@ -1,10 +1,20 @@
-# Town Plan — Rivermere greybox master plan
+# Town Plan — Rivermere master plan (v3)
 
 > Backlog C1.1. Data twin: `src/shared/TownLayout.luau` (C1.2), checked by `tests/TownLayoutTest.luau`.
 > If this file and the module disagree, the module wins and this file gets fixed.
 > Every number here is **TEMP** until the greybox walk test (C2.2) and Marcel confirm it.
 > Source: `assets/references/RivermereAIMap.png`, arrangement kept, scaled down. The map's
 > labels use an old town name; the town is **Rivermere** and the river is the **River Lune**.
+
+> **v3 (2026-09-20).** The layout is `docs/town_map_v3.png`. Three things changed from v1: the ring and
+> through roads are snapped to axis / 45° so the bought road kit tiles; plots 2 and 4 moved toward the
+> ring and plot 3 moved to Westdale in the south-west; and **everything built along a street is
+> generated from street frontage** by `src/shared/TownFrontage.luau` instead of being authored.
+> `TownLayout.DISTRICTS` now holds only the hand-placed special blocks.
+> Source of truth: the two Luau modules. `tools/town_plan_v3.py` is the drawing tool and mirrors the
+> generator; `python tools/town_v3_parity.py` checks the two agree and `tools/town_v3_emit.py` writes
+> ROADS / PLOTS / ROUNDABOUTS into the Luau. Sections 2, 3 and 6 below are v3; sections 5, 7 and 8 were
+> written for v1 and are still to be re-walked (walking times to plots 2 to 4 are stale).
 
 ## 1. Frame and scale
 
@@ -46,16 +56,17 @@ Plot square: **760 × 760** (TEMP). Plot frame: origin = pitch centre, pitch lon
 local −X = entrance side (office, turnstiles, car park) facing the access lane.
 With Roblox yaw θ, local −X maps to world (−cos θ, 0, sin θ).
 
-| Plot | Site | Centre (x, z) | Yaw | Entrance faces | World bounds x / z | Access | Bus stop (x, z) | River clearance |
+| Plot | Site | Centre (x, z) | Yaw | Entrance faces | World bounds x / z | Access | Bus stop (x, z) | River bank clearance |
 |---|---|---|---|---|---|---|---|---|
-| 1 | SE | (1050, 1250) | 270° | north | 670..1430 / 870..1630 | Plot 1 Lane off Ring S (970, 761) | (992, 840) | 491 |
-| 2 | NE | (1900, −1200) | 0° | west | 1520..2280 / −1580..−820 | Plot 2 Lane off Plot 2 Roundabout | (1490, −1142) | 380 |
-| 3 | E | (1950, 420) | 0° | west | 1570..2330 / 40..800 | Plot 3 Lane off Plot 3 Roundabout | (1540, 522) | 123 |
-| 4 | NW | (−1900, −1200) | 180° | east | −2280..−1520 / −1580..−820 | Plot 4 Lane off Plot 4 Roundabout | (−1490, −1302) | 1006 |
+| 1 | south-east | (1050, 1250) | 270° | north | 670..1430 / 870..1630 | Plot 1 Lane off Ring Road S (970, 800) | (992, 840) | 446 |
+| 2 | north-east (Millbrook) | (1830, −1160) | 0° | west | 1450..2210 / −1540..−780 | Plot 2 Lane off Plot 2 Roundabout (1400, −600) | (1420, −1058) | 302 |
+| 3 | south-west (Westdale) | (−1780, 1020) | 270° | north | −2160..−1400 / 640..1400 | Plot 3 Lane off Greenbridge Road (−1860, 560) | (−1838, 610) | 318 |
+| 4 | north-west (Mapleford) | (−1790, −1130) | 180° | east | −2170..−1410 / −1510..−750 | Plot 4 Lane off Plot 4 Roundabout (−1350, −750) | (−1380, −1232) | 898 |
+
+v1 had plot 2 at (1900, −1200), plot 3 in the east at (1950, 420) where it crowded plot 2, and plot 4 at (−1900, −1200).
 
 Every access lane (X6) ends at `plotCFrame(i) * TownLayout.PLOT_LANE_END` = plot-local (−390, 0, 80), 10 studs
-outside the vehicle gate (`PlotGrounds`: gate at local x −380, z 60..100). Gate ends in world: Plot 1 (970, 860),
-Plot 2 (1510, −1120), Plot 3 (1560, 500), Plot 4 (−1510, −1280). Each plot bus stop sits 22 beside its lane, 20 back
+outside the vehicle gate (`PlotGrounds`: gate at local x −380, z 60..100). Gate ends in world: Plot 1 (970, 860), Plot 2 (1440, −1080), Plot 3 (−1860, 630), Plot 4 (−1400, −1210). Each plot bus stop sits 22 beside its lane, 20 back
 from the lane end, outside the plot. Rail clearance: Plot 4 270, others > 1200.
 
 ### Inside a plot (local frame, TEMP zoning)
@@ -86,102 +97,156 @@ The current office/entrance sits at local x ≈ −150..−300; it stays inside 
 
 ### Roads (carriageway widths; pavements +8 each side)
 
-| Kind | Width | Road | Points (x, z) |
-|---|---|---|---|
-| ring | 32 | Ring Road (closed loop) | (−1300,−800) (−650,−1000) (0,−1050) (650,−1000) (1300,−800) (1400,−400) (1400,−60) (1400,150) (1400,400) (1250,720) (700,800) (0,800) (−600,800) (−1100,700) (−1150,430) (−1150,200) (−1250,−100) (−1350,−400) (−1300,−800) |
-| main | 26 | Mapleford Road (exit W) | (−1350,−400) → (−2400,−380) |
-| main | 26 | Greenbridge Road (exit SW) | (−1100,700) (−1100,1100) (−2400,1500) |
-| main | 26 | Hollingford Road (exit E) | (1250,720) (1500,840) (2400,860) |
-| main | 26 | High Street | (−1250,−100) (−460,−60) (−60,0) |
-| main | 26 | Riverside Road | (60,0) (500,40) (900,60) (1400,−60) |
-| main | 26 | North Road | (0,−60) → (0,−1050) |
-| main | 26 | Bridge Street | (0,60) (100,300) (100,540) (0,800) |
-| main | 26 | Station Road | (−460,−60) (−700,−300) (−800,−340) |
-| main | 26 | Estate Road | (−1250,−100) → (−2300,−110) |
-| residential | 20 | Mill Street | (0,−200) → (900,−200) |
-| residential | 20 | Weaver Street | (−430,−330) → (900,−330) |
-| residential | 20 | Elm Grove | (−500,−440) → (900,−440) |
-| residential | 20 | Northfields Avenue | (−1320,−600) → (1345,−600) |
-| residential | 20 | Hayfield Close | (400,−600) → (400,−920) |
-| residential | 20 | Rowan Close | (−200,−600) → (−200,−920) |
-| residential | 20 | Westdale Avenue | (−1100,950) → (−690,950) |
-| residential | 20 | Westdale Crescent | (−1250,1250) → (−690,1250) |
-| residential | 20 | Sports Centre Road | (0,800) (0,1200) (520,1200) |
-| residential | 20 | Linden Way | (−700,−920) → (700,−920) |
-| residential | 20 | Elder Close | (−1200,−600) → (−1200,−827) |
-| residential | 20 | Ash Close | (−1000,−600) → (−1000,−888) |
-| residential | 20 | Birch Close | (−800,−600) → (−800,−950) |
-| residential | 20 | Cherry Close | (−600,−600) → (−600,−920) |
-| residential | 20 | Hazel Close | (−400,−600) → (−400,−920) |
-| residential | 20 | Holly Close | (225,−600) → (225,−920) |
-| residential | 20 | Laurel Close | (650,−600) → (650,−920) |
-| residential | 20 | Maple Close | (850,−600) → (850,−935) |
-| residential | 20 | Oak Close | (1050,−600) → (1050,−873) |
-| residential | 20 | Poplar Close | (1250,−600) → (1250,−812) |
-| residential | 20 | Church Lane | (−360,−45) → (−360,−330) |
-| residential | 20 | Cooper Street | (−1296,−240) → (−640,−240) |
-| residential | 20 | Lock Street | (−1160,150) → (−540,150) |
-| residential | 20 | Lune Street | (−440,260) → (480,260) |
-| residential | 20 | Meadow Road | (92,560) → (1325,560) |
-| residential | 20 | Viaduct Road | (−545,620) → (69,620) |
-| residential | 20 | Weir Road | (−1126,560) → (−615,560) |
-| residential | 20 | Westdale Road | (−915,737) → (−915,1400) |
-| residential | 20 | Brook Street | (−1100,1100) → (−690,1100) |
-| residential | 20 | Orchard Road | (−1700,1400) → (−690,1400) |
-| residential | 20 | Alder Road | (−1250,1146) → (−1250,1400) |
-| residential | 20 | Cedar Road | (−470,800) → (−470,1500) |
-| residential | 20 | Moss Lane | (−1800,560) → (−1134,560) |
-| residential | 20 | Fern Street | (−1800,800) → (−1113,800) |
-| residential | 20 | Reed Road | (−1600,380) → (−1600,1110) |
-| residential | 20 | Hollins Road | (520,800) → (520,1500) |
-| residential | 20 | Foundry Way | (−1480,−397) → (−1480,120) |
-| lane | 20 | Plot 1 Lane | (970,761) → (970,860) |
-| lane | 20 | Plot 2 Lane | (1300,−800) (1300,−1120) (1510,−1120) |
-| lane | 20 | Plot 3 Lane | (1400,400) (1460,500) (1560,500) |
-| lane | 20 | Plot 4 Lane | (−1300,−800) (−1300,−1280) (−1510,−1280) |
+v3: every segment is axis-aligned or 45°. `front` is which sides `TownFrontage` builds along (left of the direction of travel); `use` is the building type, or *rule:name* when a `TownFrontage.RULES` rule picks it from the position. **head** = ends in a cul-de-sac turning head (radius 34). A residential street with front *none* is a connecting street whose corners are taken by the streets it joins.
 
-Streets added or lengthened in the X5 densify pass: Mill, Weaver and Elm Grove run on to x 900; Northfields Avenue
-spans the ring; twelve closes (Elder … Poplar) run north to Linden Way or the ring; Church Lane, Cooper Street and
-Lock Street fill the centre and station side; Lune Street, Meadow Road, Viaduct Road and Weir Road line the river
-banks; Westdale Road, Brook Street, Orchard Road, Alder Road, Cedar Road, Moss Lane, Fern Street and Reed Road make
-Westdale; Hollins Road runs beside Plot 1; Foundry Way serves the industrial estate. Moss Lane and Weir Road meet the
-ring as a plain crossroads (TEMP, no roundabout).
+| Road | Kind | Points (x, z) | Front | Use | District | Head |
+|---|---|---|---|---|---|---|
+| Ring Road | ring | (−1100, −1000) → (−500, −1000) → (−420, −1080) → (420, −1080) → (500, −1000) → (1000, −1000) → (1400, −600) → (1400, 400) → (1250, 550) → (1250, 650) → (1100, 800) → (−1000, 800) → (−1150, 650) → (−1150, 0) → (−1350, −200) → (−1350, −750) → (−1100, −1000) | none |  |  |  |
+| North Road | main | (0, −60) → (0, −1080) | both | *rule:north road* |  |  |
+| High Street | main | (−60, 0) → (−400, 0) → (−505, −105) → (−1255, −105) | both | *rule:high street* |  |  |
+| Station Road | main | (−505, −105) → (−737, −337) → (−938, −337) | both | shops | Station |  |
+| Riverside Road | main | (60, 0) → (1340, 0) → (1400, −60) | both | *rule:centre* |  |  |
+| Bridge Street | main | (0, 60) → (0, 200) → (100, 300) → (100, 700) → (0, 800) | both | *rule:bridge street* |  |  |
+| Mapleford Road | main | (−1350, −400) → (−2400, −400) | both | *rule:industrial* |  |  |
+| Estate Road | main | (−1255, −105) → (−2400, −105) | both | *rule:industrial* |  |  |
+| Greenbridge Road | main | (−1150, 560) → (−2400, 560) | right | terraced row | Westdale |  |
+| Hollingford Road | main | (1250, 600) → (1300, 600) → (1500, 800) → (2400, 800) | both | terraced row | Hollingford |  |
+| Guild Street | residential | (−330, 130) → (0, 130) | both | *rule:centre* |  |  |
+| Quay Street | residential | (0, 130) → (480, 130) | both | *rule:centre* |  |  |
+| Tanner Row | residential | (−330, 0) → (−330, 260) | both | *rule:centre* |  |  |
+| Wharf Street | residential | (250, 0) → (250, 260) | none |  |  |  |
+| Marina Way | residential | (760, 0) → (760, 190) | both | *rule:centre* |  | head |
+| Chapel Street | residential | (−150, 0) → (−150, −330) | both | *rule:centre* |  |  |
+| Fountain Street | residential | (250, 0) → (250, −200) | both | *rule:centre* |  |  |
+| Dyers Lane | residential | (500, 0) → (500, −200) | both | *rule:centre* |  |  |
+| Park Street | residential | (750, 0) → (750, −200) | both | *rule:centre* |  |  |
+| Spinner Street | residential | (450, −200) → (450, −600) | none |  | Mill Street Terraces |  |
+| Park Road | residential | (900, −200) → (900, −600) | both | terraced row | Mill Street Terraces |  |
+| Loom Street | residential | (−200, −330) → (−200, −600) | both | terraced row | Mill Street Terraces |  |
+| Mill Street | residential | (0, −200) → (900, −200) | both | terraced row | Mill Street Terraces |  |
+| Weaver Street | residential | (−430, −330) → (900, −330) | both | terraced row | Mill Street Terraces |  |
+| Elm Grove | residential | (−500, −440) → (900, −440) | both | terraced row | Mill Street Terraces |  |
+| Northfields Avenue | residential | (−1350, −600) → (1400, −600) | both | terraced row | Northfields |  |
+| Linden Way | residential | (−1000, −920) → (850, −920) | both | terraced row | Northfields |  |
+| Elder Close | residential | (−1200, −600) → (−1200, −815) | both | semis | Northfields | head |
+| Ash Close | residential | (−1000, −600) → (−1000, −920) | both | semis | Northfields |  |
+| Birch Close | residential | (−800, −600) → (−800, −920) | both | semis | Northfields |  |
+| Cherry Close | residential | (−600, −600) → (−600, −920) | both | terraced row | Northfields |  |
+| Hazel Close | residential | (−400, −600) → (−400, −920) | both | terraced row | Northfields |  |
+| Rowan Close | residential | (−200, −600) → (−200, −920) | both | terraced row | Northfields |  |
+| Holly Close | residential | (225, −600) → (225, −920) | both | terraced row | Northfields |  |
+| Hayfield Close | residential | (400, −600) → (400, −920) | both | terraced row | Northfields |  |
+| Laurel Close | residential | (650, −600) → (650, −920) | both | terraced row | Northfields |  |
+| Maple Close | residential | (850, −600) → (850, −920) | both | semis | Northfields |  |
+| Oak Close | residential | (1050, −600) → (1050, −865) | both | semis | Northfields | head |
+| Church Lane | residential | (−360, 0) → (−360, −330) | none |  | Town Centre |  |
+| Cooper Street | residential | (−1350, −240) → (−640, −240) | both | terraced row | Station |  |
+| Signal Street | residential | (−1150, 25) → (−560, 25) | both | terraced row | Station |  |
+| Lock Street | residential | (−1150, 150) → (−540, 150) | both | terraced row | Station |  |
+| Foundry Way | residential | (−1480, −400) → (−1480, 110) | both | *rule:industrial* |  |  |
+| Lune Street | residential | (−440, 260) → (700, 260) | both | *rule:centre* |  | head |
+| Platform Street | residential | (−850, −240) → (−850, 150) | none |  | Station |  |
+| Goods Yard Lane | residential | (−1000, −105) → (−1000, −240) | none |  | Station |  |
+| Forge Lane | residential | (−1800, −400) → (−1800, 110) | both | *rule:industrial* |  |  |
+| Furnace Lane | residential | (−2120, −400) → (−2120, 110) | both | *rule:industrial* |  |  |
+| Wharf Road | residential | (−1480, 110) → (−2250, 110) | none |  |  |  |
+| Meadow Road | residential | (100, 560) → (1180, 560) | both | terraced row | Riverside | head |
+| Tannery Row | residential | (100, 680) → (1100, 680) | both | terraced row | Riverside | head |
+| Viaduct Road | residential | (−545, 620) → (100, 620) | both | terraced row | Riverside |  |
+| Weir Road | residential | (−1150, 560) → (−615, 560) | both | terraced row | Riverside |  |
+| Fuller Street | residential | (−1090, 690) → (−615, 690) | both | terraced row | Riverside |  |
+| Sluice Lane | residential | (−850, 560) → (−850, 800) | none |  | Riverside |  |
+| Dye Works Lane | residential | (600, 560) → (600, 800) | none |  | Riverside |  |
+| Osier Lane | residential | (−250, 620) → (−250, 800) | both | terraced row | Riverside |  |
+| Sports Centre Road | residential | (0, 800) → (0, 1200) → (590, 1200) | none |  | Riverside |  |
+| Cedar Road | residential | (−470, 800) → (−470, 1500) | both | terraced row | Riverside | head |
+| Paddock Road | residential | (400, 800) → (400, 1500) | both | semis | Riverside | head |
+| Hollins Road | residential | (590, 800) → (590, 1500) | both | terraced row | Riverside | head |
+| Plot 1 Lane | lane | (970, 800) → (970, 860) | none |  |  |  |
+| Moss Lane | residential | (−2240, 430) → (−1250, 430) | both | semis | Westdale |  |
+| Reed Road | residential | (−1600, 430) → (−1600, 560) | none |  | Westdale |  |
+| Alder Road | residential | (−1310, 560) → (−1310, 1480) | both | terraced row | Westdale |  |
+| Tanner's Lane | residential | (−2240, 560) → (−2240, 1480) | both | semis | Westdale |  |
+| Orchard Road | residential | (−2240, 1480) → (−730, 1480) | both | terraced row | Westdale | head |
+| Fern Street | residential | (−1310, 800) → (−1000, 800) | both | terraced row | Westdale |  |
+| Westdale Avenue | residential | (−1310, 950) → (−730, 950) | both | terraced row | Westdale | head |
+| Brook Street | residential | (−1310, 1100) → (−730, 1100) | both | terraced row | Westdale | head |
+| Westdale Crescent | residential | (−1310, 1250) → (−730, 1250) | both | terraced row | Westdale | head |
+| Coronation Street | residential | (−1310, 1365) → (−730, 1365) | both | terraced row | Westdale | head |
+| Westdale Road | residential | (−915, 800) → (−915, 1480) | both | terraced row | Westdale |  |
+| Plot 3 Lane | lane | (−1860, 560) → (−1860, 630) | none |  |  |  |
+| Plot 4 Lane | lane | (−1350, −750) → (−1350, −1210) → (−1400, −1210) | none |  |  |  |
+| Mapleford Lane | residential | (−2250, −670) → (−1350, −670) | both | terraced row | Mapleford |  |
+| Drift Close | residential | (−2250, −670) → (−2250, −1060) | both | detached house | Mapleford | head |
+| Tollgate Road | residential | (−1350, −1210) → (−1350, −1590) → (−2120, −1590) | both | terraced row | Mapleford | head |
+| Drovers Road | residential | (−1350, −1210) → (−760, −1210) | both | terraced row | Mapleford | head |
+| Pinfold Close | residential | (−950, −1210) → (−950, −1110) | both | detached house | Mapleford | head |
+| Smithy Close | residential | (−1120, −1210) → (−1120, −1460) → (−880, −1460) | both | semis | Mapleford | head |
+| Plot 2 Lane | lane | (1400, −600) → (1400, −1080) → (1440, −1080) | none |  |  |  |
+| Millbrook Road | residential | (1400, −700) → (2300, −700) | both | terraced row | Millbrook |  |
+| Lune View | residential | (1560, −570) → (2250, −570) | both | detached house | Millbrook | head |
+| Fell Lane | residential | (2300, −700) → (2300, −1320) | both | semis | Millbrook | head |
+| Quarry Road | residential | (1400, −1080) → (900, −1080) → (780, −1200) | both | terraced row | Millbrook | head |
+| Kiln Close | residential | (1180, −1080) → (1180, −1400) | both | semis | Millbrook | head |
+| Millbrook Rise | residential | (1400, −1080) → (1400, −1330) | both | terraced row | Millbrook | head |
+| Lunebank Road | residential | (1400, 300) → (1500, 300) → (1940, 740) → (1940, 800) | both | terraced row | Hollingford |  |
+| Ferry Lane | residential | (1500, 300) → (1593, 207) | none |  | Hollingford |  |
+| Fellmonger Street | residential | (1500, 480) → (1760, 740) → (1760, 800) | both | terraced row | Hollingford |  |
+| Bleach Street | residential | (1593, 207) → (2126, 740) → (2126, 800) | both | semis | Hollingford |  |
+| Garth Road | residential | (1510, 800) → (1510, 1560) | both | detached house | Hollingford | head |
+| Ropewalk | residential | (1660, 640) → (1843, 457) | none |  | Hollingford |  |
 
-### Roundabouts (radius 40) and square
+### Roundabouts and square
 
-| Name | Centre (x, z) | Joins |
+| Name | Centre (x, z) | Radius |
 |---|---|---|
-| Market Square (radius 60, pedestrian core) | (0, 0) | High Street, Riverside Road, North Road, Bridge Street |
-| Northfields | (0, −1050) | Ring, North Road |
-| Plot 4 | (−1300, −800) | Ring, Plot 4 Lane |
-| Plot 2 | (1300, −800) | Ring, Plot 2 Lane |
-| Plot 3 | (1400, 400) | Ring, Plot 3 Lane |
-| Hollingford | (1250, 720) | Ring, Hollingford Road |
-| Sports Centre | (0, 800) | Ring, Bridge Street, Sports Centre Road |
-| Westdale | (−1100, 700) | Ring, Greenbridge Road |
-| High Street | (−1250, −100) | Ring, High Street, Estate Road |
-| Mapleford | (−1350, −400) | Ring, Mapleford Road |
+| Northfields Roundabout | (0, −1080) | 40 |
+| Plot 4 Roundabout | (−1350, −750) | 40 |
+| Plot 2 Roundabout | (1400, −600) | 40 |
+| Lunebank Roundabout | (1400, 300) | 40 |
+| Hollingford Roundabout | (1250, 600) | 40 |
+| Sports Centre Roundabout | (0, 800) | 40 |
+| Westdale Roundabout | (−1150, 560) | 40 |
+| High Street Roundabout | (−1255, −105) | 40 |
+| Mapleford Roundabout | (−1350, −400) | 40 |
+| Foundry Way Roundabout | (−1480, −105) | 16 |
+| Market Square | (0, 0) | 60 |
 
-### Districts (greybox volumes; heights in studs)
+"Plot 3 Roundabout" is now **Lunebank Roundabout**: plot 3 no longer hangs off it.
 
-| District | Kind | Area x / z | Blocks | Contents |
-|---|---|---|---|---|
-| Town Centre | centre | −455..539 / −275..340 | 49 | shops, shops with flats and pubs wrapping the market square and lining High Street, Riverside Road, North Road and Bridge Street, flats behind; supermarket, town hall (−150,200), church (−220,−230), school (−250,310) |
-| Mill Street Terraces | terraced | −444..950 / −414..−115 | 48 | terraced rows (100–140 × 22–26 × 24) both sides of Mill St, Weaver St and Church Lane, back-to-back. The original 8 rows (x 100 / 300) moved 8 studs off the street to clear the pavement (z −164, −236, −294, −366). **First district to dress (E3.1)** |
-| Northfields | estate | −1300..1296 / −1004..−458 | 168 | terraced rows and semis on Elm Grove, Northfields Avenue, North Road, Linden Way and the twelve closes; corner shops; school (−1100,−750) |
-| Riverside | riverside | −620..1302 / −88..1570 | 167 | flats on Riverside Road and Lune Street, marina basin (900,240); south bank terraces on Meadow Road, Viaduct Road, Bridge Street, the ring and Hollins Road |
-| Riverside Park | park | 970..1330 / −560..−80 | 3 | lawn 360 × 480, bandstand, park café |
-| Station | station | −1286..−489 / −380..234 | 55 | station car park (−1000,−350), shops on Station Road, terraced rows on Cooper Street, High Street west and Lock Street |
-| Industrial Estate | industrial | −2390..−1300 / −560..123 | 43 | the six big sheds plus warehouses, workshops and trade counters on Estate Road, Mapleford Road and Foundry Way |
-| Westdale | estate | −1800..−386 / 380..1550 | 143 | terraced rows on Weir Road, the ring, Westdale Avenue / Crescent / Road, Brook Street, Orchard, Alder and Cedar Roads, and Moss Lane / Fern Street / Reed Road west of the ring; corner shops; school (−1250,1000) |
-| Community Sports Centre | sports | −300..340 / 920..1500 | 6 | three grass pitches, two 3G pitches and a sports hall (220,1300) |
+### Districts
 
-Total **682** blocks (was 74). Rules checked by `tests/TownLayoutTest.luau`: all yaw 0; no two blocks overlap (1-stud
-tolerance; a building may stand on a flat ground piece); every block clears carriageway + 8 pavement, river width/2 + 20
-(marina excepted), rail width/2 + 10, roundabouts and the square (+8), bus stops (12), landmarks (30, the church nave
-excepted) and plots (+20); at least 400 blocks. Rows were laid by a frontage script (set back 6 from the pavement,
-back-to-back pairs with a 12 alley, terraces 100–140 long with 10 gaps, semis 40–50 with 10–16 gaps, industrial
-sheds 120–180 with yards between) and checked numerically before commit.
+Two layers. **Specials** are hand-placed in `TownLayout.DISTRICTS` (35 blocks). **Lots** are generated by `TownFrontage.generate()` (868 lots: terraced row 416, semis 209, detached house 107, corner shop 46, shops with flats 36, shops 18, workshop 18, flats 11, trade counter 4, warehouse 3).
+
+| District | Kind | Specials (use at x, z) | Generated lots |
+|---|---|---|---|
+| Town Centre | centre | pub (400, −41); supermarket (−260, 36); town hall (−150, 200); church (−220, −230); pub (−50, −87); pub (87, −50); pub (−385, 41); pub (−183, −59); pub (−117, −54); school (−250, 310); pub (−365, 95) | shops with flats 36, shops 7 |
+| Mill Street Terraces | terraced | — | terraced row 54, corner shop 7 |
+| Northfields | estate | school (−1100, −750); park (1155, −675); park (−100, −760); park (525, −760); shops (80, −645); shops (−80, −555) | terraced row 75, semis 34, corner shop 7 |
+| Riverside | riverside | pub and cafes (560, 130); waterfront flats (600, 214); marina (900, 240) | terraced row 86, semis 25, flats 11, corner shop 10 |
+| Riverside Park | park | park lawn (1150, −320); bandstand (1150, −300); park cafe (1050, −120) | — |
+| Station | station | station car park (−1020, −350); pub (−668, −330) | terraced row 30, shops 11, corner shop 4 |
+| Industrial Estate | industrial | builders yard (−1650, 20) | workshop 18, trade counter 4, warehouse 3 |
+| Westdale | estate | school (−1110, 1025); park (−820, 1175) | terraced row 78, semis 73, corner shop 7 |
+| Community Sports Centre | sports | grass pitch (220, 1000); grass pitch (−220, 1050); 3G pitch (−220, 1400); sports hall (220, 1300); 3G pitch (−60, 1000); grass pitch (220, 1450) | — |
+| Mapleford | estate | — | terraced row 37, detached house 24, semis 15, corner shop 2 |
+| Millbrook | estate | — | detached house 41, semis 35, terraced row 25, corner shop 4 |
+| Hollingford | estate | park (1600, 80) | detached house 42, terraced row 31, semis 27, corner shop 5 |
+
+How a lot is made (full rules at the top of `TownFrontage.luau`): one row of cells down each fronted side of a street at setback = carriageway/2 + pavement 8 + the type's garden + depth/2. A cell is dropped if it comes within 4 of another road's pavement, or too near the river (+20), the rail (+22), a roundabout, a turning head, the square, the station, a bus stop (16), a plot (+20), a special (6) or an earlier cell (10). Main roads fill first, then the longest streets. Cells join into lots by the type's `group` (terrace of 6, pair of semis); roughly one terrace in three gives its end cell to a corner shop; each cul-de-sac gets a short row across its end (`closesStreet`).
+
+| Type | Cell | Depth | Group | Gap | Garden | Height (TEMP) |
+|---|---|---|---|---|---|---|
+| terraced row | 22 | 24 | 6 | 8 | 6 | 28 |
+| semis | 25 | 24 | 2 | 12 | 8 | 28 |
+| detached house | 34 | 26 | 1 | 14 | 10 | 28 |
+| corner shop | 22 | 24 | 1 | 4 | 6 | 28 |
+| shops with flats | 26 | 30 | 5 | 6 | 0 | 36 |
+| shops | 30 | 30 | 3 | 6 | 0 | 20 |
+| flats | 70 | 36 | 1 | 16 | 8 | 44 |
+| workshop | 80 | 50 | 1 | 16 | 10 | 24 |
+| trade counter | 80 | 50 | 1 | 16 | 10 | 24 |
+| warehouse | 160 | 100 | 1 | 24 | 14 | 36 |
 
 ## 4. Road hierarchy
 
@@ -216,17 +281,19 @@ Anything over ~2 minutes is what the bus stops and the "go to my club" button ar
 
 | Stop | Position (x, z) | Shelter yaw | Road |
 |---|---|---|---|
-| Town Centre | (90, −20) | 0 | Riverside Road by the square |
-| Station | (−740, −355) | 0 | Station Road forecourt |
-| Riverside | (700, 80) | 0 | Riverside Road |
-| Riverside Park | (1180, −40) | 0 | Riverside Road |
-| Industrial Estate | (−1600, −130) | 0 | Estate Road |
+| Town Centre | (90, −20) | 180 | Riverside Road |
+| Station | (−915, −355) | 180 | Station Road |
+| Riverside | (700, 22) | 0 | Riverside Road |
+| Riverside Park | (1180, −22) | 180 | Riverside Road |
+| Industrial Estate | (−1600, −130) | 180 | Estate Road |
 | Westdale | (−1075, 964) | 0 | Westdale Avenue |
-| Sports Centre | (40, 1180) | 0 | Sports Centre Road |
+| Sports Centre | (40, 1180) | 180 | Sports Centre Road |
 | Plot 1 | (992, 840) | 90 | Plot 1 Lane |
-| Plot 2 | (1490, −1142) | 180 | Plot 2 Lane |
-| Plot 3 | (1540, 522) | 0 | Plot 3 Lane |
-| Plot 4 | (−1490, −1302) | 180 | Plot 4 Lane |
+| Plot 2 | (1420, −1058) | 0 | Plot 2 Lane |
+| Plot 3 | (−1838, 610) | 90 | Plot 3 Lane |
+| Plot 4 | (−1380, −1232) | 180 | Plot 4 Lane |
+
+v3 moved the three plot stops with their lanes, and put Riverside and Riverside Park on Riverside Road's pavement (they stood 50 and 27 behind the kerb). `yaw` is the way the shelter opens.
 
 ## 7. Landmarks and sightlines
 

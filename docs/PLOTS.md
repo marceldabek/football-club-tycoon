@@ -64,3 +64,21 @@ exactly once. Visitors (no plot, or another plot) triggering a world prompt on t
 - Clients render only their own club's match. Watching another club's match is backlog I2.
 - The Studio memory save backend is per clone, so leaving and rejoining the same Studio session
   starts a new club. A published place uses DataStores and is unaffected.
+
+## Where the four plots are (Rivermere v3, 2026-09-20)
+
+Data: `TownLayout.PLOTS`; drawing: `docs/town_map_v3.png`; full table: `docs/TOWN_PLAN.md` section 2.
+
+| Plot | Where | Centre (x, z) | Yaw | Entrance faces | Lane starts at | Bus stop |
+|---|---|---|---|---|---|---|
+| 1 | south-east, Hollingford side | (1050, 1250) | 270 | north | Ring Road S (970, 800) | (992, 840) |
+| 2 | north-east, Millbrook | (1830, -1160) | 0 | west | Plot 2 Roundabout (1400, -600) | (1420, -1058) |
+| 3 | south-west, Westdale | (-1780, 1020) | 270 | north | Greenbridge Road (-1860, 560) | (-1838, 610) |
+| 4 | north-west, Mapleford | (-1790, -1130) | 180 | east | Plot 4 Roundabout (-1350, -750) | (-1380, -1232) |
+
+v3 moved 2 and 4 toward the ring (81 and 130 studs) and moved 3 from the east, where it crowded plot 2,
+to Westdale. Plot 3's yaw changed from 0 to 270, so anything that assumed "plot 3 faces west" is wrong now;
+code that goes through `TownLayout.plotCFrame(i)` is unaffected. Plot 3 is the only plot whose lane leaves a
+main road rather than the ring. Every lane still ends at `plotCFrame(i) * PLOT_LANE_END`. Each plot now has
+its own estate of generated housing round it (Millbrook, Westdale, Mapleford, Hollingford), so the
+neighbourhood that "changes as the club grows" (CLAUDE.md s27) has real streets to change.

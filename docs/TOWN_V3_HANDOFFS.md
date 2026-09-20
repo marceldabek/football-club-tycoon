@@ -4,6 +4,7 @@ Shared noticeboard for the lanes in `docs/TOWN_V3_BUILD.md`. Append under your l
 
 ## Status
 
+- [x] **Lane A 2026-09-20 16:30: `TownLayout` v3 and `TownFrontage.luau` are live (868 lots). `Lot.yaw` convention and lot ids changed: read "CONTRACT CHANGES" under Lane A.**
 - [x] Contract ready 2026-09-20: 20 stub files committed, `docs/town_v3_lots.json` written (851 lots, 94 roads). Regenerate with `python tools/town_plan_v3.py --json`. Do NOT read the JSON whole (300 KB): query it with python.
 - [ ] Marcel: Rojo Disconnect/Connect done after stubs landed
 - [x] Lane P: spike numbers published 2026-09-20 (TOWN_V3_BUILD.md s9, reasoning in TOWN_V3_PERF.md). TEMP budgets are replaced: re-read section 9.
@@ -22,7 +23,51 @@ Shared noticeboard for the lanes in `docs/TOWN_V3_BUILD.md`. Append under your l
 - **C1. Please approve buy-list items #1-#5 (about $25).** rik4000 UK Commercial Buildings Pack 1 and 2, UK Industrial Buildings Pack 1, UK Pub Pack 1 (Unity Asset Store, $5 each) and UK Service Buildings Pack 1 (GameDev Market, about $5, has 2 train stations). Full table with links and licences: `docs/TOWN_V3_BUILD.md` s8.2. The kit has no shopfront, pub, industrial unit or station, so today the High Street is MEH house walls with bay windows and reads as housing. These packs are one low-poly mesh per building, which is also lighter than my modular stand-ins. They are 2017-era and flatter than MEH up close. *Recommendation: yes, buy all five, judge them on the High Street, and only if they look too dated there buy #6 British Modular Buildings ($27.99), which would put 3D spend about $3 over the $120 cap.*
 - **C2. The church is 238 primitive Parts.** The `ChurchSpire` Creator Store keeper is not a mesh. No mesh church was found in the searches. *Recommendation: keep it for now (register EC7), AI-mesh or buy a church later; it is one building.*
 
+**From Lane A (layout and generator)**
+
+- **A1. 903 blocks vs v1's 682: merge semis and detached into one lot per run?** Today a run of 8 semis is 4 lots and a run of detached houses is one lot each (209 + 107 = 316 lots, 36% of the town). Lane P wants one Atomic Model per lot, so lot count is streaming-unit count, not part count: merging saves no MeshParts. *Recommendation: do not merge. Small Atomic units stream in more smoothly, `units` already tells Lane H how many houses a lot holds, and merging would make a 300-stud run of detached houses arrive as one lump. Revisit only if Lane I measures per-Model overhead as a problem.*
+- **A2. Give the eight streets that stop at the central railway a turning head?** Weaver Street, Elm Grove, Signal Street, Lock Street, Lune Street (west end), Viaduct Road, Weir Road and Fuller Street end blind at the tracks, as they did in v1. Westdale's five are fixed already. *Recommendation: yes, shorten each by about 40 and add `head = true`; it costs roughly one terrace each and the kit has the CulDeSac piece. Ten minutes of work, but it changes the approved picture, so I want your yes.*
+- **A3. Re-space junctions for Lane R's T pieces?** About 15 junction pairs are closer than one kit T piece (90 studs), so Lane R tucks one road under the other and the verge runs across the mouth. Fixing it means sliding side streets 30 to 60 studs (for example Church Lane / Tanner Row on High Street, Hollins Road / Dye Works Lane on the ring). *Recommendation: wait until you have looked at the tiled roads in the assembled town, then give me the list of mouths that actually look wrong; most are minor streets where a tuck may be fine.*
+- **A4. The industrial estate now has 3 warehouses, not 5.** Two were standing across Forge Lane and Furnace Lane in the approved drawing. *Recommendation: accept for now; if it reads empty, I widen the gaps between the three lanes (320 apart today, a warehouse cell is 160) rather than shrink the warehouse.*
+
 ## Lane A
+
+**Done 2026-09-20 16:30 (commit d676591 + docs).** Steps 2 to 5 of the lane.
+
+- `TownLayout.luau` is v3: 94 ROADS with `front / use / useAt / district / head`, `HEAD_RADIUS = 34`, plots 2/3/4 moved (3 is yaw 270 now), lanes, plot bus stops re-sited, "Lunebank Roundabout", DISTRICTS cut to the 35 hand-placed specials (districts with none keep an empty entry; Mapleford, Millbrook, Hollingford added). 1,462 lines down to about 1,050.
+- `TownFrontage.luau` is the generator and the source of truth: **868 lots** (terraced row 416, semis 209, detached house 107, corner shop 46, shops with flats 36, shops 18, workshop 18, flats 11, trade counter 4, warehouse 3; `python tools/town_v3_parity.py` prints it per district too). Builds in about 1 s. Extras beyond the contract: `build()` (uncached), `lotCFrame(lot)`, `lotCorners(lot, grow)`, `RULES`, `HOMES`.
+- Python is the drawing tool only. `tools/town_v3_emit.py` writes ROADS / PLOTS / ROUNDABOUTS into the Luau (`--check` to verify), `tools/town_v3_parity.py --write` pins the Python digest into `TownFrontageTest`, which asserts the Luau generator matches it (counts per use, per district, position sum, id sum). They matched first time and after every change since.
+- Tests: `TownFrontageTest` 14/14 (new, strict), `TownLayoutTest` 32/32 (8 new, 6 v1 pins rewritten for v3 with the reason in a comment, none weakened; block checks now handle any yaw). Full suite at 16:20: **738 passed, 4 failed** (below).
+- `docs/TOWN_PLAN.md` sections 2, 3, 6 regenerated from the data; `docs/PLOTS.md` has the v3 plot table. `docs/town_v3_lots.json` and the v3 map images are regenerated.
+
+**CONTRACT CHANGES every builder lane must know**
+1. **`Lot.yaw` is Roblox convention** (it was the maths angle in the first JSON, which mirrors every 45 degree lot). Use `TownFrontage.lotCFrame(lot)`. The JSON now matches. Axis-aligned lots are unaffected; Hollingford's 57 diagonal lots were mirrored before. `lot.front` is unchanged and still the right way to find the street side.
+2. **Lot ids** are now `"<road>|<side>|<segment index>|<n>"` as the contract says (they carried a Python tuple before). Anything seeded from `Lot.id` will reshuffle once.
+3. Lots moved: 851 to 868. Clearance is now tested every 10 studs round a cell, not at 9 points: three warehouses were standing across Foundry Way, Forge Lane and Furnace Lane in the approved drawing. Also nothing generates within 16 of a bus stop.
+4. Section 4.3 now says one Atomic Model per LOT inside a non-atomic district Model, as Lane P asked.
+
+**Deliberate layout changes from the approved picture** (all visible in `docs/town_map_v3.png`): Lune Street runs on east to a turning head so the waterfront flats front a street (the "1 of 120 with no frontage"); Westdale's five E-W streets end in turning heads at x = -730, short of the railway; Estate Road runs out to the town edge; Elder Close and Oak Close are 25 / 5 shorter so their heads clear the ring; the Northfields green (was straddling the ring chamfer) is at (1155, -675); the Hollingford river meadow is at (1600, 80), clear of the river; Northfields parade shops moved 5 off North Road's pavement; Westdale park 140 wide at (-820, 1175); Riverside and Riverside Park bus stops moved onto the pavement; seven connecting streets that can never hold a lot are `front = "none"`. The four auto-nudged centre blocks, the Westdale school and the moved pub now carry their coordinates as plain data with a comment; `push_clear` is gone.
+
+**Other tests that now fail (expected, not edited; Integrator's to retire or re-point)**
+- `StreetDresserTest.lightStreetsPickTheDistrictsResidentialStreets`: "Northfields streets missing". StreetDresser finds a district's streets from its housing blocks in DISTRICTS; there are none now.
+- `EstateBuilderTest.layoutSemisPlotsStayInsideTheirBlocks`: "no semis blocks found". Same cause.
+- `TerraceStreetDresserTest.millStreetMeetsNorthRoadOnly` (expects 1 junction, gets 6) and `.signsStandOnTheCornersPastTheMouth` (expects 2 signs, gets 11): Mill Street is crossed by the new centre grid streets.
+
+**For the Integrator: v1 assumptions that pass tests but will build nothing or the wrong thing**
+- 27 server files loop `TownLayout.DISTRICTS` looking for housing/shop/industrial blocks (`EstateDresser`, `ForecourtDresser`, `ImperfectionDresser`, `TerraceStreetDresser`, `StreetDresser`, `ShopDresser`, `GreeneryDresser`, `TownBuilder` 831/843, `AmbientAudio.client` 85/191...). With specials only they silently do nothing for housing. Point them at `TownFrontage.lotsByDistrict()` or retire them in favour of lanes H/C/F.
+- Road names hardcoded outside TownLayout: `WireDresser` (3), `ImperfectionDresser` (2), `GatewayDresser`, `StationDresser`, `StreetDresser`, `TownBuilder` (1 each). All the names still exist, but Mill Street / Weaver Street now have cross streets, and Greenbridge Road runs due west instead of to the south-west corner (check `GatewayDresser`).
+- No literal v1 plot or road coordinates found outside TownLayout (`TownLifeMath` river boat points, `StreetFurniture` tier points and `RiverDresser`'s Plot 1 fallback are all unmoved places). `PlotService.luau:125` has a plot-local camera; fine.
+- Plot 3 faces north now (yaw 270, was 0). Anything keyed to plot index rather than `plotCFrame` needs a look.
+- Special `yaw` may be non-multiples of 90 (the Hollingford meadow is 45); v1 dressers that build an axis-aligned rect from `block.size` should use a CFrame.
+- Lane R bug 1 (junctions closer than one T piece): not done. It is a layout change to about 15 junctions; I would rather do it as one deliberate pass after Marcel has seen roads tiled than nudge streets blind. Ask and I will.
+- Lane F item 9 (plot boundaries unassigned): needs an owner; I have not created files for it.
+
+**Known bugs**
+- 14 streets stop dead with no turning head (listed with reasons in `TownLayoutTest.KNOWN_DEAD_ENDS`; a new one fails the test). Eight of them end at the central railway exactly as v1 did.
+- Industrial Estate is thin: only 3 warehouses fit now that they may not straddle the lanes (25 lots in the district).
+- Lot yaw is not normalised (one head row is -270); harmless through `lotCFrame`.
+- `tools/town_map.py` on its own now draws roads and specials only; `town_plan_v3.py` is the full map. Sections 5, 7, 8 of TOWN_PLAN.md are still v1 text.
+- The v3 map PNG/SVG are regenerated on every `town_plan_v3.py` run, so they show as modified after any run.
 
 ## Lane P
 

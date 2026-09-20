@@ -132,13 +132,13 @@ Pure data, deterministic, no Instances.
 
 ```lua
 export type Lot = {
-    id: string,            -- stable: "<road name>|<side>|<segment index>|<n>"
+    id: string,            -- stable: "<road name>|<side>|<segment index>|<n>"; side = left | right | head, segment is 1-based
     use: string,           -- TYPES key
     district: string,
     street: string,        -- road name it fronts
     centre: Vector3,       -- ground level, centre of the footprint
     size: Vector3,         -- X = frontage length along the street, Z = depth, Y = nominal height
-    yaw: number,           -- degrees; local +X runs along the street
+    yaw: number,           -- degrees, ROBLOX convention: use TownFrontage.lotCFrame(lot); local +X runs along the street
     front: Vector3,        -- unit vector pointing FROM the lot TO its street (doors face this way)
     units: number,         -- houses/shops in this lot (a terraced row of 6 has units = 6)
     unitWidth: number,     -- frontage per unit
@@ -167,7 +167,8 @@ return M
 ```
 
 Rules: read `TownLayout`/`TownFrontage` only, never each other. Deterministic (seed any variety
-from `Lot.id`). Group output in one Model per district with `ModelStreamingMode = Atomic` unless
+from `Lot.id`). Group output in one NON-atomic grouping Model per district, with one
+`ModelStreamingMode = Atomic` Model per lot (Lane P, TOWN_V3_PERF.md s7) unless
 Lane P says otherwise. Print one `[FCT] <Lane>: ...` summary line. `filter.district` must work, so a
 single district can be built for review.
 
