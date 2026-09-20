@@ -27,6 +27,7 @@ local Format = require(ReplicatedStorage.Shared.Format) -- X342
 local CrestBadge = require(ReplicatedStorage.Shared.CrestBadge)
 local Assets = require(script.Parent.Assets)
 local PlotContext = require(script.Parent.PlotContext)
+local KitPlacer = require(script.Parent.KitPlacer)
 
 local WorldBuilder = {}
 
@@ -1144,11 +1145,79 @@ local function buildOffice(parent: Instance)
 		box("Cladding", Vector3.new(skin, skinH, od - z0), Vector3.new(cx + ow + skin / 2, skinY, cz + zSign * (z0 + od) / 2), STAND_BRICK, Enum.Material.Brick, office)
 	end
 
-	-- furniture
-	local desk = box("Desk", Vector3.new(4, 3, 10), Vector3.new(cx - 8, OFFICE_Y + 1.5, cz),
-		Color3.fromRGB(110, 75, 45), Enum.Material.Wood, office)
-	local computer = box("Computer", Vector3.new(1, 2, 2.5), Vector3.new(cx - 8, desk.Position.Y + 1.5 + 1, cz),
-		Color3.fromRGB(200, 200, 190), Enum.Material.Plastic, office)
+	-- X373: furnished from the Poly Haven kit instead of boxes. The old desk was
+	-- 4 x 3 x 10 studs -- 3.6 m deep and 1.1 m tall, which is nothing like a
+	-- desk -- and the "computer" was a 1 x 2 x 2.5 block. Every prop here is
+	-- modelled at real scale, so it sits right beside a 5-stud character.
+	--
+	-- Anything the kit is missing falls back to a grey block inside KitPlacer,
+	-- so a clone with no uploads still builds an office you can walk around.
+	local function prop(name: string, at: Vector3, yaw: number, size: Vector3): BasePart?
+		local m = KitPlacer.place("PH__" .. name, CFrame.new(at) * CFrame.Angles(0, yaw, 0), office, {
+			fallbackSize = size,
+			fallbackColor = Color3.fromRGB(120, 110, 100),
+		})
+		return m and m:FindFirstChildWhichIsA("BasePart", true)
+	end
+
+	local floor = OFFICE_Y
+	local deskX, deskZ = cx - 8, cz
+	-- desk turned a quarter so its 5.5-stud length runs along Z, matching the
+	-- old desk's footprint, with the working side facing the chair at -X
+	prop("metal_office_desk", Vector3.new(deskX, floor, deskZ), math.pi / 2, Vector3.new(2.5, 2.2, 5.5))
+	local DESK_TOP = floor + 2.2
+
+	-- the laptop IS the club computer: it carries the screen and the prompt
+	local computer = prop("classic_laptop", Vector3.new(deskX, DESK_TOP, deskZ), -math.pi / 2, Vector3.new(1.8, 1.3, 1.3))
+		or box("Computer", Vector3.new(1.8, 1.3, 1.3), Vector3.new(deskX, DESK_TOP + 0.65, deskZ),
+			Color3.fromRGB(200, 200, 190), Enum.Material.Plastic, office)
+
+	-- desk clutter
+	prop("office_notepads", Vector3.new(deskX - 0.2, DESK_TOP, deskZ - 1.6), 0.4, Vector3.new(0.6, 0.1, 0.8))
+	prop("stationery_supplies", Vector3.new(deskX + 0.3, DESK_TOP, deskZ + 1.5), -0.2, Vector3.new(0.5, 0.2, 0.2))
+
+	-- along the back (-X) wall, clear of the desk
+	prop("wooden_bookshelf_worn", Vector3.new(cx - 12.8, floor, cz - 8), math.pi / 2, Vector3.new(1.6, 5.7, 3.8))
+	local cabinet = prop("drawer_cabinet", Vector3.new(cx - 12.9, floor, cz + 8), math.pi / 2, Vector3.new(1.3, 5.2, 3.1))
+	if cabinet then
+		-- a small telly on top of the cabinet, turned into the room
+		prop("Television_01", Vector3.new(cx - 12.9, floor + 5.2, cz + 8), math.pi / 2, Vector3.new(1.3, 1.3, 1.6))
+	end
+
+	-- a spare chair for a visitor, and the odds and ends of a rundown office
+	prop("painted_wooden_bench", Vector3.new(cx + 6, floor, cz - 10), 0, Vector3.new(3.2, 2.4, 1.4))
+	prop("korean_fire_extinguisher_01", Vector3.new(cx + 12.6, floor, cz - 4), 0, Vector3.new(0.8, 1.8, 1.0))
+	prop("cardboard_box_01", Vector3.new(cx + 9.5, floor, cz + 11), 0.6, Vector3.new(1.1, 0.9, 1.4))
+	prop("football", Vector3.new(cx + 7.8, floor, cz + 12.2), 0, Vector3.new(0.6, 0.6, 0.6))
+
+	-- X373: the room is 28 x 30 studs, so a desk and a bookshelf leave it
+	-- looking abandoned. These fill it out, and for a grassroots club a pair of
+	-- boots and a spare ball say more about the place than filing cabinets do.
+	prop("rubber_boots", Vector3.new(cx + 11.5, floor, cz + 6), -0.5, Vector3.new(1.2, 1.2, 1.6))
+	prop("dirty_football", Vector3.new(cx + 8.6, floor, cz + 11.4), 0, Vector3.new(0.6, 0.6, 0.6))
+	prop("wooden_ladder", Vector3.new(cx + 12.2, floor, cz - 12), math.pi / 2, Vector3.new(1.4, 6.0, 0.6))
+	-- the tyre is modelled standing on its edge (1.6 x 1.7 x 0.5), so it is
+	-- tipped a quarter turn about X to lie flat on the floor like training kit
+	local tyre = KitPlacer.place("PH__old_tyre",
+		CFrame.new(cx - 2, floor, cz + 12) * CFrame.Angles(math.pi / 2, 0.3, 0), office, {
+			fallbackSize = Vector3.new(1.6, 0.5, 1.6),
+			fallbackColor = Color3.fromRGB(30, 30, 32),
+		})
+	-- PH__medical_box measures 1.4 x 0.2 x 1.0: it is a flat panel, not a box,
+	-- and reads as a sheet of card on a shelf. Storage boxes instead.
+	local _ = tyre
+	prop("cardboard_box_01", Vector3.new(cx - 3.2, floor, cz - 12.4), -0.4, Vector3.new(1.1, 0.9, 1.4))
+	prop("cardboard_box_01", Vector3.new(cx - 2.4, floor + 0.9, cz - 12.2), 0.8, Vector3.new(1.1, 0.9, 1.4))
+	prop("stationery_supplies", Vector3.new(cx - 12.6, floor + 5.7, cz - 8), math.pi / 2, Vector3.new(0.5, 0.2, 0.2))
+	-- a bin beside the desk, from the street kit (base and lid are separate meshes)
+	KitPlacer.place("UKSP__TrachCan__TrashcanBase", CFrame.new(deskX + 3.4, floor, deskZ - 3.2), office, {
+		fallbackSize = Vector3.new(2.1, 2.8, 1.9),
+		fallbackColor = Color3.fromRGB(60, 62, 66),
+	})
+	KitPlacer.place("UKSP__TrachCan__TrashcanLid", CFrame.new(deskX + 3.4, floor + 2.8, deskZ - 3.2), office, {
+		fallbackSize = Vector3.new(2.0, 0.5, 2.0),
+		fallbackColor = Color3.fromRGB(60, 62, 66),
+	})
 	-- X169: an old green-screen monitor facing the chair (-X)
 	local screen = Instance.new("SurfaceGui")
 	screen.Name = "Screen"
@@ -1174,11 +1243,8 @@ local function buildOffice(parent: Instance)
 	local clubPrompt = addPrompt(computer, "Club Office", "Manage squad, scouting & staff")
 	clubPrompt.Name = "ClubPrompt"
 	clubPrompt.HoldDuration = 0
-	-- X168: a cheap swivel chair facing the desk (+X): pedestal, seat, back
-	local chairX = cx - 11.5
-	box("ChairBase", Vector3.new(0.4, 1.4, 0.4), Vector3.new(chairX, OFFICE_Y + 0.7, cz), Color3.fromRGB(40, 40, 42), Enum.Material.Metal, office)
-	box("Chair", Vector3.new(2, 0.5, 2), Vector3.new(chairX, OFFICE_Y + 1.65, cz), Color3.fromRGB(60, 60, 60), Enum.Material.Fabric, office)
-	box("ChairBack", Vector3.new(0.4, 2.2, 1.8), Vector3.new(chairX - 0.8, OFFICE_Y + 3, cz), Color3.fromRGB(60, 60, 60), Enum.Material.Fabric, office)
+	-- X373: the chair at the desk, facing it (+X). Was three boxes.
+	prop("modern_arm_chair_01", Vector3.new(cx - 11.8, floor, cz), math.pi / 2, Vector3.new(2.3, 2.8, 2.7))
 
 	local light = Instance.new("PointLight")
 	light.Brightness = 1.2
