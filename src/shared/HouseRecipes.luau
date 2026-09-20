@@ -41,6 +41,7 @@ export type Recipe = {
 	doorX: number, -- where the front door is, for the garden gate gap
 	prefab: boolean?, -- one textured prefab mesh; the trim picks the "__ts1"/"__ts3" asset
 	ends: boolean?, -- true when the recipe already closes its own sides (detached, prefab)
+	weight: number?, -- how many tickets this recipe gets in the draw (default 1)
 	pieces: { Piece },
 }
 
@@ -195,6 +196,7 @@ local RECIPES: { Recipe } = {
 		doorX = 0,
 		prefab = true,
 		ends = true,
+		weight = 3, -- one MeshPart instead of 12: section 9 wants detached houses mostly prefab
 		pieces = { { piece = "House_02_VAR1", offset = Vector3.new(0, 0, 0), yaw = 0, role = "prefab", tier = 1 } },
 	},
 }
@@ -209,9 +211,14 @@ local USE_KIND: { [string]: string } = {
 HouseRecipes.USE_KIND = USE_KIND
 
 local byKind: { [string]: { Recipe } } = {}
+local drawByKind: { [string]: { Recipe } } = {}
 for _, r in RECIPES do
 	byKind[r.kind] = byKind[r.kind] or {}
+	drawByKind[r.kind] = drawByKind[r.kind] or {}
 	table.insert(byKind[r.kind], r)
+	for _ = 1, r.weight or 1 do
+		table.insert(drawByKind[r.kind], r)
+	end
 end
 
 function HouseRecipes.forKind(kind: string): { Recipe }
@@ -235,10 +242,13 @@ end
 -- Deterministic pick for one unit. `avoid` is the recipe id of the neighbour already chosen, so
 -- two identical fronts never sit side by side in a terrace.
 function HouseRecipes.select(kind: string, lotId: string, unitIndex: number, avoid: string?): Recipe
-	local list = HouseRecipes.forKind(kind)
-	assert(#list > 0, "no recipes for kind " .. tostring(kind))
+	local list = drawByKind[kind]
+	assert(list and #list > 0, "no recipes for kind " .. tostring(kind))
 	local index = HouseRecipes.hash(lotId .. "#" .. tostring(unitIndex)) % #list + 1
-	if avoid and list[index].id == avoid and #list > 1 then
+	for _ = 1, #list do
+		if not (avoid and list[index].id == avoid) then
+			break
+		end
 		index = index % #list + 1
 	end
 	return list[index]
@@ -295,29 +305,43 @@ end
 
 -- Front garden boundary styles. `length` is the native length along X, `parts` the MeshParts in
 -- one piece. Single-part pieces are stretched to the run; multi-part ones are uniformly scaled.
-export type GardenStyle = { id: string, piece: string, length: number, parts: number, scale: number? }
+--
+-- Section 9 caps a boundary piece at 1,000 triangles. Measured 2026-09-20 (V3Perf, Edit mode):
+--   GardenWallA WithFence 512, WithoutFence 260, GardenWallB WithoutRailing 912,
+--   MEH Wood_Fence_A 352, MEH Railing_A 64  -> allowed
+--   RailingWall__Wall 1,144 and GardenWallB WithRailing 1,320 -> just over, Tier A only
+--   GardenWall__Wall 3,620, WoodFences Fence01-05 ~8,000, TrashBags ~11,400 -> NOT used
+-- `light` styles are the ones Tier B may use: at most 2 MeshParts a piece and under the cap.
+export type GardenStyle = { id: string, piece: string, length: number, parts: number, scale: number?, light: boolean?, trim: boolean? }
 HouseRecipes.GARDEN_STYLES = {
-	{ id = "brick", piece = "UKSP__GardenWall__Wall", length = 8.2, parts = 2 },
-	{ id = "railing", piece = "UKSP__RailingWall__Wall", length = 8.2, parts = 2 },
 	{ id = "brick_fence", piece = "UKSP__GardenWallA__GardenWallAWithFence", length = 5.7, parts = 3 },
-	{ id = "brick_low", piece = "UKSP__GardenWallA__GardenWallAWithoutFence", length = 5.7, parts = 2 },
+	{ id = "brick_low", piece = "UKSP__GardenWallA__GardenWallAWithoutFence", length = 5.7, parts = 2, light = true },
+	{ id = "brick_b", piece = "UKSP__GardenWallB__WallBStraightWithoutRailing", length = 5.6, parts = 2, light = true },
 	{ id = "brick_railing", piece = "UKSP__GardenWallB__WallBStraightWithRailing", length = 5.6, parts = 3 },
-	{ id = "picket", piece = "UKSP__WoodFences__Fence02", length = 6.0, parts = 1 },
+	{ id = "railing_wall", piece = "UKSP__RailingWall__Wall", length = 8.2, parts = 2 },
+	{ id = "iron_railing", piece = "MEH__Railing_A__ts1", length = 2.8, parts = 1, scale = 1.3, light = true, trim = true },
+	{ id = "wood", piece = "MEH__Wood_Fence_A__ts1", length = 5.5, parts = 1, scale = 0.65, light = true, trim = true },
 	{ id = "hedge", piece = "HedgeLong", length = 19, parts = 2, scale = 0.42 },
 } :: { GardenStyle }
 
-function HouseRecipes.gardenStyleFor(lotId: string, unitIndex: number): GardenStyle
+function HouseRecipes.gardenStyleFor(lotId: string, unitIndex: number, lightOnly: boolean?): GardenStyle
 	local styles = HouseRecipes.GARDEN_STYLES
+	if lightOnly then
+		local light = {}
+		for _, style in styles do
+			if style.light then
+				table.insert(light, style)
+			end
+		end
+		styles = light
+	end
 	return styles[HouseRecipes.hash(lotId .. "#garden" .. tostring(unitIndex)) % #styles + 1]
 end
 
-HouseRecipes.BACK_FENCES = { "UKSP__WoodFences__Fence01", "UKSP__WoodFences__Fence03", "UKSP__WoodFences__Fence04", "UKSP__WoodFences__Fence05" }
-HouseRecipes.BACK_CLUTTER = {
-	"UKSP__TrachCan__TrashcanBase",
-	"UKSP__TrashBags__Bag01",
-	"UKSP__TrashBags__Bag03",
-	"UKSP__TrashBags__Bag05",
-}
+-- Back yards: the MEH close-board fence (352 triangles, 1 MeshPart) and a wheelie bin. The UKSP
+-- WoodFences and TrashBags the brief names are 8-11k triangles each and fail the section 9 cap.
+HouseRecipes.BACK_FENCE = { id = "back", piece = "MEH__Wood_Fence_A__ts1", length = 5.5, parts = 1, trim = true } :: GardenStyle
+HouseRecipes.BIN = { base = "UKSP__TrachCan__TrashcanBase", lid = "UKSP__TrachCan__TrashcanLid", lidHeight = 2.75 }
 HouseRecipes.GATE_GAP = 3.4
 
 return HouseRecipes

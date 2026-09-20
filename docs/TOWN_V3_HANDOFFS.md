@@ -123,6 +123,43 @@ Shared noticeboard for the lanes in `docs/TOWN_V3_BUILD.md`. Append under your l
 
 ## Lane H
 
+**Done 2026-09-20 16:26.** `HouseRecipes` (pure data + selection) and `HouseAssembler` build every `terraced row`, `semis` and `detached house` lot from `TownFrontage.generate()`: 732 lots, 2,681 units. 22 tests pass (`HouseRecipesTest` 9, `HouseAssemblerTest` 13), all four files `loadstring` clean. No primitives, no exceptions-register entries.
+
+**Whole-town count (real data, `HouseAssembler.build(holder, CFrame.new(), nil)`, 2.9 s in Edit):**
+
+| | MeshParts | Section 9 budget |
+|---|---|---|
+| Houses | **20,739** | 24,000 |
+| Boundaries (garden walls, back fences, bins) | **10,830** | 13,500 |
+| Unique MeshIds | 38 town-wide | 60 per district |
+| KitMissing / primitive Parts | 0 / 0 | 0 |
+
+Per unit (houses + boundaries): terraced Tier A 9.0 + 8.8, Tier B 7.4 + 3.3; semis 10.4 + 8.9 / 9.5 + 3.3; detached 8.4 + 8.2 / 8.4 + 2.9. 91 of 732 lots are Tier A.
+
+**Kit facts worked out (also in the `HouseRecipes` header):** module grid 8.25 studs (3 m), storey 8.25, walls 8.25 or 16.5 wide, pivots at bounding-box bottom centre, exterior faces -Z at yaw 0, walls are single-sided. Decision: every house is a 2 x 2 module body (16.5 square) under ONE uniform scale = unit frontage / 16.5 (about 1.25: storey 10.3, door 6.6 studs). Real frontage per unit is `size.X / units` (18 to 21), not `unitWidth`, because the row gap comes out of the lot. Three modules would need scale 0.84 (4.4-stud doors) and 50% more parts.
+
+**Textures:** the 67 untextured modular pieces take the prefab trim sheet (`MEH__House_02_VAR1__ts1/ts3` SurfaceAppearance), same trick as Lane C. `ts1` leaves an existing SurfaceAppearance alone so a fixed export wins; `ts3` always swaps, which is what gives each row one of two trims (dark brick, pale render).
+
+**How the count is kept low (each is one field in `HouseAssembler.PRESETS`):** no party walls, floors or ceilings; gables only at row ends; one double-scale `Wall_A` as the whole back of a ROW; each roof slope is one `Roof_A` stretched across the unit (Tier A) or the whole row (Tier B); one boundary piece per run either side of the gate, stretched to fit (`boundaryStretch`); `flatten` drops KitPlacer's wrapper Models. `PRESETS.lean` (6 parts a unit, no boundaries) is the brake if the budget is cut again. Detached lots draw the 1-part `House_02` prefab 3 times in 7.
+
+**Section 9 rules followed:** district Model `Default`, one `Atomic` Model per lot (attribute `LotId`), boundaries in a separate non-atomic `Boundaries` model (attribute `BoundaryLotId`), `V3Perf.applyDefaults` after every place ("structure" / "prop"), tiers from distance to the 4 `TownLayout.PLOTS`, (0,0,0) and (-900,0,-350), `[FCT]` lines with `V3Perf.format`.
+
+**Deviations from the brief, on purpose:** the UKSP `WoodFences` (about 8,000 triangles each), `TrashBags` (11,400) and `GardenWall__Wall` (3,620) fail the 1,000-triangle cap, so back fences are `MEH__Wood_Fence_A` (352) and clutter is the wheelie bin only (`TrashcanBase` 1,344 + lid 352, Tier A, one yard in three: slightly over the cap, Lane P to rule). `RailingWall__Wall` (1,144) and `WallBStraightWithRailing` (1,320) are Tier A only.
+
+**Known bugs / rough edges**
+1. `Lot.corner` does not say WHICH end meets the junction, so corner terraces get the windowed gable (5 parts) on both ends. A `cornerEnd: "start"|"end"|"both"` field from Lane A would save about 900 parts.
+2. The blank side and back walls are `Wall_A` at double scale, so their bricks are twice the size of the front's, and on `ts1` the plain wall maps to red brick while the window walls are dark brick (it is how the trim sheet is laid out).
+3. The Tier B row roof is one slope stretched up to 14x; it reads as banded slate from the street, but look at it from a stand roof before shipping.
+4. Single-unit `semis` lots are 13 wide; the scale clamps at 0.85, so that house overhangs its lot by half a stud each side.
+5. `Wall_Window_I` did not render in my first hand assembly (cause not found); no recipe uses it.
+6. No side boundary between neighbouring gardens and no return walls at row ends.
+7. `MeshPart.DoubleSided` is off on the kit walls, so interiors are see-through from behind; nothing is built to be entered.
+8. Screenshots could not be written to `docs/v3_review/H/`: the MCP capture returns the image to the agent only. Viewpoints to re-shoot (sandbox origin (0,0,-6000), Station district is built there now): street level `(-1105, 9, -5846)` looking at `(-1000, 9, -5875)`; the slice pair is the review spawn `(2986, 1, 2170)` looking north.
+
+**Integrator must wire:** `HouseAssembler.build(townFolder, CFrame.new(), nil)` once at town build. Both test modules are picked up by name. **Retire:** `TerraceBuilder`, `EstateBuilder`, the housing part of `TerraceStreetDresser` (and check `EstateDresser`, which dresses the estates `EstateBuilder` made). Lane F: front boundaries, back fences and bins are already built here, under `Housing_<district>.Boundaries`; do not add a second set.
+
+**Bigger lever for Lane P / Marcel:** every recipe uses one trim sheet, so each of the 19 recipes could be baked offline into ONE mesh (19 meshes + 2 end caps). Housing would fall from 20,739 to about 4,200 MeshParts with the same look. The recipes are already the bake list.
+
 ## Lane C
 
 **Done 2026-09-20.** `TradeRecipes` (pure, seeded from `Lot.id`) and `TradeAssembler.build(parent, origin, filter)` build all 134 frontage lots of the seven trade uses plus 21 building-type specials (pubs, pub and cafes, park cafe, supermarket, 2 shop blocks, town hall, 3 schools, church, waterfront flats, sports hall, builders yard). Reads live `TownFrontage.generate()` and `TownLayout.DISTRICTS`; falls back to a fixture inside `TradeRecipes` if either is missing. Specials have no `front`, so they face whichever long side is nearer a road.

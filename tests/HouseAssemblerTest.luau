@@ -1,11 +1,8 @@
 --!strict
--- Rivermere v3, Lane H: builds a fixture of real lots (Station terraces, Smithy Close semis,
--- Pinfold/Drift Close detached, three 45-degree Quarry Road rows) into a throwaway model and
--- checks the definition of done: one building per lot, no KitMissing, no primitives, in budget.
---
--- The fixture is generated from docs/town_v3_lots.json (see the python one-liner in
--- docs/TOWN_V3_HANDOFFS.md, Lane H). Once TownFrontage.generate() lands the Integrator can swap
--- fixtureLots() for it.
+-- Rivermere v3, Lane H: builds a sample of the real TownFrontage lots (the Station terraces, the
+-- Smithy Close semis, the Pinfold/Drift Close detached houses, the 45-degree Quarry Road rows)
+-- into a throwaway model and checks the definition of done: one building per lot, no KitMissing,
+-- no primitives, inside the section 9 allowances.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -13,84 +10,24 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local HouseAssembler = require(ServerScriptService.Server.HouseAssembler)
 local HouseRecipes = require(ReplicatedStorage.Shared.HouseRecipes)
+local TownFrontage = require(ReplicatedStorage.Shared.TownFrontage)
 
--- id, use, district, street, cx, cz, sizeX, sizeZ, yaw, frontX, frontZ, units, unitWidth, closesStreet, corner
-local ROWS: { { any } } = {
-	{ "High Street|left|3|4", "terraced row", "Station", "High Street", -777, -66, 80, 24, -180, 0, -1, 4, 22, 0, 1 },
-	{ "High Street|left|3|6", "terraced row", "Station", "High Street", -964, -66, 124, 24, -180, 0, -1, 6, 22, 0, 1 },
-	{ "High Street|left|3|7", "terraced row", "Station", "High Street", -1096, -66, 124, 24, -180, 0, -1, 6, 22, 0, 1 },
-	{ "High Street|right|3|3", "terraced row", "Station", "High Street", -772, -144, 80, 24, -180, 0, 1, 4, 22, 0, 1 },
-	{ "High Street|right|3|4", "terraced row", "Station", "High Street", -926, -144, 80, 24, -180, 0, 1, 4, 22, 0, 1 },
-	{ "High Street|right|3|5", "terraced row", "Station", "High Street", -1091, -144, 124, 24, -180, 0, 1, 6, 22, 0, 1 },
-	{ "High Street|right|3|6", "terraced row", "Station", "High Street", -1179, -144, 36, 24, -180, 0, 1, 2, 22, 0, 1 },
-	{ "Cooper Street|left|1|1", "terraced row", "Station", "Cooper Street", -1247, -276, 124, 24, 0, 0, 1, 6, 22, 0, 1 },
-	{ "Cooper Street|left|1|2", "terraced row", "Station", "Cooper Street", -1115, -276, 124, 24, 0, 0, 1, 6, 22, 0, 0 },
-	{ "Cooper Street|left|1|3", "terraced row", "Station", "Cooper Street", -994, -276, 102, 24, 0, 0, 1, 5, 22, 0, 1 },
-	{ "Cooper Street|right|1|2", "terraced row", "Station", "Cooper Street", -1214, -204, 124, 24, 0, 0, -1, 6, 22, 0, 1 },
-	{ "Cooper Street|right|1|3", "terraced row", "Station", "Cooper Street", -1093, -204, 102, 24, 0, 0, -1, 5, 22, 0, 1 },
-	{ "Cooper Street|right|1|4", "terraced row", "Station", "Cooper Street", -928, -204, 80, 24, 0, 0, -1, 4, 22, 0, 1 },
-	{ "Cooper Street|right|1|6", "terraced row", "Station", "Cooper Street", -741, -204, 102, 24, 0, 0, -1, 5, 22, 0, 1 },
-	{ "Lock Street|left|1|1", "terraced row", "Station", "Lock Street", -1047, 114, 124, 24, 0, 0, 1, 6, 22, 0, 1 },
-	{ "Lock Street|left|1|2", "terraced row", "Station", "Lock Street", -937, 114, 80, 24, 0, 0, 1, 4, 22, 0, 1 },
-	{ "Lock Street|left|1|3", "terraced row", "Station", "Lock Street", -761, 114, 124, 24, 0, 0, 1, 6, 22, 0, 1 },
-	{ "Lock Street|left|1|4", "terraced row", "Station", "Lock Street", -629, 114, 124, 24, 0, 0, 1, 6, 22, 0, 1 },
-	{ "Lock Street|right|1|1", "terraced row", "Station", "Lock Street", -1047, 186, 124, 24, 0, 0, -1, 6, 22, 0, 1 },
-	{ "Lock Street|right|1|2", "terraced row", "Station", "Lock Street", -915, 186, 124, 24, 0, 0, -1, 6, 22, 0, 0 },
-	{ "Lock Street|right|1|3", "terraced row", "Station", "Lock Street", -783, 186, 124, 24, 0, 0, -1, 6, 22, 0, 0 },
-	{ "Lock Street|right|1|4", "terraced row", "Station", "Lock Street", -640, 186, 146, 24, 0, 0, -1, 7, 22, 0, 1 },
-	{ "Signal Street|left|1|1", "terraced row", "Station", "Signal Street", -1047, -11, 124, 24, 0, 0, 1, 6, 22, 0, 1 },
-	{ "Signal Street|left|1|2", "terraced row", "Station", "Signal Street", -937, -11, 80, 24, 0, 0, 1, 4, 22, 0, 1 },
-	{ "Signal Street|left|1|3", "terraced row", "Station", "Signal Street", -761, -11, 124, 24, 0, 0, 1, 6, 22, 0, 1 },
-	{ "Signal Street|left|1|4", "terraced row", "Station", "Signal Street", -640, -11, 102, 24, 0, 0, 1, 5, 22, 0, 1 },
-	{ "Signal Street|right|1|1", "terraced row", "Station", "Signal Street", -1047, 61, 124, 24, 0, 0, -1, 6, 22, 0, 1 },
-	{ "Signal Street|right|1|2", "terraced row", "Station", "Signal Street", -937, 61, 80, 24, 0, 0, -1, 4, 22, 0, 1 },
-	{ "Signal Street|right|1|3", "terraced row", "Station", "Signal Street", -761, 61, 124, 24, 0, 0, -1, 6, 22, 0, 1 },
-	{ "Signal Street|right|1|4", "terraced row", "Station", "Signal Street", -640, 61, 102, 24, 0, 0, -1, 5, 22, 0, 1 },
-	{ "Pinfold Close|head|1|1", "detached house", "Mapleford", "Pinfold Close", -916, -1053, 20, 26, -180, 0, -1, 1, 34, 1, 1 },
-	{ "Pinfold Close|head|1|2", "detached house", "Mapleford", "Pinfold Close", -950, -1053, 20, 26, -180, 0, -1, 1, 34, 1, 0 },
-	{ "Pinfold Close|head|1|3", "detached house", "Mapleford", "Pinfold Close", -984, -1053, 20, 26, -180, 0, -1, 1, 34, 1, 1 },
-	{ "Smithy Close|head|2|1", "semis", "Mapleford", "Smithy Close", -826, -1460, 38, 24, -90, -1, 0, 2, 25, 1, 1 },
-	{ "Smithy Close|left|1|1", "semis", "Mapleford", "Smithy Close", -1158, -1294, 38, 24, 90, 1, 0, 2, 25, 0, 1 },
-	{ "Smithy Close|left|1|2", "semis", "Mapleford", "Smithy Close", -1158, -1344, 38, 24, 90, 1, 0, 2, 25, 0, 0 },
-	{ "Smithy Close|left|1|3", "semis", "Mapleford", "Smithy Close", -1158, -1394, 38, 24, 90, 1, 0, 2, 25, 0, 0 },
-	{ "Smithy Close|left|1|4", "semis", "Mapleford", "Smithy Close", -1158, -1431.5, 13, 24, 90, 1, 0, 1, 25, 0, 1 },
-	{ "Smithy Close|right|1|1", "semis", "Mapleford", "Smithy Close", -1082, -1294, 38, 24, 90, -1, 0, 2, 25, 0, 1 },
-	{ "Smithy Close|right|1|2", "semis", "Mapleford", "Smithy Close", -1082, -1344, 38, 24, 90, -1, 0, 2, 25, 0, 0 },
-	{ "Smithy Close|right|1|3", "semis", "Mapleford", "Smithy Close", -1082, -1394, 38, 24, 90, -1, 0, 2, 25, 0, 1 },
-	{ "Smithy Close|left|2|1", "semis", "Mapleford", "Smithy Close", -1091, -1498, 38, 24, 0, 0, 1, 2, 25, 0, 1 },
-	{ "Smithy Close|left|2|2", "semis", "Mapleford", "Smithy Close", -1041, -1498, 38, 24, 0, 0, 1, 2, 25, 0, 0 },
-	{ "Smithy Close|left|2|3", "semis", "Mapleford", "Smithy Close", -991, -1498, 38, 24, 0, 0, 1, 2, 25, 0, 0 },
-	{ "Smithy Close|left|2|4", "semis", "Mapleford", "Smithy Close", -941, -1498, 38, 24, 0, 0, 1, 2, 25, 0, 1 },
-	{ "Smithy Close|right|2|1", "semis", "Mapleford", "Smithy Close", -1025, -1422, 38, 24, 0, 0, -1, 2, 25, 0, 1 },
-	{ "Smithy Close|right|2|2", "semis", "Mapleford", "Smithy Close", -975, -1422, 38, 24, 0, 0, -1, 2, 25, 0, 0 },
-	{ "Smithy Close|right|2|3", "semis", "Mapleford", "Smithy Close", -937.5, -1422, 13, 24, 0, 0, -1, 1, 25, 0, 1 },
-	{ "Drift Close|head|1|1", "detached house", "Mapleford", "Drift Close", -2284, -1117, 20, 26, 0, 0, 1, 1, 34, 1, 1 },
-	{ "Drift Close|head|1|2", "detached house", "Mapleford", "Drift Close", -2250, -1117, 20, 26, 0, 0, 1, 1, 34, 1, 0 },
-	{ "Drift Close|head|1|3", "detached house", "Mapleford", "Drift Close", -2216, -1117, 20, 26, 0, 0, 1, 1, 34, 1, 1 },
-	{ "Drift Close|left|1|1", "detached house", "Mapleford", "Drift Close", -2291, -691, 20, 26, 90, 1, 0, 1, 34, 0, 1 },
-	{ "Drift Close|left|1|2", "detached house", "Mapleford", "Drift Close", -2291, -725, 20, 26, 90, 1, 0, 1, 34, 0, 0 },
-	{ "Quarry Road|head|2|1", "terraced row", "Millbrook", "Quarry Road", 743.23, -1236.77, 58, 24, 45, 0.7071, 0.7071, 3, 22, 1, 1 },
-	{ "Quarry Road|left|2|2", "terraced row", "Millbrook", "Quarry Road", 817.27, -1111.82, 102, 24, 135, 0.7071, -0.7071, 5, 22, 0, 1 },
-	{ "Quarry Road|right|2|1", "terraced row", "Millbrook", "Quarry Road", 860.4, -1170.51, 80, 24, 135, -0.7071, 0.7071, 4, 22, 0, 1 },
-}
-
-local TOWN_UNITS = 2723 -- housing units in the whole v3 town (docs/town_v3_lots.json)
+local SAMPLE_STREETS = { ["Smithy Close"] = true, ["Pinfold Close"] = true, ["Drift Close"] = true, ["Quarry Road"] = true }
 
 local tests = {}
 
-local function fixtureLots()
-	local lots = {}
-	for _, r in ROWS do
-		table.insert(lots, {
-			id = r[1], use = r[2], district = r[3], street = r[4],
-			centre = Vector3.new(r[5], 0, r[6]),
-			size = Vector3.new(r[7], 28, r[8]),
-			yaw = r[9],
-			front = Vector3.new(r[10], 0, r[11]),
-			units = r[12], unitWidth = r[13],
-			closesStreet = r[14] == 1, corner = r[15] == 1,
-		})
+local sampleCache: { any }? = nil
+local function fixtureLots(): { any }
+	if sampleCache then
+		return sampleCache
 	end
+	local lots = {}
+	for _, lot in TownFrontage.generate() do
+		if TownFrontage.HOMES[lot.use] and (lot.district == "Station" or SAMPLE_STREETS[lot.street]) then
+			table.insert(lots, lot)
+		end
+	end
+	sampleCache = lots
 	return lots
 end
 
@@ -111,27 +48,44 @@ local function withBuild(filter, detail, check)
 	assert(ok, err)
 end
 
--- RunAll ignores return values, so this doubles as the fixture accessor for sandbox builds.
-function tests.fixture_decodes()
+-- RunAll ignores return values, so this doubles as the sample accessor for sandbox builds.
+function tests.sample_covers_every_case()
 	local lots = fixtureLots()
-	assert(#lots >= 40, "fixture is too small: " .. #lots)
-	local uses = {}
+	assert(#lots >= 40, "sample is too small: " .. #lots)
+	local uses, diagonal, closes, corner = {}, false, false, false
 	for _, lot in lots do
 		uses[lot.use] = true
+		diagonal = diagonal or (lot.yaw % 90 ~= 0)
+		closes = closes or lot.closesStreet
+		corner = corner or lot.corner
 		assert(math.abs(lot.front.Magnitude - 1) < 0.01, lot.id .. " front is not a unit vector")
 	end
-	assert(uses["terraced row"] and uses["semis"] and uses["detached house"], "fixture must cover all three uses")
+	assert(uses["terraced row"] and uses["semis"] and uses["detached house"], "sample must cover all three uses")
+	assert(diagonal and closes and corner, "sample must include a 45-degree lot, a closesStreet row and a corner lot")
 	return lots
 end
 
-function tests.lot_x_axis_runs_along_the_street()
-	for _, lot in fixtureLots() do
-		local mine = CFrame.lookAt(lot.centre, lot.centre + lot.front).RightVector
-		local yaw = math.rad(lot.yaw)
-		local contract = Vector3.new(math.cos(yaw), 0, math.sin(yaw))
-		local alt = Vector3.new(math.cos(yaw), 0, -math.sin(yaw))
-		assert(math.abs(mine:Dot(contract)) > 0.99 or math.abs(mine:Dot(alt)) > 0.99, lot.id .. " X axis is not along the street")
+function tests.lot_frame_faces_the_street_with_x_along_it()
+	for _, lot in TownFrontage.generate() do
+		if TownFrontage.HOMES[lot.use] then
+			local frame = HouseAssembler.lotFrame(lot)
+			assert(frame.LookVector:Dot(lot.front) > 0.99, lot.id .. ": local -Z is not Lot.front")
+			local contract = TownFrontage.lotCFrame(lot)
+			assert(math.abs(frame.RightVector:Dot(contract.RightVector)) > 0.99, lot.id .. ": X axis left the street line")
+		end
 	end
+end
+
+function tests.every_home_lot_has_a_recipe_plan()
+	local n = 0
+	for _, lot in TownFrontage.generate() do
+		if TownFrontage.HOMES[lot.use] then
+			n += 1
+			assert(HouseRecipes.USE_KIND[lot.use], "no recipe kind for " .. lot.use)
+			assert(#HouseRecipes.planLot(lot.use, lot.id, lot.units) == lot.units)
+		end
+	end
+	assert(n > 600, "expected the whole town's home lots, got " .. n)
 end
 
 function tests.one_building_per_lot_no_missing_no_primitives()
@@ -178,7 +132,7 @@ function tests.houses_stay_inside_their_lot_and_face_the_street()
 			local id = d:IsA("Model") and d:GetAttribute("LotId")
 			if id then
 				local lot = byId[id]
-				local lotCF = CFrame.lookAt(lot.centre, lot.centre + lot.front)
+				local lotCF = HouseAssembler.lotFrame(lot)
 				local doors = 0
 				for _, part in d:GetDescendants() do
 					if part:IsA("MeshPart") then
@@ -233,22 +187,66 @@ function tests.build_is_deterministic()
 	assert(signature() == signature(), "two builds of the same lots differ")
 end
 
--- KNOWN BREACH, reported in docs/TOWN_V3_HANDOFFS.md (Lane H): the TEMP budget of 9,000 works out
--- at 3.3 MeshParts per unit, and a modular front alone is 3 walls + a door leaf. Runtime
--- assembly bottoms out near 6 per unit; only baking each recipe into one mesh gets under budget.
--- Until Lane P rules, these pin the measured cost so it cannot creep.
-function tests.preset_costs_per_unit_are_pinned()
+-- Section 9 allowances (Lane P, 2026-09-20): terraced 10 house MeshParts a unit averaged over the
+-- row; boundaries 11 a unit in Tier A and 4 in Tier B; the whole town 24,000 + 13,500.
+local function townUnits(): { [string]: number }
+	local units = {}
+	for _, lot in TownFrontage.generate() do
+		if TownFrontage.HOMES[lot.use] then
+			units[lot.use] = (units[lot.use] or 0) + lot.units
+		end
+	end
+	return units
+end
+
+local function buildUse(use: string, detail): { [string]: number }
+	local lots = {}
+	for _, lot in fixtureLots() do
+		if lot.use == use then
+			table.insert(lots, lot)
+		end
+	end
+	local holder = Instance.new("Model")
+	local counts = HouseAssembler.buildLots(holder, CFrame.new(0, 0, 0), lots, nil, detail)
+	holder:Destroy()
+	return counts
+end
+
+function tests.terraced_units_meet_the_per_unit_allowance()
 	if not kitInstalled() then
 		return
 	end
-	withBuild(nil, HouseAssembler.PRESETS.lean, function(_holder, counts)
-		local perUnit = counts.meshParts / counts.units
-		assert(perUnit <= 6.5, ("lean preset costs %.1f MeshParts a unit (%d town-wide)"):format(perUnit, perUnit * TOWN_UNITS))
-	end)
-	withBuild(nil, HouseAssembler.PRESETS.street, function(_holder, counts)
-		local perUnit = counts.meshParts / counts.units
-		assert(perUnit <= 16, ("street preset costs %.1f MeshParts a unit (%d town-wide)"):format(perUnit, perUnit * TOWN_UNITS))
-	end)
+	local counts = buildUse("terraced row", HouseAssembler.PRESETS.tierA)
+	local perUnit = counts.houseParts / counts.units
+	assert(perUnit <= 10, ("terraced house costs %.1f MeshParts a unit, allowance 10"):format(perUnit))
+end
+
+function tests.boundaries_meet_the_tier_allowances()
+	if not kitInstalled() then
+		return
+	end
+	for _, use in { "terraced row", "semis", "detached house" } do
+		local a = buildUse(use, HouseAssembler.PRESETS.tierA)
+		local b = buildUse(use, HouseAssembler.PRESETS.tierB)
+		assert(a.boundaryParts / a.units <= 11, ("%s Tier A boundaries cost %.1f a unit, allowance 11"):format(use, a.boundaryParts / a.units))
+		assert(b.boundaryParts / b.units <= 4, ("%s Tier B boundaries cost %.1f a unit, allowance 4"):format(use, b.boundaryParts / b.units))
+	end
+end
+
+function tests.town_projection_is_inside_both_budgets()
+	if not kitInstalled() then
+		return
+	end
+	-- Projected at the Tier A rate for 17% of units and the Tier B rate for 83% (Lane P's split).
+	local houses, boundaries = 0, 0
+	for use, unitsInTown in townUnits() do
+		local a = buildUse(use, HouseAssembler.PRESETS.tierA)
+		local b = buildUse(use, HouseAssembler.PRESETS.tierB)
+		houses += (0.17 * a.houseParts / a.units + 0.83 * b.houseParts / b.units) * unitsInTown
+		boundaries += (0.17 * a.boundaryParts / a.units + 0.83 * b.boundaryParts / b.units) * unitsInTown
+	end
+	assert(houses <= HouseAssembler.PART_BUDGET, ("houses project to %d MeshParts, budget %d"):format(houses, HouseAssembler.PART_BUDGET))
+	assert(boundaries <= HouseAssembler.BOUNDARY_BUDGET, ("boundaries project to %d MeshParts, budget %d"):format(boundaries, HouseAssembler.BOUNDARY_BUDGET))
 end
 
 function tests.presets_get_cheaper_in_order()
@@ -262,8 +260,36 @@ function tests.presets_get_cheaper_in_order()
 		end)
 		return n
 	end
-	local full, street, lean = parts(HouseAssembler.PRESETS.full), parts(HouseAssembler.PRESETS.street), parts(HouseAssembler.PRESETS.lean)
-	assert(full > street and street > lean, ("presets out of order: %d %d %d"):format(full, street, lean))
+	local a, b, lean = parts(HouseAssembler.PRESETS.tierA), parts(HouseAssembler.PRESETS.tierB), parts(HouseAssembler.PRESETS.lean)
+	assert(a > b and b > lean, ("presets out of order: %d %d %d"):format(a, b, lean))
+end
+
+function tests.tiers_follow_section_9()
+	assert(HouseAssembler.tierFor(Vector3.new(0, 0, 0)) == "A", "Market Square is Tier A")
+	assert(HouseAssembler.tierFor(Vector3.new(-900, 0, -350)) == "A", "station is Tier A")
+	assert(HouseAssembler.tierFor(Vector3.new(1050, 0, 1250 - 400)) == "A", "400 studs from Plot 1 is Tier A")
+	assert(HouseAssembler.tierFor(Vector3.new(-2291, 0, -691)) == "B" or HouseAssembler.tierFor(Vector3.new(600, 0, 600)) == "B", "open town is Tier B")
+end
+
+function tests.lots_are_atomic_and_districts_are_not()
+	if not kitInstalled() then
+		return
+	end
+	withBuild({ district = "Mapleford" }, nil, function(holder, _counts)
+		local district = holder:GetChildren()[1] :: Model
+		assert(district.ModelStreamingMode == Enum.ModelStreamingMode.Default, "district must not be Atomic (section 9 rule 1)")
+		local boundaries = district:FindFirstChild("Boundaries") :: Model
+		assert(boundaries and boundaries.ModelStreamingMode == Enum.ModelStreamingMode.Default)
+		for _, child in district:GetChildren() do
+			if child:GetAttribute("LotId") ~= nil then
+				assert((child :: Model).ModelStreamingMode == Enum.ModelStreamingMode.Atomic, "each lot is one Atomic model")
+				for _, part in child:GetChildren() do
+					local role = part:GetAttribute("Role")
+					assert(role ~= "garden" and role ~= "yard", "boundaries belong in the Boundaries model")
+				end
+			end
+		end
+	end)
 	local _ = HouseRecipes
 end
 

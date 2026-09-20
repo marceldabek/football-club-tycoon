@@ -157,7 +157,11 @@ end
 
 function tests.garden_styles_use_kit_names()
 	for _, style in HouseRecipes.GARDEN_STYLES do
-		assert(style.piece:sub(1, 6) == "UKSP__" or style.piece == "HedgeLong", style.id .. " is not a kit asset")
+		local prefix = style.piece:sub(1, 5)
+		assert(prefix == "UKSP_" or prefix == "MEH__" or style.piece == "HedgeLong", style.id .. " is not a kit asset")
+		if style.light then
+			assert(style.parts <= 2, style.id .. " is too heavy for Tier B")
+		end
 		assert(style.length > 0 and style.parts >= 1)
 	end
 	assert(HouseRecipes.gardenStyleFor("a", 1).id == HouseRecipes.gardenStyleFor("a", 1).id)
