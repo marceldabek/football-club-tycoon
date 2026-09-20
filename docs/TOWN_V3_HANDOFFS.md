@@ -263,3 +263,66 @@ Per unit (houses + boundaries): terraced Tier A 9.0 + 8.8, Tier B 7.4 + 3.3; sem
 - E. Primitive dressers still live, to audit against the no-primitives rule (parts in this playtest): Riverside 1,001, Imperfections 900, Square 533 + church 238, Park 477, Greenery 448, Bridges 384 + TownBuilder bridges 64, Station 336, Marina 324, Signs 222, Forecourts 208, TerraceStreets 158, SportsCentre 155, BusStops 120, Estates 110, Rail 66, Viaduct 56, Schools 38, plus CentreTrees, Gateways, Crossings, Backdrop, Landmarks 8, Districts greybox 17.
 - F. Decide the duplicate owners: bus stops (TownBuilder vs StreetFurniture), manholes / give-ways (ImperfectionDresser vs StreetFurniture), church tower.
 - G. Lane P items not done here: Workspace streaming properties by hand, `V3Perf.bake` (waits on Marcel's P4), Quality Low hiding `V3Decor`, frame time.
+
+### Lane I stage 2 (old code agrees with v3) - done 2026-09-20 16:54
+
+**Suite (Edit mode, after all changes): 750 passed, 0 failed** (743 + 7 new). Three playtests and three screenshots used. Last playtest: 0 errors, 0 warnings, 0 KitMissing, 11 of 11 bus stops on a kit shelter. Bus travel Town Centre -> Plot 3 was tried in playtest 1 and landed on the pavement at (-1826, 574). Primitive parts under `workspace.Town`: about 6,900 in stage 1 -> **4,762** (40,012 MeshParts). No file added or deleted: **no Rojo reconnect needed**.
+
+**Bug found by the playtest and fixed:** the town build is one resume of 10+ s, and Studio's script timeout killed Main inside `EstateDresser:958`, so every dresser after it, PlotService and BusService never ran (playtest 1 passed by luck, playtest 2 did not). `Main.server.luau` now calls `task.wait()` after each v3 builder and each dresser; playtest 3 ran clean.
+
+**1. Built twice / on top of the new town**
+- `ImperfectionDresser` OFF: `V3_PRIMITIVE_IMPERFECTIONS = false` in Main (900 primitives at v1 road heights; kit roads carry markings, StreetFurniture places manholes, give-ways, bins, cones).
+- Bus stops: `TownBuilder.V3_PRIMITIVE_BUS_SHELTERS = false`. TownBuilder now makes one invisible anchor per stop (E2). `BusService.start` finds StreetFurniture's `shelter` models, moves each stop's anchor and prompt onto the nearest one (`SHELTER_SEARCH = 300`) and uses that position for the travel range check, the menu's `stopPosition` and the arrival point (`shelterStand`: 3.5 studs toward the road, facing the shelter). Drift from `BUS_STOPS` to the real shelter: 0-7 studs for town stops, 19-56 for plot stops. Lost: the stop-name flag and timetable (primitive); the kit shelter has no name on it.
+- `ForecourtDresser.V3_SHOPS_RETIRED = true`: shop forecourts, cafe sets, A-boards, baskets, awnings, pub signs, semis paths (all positioned off ShopBuilder / EstateBuilder facades). The Market Square pedestrian zone and 8 planters still build (124 parts).
+- `V3_PRIMITIVE_TACTILE_SLABS = false` in Main: CrossingDresser placed 0 of 264 (it looked for "Pavement" parts).
+- Church: checked, already single. SquareDresser destroys TownBuilder's tower and the greybox when the keeper loads.
+- Lime verges: `RoadTiler.VERGE_TINT` on the verge MeshPart's SurfaceAppearance. `RoadTiler.vergeOf` finds the verge by shape (ColorMap is unreadable in Play); a test checks it against the grass texture for all 44 pieces. **The tint value is not settled**: (150,158,118) was a dark saturated green, (255,185,200) mustard; the committed (240,212,235) has NOT been looked at.
+- Road district models are `Default` streaming now, not `Atomic` (section 9 rule 1); RoadTilerTest re-pinned deliberately. Persistent vs streamed for traffic is still open.
+- Parked cars: StreetFurniture publishes `ParkedStreets` on `Town.V3Furniture` (53 streets); `Traffic.client` reads it; TerraceStreetDresser publishes an empty list.
+
+**2. Hardcoded v1 coordinates.** `BUS_STOPS` was already re-sited by Lane A (every stop is 4-37 studs from a road edge; plot stops sit about 410 from their plot centre). `PlotService.FALLBACK_SITES` (v1 corners, Plot 3 at (2000, 0)) deleted; `plotCFrame` errors if TownLayout is missing. Grepped for 1950 / Plot 3 Roundabout / Moss Lane / Hollins Road / Greenbridge and for 3-4 digit Vector3 / CFrame literals outside TownLayout: nothing else stale. GatewayDresser is data-driven and right for the new Greenbridge Road. River boats in TownLifeMath still sit on the river. `GroundInfluence` / `MatchdayRoutes` literals are plot-local. No code is keyed to a plot index.
+
+**3. DISTRICTS loops**
+- `GreeneryDresser`: a district's area is now its TownFrontage lots; `clear()` rejects any point within `LOT_CLEAR = 3` of a lot (grid-hashed); MAX is shared evenly over the 7 housing districts and halved to 260 (520 spots came to 1,188 primitives). Two new tests.
+- `AmbientAudio.client`: the industrial hum box comes from roads with `useAt = "industrial"` (+70). Pub / cafe emitters still work, they read specials. TownFrontage is NOT generated on the client (it costs 0.7 s).
+- Left alone because they only read specials, which DISTRICTS still has: EstateDresser (stones, play area, totem), SchoolDresser, SquareDresser, SportsCentreDresser, StationDresser.
+- Still dead and not untangled: `TerraceStreetDresser` light streets (0), `StreetDresser.isKitRow`, `ImperfectionDresser.terraceBlocks` (module is off).
+
+**Switched off by named constant (on top of stage 1's list):** `V3_PRIMITIVE_IMPERFECTIONS`, `V3_PRIMITIVE_TACTILE_SLABS` (Main); `TownBuilder.V3_PRIMITIVE_BUS_SHELTERS`; `ForecourtDresser.V3_SHOPS_RETIRED`.
+
+**4. Primitive dresser audit** (primitive Parts / MeshParts, playtest 3). Converted this stage: Imperfections (900 -> 0), bus shelters (120 -> 11 invisible anchors), park and marina lamps (9 kit `StreetLight01`, was 54 parts), forecourt shop dressing (84). New register row **EI1** (trees).
+
+| Dresser (Town child) | Prims | Mesh | What the primitives are | Kit replacement, or register id |
+|---|---|---|---|---|
+| Riverside | 955 | 46 | promenade slabs, railings, moorings, planters, steps | railings: UKSP fence / guard-rail rows; slabs are ground (E1); the rest has no asset (EC6) |
+| Greenery | 599 | 0 | trees, shrubs | EI1: no usable tree asset |
+| Bridges (TownBuilder 64 + BridgeDresser 440, viaduct included) | 504 | 0 | decks, parapets, piers, arches, lamps | none in kit; needs a register row and a bridge on the buy list |
+| Square | 419 | 114 | paving, stalls, clock tower, planters | paving E1; stalls / clock tower: none, needs a row |
+| Park | 419 | 23 | paths, bandstand, picnic tables, fences, trees | picnic tables: `UKSP__PicnicBenches__BenchNew/Old` (cheap win, not done); fences: UKSP fence rows; bandstand EC6; trees EI1 |
+| StationFront | 319 | 17 | station building, canopy, platforms, signs | EC6 (s8 #4) |
+| Marina | 296 | 18 | quay, pontoons, boats, clubhouse | EC6 |
+| Signs | 222 | 0 | street name plates, finger posts | text signs: keep, needs a row |
+| Church keeper | 220 | 18 | the keeper itself | EC7 |
+| TerraceStreets | 158 | 0 | street trees, name plates | EI1; plates as Signs |
+| SportsCentre | 149 | 6 | pitches, goals, fences, car park | pitches E1; fences: UKSP fence rows |
+| Forecourts | 124 | 0 | square zone slabs (36), 8 planters | E1; planters EI1 |
+| Estates | 110 | 0 | name stones, play area, totem, shrubs | play equipment: none, needs a row |
+| CentreTrees | 72 | 0 | trees in pits | EI1 |
+| Rail | 66 | 0 | track bed, rails | none, needs a row |
+| Schools | 38 | 0 | playground markings, fences | fences: UKSP; markings E1 |
+| Churchyard | 31 | 1 | walls, gravestones | a cheap UKSP wall piece (not `GardenWall__Wall`, 3,620 tris) |
+| V3Roads | 19 | 2,110 | roundabout stand-ins | E3 |
+| Gateways | 18 | 0 | welcome and route signs | text signs: keep, needs a row |
+| Districts | 12 | 0 | ground-use greybox (lawns, pitches, car park) | E1 |
+| BusStops | 11 | 0 | invisible prompt anchors | E2 |
+
+The "what the primitives are" column comes from file headers and greps, not a part-by-part read. None of the old dressers' parts carry a `V3Exempt` tag; only RoadTiler, the church keeper and the new bus anchors do.
+
+**Left for stage 3**
+- Walk each plot (Plot 3 yaw 270; plots vs lanes; bus arrival at the 4 plot stops, which drift 19-56 studs from the layout position); bridges over kit roads (Lane R bug 5).
+- Look at the verge tint and settle it. Check the park / marina kit lamps face the path (the quarter turn is taken from FurniturePlan's facing note, not looked at).
+- Performance: Workspace streaming properties by hand, Quality Low hiding `V3Decor` (and dropping the TelegraphPole / Wire names), frame time at (200, 0, -300), roads Persistent or not. `V3Perf.bake` still waits on P4.
+- Stage 1 to-do A (deleting StreetDresser, ShopDresser + ShopBuilder, EstateBuilder, TerraceBuilder, WireDresser, and now ImperfectionDresser and CrossingDresser, with their tests) was NOT started: all are file deletes, so batch them behind one Rojo reconnect. TerraceBuilder is now only required by ShopBuilder.
+- Stage 1 to-do C, client files keyed to retired names, NOT done except Traffic: `TownLife.client` (TerraceLamp banners; the park lamps are now named `ParkLamp`), `ClubStickers.client` 76, `LitWindows.client`, `YardWorkers.client`, `CafeSitters.client` (no cafe sets exist now), `PlayAreaLife.client`, `TownLifeMath` Shopfront drinkers. ClubStickers, GreeneryDresser, SquareDresser and others still measure from `BUS_STOPS` positions rather than the shelters (small drift, harmless so far).
+- Bus stop name: nothing on the kit shelter says which stop it is. A SurfaceGui on the invisible anchor would do it without a primitive.
+- Docs: TOWN_PLAN / PLOTS / ASSET_KIT still describe the v1 dressers; register rows wanted for bridges + viaduct, rail, square stalls + clock tower, name plates / text signs, play equipment.

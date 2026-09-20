@@ -355,6 +355,7 @@ A primitive may exist only if it has a row here. Tag the instance `V3Exempt = "<
 | EC5 | Civic: town hall and 3 schools are MEH `Office_01`; sports hall is an EC2 shed | kit has no civic building | Lane C | s8 #4 (hotel / police station as stand-ins) |
 | EC6 | Station building, marina, bandstand: NOT built by Lane C; the existing primitive dressers remain | kit has none | Integrator | s8 #4 for the station; marina and bandstand unresolved |
 | EC7 | `ChurchSpire` Creator Store keeper is 238 primitive Parts, not a mesh; its Parts are tagged `V3Exempt = "EC7"` | approved kit item, but built from Parts | Lane C | replace with a mesh church (none found yet) |
+| EI1 | Trees and shrubs: GreeneryDresser (599 parts), CentreTreeDresser (72), TerraceStreetDresser street trees, park / riverside / square planter trees are trunk-and-ball primitives | the only kit tree is `Kit.Vegetation.OakPack6` (6 oaks, 2-3 MeshParts each): FREE_ASSETS.md flags its provenance as unverified, and its triangle count cannot be measured (EditableMesh: no permission) | Integrator | buy or AI-mesh one low-poly tree set (2-3 trees, 1 MeshPart each, under 1,500 tris), then swap `TerraceStreetDresser.lightTree` and GreeneryDresser's tree in one place each |
 | … | *(lanes append here)* | | | |
 
 ## 8. Buy / generate list (Lane C maintains; Marcel approves)
