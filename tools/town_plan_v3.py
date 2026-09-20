@@ -43,6 +43,7 @@ DEPTH = 24.0      # house depth, as v1
 CELL = 22.0       # one house of frontage
 ROW_CELLS = 6     # longest terrace before a ginnel
 ROW_GAP = 8.0
+HEAD = 34.0       # cul-de-sac turning head radius (kit CulDeSac is 96 x 69 at town scale)
 
 # ------------------------------------------------------------------ roads
 
@@ -50,20 +51,24 @@ R, M, S, L = "ring", "main", "residential", "lane"
 WIDTH = {R: 32.0, M: 26.0, S: 20.0, L: 20.0}
 
 
-def road(name, kind, pts, front=None, use="terraced row", district=None, use_at=None):
+def road(name, kind, pts, front=None, use="terraced row", district=None, use_at=None, head=False):
     """front: "both" | "left" | "right" | "none" (left of the direction of
     travel). Residential streets default to both sides, everything else to none."""
     if front is None:
         front = "both" if kind == S else "none"
     return {"name": name, "kind": kind, "width": WIDTH[kind],
             "points": [(float(x), float(z)) for x, z in pts],
-            "front": front, "use": use, "district": district, "use_at": use_at}
+            "front": front, "use": use, "district": district, "use_at": use_at,
+            "head": head}  # head: the last point is a cul-de-sac turning head (kit: CulDeSac*)
 
 
 RING = [
-    (-1100, -1000), (1000, -1000),      # north side, flat (v1 bowed to -1050)
-    (1400, -600), (1400, 450),          # big NE chamfer, east side on v1's x
-    (1050, 800), (-1000, 800),          # SE chamfer, south side on v1's z
+    (-1100, -1000), (-500, -1000),      # north-west shoulder
+    (-420, -1080), (420, -1080),        # the bow v1 had at North Road, as two 45 ramps
+    (500, -1000), (1000, -1000),        # north-east shoulder
+    (1400, -600), (1400, 400),          # big NE chamfer, east side on v1's x (East Bridge stays)
+    (1250, 550), (1250, 650),           # SE corner in two steps; the roundabout sits on the straight
+    (1100, 800), (-1000, 800),          # south side on v1's z
     (-1150, 650), (-1150, 0),           # SW chamfer, west side on v1's x (West Bridge stays)
     (-1350, -200), (-1350, -750),       # the jog out round the station quarter
     (-1100, -1000),
@@ -75,7 +80,7 @@ def roads():
 
     # ---- through roads, each as near its v1 line as axis/45 allows
     out += [
-        road("North Road", M, [(0, -60), (0, -1000)]),
+        road("North Road", M, [(0, -60), (0, -1080)]),
         road("High Street", M, [(-60, 0), (-400, 0), (-505, -105), (-1255, -105)], front="both",
              use_at=lambda x, z: ("shops with flats", "Town Centre") if x > -520 else ("terraced row", "Station")),
         road("Station Road", M, [(-505, -105), (-737, -337), (-938, -337)]),
@@ -88,7 +93,7 @@ def roads():
         # the south-west corner is where Plot 3 now stands
         road("Greenbridge Road", M, [(-1150, 560), (-2400, 560)],
              front="right", district="Westdale"),
-        road("Hollingford Road", M, [(1250, 600), (1450, 800), (2400, 800)],
+        road("Hollingford Road", M, [(1250, 600), (1300, 600), (1500, 800), (2400, 800)],
              front="both", district="Hollingford"),
     ]
 
@@ -114,7 +119,7 @@ def roads():
                          ("Oak Close", 1050, -870)]:
         semis = abs(x) >= 1000
         out.append(road(name, S, [(x, -600), (x, end)], district=nf,
-                        use="semis" if semis else "terraced row"))
+                        use="semis" if semis else "terraced row", head=end != -920))
 
     # ---- Station quarter: one new street where rows stood five deep
     st = "Station"
@@ -131,8 +136,8 @@ def roads():
     # ---- Riverside (south bank, inside the ring): one new street
     rv = "Riverside"
     out += [
-        road("Meadow Road", S, [(100, 560), (1240, 560)], district=rv),
-        road("Tannery Row", S, [(100, 680), (1120, 680)], district=rv),             # NEW
+        road("Meadow Road", S, [(100, 560), (1180, 560)], district=rv, head=True),
+        road("Tannery Row", S, [(100, 680), (1100, 680)], district=rv, head=True),            # NEW
         road("Viaduct Road", S, [(-545, 620), (100, 620)], district=rv),
         road("Weir Road", S, [(-1150, 560), (-615, 560)], district=rv),
         road("Fuller Street", S, [(-1090, 690), (-615, 690)], district=rv),         # NEW
@@ -142,9 +147,9 @@ def roads():
     out += [
         road("Sports Centre Road", S, [(0, 800), (0, 1200), (590, 1200)], district=rv,
              front="none"),
-        road("Cedar Road", S, [(-470, 800), (-470, 1500)], district=rv),
-        road("Paddock Road", S, [(400, 800), (400, 1500)], district=rv),            # NEW
-        road("Hollins Road", S, [(590, 800), (590, 1500)], district=rv),            # was x=520
+        road("Cedar Road", S, [(-470, 800), (-470, 1500)], district=rv, head=True),
+        road("Paddock Road", S, [(400, 800), (400, 1500)], district=rv, head=True),           # NEW
+        road("Hollins Road", S, [(590, 800), (590, 1500)], district=rv, head=True),           # was x=520
         road("Plot 1 Lane", L, [(970, 800), (970, 860)]),
     ]
 
@@ -165,34 +170,43 @@ def roads():
         road("Plot 3 Lane", L, [(-1860, 560), (-1860, 630)]),
     ]
 
-    # ---- Plot 4's streets (north-west)
+    # ---- Mapleford: Plot 4's estate (north-west). Not a box round the plot:
+    # a street south, a street north, and closes filling the ground between the
+    # plot and the ring, so the club sits at the end of somebody's road.
     p4 = "Mapleford"
     out += [
         road("Plot 4 Lane", L, [(-1350, -750), (-1350, -1210), (-1400, -1210)]),
-        road("Mapleford Lane", S, [(-2180, -670), (-1350, -670)], district=p4),     # NEW
-        road("Tollgate Road", S, [(-2180, -1590), (-1350, -1590), (-1350, -1210)],  # NEW
-             district=p4),
+        road("Mapleford Lane", S, [(-2250, -670), (-1350, -670)], district=p4),
+        road("Drift Close", S, [(-2250, -670), (-2250, -1060)], district=p4, head=True),
+        road("Tollgate Road", S, [(-1350, -1210), (-1350, -1590), (-2120, -1590)], district=p4, head=True),
+        road("Drovers Road", S, [(-1350, -1210), (-760, -1210)], district=p4, head=True),
+        road("Pinfold Close", S, [(-950, -1210), (-950, -1110)], district=p4, head=True),
+        road("Smithy Close", S, [(-1120, -1210), (-1120, -1460), (-880, -1460)], district=p4,
+             use="semis", head=True),
     ]
 
-    # ---- Plot 2's streets (north-east), not a mirror of Plot 4's
+    # ---- Millbrook: Plot 2's estate (north-east), deliberately not Mapleford's mirror
     p2 = "Millbrook"
     out += [
         road("Plot 2 Lane", L, [(1400, -600), (1400, -1080), (1440, -1080)]),
-        road("Millbrook Road", S, [(1400, -700), (2300, -700)], district=p2),       # NEW
-        road("Lune View", S, [(1560, -570), (2300, -570)], district=p2),            # NEW
-        road("Kiln Lane", S, [(2300, -570), (2300, -1540)], district=p2),           # NEW
+        road("Millbrook Road", S, [(1400, -700), (2300, -700)], district=p2),
+        road("Lune View", S, [(1560, -570), (2250, -570)], district=p2, head=True),
+        road("Fell Lane", S, [(2300, -700), (2300, -1320)], district=p2, head=True),
+        road("Quarry Road", S, [(1400, -1080), (900, -1080), (780, -1200)], district=p2, head=True),
+        road("Kiln Close", S, [(1180, -1080), (1180, -1400)], district=p2, use="semis", head=True),
+        road("Millbrook Rise", S, [(1400, -1080), (1400, -1330)], district=p2, head=True),
     ]
 
     # ---- Hollingford: the 45-degree estate, in the ground Plot 3 left. Every
     # street is parallel to Hollingford Road's own 45 leg off the roundabout.
     hf = "Hollingford"
     out += [
-        road("Lunebank Road", S, [(1400, 300), (1500, 300), (2000, 800)], district=hf),
+        road("Lunebank Road", S, [(1400, 300), (1500, 300), (1940, 740), (1940, 800)], district=hf),
         road("Ferry Lane", S, [(1500, 300), (1593, 207)], district=hf, front="none"),
-        road("Fellmonger Street", S, [(1440, 420), (1820, 800)], district=hf),
-        road("Bleach Street", S, [(1593, 207), (2185, 800)], district=hf),
+        road("Fellmonger Street", S, [(1500, 480), (1760, 740), (1760, 800)], district=hf),
+        road("Bleach Street", S, [(1593, 207), (2126, 740), (2126, 800)], district=hf),
         # beside Plot 1
-        road("Garth Road", S, [(1510, 800), (1510, 1600)], district=hf),
+        road("Garth Road", S, [(1510, 800), (1510, 1560)], district=hf, head=True),
     ]
     return out
 
@@ -205,7 +219,7 @@ PLOTS = [
 ]
 
 ROUNDABOUTS = [
-    ("Northfields Roundabout", 0, -1000, 40),
+    ("Northfields Roundabout", 0, -1080, 40),
     ("Plot 4 Roundabout", -1350, -750, 40),
     ("Plot 2 Roundabout", 1400, -600, 40),
     ("Lunebank Roundabout", 1400, 300, 40),       # was Plot 3 Roundabout
@@ -319,7 +333,7 @@ class Town:
                     return False
         return True
 
-    def ground_clear(self, blk):
+    def ground_clear(self, blk, heads=True):
         pts = samples(blk)
         minX, maxX, minZ, maxZ = EXTENT
         if any(not (minX + 20 < x < maxX - 20 and minZ + 20 < z < maxZ - 20) for x, z in pts):
@@ -335,6 +349,12 @@ class Town:
         for _, x, z, rad in ROUNDABOUTS:
             if any(math.hypot(px - x, pz - z) < rad + PAVE + 6 for px, pz in pts):
                 return False
+        if heads:
+            for r in self.roads:
+                if r["head"]:
+                    hx, hz = r["points"][-1]
+                    if any(math.hypot(px - hx, pz - hz) < HEAD + 5 for px, pz in pts):
+                        return False
         if any(math.hypot(px, pz) < 60 + 14 for px, pz in pts):
             return False
         sx, sz = self.live["station"]
@@ -422,6 +442,32 @@ class Town:
                             run = []
                     self.flush(run, r, yaw)
 
+    def head_rows(self):
+        """A short row across the end of each cul-de-sac, looking back down it."""
+        for r in self.roads:
+            if not r["head"] or r["front"] == "none":
+                continue
+            (ax, az), (bx, bz) = r["points"][-2], r["points"][-1]
+            seg = math.dist((ax, az), (bx, bz))
+            ux, uz = (bx - ax) / seg, (bz - az) / seg
+            yaw = math.degrees(math.atan2(uz, ux)) + 90
+            d = HEAD + GARDEN + DEPTH / 2
+            run = []
+            for k in (-1, 0, 1):
+                cell = {"centre": (bx + ux * d - uz * k * CELL, bz + uz * d + ux * k * CELL),
+                        "size": (CELL, DEPTH), "yaw": yaw, "use": r["use"], "district": r["district"]}
+                if (self.ground_clear(cell, heads=False) and self.road_clear(cell)
+                        and not any(overlap(cell, k2, 6) for _, k2 in self.kept)
+                        and not any(overlap(cell, c, 10) for c in self.cells)):
+                    run.append(cell)
+                else:
+                    run = []
+                    break
+            n = len(self.rows)
+            self.flush(run, r, yaw)
+            for _, row in self.rows[n:]:
+                row["closes_street"] = True   # faces down the street, so square to it on purpose
+
     def flush(self, run, r, yaw):
         while len(run) >= 2:
             take = run[:ROW_CELLS]
@@ -454,6 +500,7 @@ class Town:
             "districts": [{"name": n, "blocks": by[n]} for n in names],
             "landmarks": self.live["landmarks"],
             "extent": list(EXTENT),
+            "heads": [r["points"][-1] for r in self.roads if r["head"]],
         }
 
 
@@ -490,7 +537,7 @@ def audit(d, title):
         street = math.degrees(math.atan2(bseg[1][1] - bseg[0][1], bseg[1][0] - bseg[0][0]))
         long_axis = b["yaw"] + (0 if b["size"][0] >= b["size"][1] else 90)
         diff = abs((long_axis - street + 90) % 180 - 90)
-        if diff > 5 and best <= 55:
+        if diff > 5 and best <= 55 and not b.get("closes_street"):
             off += 1
     print(f"  blocks {blocks}, housing {len(housing)}; behind another row {stacked} "
           f"({100 * stacked / max(1, len(housing)):.0f}%); off-parallel {off}")
@@ -502,6 +549,7 @@ def main():
     live = parse()
     town = Town(live)
     town.carry_over()
+    town.head_rows()
     town.frontage()
     d = town.data()
 
@@ -518,6 +566,11 @@ def main():
 
     docs = ROOT / "docs"
     svg = build_svg(d)
+    minX, _, minZ, _ = EXTENT
+    heads = "".join(
+        f'<circle cx="{(x - minX) * 0.34 + 40:.1f}" cy="{(z - minZ) * 0.34 + 40:.1f}" '
+        f'r="{HEAD * 0.34:.1f}" fill="#6b7078"/>' for x, z in d["heads"])
+    svg = svg.replace("<circle", heads + "<circle", 1)
     (docs / "town_map_v3.svg").write_text(svg, encoding="utf-8")
     body = svg.replace("<svg ", '<svg style="width:100%;height:auto;display:block" ', 1)
     (docs / "town_map_v3_view.html").write_text(

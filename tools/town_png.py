@@ -66,6 +66,11 @@ def render(d, out, scale=0.5, crop=None, flag=None, labels=True):
         colour, _ = ROAD_STYLE.get(r["kind"], ROAD_STYLE["residential"])
         line(r["points"], colour, r["width"])
 
+    for hx, hz in d.get("heads", []):   # cul-de-sac turning heads
+        x, y = P(hx, hz)
+        for rad, colour in ((42, "#d5d3cb"), (34, ROAD_STYLE["residential"][0])):
+            g.ellipse((x - rad * scale, y - rad * scale, x + rad * scale, y + rad * scale), fill=colour)
+
     for rb in d["roundabouts"]:
         cx, cz = rb["centre"]
         rr = rb["radius"] * scale
