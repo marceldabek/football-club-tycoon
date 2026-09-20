@@ -63,6 +63,7 @@ export type Tile = {
 	yellow: boolean,
 	tucked: boolean,
 }
+export type BridgeIn = { from: Vector3, to: Vector3, kind: string? }
 export type Exempt = { id: string, shape: string, centre: Vector3, radius: number, height: number, look: string }
 export type Plan = { tiles: { Tile }, exempt: { Exempt }, stats: { [string]: number } }
 
@@ -75,6 +76,7 @@ RoadTiles.ARTERIAL = "Arterial"
 -- TEMP: the Town Centre box (yellow lines, and the district for roads with none).
 RoadTiles.CENTRE = { minX = -520, maxX = 520, minZ = -340, maxZ = 340 }
 RoadTiles.BIG_ROUNDABOUT = 25 -- radius at or above this trims the arms; below is a mini island
+RoadTiles.END_OVERSHOOT = 10 -- a tee / cross arm may run this far past a plain dead end
 local ROUNDABOUT_INSET = 8
 local OVERSHOOT = 12 -- a tucked arm runs this far past its node, under the through road
 local S = math.sqrt(0.5)
@@ -485,7 +487,7 @@ local function emitNode(node, tiles: { Tile }, exempt: { Exempt })
 	end
 end
 
-local function emitRun(run, tiles: { Tile }, stats: { [string]: number })
+local function emitRun(run, tiles: { Tile }, stats: { [string]: number }, bridges: { BridgeIn }?, skipBridges: boolean?)
 	local from, to = run.from, run.to
 	local dir: Vector3 = from.dir
 	local startT = from.trim
@@ -496,6 +498,35 @@ local function emitRun(run, tiles: { Tile }, stats: { [string]: number })
 			stats.maxGap = math.max(stats.maxGap, rem)
 		end
 		return
+	end
+	-- Bridge spans lying on this run: the bridge deck is the road there, so the
+	-- straights stop at one end of the span and start again at the other.
+	if bridges and not skipBridges then
+		local origin: Vector3 = from.node.pos
+		local normal = Vector3.new(-dir.Z, 0, dir.X)
+		for _, bridge in bridges do
+			local a = Vector3.new(bridge.from.X - origin.X, 0, bridge.from.Z - origin.Z)
+			local b = Vector3.new(bridge.to.X - origin.X, 0, bridge.to.Z - origin.Z)
+			if math.abs(a:Dot(normal)) < 2 and math.abs(b:Dot(normal)) < 2 then
+				local t0 = math.min(a:Dot(dir), b:Dot(dir))
+				local t1 = math.max(a:Dot(dir), b:Dot(dir))
+				if t0 < endT - 1 and t1 > startT + 1 then
+					stats.bridged = (stats.bridged or 0) + 1
+					local function piece(s: number, e: number, fromArm, toArm)
+						if e - s >= 1 then
+							emitRun({
+								from = { node = from.node, dir = dir, road = from.road, trim = s, tuck = fromArm and fromArm.tuck, crit = fromArm and fromArm.crit },
+								to = { node = to.node, road = to.road, trim = run.len - e, tuck = toArm and toArm.tuck, crit = toArm and toArm.crit },
+								len = run.len,
+							}, tiles, stats, nil, true)
+						end
+					end
+					piece(startT, math.max(startT, t0), from, nil)
+					piece(math.min(endT, t1), endT, nil, to)
+					return
+				end
+			end
+		end
 	end
 	local road = from.road
 	local scale = scaleOf(from)
@@ -558,11 +589,17 @@ local function inConflict(run): boolean
 	if (a.kind == "end" or b.kind == "end") and not canDowngrade(a) and not canDowngrade(b) then
 		return false
 	end
+	-- A tee or crossroads whose arm runs a few studs past a plain dead end keeps
+	-- its piece: downgrading it to a bend swaps a small overshoot for a bend leg
+	-- that runs ~38 studs into the plot (Plot 2 Lane, Lane I stage 3).
+	if (a.kind == "end" or b.kind == "end") and run.from.trim + run.to.trim - run.len <= RoadTiles.END_OVERSHOOT then
+		return false
+	end
 	return true
 end
 
 -- The whole job: roads (and roundabouts) in, tiles and exempt stand-ins out.
-function RoadTiles.plan(roads: { RoadIn }, roundabouts: { RoundaboutIn }?): Plan
+function RoadTiles.plan(roads: { RoadIn }, roundabouts: { RoundaboutIn }?, bridges: { BridgeIn }?): Plan
 	local nodeList, _ = buildGraph(roads, roundabouts or {})
 	local stats: { [string]: number } = { downgraded = 0, shrunk = 0, maxGap = 0, unresolved = 0 }
 	for _, node in nodeList do
@@ -620,7 +657,7 @@ function RoadTiles.plan(roads: { RoadIn }, roundabouts: { RoundaboutIn }?): Plan
 		emitNode(node, tiles, exempt)
 	end
 	for _, run in runs do
-		emitRun(run, tiles, stats)
+		emitRun(run, tiles, stats, bridges)
 	end
 	for _, t in tiles do
 		stats[t.kind] = (stats[t.kind] or 0) + 1

@@ -161,4 +161,37 @@ function tests.builtTilesCarryTheVergeTint()
 	end)
 end
 
+-- Lane I stage 3: inside the centre box the verge is a paving stand-in (E4), and
+-- nowhere else.
+function tests.centreTilesGetAPavedVerge()
+	if not kitInstalled() then
+		return
+	end
+	withBuild("Town Centre", function(holder, _counts)
+		local paved, grass = 0, 0
+		for _, d in holder:GetDescendants() do
+			if d:IsA("Model") and d:GetAttribute("TileKind") ~= nil then
+				local verge = RoadTiler.vergeOf(d) :: MeshPart
+				assert(verge, "no verge on " .. d.Name)
+				local sa = verge:FindFirstChildOfClass("SurfaceAppearance")
+				local at = d:GetPivot().Position
+				local c = RoadTiles.CENTRE
+				local deepInside = at.X > c.minX + 60 and at.X < c.maxX - 60 and at.Z > c.minZ + 60 and at.Z < c.maxZ - 60
+				local wellOutside = at.X < c.minX - 60 or at.X > c.maxX + 60 or at.Z < c.minZ - 60 or at.Z > c.maxZ + 60
+				assert(not (deepInside and d:GetAttribute("PavedVerge") ~= true), "centre tile not paved: " .. tostring(d:GetAttribute("Road")))
+				assert(not (wellOutside and d:GetAttribute("PavedVerge") == true), "paved tile outside the centre: " .. tostring(d:GetAttribute("Road")))
+				if d:GetAttribute("PavedVerge") == true then
+					assert(sa == nil and verge.Material == RoadTiler.PAVED_VERGE.material, "paved verge keeps no grass texture")
+					assert(verge:GetAttribute("V3Exempt") == "E4", "paved verge is registered as E4")
+					paved += 1
+				else
+					assert(sa and sa.Color == RoadTiler.VERGE_TINT, "grass verge outside the centre is tinted")
+					grass += 1
+				end
+			end
+		end
+		assert(paved > 0, "the Town Centre has paved verges")
+	end)
+end
+
 return tests

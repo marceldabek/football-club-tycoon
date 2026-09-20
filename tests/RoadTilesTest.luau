@@ -215,6 +215,56 @@ function tests.deterministic()
 	end
 end
 
+-- Lane I stage 3: the bridge deck is the road over the water, so no tile may sit
+-- inside a bridge span, and the straights still reach both ends of it.
+function tests.straightsStopAtABridgeSpan()
+	local bridge = { from = v(200, 0), to = v(380, 0), kind = "road" }
+	local plan = RoadTiles.plan({ road("A", { v(0, 0), v(600, 0) }) }, {}, { bridge })
+	assert(plan.stats.bridged == 1, "one run crosses the bridge")
+	for _, t in plan.tiles do
+		local half = t.stretch * 110 * t.scale / 2
+		local x = t.cframe.Position.X
+		assert(x + half <= 200.01 or x - half >= 379.99, ("tile at %.0f overlaps the span"):format(x))
+	end
+	local loose = looseMouths(plan)
+	assert(hasLooseNear(loose, v(200, 0), 0.01) and hasLooseNear(loose, v(380, 0), 0.01), "straights reach both bridge ends")
+	local plain = RoadTiles.plan({ road("A", { v(0, 0), v(600, 0) }) }, {})
+	assert(plain.stats.bridged == nil, "no bridges given, nothing bridged")
+end
+
+function tests.wholeTownSkipsEveryRoadBridge()
+	local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
+	local plan = RoadTiles.plan(TownLayout.ROADS :: any, TownLayout.ROUNDABOUTS :: any, TownLayout.BRIDGES :: any)
+	assert(plan.stats.unresolved == 0, plan.stats.unresolved .. " unresolved conflicts")
+	for _, bridge in TownLayout.BRIDGES do
+		if bridge.kind == "road" then
+			local length = TownLayout.bridgeLength(bridge)
+			for _, t in plan.tiles do
+				local along, across = TownLayout.bridgeAlong(bridge, t.cframe.Position)
+				assert(not (along > 5 and along < length - 5 and across < 5), ("%s tile centred on %s"):format(t.road, bridge.name))
+			end
+		end
+	end
+end
+
+-- Lane I stage 3: a crossroads whose arm is a few studs longer than a dead-end
+-- lane keeps its piece (it was downgraded to a bend that ran 38 studs into Plot 2).
+function tests.plotLanesDoNotOvershootTheirEnd()
+	local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
+	local plan = RoadTiles.plan(TownLayout.ROADS :: any, TownLayout.ROUNDABOUTS :: any, TownLayout.BRIDGES :: any)
+	for i = 1, 4 do
+		local plotCFrame = TownLayout.plotCFrame(i)
+		for _, t in plan.tiles do
+			for _, m in RoadTiles.mouths(t) do
+				if TownLayout.pointInPlot(m, i) then
+					local past = plotCFrame:PointToObjectSpace(m).X - TownLayout.PLOT_LANE_END.X
+					assert(past <= RoadTiles.END_OVERSHOOT + 0.01, ("%s runs %.1f past Plot %d's lane end"):format(t.road, past, i))
+				end
+			end
+		end
+	end
+end
+
 function tests.wholeTownResolvesAndJoinsUp()
 	local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 	local plan = RoadTiles.plan(TownLayout.ROADS :: any, TownLayout.ROUNDABOUTS :: any)

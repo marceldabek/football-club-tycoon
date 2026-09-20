@@ -43,6 +43,7 @@ export type Input = {
 	specials: { BoxIn }?,
 	busStops: { { name: string, position: Vector3 } }?,
 	bridges: { { from: Vector3, to: Vector3, width: number } }?,
+	rail: { width: number, points: { Vector3 } }?, -- nothing stands on the track (Lane I stage 3)
 	plots: { { centre: Vector3 } }?,
 	plotSize: number?,
 	square: { centre: Vector3, radius: number }?,
@@ -324,6 +325,14 @@ local function blockedBy(ctx: Context, p: Vector3, r: number, own: RoadIn?, onCa
 			local a, b = flat(bridge.from) - u * 44, flat(bridge.to) + u * 44 -- ramps
 			if FurniturePlan.segmentDistance(p, a, b) < bridge.width / 2 + FurniturePlan.PAVEMENT_WIDTH + 4 + r then
 				return "bridge"
+			end
+		end
+	end
+	local rail = input.rail
+	if rail then
+		for i = 1, #rail.points - 1 do
+			if FurniturePlan.segmentDistance(p, rail.points[i], rail.points[i + 1]) < rail.width / 2 + 2 + r then
+				return "rail"
 			end
 		end
 	end

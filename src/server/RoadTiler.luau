@@ -27,13 +27,24 @@ local LOOKS: { [string]: { color: Color3, material: Enum.Material } } = {
 -- The kit's grass verge texture is a bright lime that reads as a green stripe
 -- against the town's terrain grass (Lane I stage 1 playtest, problem 1). The verge
 -- MeshPart's SurfaceAppearance is tinted toward the terrain colour instead.
--- A tint only multiplies, and the texture has little red, so an even grey tint just
--- makes a darker saturated green (tried: 150, 158, 118). Pulling green and blue down
--- while leaving red alone moves it toward the terrain's olive (111, 126, 62).
--- (255, 185, 200) went too far: mustard. This value sits between the two and has NOT
--- been looked at yet (stage 2 ran out of screenshots): stage 3 should eyeball it.
--- TEMP value.
-RoadTiler.VERGE_TINT = Color3.fromRGB(240, 212, 235)
+-- Tried and rejected: (150, 158, 118) dark saturated green, (255, 185, 200) mustard,
+-- (240, 212, 235) still lime next to terrain grass (stage 3 screenshot, Elder Close).
+-- The texture has almost no blue, so blue stays at 255 and red / green come down
+-- together. Settled in stage 3 by retinting Elder Close live and comparing it with
+-- the terrain beside it (terrain grass material colour is 111, 126, 62).
+RoadTiler.VERGE_TINT = Color3.fromRGB(160, 158, 255)
+
+-- Town Centre streets are fronted by shops, where a grass verge reads wrong. Inside
+-- RoadTiles.CENTRE the verge mesh loses its grass SurfaceAppearance and is shown as
+-- plain paving instead. This is a STAND-IN for a missing pavement / kerb asset
+-- (register row E4): the mesh is still the kit's, only its surface is swapped.
+-- Shop-fronted roads outside the centre box keep grass verges.
+RoadTiler.PAVED_VERGE = { color = Color3.fromRGB(150, 148, 142), material = Enum.Material.Pavement }
+
+function RoadTiler.isPavedVerge(position: Vector3): boolean
+	local c = RoadTiles.CENTRE
+	return position.X >= c.minX and position.X <= c.maxX and position.Z >= c.minZ and position.Z <= c.maxZ
+end
 
 -- The verge MeshPart of a placed kit road piece. SurfaceAppearance.ColorMap cannot
 -- be read in a running server, so it is found by shape: the verge has the largest
@@ -71,10 +82,21 @@ function RoadTiler.vergeOf(model: Instance): MeshPart?
 	return nil
 end
 
-local function tintVerge(model: Instance)
+local function tintVerge(model: Instance, paved: boolean)
 	local verge = RoadTiler.vergeOf(model)
-	local sa = verge and verge:FindFirstChildOfClass("SurfaceAppearance")
-	if sa then
+	if not verge then
+		return
+	end
+	local sa = verge:FindFirstChildOfClass("SurfaceAppearance")
+	if paved then
+		if sa then
+			sa:Destroy()
+		end
+		verge.Color = RoadTiler.PAVED_VERGE.color
+		verge.Material = RoadTiler.PAVED_VERGE.material
+		verge:SetAttribute("V3Exempt", "E4")
+		model:SetAttribute("PavedVerge", true)
+	elseif sa then
 		pcall(function()
 			sa.Color = RoadTiler.VERGE_TINT
 		end)
@@ -123,7 +145,7 @@ local function nearestDistrict(tiles: { RoadTiles.Tile }, pos: Vector3): string
 end
 
 function RoadTiler.build(parent: Instance, origin: CFrame, filter: { district: string? }?): { [string]: number }
-	local plan = RoadTiles.plan(TownLayout.ROADS :: any, TownLayout.ROUNDABOUTS :: any)
+	local plan = RoadTiles.plan(TownLayout.ROADS :: any, TownLayout.ROUNDABOUTS :: any, TownLayout.BRIDGES :: any)
 	local want = filter and filter.district
 	local models: { [string]: Model } = {}
 	local counts: { [string]: number } = { tiles = 0, meshParts = 0, missing = 0, exempt = 0, models = 0 }
@@ -139,7 +161,7 @@ function RoadTiler.build(parent: Instance, origin: CFrame, filter: { district: s
 			counts.missing += 1
 		else
 			stretchZ(model, tile.stretch)
-			tintVerge(model)
+			tintVerge(model, RoadTiler.isPavedVerge(tile.cframe.Position))
 		end
 		model:SetAttribute("Road", tile.road)
 		model:SetAttribute("TileKind", tile.kind)

@@ -287,4 +287,18 @@ T["diagonal roads keep furniture off lots and corridors"] = function()
 	end
 end
 
+-- Lane I stage 3: the walk test found 5 lamps / signs standing on the railway where
+-- roads cross it.
+T["nothing stands on the railway"] = function()
+	local input = fixture()
+	input.rail = { width = 16, points = { v(-400, -300), v(-400, 300) } }
+	assert(FurniturePlan.blockedBy(input, v(-400, 200), 1) == "rail", "a point on the track is blocked")
+	assert(FurniturePlan.blockedBy(input, v(-380, 200), 1) ~= "rail", "20 studs from the centreline is clear of the track")
+	local placements = plan(input)
+	for _, p in placements do
+		local pos = p.cframe.Position
+		assert(math.abs(pos.X + 400) >= 8, ("%s on the track at x %.0f"):format(p.category, pos.X))
+	end
+end
+
 return T

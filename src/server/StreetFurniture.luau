@@ -70,6 +70,7 @@ function StreetFurniture.townInput(): FurniturePlan.Input
 		specials = specials,
 		busStops = layout.BUS_STOPS,
 		bridges = layout.BRIDGES,
+		rail = layout.RAIL,
 		plots = plots,
 		plotSize = layout.PLOT_SIZE,
 		square = layout.SQUARE,

@@ -173,7 +173,8 @@ function Quality.isDecorative(inst: Instance): boolean
 	local node = inst.Parent
 	local depth = 0
 	while node and depth < MAX_ANCESTOR_DEPTH do
-		if node:GetAttribute("Decor") == true then
+		-- v3: builders tag decor models V3Decor (TOWN_V3_BUILD s9 rule 2)
+		if node:GetAttribute("Decor") == true or node:HasTag("V3Decor") then
 			return true
 		end
 		if node:IsA("Model") then

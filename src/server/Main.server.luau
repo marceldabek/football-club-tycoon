@@ -165,6 +165,14 @@ if game:GetService("RunService"):IsStudio() then
 	end)
 end
 
+-- A club saved into the place at the origin (the Edit-mode test suite builds one
+-- with no plot context) would stand in the Market Square: clubs only live on plots.
+local strayClub = workspace:FindFirstChild("Club")
+if strayClub then
+	print("[FCT] removed a stray Workspace.Club saved in the place file")
+	strayClub:Destroy()
+end
+
 Scenery.setupTown()
 TownBuilder.build()
 require(script.Parent.Backdrop).build()
@@ -209,15 +217,8 @@ print("[FCT] " .. require(script.Parent.ForecourtDresser).build())
 task.wait()
 print("[FCT] " .. require(script.Parent.SchoolDresser).build()) -- X320
 task.wait()
--- ImperfectionDresser is OFF in v3 (Lane I stage 2): about 900 primitive parts (lane
--- dashes, give-way lines, manholes, grates, patches) laid at v1 road heights on top of
--- kit roads that carry their own markings, while StreetFurniture places kit manholes,
--- give-ways, bins and cones. Its skips / bins walked v1 terrace blocks and built nothing.
-local V3_PRIMITIVE_IMPERFECTIONS = false
-if V3_PRIMITIVE_IMPERFECTIONS then
-	print("[FCT] " .. require(script.Parent.ImperfectionDresser).build())
-	task.wait()
-end
+-- v3: ImperfectionDresser (900 primitive road markings) was deleted in Lane I stage 3;
+-- kit roads carry their markings and StreetFurniture places manholes, bins and cones.
 print("[FCT] " .. require(script.Parent.RiverDresser).build())
 task.wait()
 print("[FCT] " .. require(script.Parent.MarinaDresser).build())
@@ -232,22 +233,8 @@ print("[FCT] " .. require(script.Parent.ViaductDresser).build())
 task.wait()
 print("[FCT] " .. require(script.Parent.BridgeDresser).build())
 task.wait()
--- WireDresser is OFF in v3: its poles are superseded by StreetFurniture's telegraph
--- poles, which stand elsewhere, so its wires would hang from nothing. Stage 2 either
--- strings wires between FurniturePlan's poles or deletes the module.
-local V3_OVERHEAD_WIRES = false
-if V3_OVERHEAD_WIRES then
-	print("[FCT] " .. require(script.Parent.WireDresser).build())
-	task.wait()
-end
--- CrossingDresser is OFF in v3 (Lane I stage 2): it looked for TownBuilder's "Pavement"
--- parts under each slab, which the kit roads replaced, so it placed 0 of 264 slabs; its
--- heights are v1 pavement heights and the slabs are primitives.
-local V3_PRIMITIVE_TACTILE_SLABS = false
-if V3_PRIMITIVE_TACTILE_SLABS then
-	print("[FCT] " .. require(script.Parent.CrossingDresser).build())
-	task.wait()
-end
+-- v3: WireDresser (poles superseded by StreetFurniture) and CrossingDresser (primitive
+-- tactile slabs keyed to v1 pavements) were deleted in Lane I stage 3.
 -- X341: after the street and estate passes, so it can see which roads they
 -- have already signed
 print("[FCT] " .. require(script.Parent.SignDresser).build())

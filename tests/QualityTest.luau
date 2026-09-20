@@ -204,4 +204,14 @@ function T.nonTextureNamedLikeFillerIsNotFiller()
 	assert(not Quality.isFillerTexture(part("slate")), "Part named slate")
 end
 
+-- Lane I stage 3: v3 builders tag their decor models V3Decor; Low hides them.
+function T.v3DecorTagHidesOnLow()
+	local tagged = model("UKSP__Anything")
+	tagged:AddTag("V3Decor")
+	local node = model("Anything_Node", tagged)
+	assert(Quality.isDecorative(part("Mesh", node)), "a part two levels under a V3Decor model hides")
+	assert(not Quality.isDecorative(part("Mesh", model("Anything_Node", model("UKSP__Anything")))), "untagged stays")
+	tagged:Destroy()
+end
+
 return T
