@@ -555,7 +555,8 @@ class Town:
                         setback = r["width"] / 2 + PAVE + garden + depth / 2
                         m = t + w / 2
                         cell = {"centre": (a[0] + ux * m + nx * setback, a[1] + uz * m + nz * setback),
-                                "size": (w, depth), "yaw": yaw, "use": use, "district": district}
+                                "size": (w, depth), "yaw": yaw, "use": use, "district": district,
+                                "front": (-nx, -nz)}
                         if run and run[-1]["use"] != use:
                             self.flush(run, r, yaw, key)
                             run = []
@@ -585,7 +586,8 @@ class Town:
             run = []
             for k in ((-0.5, 0.5) if got[0] == "semis" else (-1, 0, 1)):
                 cell = {"centre": (bx + ux * d - uz * k * w, bz + uz * d + ux * k * w),
-                        "size": (w, depth), "yaw": yaw, "use": got[0], "district": got[1]}
+                        "size": (w, depth), "yaw": yaw, "use": got[0], "district": got[1],
+                        "front": (-ux, -uz)}
                 if not self.fits(cell, heads=False, run=run):
                     run = []
                     break
@@ -609,7 +611,9 @@ class Town:
             shop, run = run[0], run[1:]
             self.rows.append((shop["district"] or "Rivermere", {
                 "centre": shop["centre"], "size": (w - 4.0, depth), "yaw": yaw,
-                "use": "corner shop", "street": r["name"]}))
+                "use": "corner shop", "street": r["name"], "front": shop["front"],
+                "units": 1, "unit_width": w, "corner": True, "key": key}))
+        first = True
         while run:
             take = run[:group]
             if use == "terraced row" and len(run) - len(take) == 1:
@@ -618,7 +622,10 @@ class Town:
             (x0, z0), (x1, z1) = take[0]["centre"], take[-1]["centre"]
             self.rows.append((take[0]["district"] or "Rivermere", {
                 "centre": ((x0 + x1) / 2, (z0 + z1) / 2),
-                "size": (len(take) * w - gap, depth), "yaw": yaw, "use": use, "street": r["name"]}))
+                "size": (len(take) * w - gap, depth), "yaw": yaw, "use": use, "street": r["name"],
+                "front": take[0]["front"], "units": len(take), "unit_width": w,
+                "corner": first or not run, "key": key}))
+            first = False
 
     # --- output ----------------------------------------------------------
     def data(self):
@@ -697,6 +704,44 @@ def audit(d, title, home=is_housing):
     print("  mix: " + ", ".join(f"{k} {v}" for k, v in sorted(mix.items(), key=lambda kv: -kv[1])))
 
 
+HEIGHT = {"terraced row": 28, "semis": 28, "detached house": 28, "corner shop": 28,
+          "shops with flats": 36, "shops": 20, "flats": 44, "workshop": 24, "trade counter": 24,
+          "warehouse": 36}   # TEMP nominal heights in studs
+
+
+def write_json(d, town, path):
+    """The Wave 1 contract (docs/TOWN_V3_BUILD.md s4) as data, so builder lanes can start
+    before the Luau port exists. Query it with python; it is too big to read whole."""
+    import json
+    lots, seen = [], {}
+    for district, b in town.rows:
+        n = seen[b["key"]] = seen.get(b["key"], 0) + 1
+        lots.append({
+            "id": f'{b["key"]}|{n}', "use": b["use"], "district": district, "street": b["street"],
+            "centre": [round(b["centre"][0], 2), 0, round(b["centre"][1], 2)],
+            "size": [round(b["size"][0], 2), HEIGHT[b["use"]], round(b["size"][1], 2)],
+            "yaw": round(b["yaw"], 2),
+            "front": [round(b["front"][0], 4), 0, round(b["front"][1], 4)],
+            "units": b["units"], "unitWidth": b["unit_width"],
+            "closesStreet": bool(b.get("closes_street")), "corner": bool(b["corner"])})
+    out = {
+        "extent": d["extent"], "headRadius": HEAD,
+        "types": {k: dict(zip(("cell", "depth", "group", "gap", "garden"), v), height=HEIGHT[k])
+                  for k, v in TYPES.items()},
+        "roads": [{"name": r["name"], "kind": r["kind"], "width": r["width"],
+                   "points": [[x, 0, z] for x, z in r["points"]], "front": r["front"],
+                   "head": bool(r["head"]), "district": r["district"]} for r in d["roads"]],
+        "plots": [{"name": q["name"], "centre": [q["centre"][0], 0, q["centre"][1]],
+                   "faces": q["faces"]} for q in PLOTS],
+        "roundabouts": [{"name": n, "centre": [x, 0, z], "radius": rad} for n, x, z, rad in ROUNDABOUTS],
+        "specials": [{"district": n, "use": b["use"], "centre": [b["centre"][0], 0, b["centre"][1]],
+                      "size": [b["size"][0], 0, b["size"][1]], "yaw": b["yaw"]} for n, b in town.kept],
+        "lots": lots,
+    }
+    path.write_text(json.dumps(out, indent=0), encoding="utf-8")
+    print(f"  wrote {path} ({len(lots)} lots, {len(out['roads'])} roads)")
+
+
 def main():
     live = parse()
     town = Town(live)
@@ -717,6 +762,8 @@ def main():
         print(f"  {p['name']}: {p['was']} -> {p['centre']}  moved {math.dist(p['was'], p['centre']):.0f}")
 
     docs = ROOT / "docs"
+    if "--json" in sys.argv:
+        write_json(d, town, docs / "town_v3_lots.json")
     counts = {}
     for dist in d["districts"]:
         for b in dist["blocks"]:
