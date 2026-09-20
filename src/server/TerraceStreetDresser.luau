@@ -45,6 +45,12 @@ TerraceStreetDresser.PART_BUDGET = 1240 -- TEMP; +40 for the third canopy lobe o
 -- X59 (TEMP): light streets dressed after the rest from their own reserve, so the
 -- Westdale district (RiveremereWestdale.png) isn't left bare by the budget and
 -- the streets nearer the square keep the dressing they had
+-- v3 (Lane I stage 1): disabled rather than deleted, because the garden / car
+-- maths is shared with tests, CentreTreeDresser and SignDresser. Stage 2 removes
+-- the code. Front gardens are HouseAssembler's Boundaries; parked cars are
+-- StreetFurniture's. Street trees and name plates are still built here.
+TerraceStreetDresser.V3_HOUSING_RETIRED = true
+TerraceStreetDresser.V3_PARKED_CARS_RETIRED = true
 TerraceStreetDresser.PRIORITY_STREETS = { "Weir Road" }
 TerraceStreetDresser.PRIORITY_RESERVE = 260
 TerraceStreetDresser.TREE_INSET = 2.2 -- trunk centre from the kerb edge (walkers use pavement centre, +4)
@@ -710,11 +716,16 @@ local function dressEntry(entry: Entry, parent: Instance, roads: { TownLayout.Ro
 			sign(parent, cf, road.name)
 		end
 	end
-	for _, front in entry.fronts do
-		garden(parent, front, full, rng)
+	if not TerraceStreetDresser.V3_HOUSING_RETIRED then
+		for _, front in entry.fronts do
+			garden(parent, front, full, rng)
+		end
 	end
 	for _, spot in TerraceStreetDresser.treeSpots(road, if full then 40 else 56, entry.range, lamps, roads, onBlock) do
 		tree(parent, spot, full, rng)
+	end
+	if TerraceStreetDresser.V3_PARKED_CARS_RETIRED then
+		return
 	end
 	-- StreetDresser parks the showpiece's cars on the right-hand kerb (+1)
 	local sides = if full and isKitStreet then { -1 } else { -1, 1 }

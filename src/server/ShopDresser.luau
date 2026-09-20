@@ -1,11 +1,6 @@
 --!strict
--- Replaces the greybox shop, flats and civic volumes in every district with
--- ShopBuilder buildings (backlog E2.1). Runs after TownBuilder.build() (and the
--- other dressers); output goes to workspace.Town.Shops, one Model per district.
---
--- Greybox volumes are found under workspace.Town.Districts.<district> by name
--- (block.use and block.use .. " roof", see TownBuilder.buildBlock) AND by
--- position, since many blocks share a use.
+-- v1 shop placement maths (which way a shop / flats / civic block faces). The
+-- BUILDING half was retired by v3 Lane I: TradeAssembler builds those blocks.
 --
 -- Each building turns to face its nearest road (ShopDresser.facingYaw): the
 -- long side faces the road, or for near-square blocks whichever side is
@@ -15,7 +10,6 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
-local ShopBuilder = require(script.Parent.ShopBuilder)
 
 local ShopDresser = {}
 
@@ -86,73 +80,9 @@ function ShopDresser.placement(block: TownLayout.Box, roads: { TownLayout.Road }
 	return cf, length, depth
 end
 
-local function removeGreybox(greybox: Instance?, block: TownLayout.Box): number
-	if not greybox then
-		return 0
-	end
-	local removed = 0
-	local roofName = block.use .. " roof"
-	for _, p in greybox:GetChildren() do
-		if (p.Name == block.use or p.Name == roofName) and p:IsA("BasePart") then
-			local pos = p.Position
-			if math.abs(pos.X - block.centre.X) <= MATCH_RADIUS and math.abs(pos.Z - block.centre.Z) <= MATCH_RADIUS then
-				p:Destroy()
-				removed += 1
-			end
-		end
-	end
-	return removed
-end
-
--- Returns a summary line for the log.
-function ShopDresser.build(): string
-	local town = workspace:FindFirstChild("Town")
-	if not town then
-		return "shops: no town"
-	end
-	local old = town:FindFirstChild("Shops")
-	if old then
-		old:Destroy()
-	end
-	local folder = Instance.new("Folder")
-	folder.Name = "Shops"
-	local districts = town:FindFirstChild("Districts")
-	local rng = Random.new(2101)
-	local blocks = 0
-	for _, district in TownLayout.DISTRICTS do
-		local m: Model? = nil
-		local greybox = districts and districts:FindFirstChild(district.name)
-		for _, block in district.blocks do
-			if not ShopDresser.handles(block.use) then
-				continue
-			end
-			if not m then
-				local model = Instance.new("Model")
-				model.Name = district.name
-				model.Parent = folder
-				m = model
-			end
-			local parent = m :: Model
-			removeGreybox(greybox, block)
-			local cf, length, depth = ShopDresser.placement(block, TownLayout.ROADS)
-			if ShopDresser.FLATS_USES[block.use] then
-				ShopBuilder.flats(cf, Vector3.new(depth, block.size.Y, length), parent, block.use == "waterfront flats") -- X146 balconies
-			elseif ShopDresser.CIVIC_USES[block.use] then
-				ShopBuilder.civic(cf, Vector3.new(depth, block.size.Y, length), parent, block.use)
-			else
-				ShopBuilder.shopRow(cf, length, depth, block.size.Y, parent, rng, block.use, district.name)
-			end
-			blocks += 1
-		end
-	end
-	folder.Parent = town
-	local parts = 0
-	for _, d in folder:GetDescendants() do
-		if d:IsA("BasePart") then
-			parts += 1
-		end
-	end
-	return ("shops: %d blocks, %d parts"):format(blocks, parts)
-end
+-- v3 (Lane I): ShopDresser.build is retired; TradeAssembler builds every shop,
+-- pub, flats and civic block from the kit. The placement maths above stays for
+-- ForecourtDresser and ImperfectionDresser until stage 2 re-points them at
+-- TradeAssembler.lotFrame.
 
 return ShopDresser

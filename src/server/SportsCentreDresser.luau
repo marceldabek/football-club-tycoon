@@ -19,6 +19,10 @@ local KitPlacer = require(script.Parent.KitPlacer)
 
 local SportsCentreDresser = {}
 
+-- v3 (Lane I stage 1): TradeAssembler builds the sports hall from the kit, so the
+-- primitive hall here is off. Stage 2 deletes buildHall and its tests.
+SportsCentreDresser.V3_HALL_RETIRED = true
+
 local DISTRICT = "Community Sports Centre"
 local SLAB_TOP = 0.3
 local LINE_W = 1
@@ -321,7 +325,7 @@ function SportsCentreDresser.build(): string
 				end
 				buildPitch(root, block, is3G)
 				pitches += 1
-			elseif block.use == "sports hall" then
+			elseif block.use == "sports hall" and not SportsCentreDresser.V3_HALL_RETIRED then
 				if greybox then
 					for _, p in greybox:GetChildren() do
 						if p:IsA("BasePart") and (p.Name == block.use or p.Name == block.use .. " roof") and math.abs(p.Position.X - block.centre.X) <= 0.5 and math.abs(p.Position.Z - block.centre.Z) <= 0.5 then

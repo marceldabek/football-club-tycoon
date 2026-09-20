@@ -36,6 +36,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local TownCrest = require(ReplicatedStorage.Shared.TownCrest)
+local TradeRecipes = require(ReplicatedStorage.Shared.TradeRecipes)
+local TradeAssembler = require(script.Parent.TradeAssembler)
 
 local TownBuilder = {}
 
@@ -71,16 +73,7 @@ local FOOTWAY_HEIGHT = 0.25
 local VIADUCT_THICK = 3
 local RAMP_MAX = 180 -- viaduct approach embankment length
 local RAIL_OFFSETS = { -5.95, -2.05, 2.05, 5.95 } -- twin track, two rails each
-local PAVE_CELL = 2 -- pavement clipping resolution
-local PAVE_MIN_RUN = 3
 local OVERLAP_TOL = 0.05
--- X75: estate closes get a grass verge along the kerb edge of each pavement
--- (RivermereNorthfields.png). It sits 0.04 proud of the pavement and 0.05 in
--- from the kerb so no faces share a plane; lamps and tree pits stand in it.
-TownBuilder.VERGE_ROADS = { ["Hayfield Close"] = true, ["Rowan Close"] = true } :: { [string]: boolean }
-TownBuilder.VERGE_WIDTH = 1.8
-local VERGE_KERB_GAP = 0.05
-local VERGE_PROUD = 0.04
 
 local COLOURS = {
 	asphalt = Color3.fromRGB(78, 80, 84),
@@ -135,26 +128,6 @@ end
 -- Carriageway top for a road kind.
 function TownBuilder.roadTop(kind: string): number
 	return Y.ROAD[kind] or Y.ROAD.lane
-end
-
--- Runs of unblocked cells: { {startDistance, endDistance} }, dropping runs
--- shorter than minLength.
-function TownBuilder.freeRuns(blocked: { boolean }, cellLength: number, minLength: number): { { number } }
-	local runs: { { number } } = {}
-	local start: number? = nil
-	for i = 1, #blocked + 1 do
-		local free = i <= #blocked and not blocked[i]
-		if free and start == nil then
-			start = i
-		elseif not free and start ~= nil then
-			local s0, s1 = (start - 1) * cellLength, (i - 1) * cellLength
-			if s1 - s0 >= minLength - 1e-6 then
-				table.insert(runs, { s0, s1 })
-			end
-			start = nil
-		end
-	end
-	return runs
 end
 
 -- Oriented rectangle in XZ: centre, unit long axis (ux, uz), half length, half width.
@@ -308,15 +281,6 @@ end
 
 -- ------------------------------------------------------------------- roads
 
-local function nearRoundabout(p: Vector3): boolean
-	for _, r in TownLayout.ROUNDABOUTS do
-		if near(p, r.centre, 1) then
-			return true
-		end
-	end
-	return false
-end
-
 local function interiorIndices(points: { Vector3 }): { number }
 	local out = {}
 	local n = #points
@@ -329,181 +293,12 @@ local function interiorIndices(points: { Vector3 }): { number }
 	return out
 end
 
-type Blockers = { rects: { Rect }, circles: { { number } }, roadRects: { [string]: { [number]: Rect } } }
-
--- Everything a pavement must not be laid over: carriageways, bend joints,
--- roundabouts, the square, bridge decks and the railway.
-local function pavementBlockers(): Blockers
-	local rects: { Rect } = {}
-	local circles: { { number } } = {}
-	local roadRects: { [string]: { [number]: Rect } } = {}
-	for _, road in TownLayout.ROADS do
-		local half = road.width / 2
-		local own: { [number]: Rect } = {}
-		roadRects[road.name] = own
-		for i = 1, #road.points - 1 do
-			local r = TownBuilder.segmentRect(road.points[i], road.points[i + 1], half)
-			if r then
-				table.insert(rects, r)
-				own[i] = r
-			end
-		end
-		for _, i in interiorIndices(road.points) do
-			table.insert(circles, { road.points[i].X, road.points[i].Z, half })
-		end
-	end
-	for _, r in TownLayout.ROUNDABOUTS do
-		table.insert(circles, { r.centre.X, r.centre.Z, r.radius })
-	end
-	table.insert(circles, { TownLayout.SQUARE.centre.X, TownLayout.SQUARE.centre.Z, TownLayout.SQUARE.radius })
-	for _, bridge in TownLayout.BRIDGES do
-		local deckWidth = if bridge.kind == "road" then bridge.width + 2 * (PAVEMENT_WIDTH + PARAPET_THICK) else bridge.width + 4
-		local r = TownBuilder.segmentRect(bridge.from, bridge.to, deckWidth / 2)
-		if r then
-			table.insert(rects, r)
-		end
-	end
-	local layby = TownLayout.STATION_LAYBY
-	local laybyRect = TownBuilder.segmentRect(layby.from, layby.to, layby.width / 2)
-	if laybyRect then
-		table.insert(rects, laybyRect)
-	end
-	local rail = TownLayout.RAIL
-	for i = 1, #rail.points - 1 do
-		local r = TownBuilder.segmentRect(rail.points[i], rail.points[i + 1], rail.width / 2 + 1)
-		if r then
-			table.insert(rects, r)
-		end
-	end
-	for i = 2, #rail.points - 1 do
-		table.insert(circles, { rail.points[i].X, rail.points[i].Z, rail.width / 2 + 1 })
-	end
-	return { rects = rects, circles = circles, roadRects = roadRects }
-end
-
-local function cellBlocked(cell: Rect, blockers: Blockers, own: Rect?, accepted: { Rect }): boolean
-	for _, r in blockers.rects do
-		if r ~= own and TownBuilder.rectsOverlap(cell, r) then
-			return true
-		end
-	end
-	for _, c in blockers.circles do
-		if TownBuilder.circleOverlapsRect(c[1], c[2], c[3], cell) then
-			return true
-		end
-	end
-	for _, r in accepted do
-		if TownBuilder.rectsOverlap(cell, r) then
-			return true
-		end
-	end
-	return false
-end
-
-local function buildPavements(parent: Instance, road: TownLayout.Road, blockers: Blockers, accepted: { Rect })
-	local half = road.width / 2
-	local ownRects = blockers.roadRects[road.name] or {}
-	for i = 1, #road.points - 1 do
-		local a = road.points[i]
-		local own = ownRects[i]
-		if not own then
-			continue
-		end
-		local ux, uz = own.ux, own.uz
-		local rx, rz = -uz, ux
-		local length = own.hl * 2
-		local count = math.max(1, math.floor(length / PAVE_CELL + 0.5))
-		local cellLength = length / count
-		for _, side in { -1, 1 } do
-			local lateral = side * (half + PAVEMENT_WIDTH / 2)
-			local ox, oz = a.X + rx * lateral, a.Z + rz * lateral
-			local blocked: { boolean } = table.create(count, false)
-			for k = 1, count do
-				local s = (k - 0.5) * cellLength
-				local cell = TownBuilder.rect(ox + ux * s, oz + uz * s, ux, uz, cellLength / 2, PAVEMENT_WIDTH / 2)
-				blocked[k] = cellBlocked(cell, blockers, own, accepted)
-			end
-			for _, run in TownBuilder.freeRuns(blocked, cellLength, PAVE_MIN_RUN) do
-				local s = (run[1] + run[2]) / 2
-				local runLength = run[2] - run[1]
-				local cx, cz = ox + ux * s, oz + uz * s
-				local centre = Vector3.new(cx, Y.PAVEMENT / 2, cz)
-				part({
-					Name = "Pavement",
-					Size = Vector3.new(PAVEMENT_WIDTH, Y.PAVEMENT, runLength),
-					CFrame = CFrame.lookAt(centre, centre + Vector3.new(ux, 0, uz)),
-					Color = COLOURS.pavement,
-					Material = Enum.Material.Concrete,
-					CastShadow = false,
-					Parent = parent,
-				})
-				table.insert(accepted, TownBuilder.rect(cx, cz, ux, uz, runLength / 2, PAVEMENT_WIDTH / 2))
-				if TownBuilder.VERGE_ROADS[road.name] then
-					local w = TownBuilder.VERGE_WIDTH
-					local shift = side * (half + VERGE_KERB_GAP + w / 2 - (half + PAVEMENT_WIDTH / 2))
-					-- top at Y.PAVEMENT + VERGE_PROUD, bottom buried 0.04 in the pavement
-					local vergeCentre = Vector3.new(cx + rx * shift, Y.PAVEMENT + VERGE_PROUD / 2 - 0.02, cz + rz * shift)
-					part({
-						Name = "Verge",
-						Size = Vector3.new(w, VERGE_PROUD + 0.04, runLength - 0.1),
-						CFrame = CFrame.lookAt(vergeCentre, vergeCentre + Vector3.new(ux, 0, uz)),
-						Color = COLOURS.lawn,
-						Material = Enum.Material.Grass,
-						CastShadow = false,
-						Parent = parent,
-					})
-				end
-			end
-		end
-	end
-end
-
+-- v3 (Lane I): carriageways, bend joints, pavements, verges and roundabout discs
+-- are RoadTiler's kit tiles now (Main.server.luau). Only the Market Square's
+-- paved ground is still laid here. workspace.Town.Roads stays as its holder.
 local function buildRoads(parent: Instance)
-	for _, r in TownLayout.ROUNDABOUTS do
-		local m = model(r.name, parent)
-		disc(m, "Roundabout", r.centre, r.radius, Y.ROUNDABOUT, Y.ROUNDABOUT, COLOURS.asphalt, Enum.Material.Asphalt)
-		disc(m, "Island", r.centre, r.radius * 0.35, Y.ISLAND, Y.ISLAND, COLOURS.island, Enum.Material.Grass)
-	end
-
 	local square = TownLayout.SQUARE
 	disc(parent, square.name, square.centre, square.radius, Y.SQUARE, Y.SQUARE, COLOURS.square, Enum.Material.Pavement)
-
-	local blockers = pavementBlockers()
-	local accepted: { Rect } = {}
-	for _, road in TownLayout.ROADS do
-		local m = model(road.name, parent)
-		-- X62: a carriageway is one long part per polyline segment (up to ~2,600
-		-- studs) and streams by its centre, so far-reaching roads went missing on
-		-- clients and traffic drove over grass. Roads are ~360 parts in all:
-		-- always stream them.
-		m.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
-		local top = TownBuilder.roadTop(road.kind)
-		for i = 1, #road.points - 1 do
-			local segTop = top + (if i % 2 == 0 then Y.STEP else 0)
-			local cf, length = TownBuilder.segmentCFrame(road.points[i], road.points[i + 1], segTop / 2)
-			if length > 0 then
-				part({
-					Name = "Road",
-					Size = Vector3.new(road.width, segTop, length),
-					CFrame = cf,
-					Color = COLOURS.asphalt,
-					Material = Enum.Material.Asphalt,
-					CastShadow = false,
-					Parent = m,
-				})
-			end
-		end
-		-- bend joints sit just under the segments so they only show in the gaps
-		for _, i in interiorIndices(road.points) do
-			local p = road.points[i]
-			if not nearRoundabout(p) then
-				disc(m, "Joint", p, road.width / 2, top - Y.STEP, top - Y.STEP, COLOURS.asphalt, Enum.Material.Asphalt)
-			end
-		end
-		if road.kind ~= "lane" then
-			buildPavements(m, road, blockers, accepted)
-		end
-	end
 end
 
 -- ----------------------------------------------------------------- bridges
@@ -832,6 +627,11 @@ local function buildDistricts(parent: Instance)
 		local m = model(district.name, parent)
 		m:SetAttribute("DistrictKind", district.kind)
 		for _, block in district.blocks do
+			-- v3 (Lane I): TradeAssembler builds these specials from the kit, so they get
+			-- no greybox volume. Ground uses and the church (SquareDresser's) still do.
+			if TradeRecipes.SPECIAL_USES[block.use] and not TradeAssembler.OWNED_ELSEWHERE[block.use] then
+				continue
+			end
 			buildBlock(m, block)
 		end
 	end

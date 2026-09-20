@@ -168,10 +168,31 @@ end
 Scenery.setupTown()
 TownBuilder.build()
 require(script.Parent.Backdrop).build()
-print("[FCT] " .. require(script.Parent.StreetDresser).build())
+
+-- Rivermere v3: roads, housing, trade / civic buildings and street furniture come
+-- from the kit (docs/TOWN_V3_BUILD.md). Each builder prints its own [FCT] line and
+-- gets its own holder so its V3Perf count is its own. Furniture goes last: it reads
+-- the same layout data, but belongs on top of the roads and lots.
+do
+	local town = workspace:WaitForChild("Town")
+	local function holder(name: string): Folder
+		local folder = Instance.new("Folder")
+		folder.Name = name
+		folder.Parent = town
+		return folder
+	end
+	local origin = CFrame.identity
+	require(script.Parent.RoadTiler).build(holder("V3Roads"), origin, nil)
+	require(script.Parent.HouseAssembler).build(holder("V3Housing"), origin, nil)
+	require(script.Parent.TradeAssembler).build(holder("V3Trade"), origin, nil)
+	require(script.Parent.StreetFurniture).build(holder("V3Furniture"), origin, nil)
+end
+
+-- Retired by v3 Lane I: StreetDresser.build and ShopDresser.build (gone), the
+-- housing / parked-car halves of TerraceStreetDresser, EstateDresser's building
+-- pass and SportsCentreDresser's hall (V3_*_RETIRED constants in those files).
 print("[FCT] " .. require(script.Parent.TerraceStreetDresser).build())
 print("[FCT] " .. require(script.Parent.SquareDresser).build())
-print("[FCT] " .. require(script.Parent.ShopDresser).build())
 print("[FCT] " .. require(script.Parent.EstateDresser).build())
 print("[FCT] " .. require(script.Parent.ForecourtDresser).build())
 print("[FCT] " .. require(script.Parent.SchoolDresser).build()) -- X320
@@ -183,7 +204,13 @@ print("[FCT] " .. require(script.Parent.StationDresser).build())
 print("[FCT] " .. require(script.Parent.SportsCentreDresser).build())
 print("[FCT] " .. require(script.Parent.ViaductDresser).build())
 print("[FCT] " .. require(script.Parent.BridgeDresser).build())
-print("[FCT] " .. require(script.Parent.WireDresser).build())
+-- WireDresser is OFF in v3: its poles are superseded by StreetFurniture's telegraph
+-- poles, which stand elsewhere, so its wires would hang from nothing. Stage 2 either
+-- strings wires between FurniturePlan's poles or deletes the module.
+local V3_OVERHEAD_WIRES = false
+if V3_OVERHEAD_WIRES then
+	print("[FCT] " .. require(script.Parent.WireDresser).build())
+end
 print("[FCT] " .. require(script.Parent.CrossingDresser).build())
 -- X341: after the street and estate passes, so it can see which roads they
 -- have already signed

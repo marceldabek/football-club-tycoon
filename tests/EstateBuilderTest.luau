@@ -255,30 +255,9 @@ function T.semiPairGardenReachesNoFurtherThanGardenReach()
 end
 
 -- Every semis block in the layout: garden wall >= PLOT_MARGIN inside the road edge, houses inside the block.
-function T.layoutSemisPlotsStayInsideTheirBlocks()
-	local checked = 0
-	for _, district in TownLayout.DISTRICTS do
-		for _, b in district.blocks do
-			if b.use ~= "semis" then
-				continue
-			end
-			local _, width, depth = EstateDresser.placement(b, TownLayout.ROADS)
-			local houseDepth, houseX = EstateDresser.pairFit(depth)
-			local label = ("%s block at %s"):format(district.name, tostring(b.centre))
-			assert(houseDepth >= EstateBuilder.MIN_HOUSE_DEPTH - 1e-6, label .. ": house too shallow")
-			assert(houseX - houseDepth / 2 - EstateBuilder.GARDEN_REACH >= -depth / 2 + 0.5 - 1e-6, label .. ": garden on the pavement")
-			assert(houseX + houseDepth / 2 <= depth / 2 + 1e-6, label .. ": house past the back edge")
-			assert(houseDepth <= EstateBuilder.MAX_HOUSE_DEPTH + 1e-6, label .. ": house too deep")
-			local slots = EstateBuilder.rowLayout(width, EstateBuilder.SIDE_GAP)
-			for _, slot in slots do
-				-- 22-wide blocks facing the road on their short side get a 16.5-wide pair
-				assert(slot.width >= 16, ("%s: pair only %.1f wide"):format(label, slot.width))
-			end
-			checked += 1
-		end
-	end
-	assert(checked > 0, "no semis blocks found")
-end
+-- v3 (Lane I): layoutSemisPlotsStayInsideTheirBlocks is gone. It walked the v1 "semis" blocks in
+-- TownLayout.DISTRICTS; v3 semis are TownFrontage lots built by HouseAssembler, and
+-- HouseAssemblerTest checks that those fit their lots.
 
 function T.driveCarFitShrinksTheKitCarOntoTheDrive()
 	local kit = Vector3.new(9.8, 6, 19.4) -- long axis on Z

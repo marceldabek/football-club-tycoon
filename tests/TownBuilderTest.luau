@@ -53,17 +53,6 @@ function T.segmentCFrameZeroLength()
 	assert(close(cf.Position.X, 5) and close(cf.Position.Y, 1), tostring(cf.Position))
 end
 
-function T.freeRunsSplitsAndDropsShortRuns()
-	local blocked = { false, false, true, false, true, true, false, false, false }
-	local runs = TownBuilder.freeRuns(blocked, 2, 3)
-	assert(#runs == 2, "runs " .. #runs)
-	assert(runs[1][1] == 0 and runs[1][2] == 4, "run 1")
-	assert(runs[2][1] == 12 and runs[2][2] == 18, "run 2")
-	assert(#TownBuilder.freeRuns({ true, true }, 2, 1) == 0, "all blocked")
-	local all = TownBuilder.freeRuns({ false, false, false }, 1.5, 1)
-	assert(#all == 1 and all[1][1] == 0 and close(all[1][2], 4.5), "all free")
-end
-
 function T.rectsOverlapCrossingParallelTouching()
 	local road = TownBuilder.segmentRect(Vector3.new(-50, 0, 0), Vector3.new(50, 0, 0), 10) :: TownBuilder.Rect
 	local crossing = TownBuilder.segmentRect(Vector3.new(0, 0, -50), Vector3.new(0, 0, 50), 4) :: TownBuilder.Rect
@@ -104,21 +93,6 @@ function T.yLevelsAreOrderedAndDistinct()
 		end
 	end
 	assert(TownBuilder.roadTop("unknown") == lane, "fallback kind")
-end
-
--- X75: every verge road exists, is residential, and its verge fits inside
--- the pavement with room left for walkers (they use the pavement centre).
-function T.vergeRoadsAreRealResidentialRoads()
-	local byName = {}
-	for _, road in TownLayout.ROADS do
-		byName[road.name] = road
-	end
-	for name in TownBuilder.VERGE_ROADS do
-		local road = byName[name]
-		assert(road, "no road " .. name)
-		assert(road.kind == "residential", name .. " is " .. road.kind)
-	end
-	assert(TownBuilder.VERGE_WIDTH > 0 and TownBuilder.VERGE_WIDTH < TownLayout.PAVEMENT_WIDTH / 2 - 1, "verge leaves the pavement centre clear")
 end
 
 -- X149: one timetable line per route number on the stop's flag

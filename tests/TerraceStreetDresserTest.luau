@@ -69,11 +69,23 @@ function T.millStreetRowsHaveSixStudFrontGardens()
 	assert(TerraceStreetDresser.frontage(StreetDresser.lightRowPlacement(overhang), 140, 24, mill) == nil, "row past x 900")
 end
 
+-- v3: Mill Street (0,-200) to (900,-200) is no longer a lone cul-de-sac off North Road. The
+-- centre grid crosses it (Fountain Street 250, Spinner Street 450, Dyers Lane 500, Park
+-- Street 750) and it ends on Park Road at 900. Was 1 junction in v1.
 function T.millStreetMeetsNorthRoadOnly()
 	local js = TerraceStreetDresser.junctions(road("Mill Street"), TownLayout.ROADS)
-	assert(#js == 1, "expected 1 junction, got " .. #js)
-	local j = js[1]
-	assert(j.other.name == "North Road", "junction with " .. j.other.name)
+	assert(#js == 6, "expected 6 junctions, got " .. #js)
+	local j
+	local through = 0
+	for _, candidate in js do
+		if candidate.other.name == "North Road" then
+			j = candidate
+		elseif #candidate.dirs == 2 then
+			through += 1
+		end
+	end
+	assert(j, "no junction with North Road")
+	assert(through == 4, "expected 4 cross streets with Mill Street running on both ways, got " .. through)
 	assert((j.point - Vector3.new(0, 0, -200)).Magnitude < 1e-3, "point " .. tostring(j.point))
 	assert(#j.dirs == 1 and j.dirs[1].X > 0.99, "Mill Street only leaves the junction eastwards")
 	local weaver = TerraceStreetDresser.junctions(road("Weaver Street"), TownLayout.ROADS)
@@ -89,15 +101,21 @@ end
 function T.signsStandOnTheCornersPastTheMouth()
 	local mill = road("Mill Street")
 	local spots = TerraceStreetDresser.signSpots(mill, TownLayout.ROADS)
-	assert(#spots == 2, "expected 2 Mill Street signs, got " .. #spots)
+	-- v3: 11 plates (2 at North Road as in v1, 8 at the four cross streets, 1 at Park Road); was 2
+	assert(#spots == 11, "expected 11 Mill Street signs, got " .. #spots)
 	local x = 13 + 8 + TerraceStreetDresser.SIGN_GAP + TerraceStreetDresser.plateWidth("MILL STREET") / 2
+	local atNorthRoad = 0
 	for _, cf in spots do
 		local p = cf.Position
-		assert(close(p.X, x), "sign x " .. p.X)
+		if p.X < 100 then
+			atNorthRoad += 1
+			assert(close(p.X, x), "sign x " .. p.X)
+		end
 		assert(close(math.abs(p.Z + 200), 10 + 8 - TerraceStreetDresser.SIGN_BACK), "sign z " .. p.Z)
 		assert(cf.LookVector.Z * (p.Z + 200) < 0, "plate faces the carriageway")
 		assert(math.abs(cf.RightVector.X) > 0.99, "plate runs along the street")
 	end
+	assert(atNorthRoad == 2, "expected 2 signs at the North Road mouth, got " .. atNorthRoad)
 	-- Church Lane Ts into Weaver Street from +Z: signs only on that side
 	local church = 0
 	for _, cf in TerraceStreetDresser.signSpots(road("Weaver Street"), TownLayout.ROADS) do

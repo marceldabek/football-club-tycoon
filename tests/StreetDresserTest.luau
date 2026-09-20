@@ -32,22 +32,6 @@ function T.stationsAreEvenlySpacedAcrossBends()
 	assert(st[4].direction.Z > 0.99, "direction follows the second leg")
 end
 
-function T.lightStreetsPickTheDistrictsResidentialStreets()
-	local function names(district: string): { [string]: boolean }
-		local out: { [string]: boolean } = {}
-		for _, road in StreetDresser.lightStreets(district) do
-			out[road.name] = true
-		end
-		return out
-	end
-	local north = names("Northfields")
-	assert(north["Northfields Avenue"] and north["Hayfield Close"] and north["Rowan Close"], "Northfields streets missing")
-	assert(not north["Mill Street"] and not north["Elm Grove"] and not north["North Road"], "Northfields picked a street it should not")
-	local west = names("Westdale")
-	assert(west["Westdale Avenue"] and west["Westdale Crescent"], "Westdale streets missing")
-	assert(not west["Sports Centre Road"], "Sports Centre Road is not Westdale's")
-end
-
 function T.lightRowsFaceTheNearestRoad()
 	-- north of Northfields Avenue (z = -600): the front must face -Z
 	local cf = StreetDresser.lightRowPlacement({ centre = Vector3.new(-290, 12, -570), size = Vector3.new(100, 24, 24), yaw = 0, use = "terraced row" })

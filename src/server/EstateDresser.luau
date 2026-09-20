@@ -396,6 +396,13 @@ end
 -- X57: a railed play area (climbing tower with slide, swings, bench) on the
 -- grass near a district's gateway, like the one beside the NORTHFIELDS stone
 -- in RivermereNorthfields.png.
+-- v3 (Lane I stage 1): the semis / warehouse / workshop / trade counter / builders
+-- yard building pass is disabled, not deleted: HouseAssembler and TradeAssembler
+-- build those lots from the kit. EstateBuilder stays only because this file and
+-- ForecourtDresser still read its maths; stage 2 removes both. District name
+-- stones, the play area, lamp banners and roundabout shrubs are still built here.
+EstateDresser.V3_BLOCKS_RETIRED = true
+
 local PLAY_AREA_DISTRICTS = { "Northfields" }
 local PLAY_AREA_SIDE = 28 -- TEMP studs, railings included
 
@@ -844,7 +851,8 @@ function EstateDresser.build(): string
 	local treeCount = 0
 	local pairCount, shedCount, driveCount, kitCars = 0, 0, 0, 0
 
-	for _, district in TownLayout.DISTRICTS do
+	local blockDistricts: { TownLayout.District } = if EstateDresser.V3_BLOCKS_RETIRED then {} else TownLayout.DISTRICTS
+	for _, district in blockDistricts do
 		local hasBlocks = false
 		for _, block in district.blocks do
 			if USES[block.use] then

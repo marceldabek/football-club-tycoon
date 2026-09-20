@@ -119,6 +119,11 @@ function TradeAssembler.buildLot(parent: Instance, origin: CFrame, lot: TradeRec
 	return model
 end
 
+-- Lane I: specials another module owns in the live town, so nothing is built twice. The church is
+-- SquareDresser's (same ChurchSpire keeper, plus the churchyard round it). buildLot still builds
+-- one on request, for the sandbox and the tests.
+TradeAssembler.OWNED_ELSEWHERE = { church = "SquareDresser" } :: { [string]: string }
+
 function TradeAssembler.build(parent: Instance, origin: CFrame, filter: { district: string? }?): { [string]: number }
 	-- TownFrontage / TownLayout are read when they hold v3 data; TradeRecipes falls back to its
 	-- fixture for whichever is missing or still a stub.
@@ -137,6 +142,9 @@ function TradeAssembler.build(parent: Instance, origin: CFrame, filter: { distri
 	local lots = 0
 	for _, lot in TradeRecipes.lots(optional("TownFrontage"), optional("TownLayout")) do
 		if wanted and lot.district ~= wanted then
+			continue
+		end
+		if TradeAssembler.OWNED_ELSEWHERE[lot.use] then
 			continue
 		end
 		local group = districts[lot.district]

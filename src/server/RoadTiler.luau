@@ -14,10 +14,9 @@ local KitPlacer = require(script.Parent.KitPlacer)
 
 local RoadTiler = {}
 
--- TEMP from TOWN_V3_BUILD.md s9. NOTE the s9 figure assumed one MeshPart per tile;
--- kit road pieces are 3 MeshParts each (4 with yellow lines), so the honest unit
--- is TILES. See the Lane R handoff for the MeshPart count.
-RoadTiler.PART_BUDGET = 1200
+-- MeshParts, whole town (TOWN_V3_BUILD.md s9, published by Lane P: a kit road
+-- piece is 3 MeshParts, 4 with yellow lines).
+RoadTiler.PART_BUDGET = 2600
 
 local LOOKS: { [string]: { color: Color3, material: Enum.Material } } = {
 	asphalt = { color = Color3.fromRGB(62, 63, 66), material = Enum.Material.Asphalt },
