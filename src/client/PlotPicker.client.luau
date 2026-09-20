@@ -9,6 +9,9 @@
 -- Server contract (PlotService.luau):
 --   ReplicatedStorage.Remotes.ClaimPlot   (client -> server, plot number)
 --   ReplicatedStorage.Remotes.PlotsChanged (server -> all, { free, owners })
+--   ReplicatedStorage.Remotes.PickerView  (client -> server, the plot being
+--     looked at, nil when done: the server streams the world in around it, as
+--     streaming otherwise follows the character back in the town square)
 --   ReplicatedStorage.Plots (Folder): Free / Owners (JSON strings, for a late
 --     joiner), View1..View4 (CFrame attributes, the picker's camera spots)
 
@@ -35,6 +38,7 @@ local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local claimEvent = remotes:WaitForChild("ClaimPlot") :: RemoteEvent
 local plotsChangedEvent = remotes:WaitForChild("PlotsChanged") :: RemoteEvent
 local toastEvent = remotes:WaitForChild("Toast") :: RemoteEvent
+local pickerViewEvent = remotes:WaitForChild("PickerView") :: RemoteEvent
 local plotsFolder = ReplicatedStorage:WaitForChild("Plots") :: Folder
 
 local function decodeNumberList(raw: unknown): { number }
@@ -166,6 +170,7 @@ local cameraTypeConn = camera:GetPropertyChangedSignal("CameraType"):Connect(fun
 end)
 
 local function flyTo(plot: number)
+	pickerViewEvent:FireServer(plot)
 	if flyTween then
 		flyTween:Cancel()
 	end
@@ -178,6 +183,7 @@ end
 
 local function restoreCamera()
 	picking = false
+	pickerViewEvent:FireServer(nil) -- a claim has already cleared it; this is the visitor path
 	cameraTypeConn:Disconnect()
 	if flyTween then
 		flyTween:Cancel()
@@ -353,6 +359,7 @@ local function onBuild()
 			return
 		end
 		building = false
+		pickerViewEvent:FireServer(currentPlot) -- a claim that got as far as loading cleared it
 		buildButton.Text = "BUILD MY CLUB HERE"
 		buildButton.Active = true
 		buildButton.AutoButtonColor = true

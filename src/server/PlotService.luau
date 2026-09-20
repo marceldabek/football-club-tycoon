@@ -153,6 +153,32 @@ local function plotModel(plot: number): Model
 	return model :: Model
 end
 
+-- Streaming follows the character, which stands in the town square while the
+-- picker's camera looks at a plot 1,400+ studs away. Terrain that has not
+-- streamed in is drawn as a coarse stand-in several studs too low, so the
+-- (Persistent) lot and the client's walkers looked like they were floating.
+-- While a player is picking, their streaming centre is this anchor instead:
+-- on the ground where the viewpoint looks, so the default target radius
+-- covers everything from under the camera to the far edge of the plot.
+local function pickerFocus(plot: number): Part
+	local model = plotModel(plot)
+	local focus = model:FindFirstChild("PickerFocus") :: Part?
+	if not focus then
+		local p = Instance.new("Part")
+		p.Name = "PickerFocus"
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.Transparency = 1
+		p.Size = Vector3.one
+		p.CFrame = PlotService.plotCFrame(plot) * CFrame.new(-220, 0, 40)
+		p.Parent = model
+		focus = p
+	end
+	return focus :: Part
+end
+
 -- ------------------------------------------------------------- for-sale lot
 
 local function lotPart(parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material): Part
@@ -299,6 +325,7 @@ function PlotService.claim(player: Player, plot: number): (boolean, string?)
 		return true, "already running"
 	end
 	player:SetAttribute("ClubPlot", plot)
+	player.ReplicationFocus = nil -- picking is over: streaming follows the character again
 	removeLot(plot)
 
 	local folder = Instance.new("Folder")
@@ -507,6 +534,18 @@ local function onClaimPlot(player: Player, rawPlot: unknown)
 	broadcastPlots()
 end
 
+-- PickerView (client -> server, arg: the plot the picker's camera is on, or
+-- nil when the picker closes without a claim). See pickerFocus.
+local function onPickerView(player: Player, rawPlot: unknown)
+	local plot = tonumber(rawPlot)
+	plot = plot and math.floor(plot)
+	if not plot or plot < 1 or plot > PLOT_COUNT or registry:plotOf(player.UserId) then
+		player.ReplicationFocus = nil
+		return
+	end
+	player.ReplicationFocus = pickerFocus(plot)
+end
+
 -- GoHome (client -> server, no args): "Go to my club" HUD button (B4.2).
 local function onGoHome(player: Player)
 	local plot = registry:plotOf(player.UserId)
@@ -557,6 +596,7 @@ function PlotService.start()
 
 	remote("ClaimPlot").OnServerEvent:Connect(onClaimPlot)
 	remote("GoHome").OnServerEvent:Connect(onGoHome)
+	remote("PickerView").OnServerEvent:Connect(onPickerView)
 
 	local function onJoin(player: Player)
 		-- owners respawn in their office; everyone else spawns at TownSpawn
