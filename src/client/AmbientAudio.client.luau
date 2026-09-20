@@ -91,6 +91,18 @@ for _, district in TownLayout.DISTRICTS do
 			minZ = math.min(minZ, block.centre.Z - block.size.Z / 2)
 			maxZ = math.max(maxZ, block.centre.Z + block.size.Z / 2)
 		end
+		-- v3: the sheds are TownFrontage lots now and DISTRICTS only keeps the builders
+		-- yard, so the box is the roads the industrial lots front (useAt), plus a lot's
+		-- depth either side. (Generating the lots here would cost the client ~0.7 s.)
+		local LOT_REACH = 70
+		for _, road in TownLayout.ROADS do
+			if (road :: any).useAt == "industrial" then
+				for _, p in road.points do
+					minX, maxX = math.min(minX, p.X - LOT_REACH), math.max(maxX, p.X + LOT_REACH)
+					minZ, maxZ = math.min(minZ, p.Z - LOT_REACH), math.max(maxZ, p.Z + LOT_REACH)
+				end
+			end
+		end
 		industrialBox = { minX, maxX, minZ, maxZ }
 	end
 end

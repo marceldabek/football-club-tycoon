@@ -13,6 +13,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
+local TownFrontage = require(ReplicatedStorage.Shared.TownFrontage)
 local StreetDresser = require(script.Parent.StreetDresser)
 
 local GreeneryDresser = {}
@@ -27,7 +28,46 @@ GreeneryDresser.BLOCK_CLEAR = 10
 GreeneryDresser.RIVER_CLEAR = 15
 GreeneryDresser.RAIL_CLEAR = 12
 GreeneryDresser.STOP_CLEAR = 15
+GreeneryDresser.LOT_CLEAR = 3 -- v3: past a TownFrontage lot's edge (house, gardens and walls)
 local SEED = 777
+
+-- v3: the houses are TownFrontage lots, not DISTRICTS blocks. A coarse grid of the
+-- lots, built once, so `clear` does not walk all ~870 for every candidate spot.
+local LOT_CELL = 120
+local lotGrid: { [string]: { TownFrontage.Lot } }? = nil
+
+local function lotsNear(p: Vector3): { TownFrontage.Lot }
+	local grid = lotGrid
+	if grid == nil then
+		grid = {}
+		for _, lot in TownFrontage.generate() do
+			local reach = math.max(lot.size.X, lot.size.Z)
+			local x0 = math.floor((lot.centre.X - reach) / LOT_CELL)
+			local x1 = math.floor((lot.centre.X + reach) / LOT_CELL)
+			local z0 = math.floor((lot.centre.Z - reach) / LOT_CELL)
+			local z1 = math.floor((lot.centre.Z + reach) / LOT_CELL)
+			for gx = x0, x1 do
+				for gz = z0, z1 do
+					local key = gx .. ":" .. gz
+					local cell = grid[key]
+					if not cell then
+						cell = {}
+						grid[key] = cell
+					end
+					table.insert(cell, lot)
+				end
+			end
+		end
+		lotGrid = grid
+	end
+	return grid[math.floor(p.X / LOT_CELL) .. ":" .. math.floor(p.Z / LOT_CELL)] or {}
+end
+
+-- Pure: is p inside (or within `grow` of) this lot's rectangle?
+function GreeneryDresser.inLot(p: Vector3, lot: TownFrontage.Lot, grow: number): boolean
+	local l = TownFrontage.lotCFrame(lot):PointToObjectSpace(Vector3.new(p.X, lot.centre.Y, p.Z))
+	return math.abs(l.X) <= lot.size.X / 2 + grow and math.abs(l.Z) <= lot.size.Z / 2 + grow
+end
 
 local LEAVES = { Color3.fromRGB(74, 118, 54), Color3.fromRGB(86, 130, 60), Color3.fromRGB(64, 104, 50) }
 local TRUNK = Color3.fromRGB(92, 70, 52)
@@ -49,6 +89,11 @@ function GreeneryDresser.clear(p: Vector3): boolean
 			if StreetDresser.distanceToBlock(p, block) < GreeneryDresser.BLOCK_CLEAR then
 				return false
 			end
+		end
+	end
+	for _, lot in lotsNear(p) do
+		if GreeneryDresser.inLot(p, lot, GreeneryDresser.LOT_CLEAR) then
+			return false
 		end
 	end
 	if TownLayout.distanceToPolyline(p, TownLayout.RIVER.points) < TownLayout.RIVER.width / 2 + GreeneryDresser.RIVER_CLEAR then
@@ -79,11 +124,25 @@ end
 function GreeneryDresser.spots(): { Vector3 }
 	local rng = Random.new(SEED)
 	local out: { Vector3 } = {}
+	local lotsByDistrict = TownFrontage.lotsByDistrict()
+	local eligible = 0
+	for _, district in TownLayout.DISTRICTS do
+		if GreeneryDresser.DISTRICT_KINDS[district.kind] then
+			eligible += 1
+		end
+	end
+	local share = math.floor(GreeneryDresser.MAX / math.max(eligible, 1))
 	for _, district in TownLayout.DISTRICTS do
 		if not GreeneryDresser.DISTRICT_KINDS[district.kind] then
 			continue
 		end
 		local minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
+		-- v3: the district's area is its generated lots (DISTRICTS only keeps the specials)
+		for _, lot in lotsByDistrict[district.name] or {} do
+			local r = math.max(lot.size.X, lot.size.Z) / 2
+			minX, maxX = math.min(minX, lot.centre.X - r), math.max(maxX, lot.centre.X + r)
+			minZ, maxZ = math.min(minZ, lot.centre.Z - r), math.max(maxZ, lot.centre.Z + r)
+		end
 		for _, b in district.blocks do
 			local r = math.max(b.size.X, b.size.Z) / 2
 			minX, maxX = math.min(minX, b.centre.X - r), math.max(maxX, b.centre.X + r)
@@ -103,7 +162,8 @@ function GreeneryDresser.spots(): { Vector3 }
 		-- thin evenly rather than stopping part-way across the district
 		-- X117: big districts (Northfields) get a bigger share, up to double the cap
 		local cap = math.clamp(math.floor(#found * 0.5), GreeneryDresser.MAX_PER_DISTRICT, GreeneryDresser.MAX_PER_DISTRICT * 2)
-		local take = math.min(#found, cap)
+		-- v3: seven housing districts share MAX evenly, or the last ones listed get nothing
+		local take = math.min(#found, cap, share)
 		for k = 1, take do
 			if #out >= GreeneryDresser.MAX then
 				break

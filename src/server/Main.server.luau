@@ -218,7 +218,13 @@ local V3_OVERHEAD_WIRES = false
 if V3_OVERHEAD_WIRES then
 	print("[FCT] " .. require(script.Parent.WireDresser).build())
 end
-print("[FCT] " .. require(script.Parent.CrossingDresser).build())
+-- CrossingDresser is OFF in v3 (Lane I stage 2): it looked for TownBuilder's "Pavement"
+-- parts under each slab, which the kit roads replaced, so it placed 0 of 264 slabs; its
+-- heights are v1 pavement heights and the slabs are primitives.
+local V3_PRIMITIVE_TACTILE_SLABS = false
+if V3_PRIMITIVE_TACTILE_SLABS then
+	print("[FCT] " .. require(script.Parent.CrossingDresser).build())
+end
 -- X341: after the street and estate passes, so it can see which roads they
 -- have already signed
 print("[FCT] " .. require(script.Parent.SignDresser).build())

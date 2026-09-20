@@ -37,6 +37,32 @@ function T.greenerySpotsStayOffRoadsBuildingsRiverAndPlots()
 	end
 end
 
+-- v3: houses are TownFrontage lots; no tree may stand in a house or its garden
+function T.greenerySpotsStayOutOfEveryLotAndReachEveryHousingDistrict()
+	local TownFrontage = require(ReplicatedStorage.Shared.TownFrontage)
+	local spots = GreeneryDresser.spots()
+	local lots = TownFrontage.generate()
+	for i, p in spots do
+		for _, lot in lots do
+			assert(not GreeneryDresser.inLot(p, lot, 0), ("spot %d stands in lot %s"):format(i, lot.id))
+		end
+	end
+	-- Mill Street Terraces has no DISTRICTS blocks at all in v3; it must still get trees
+	local mill = 0
+	for _, p in spots do
+		if p.X > -50 and p.X < 450 and p.Z < -60 and p.Z > -700 then
+			mill += 1
+		end
+	end
+	assert(mill >= 5, "Mill Street Terraces should get greenery from its lots' area, got " .. mill)
+end
+
+function T.clearRejectsALotCentre()
+	local TownFrontage = require(ReplicatedStorage.Shared.TownFrontage)
+	local lot = TownFrontage.generate()[1]
+	assert(not GreeneryDresser.clear(lot.centre), "a lot centre is not clear")
+end
+
 function T.clearRejectsARoadCentre()
 	local road = TownLayout.ROADS[1]
 	assert(not GreeneryDresser.clear(road.points[1]), "a road centre point is not clear")

@@ -47,15 +47,6 @@ local PER_CLUB = {
 -- modules actually require
 PlotService.PER_CLUB = PER_CLUB
 
--- TEMP plot sites until Shared.TownLayout exists: the four corners of the
--- town, entrances (pitch-local -X) facing the middle.
-local FALLBACK_SITES = {
-	CFrame.new(1500, 0, 1100) * CFrame.Angles(0, math.rad(180), 0), -- 1 SE
-	CFrame.new(1500, 0, -1100) * CFrame.Angles(0, math.rad(180), 0), -- 2 NE
-	CFrame.new(2000, 0, 0) * CFrame.Angles(0, math.rad(180), 0), -- 3 E
-	CFrame.new(-1500, 0, -1100), -- 4 NW
-}
-
 type Runtime = {
 	folder: Folder,
 	owner: Player,
@@ -116,7 +107,9 @@ function PlotService.plotCFrame(plot: number): CFrame
 	if layout and type(layout.plotCFrame) == "function" then
 		return layout.plotCFrame(plot)
 	end
-	return FALLBACK_SITES[plot]
+	-- v3 Lane I stage 2: the v1 corner-of-town fallback sites are gone (Plot 3 moved
+	-- to the south-west); the plots live in Shared.TownLayout.PLOTS and nowhere else.
+	error("PlotService.plotCFrame: Shared.TownLayout is missing or failed to load")
 end
 
 -- Where the picker's camera looks at this plot from: outside the entrance
