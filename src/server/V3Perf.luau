@@ -114,7 +114,15 @@ function V3Perf.count(root: Instance, opts: CountOpts?): Counts
 			c.models += 1
 		elseif d:IsA("SurfaceAppearance") then
 			c.surfaceAppearances += 1
-			noteTexture(d.ColorMap)
+			-- Lane I: ColorMap is readable in Edit mode (plugin capability) but throws in a
+			-- running server, and count() runs there for the live [FCT] lines. In Play the
+			-- uniqueTextures figure therefore only counts MeshPart.TextureID.
+			local ok, map = pcall(function(): string
+				return d.ColorMap
+			end)
+			if ok then
+				noteTexture(map)
+			end
 		end
 	end
 	return c

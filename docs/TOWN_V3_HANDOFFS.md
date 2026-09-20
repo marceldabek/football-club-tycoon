@@ -217,3 +217,49 @@ Per unit (houses + boundaries): terraced Tier A 9.0 + 8.8, Tier B 7.4 + 3.3; sem
 - Client code that looks for old names (`TelegraphPole`, `PoleArm`, `Wire` hidden on Low; lamp-post club banners in `TownLife`) will not find these props: lamps here are Models named `lamp`.
 
 ## Lane I
+
+### Lane I stage 1 (wiring) - done 2026-09-20 16:36
+
+**Wired (Main.server.luau, after `Backdrop`, before the dressers), all with `origin = CFrame.identity`, each into its own holder Folder under `workspace.Town` so its V3Perf count is its own:** `RoadTiler` -> `Town.V3Roads`, `HouseAssembler` -> `Town.V3Housing`, `TradeAssembler` -> `Town.V3Trade`, `StreetFurniture` -> `Town.V3Furniture`.
+
+**Playtest [FCT] lines (town ready in about 10 s):** Roads 677 tiles / 2,110 MeshParts of 2,600; Housing 732 lots, 20,739 house + 10,830 boundary MeshParts (24,000 / 13,500); Trade 156 lots, 2,763 MeshParts of 4,000; Furniture 2,865/2,865 placed, 3,327 parts of 4,500, 0 clipped, 0 missing. **KitMissing under Town: 0 (0 in the whole place).** Console errors after the fix below: none.
+
+**Bug found by the playtest and fixed:** `V3Perf.count` read `SurfaceAppearance.ColorMap`, which throws "lacking capability Plugin" in a running server (fine in Edit). It killed Main after the Housing line, so no Trade, Furniture, dressers or PlotService. It is a pcall now; in Play `uniqueTextures` only counts `TextureID`. (So Play was started twice: once to find this, once to confirm.)
+
+**Retired (deleted):**
+- `TownBuilder`: carriageway slabs, bend joints, pavements, verges, roundabout discs, `freeRuns`, `VERGE_ROADS / VERGE_WIDTH` and their two tests. `Town.Roads` now holds only the Market Square disc. Greybox volumes are no longer built for the specials TradeAssembler builds.
+- `StreetDresser.build` and everything only it used (kit / light rows, lamps, bins, cars, `lightStreets`, `streetCoverage`). The file is now 186 lines of pure street maths that six other files still read. Its `TerraceBuilder` / `KitPlacer` requires are gone.
+- `ShopDresser.build` (the file keeps `facingYaw / placement / handles`, read by ForecourtDresser and ImperfectionDresser).
+- Tests removed, reason left in place: `StreetDresserTest.lightStreets...`, `EstateBuilderTest.layoutSemisPlotsStayInsideTheirBlocks` (walked v1 semis blocks), `TownBuilderTest.freeRuns...` and `.vergeRoads...`. Tests re-pinned to v3, stricter not weaker: `TerraceStreetDresserTest.millStreetMeetsNorthRoadOnly` (6 junctions, 4 of them through) and `.signsStandOnTheCornersPastTheMouth` (11 plates, the 2 at North Road still position-checked).
+
+**Disabled behind a named constant, NOT deleted (untangling is stage 2 work):**
+- `TerraceStreetDresser.V3_HOUSING_RETIRED` (front gardens) and `.V3_PARKED_CARS_RETIRED`. Trees and name plates still build, but only on the DRESSED showpiece streets: light streets are chosen by "has terraced-row blocks in DISTRICTS", which is never true now (0 light streets).
+- `EstateDresser.V3_BLOCKS_RETIRED` (semis, warehouses, workshops, trade counters, builders yard). Name stones, play area, banners and roundabout shrubs still build.
+- `SportsCentreDresser.V3_HALL_RETIRED` (TradeAssembler owns the sports hall).
+- `V3_OVERHEAD_WIRES = false` in Main: `WireDresser` is not called. Its poles are superseded and Lane F's poles stand elsewhere, so the wires would hang from nothing.
+- `TradeAssembler.OWNED_ELSEWHERE = { church = "SquareDresser" }`: the live build skips the church, because SquareDresser places the same keeper plus the churchyard. `buildLot` still builds one for tests.
+- Also: `RoadTiler.PART_BUDGET` 1,200 -> 2,600 (Lane P's published number).
+
+**No module could be deleted whole.** `TerraceBuilder` (`lamp` used by ParkDresser and MarinaDresser; `row / TEXTURES` by ShopBuilder), `ShopBuilder` (`bays`, `GROUND_FLOOR`, `SHOP_FRONTS` read by ForecourtDresser) and `EstateBuilder` (EstateDresser, ForecourtDresser) are dead as builders but still required. No file was added or deleted on disk, so **no Rojo reconnect is needed for stage 1**.
+
+**Suite (Edit mode, after all changes): 743 passed, 0 failed.**
+
+**Seen in the playtest, not fixed (one screenshot, Mill Street from (120, 60, -120))**
+1. Kit road verges are bright lime green against the darker terrain grass; every road reads as a green stripe.
+2. Roads are one Atomic Model per district; v1 roads were `Persistent` (X62: traffic drove over grass when far roads streamed out). Only a short stretch of road was visible from the camera. Decide Persistent vs streamed.
+3. `[FCT] crossings: 0 tactile slabs (264 spots off the pavement)`: CrossingDresser and StationDresser raycast for parts named "Pavement", which no longer exist.
+4. `ImperfectionDresser` still lays 900 primitive parts (523 lane dashes, patches, grates, manholes, give-ways) at v1 road heights on top of kit roads that already carry markings; StreetFurniture also places manholes and give-ways, so those are doubled.
+5. `ForecourtDresser` still builds 8 forecourts, 20 hanging baskets, 5 A-boards and 2 cafe sets positioned for ShopBuilder facades that no longer exist (0 awnings / signs / window boxes because it finds no ShopRow models). Probably floating against the TradeAssembler buildings.
+6. Housing trims look right; blank gable walls show the double-scale brick Lane H described.
+7. Three church pieces remain: TownBuilder's landmark tower (8 parts), the church greybox (removed by SquareDresser when the kit loads) and SquareDresser's keeper (238 primitive parts, EC7).
+8. `TerraceStreets.ParkedStreets` still lists the showpiece streets although that dresser parks nothing now; Traffic.client does not know where StreetFurniture parks cars.
+9. Not checked: bridges over kit roads (Lane R bug 5), plots vs lanes, bus stops (TownBuilder's primitive stops, 120 parts, AND StreetFurniture's 11 shelters both exist).
+
+**To do in stage 2**
+- A. Delete for real once re-pointed: `StreetDresser` (move `stations / polylineMidpoint` to a shared maths module; re-point the `lampPositions` users CentreTreeDresser, TerraceStreetDresser, WireDresser at `FurniturePlan`); `ShopDresser` + `ShopBuilder` + their tests (rewrite or delete ForecourtDresser's facade half; ImperfectionDresser lines 44 and 1128); `EstateBuilder` + the building half of `EstateDresser` + `EstateBuilderTest` (users: ForecourtDresser 867-880, SportsCentreDresser, StationDresser, YardWorkers.client, PlayAreaLife.client); `TerraceBuilder` (swap `lamp` in ParkDresser 1054 and MarinaDresser 342 for the kit lamp; TownLife.client 188 looks for its lamp model); the garden / car code in `TerraceStreetDresser`; `SportsCentreDresser.buildHall`; `WireDresser`.
+- B. Files that loop `TownLayout.DISTRICTS` for housing / shop / industrial blocks and now silently do nothing: `TerraceStreetDresser` (frontsFor, light streets), `EstateDresser`, `ForecourtDresser`, `ImperfectionDresser`, `GreeneryDresser`, `StreetDresser.isKitRow`, `AmbientAudio.client` 85 / 191. Point them at `TownFrontage.lotsByDistrict()`.
+- C. Client files keyed to retired instance names: `TownLife.client` (TerraceLamp banners, 188 / 326), `LitWindows.client` 156 (ShopBuilder Shopfront faces), `Traffic.client` 445-452 (ParkedStreets), `YardWorkers.client` (EstateBuilder sheds), `CafeSitters.client` (ForecourtDresser tables), `PlayAreaLife.client`, `TownLifeMath` 173-177 (Shopfront drinkers), and the Low-quality hiding of `TelegraphPole / PoleArm / Wire` (should hide the `V3Decor` tag).
+- D. Hardcoded road names: `WireDresser` (3), `ImperfectionDresser` (2), `GatewayDresser` (Greenbridge Road now runs due west), `StationDresser`, `TownBuilder` (1). Plot 3 is yaw 270: check anything keyed to plot index.
+- E. Primitive dressers still live, to audit against the no-primitives rule (parts in this playtest): Riverside 1,001, Imperfections 900, Square 533 + church 238, Park 477, Greenery 448, Bridges 384 + TownBuilder bridges 64, Station 336, Marina 324, Signs 222, Forecourts 208, TerraceStreets 158, SportsCentre 155, BusStops 120, Estates 110, Rail 66, Viaduct 56, Schools 38, plus CentreTrees, Gateways, Crossings, Backdrop, Landmarks 8, Districts greybox 17.
+- F. Decide the duplicate owners: bus stops (TownBuilder vs StreetFurniture), manholes / give-ways (ImperfectionDresser vs StreetFurniture), church tower.
+- G. Lane P items not done here: Workspace streaming properties by hand, `V3Perf.bake` (waits on Marcel's P4), Quality Low hiding `V3Decor`, frame time.
