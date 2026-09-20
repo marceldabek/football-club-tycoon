@@ -43,6 +43,69 @@ DEPTH = 24.0      # house depth, as v1
 CELL = 22.0       # one house of frontage
 ROW_CELLS = 6     # longest terrace before a ginnel
 ROW_GAP = 8.0
+# Every generated building is one of these. cell = frontage one unit takes,
+# group = how many units join into one block before a gap. This table is the
+# "mix of assets": each row is a different kit family on the ground.
+TYPES = {
+    #                     cell  depth group gap garden
+    "terraced row":      (22.0, 24.0, 6, 8.0, 6.0),
+    "semis":             (25.0, 24.0, 2, 12.0, 8.0),
+    "detached house":    (34.0, 26.0, 1, 14.0, 10.0),
+    "corner shop":       (22.0, 24.0, 1, 4.0, 6.0),
+    "shops with flats":  (26.0, 30.0, 5, 6.0, 0.0),
+    "shops":             (30.0, 30.0, 3, 6.0, 0.0),
+    "flats":             (70.0, 36.0, 1, 16.0, 8.0),
+    "workshop":          (80.0, 50.0, 1, 16.0, 10.0),
+    "trade counter":     (80.0, 50.0, 1, 16.0, 10.0),
+    "warehouse":         (160.0, 100.0, 1, 24.0, 14.0),
+}
+HOMES = ("terraced row", "semis", "detached house")
+# v1 uses that are now generated from frontage instead of carried over
+REGENERATED = ("shops", "shops with flats", "flats", "workshop", "trade counter", "warehouse", "corner shop")
+
+# colour + legend label per use, first match wins
+STYLE = [
+    ("terraced row", "#c4624d", "terraced rows"),
+    ("semis", "#e39a4f", "semi-detached pairs"),
+    ("detached", "#efd268", "detached houses"),
+    ("corner shop", "#e0479e", "corner shops"),
+    ("shops with flats", "#6a4fc4", "high-street shops with flats over"),
+    ("shops", "#a08be6", "shop parades"),
+    ("supermarket", "#a08be6", None),
+    ("flats", "#3fa39b", "blocks of flats"),
+    ("pub", "#7d2f2f", "pubs and cafes"),
+    ("church", "#2f5d8a", "civic: church, town hall, schools, station"),
+    ("town hall", "#2f5d8a", None),
+    ("school", "#2f5d8a", None),
+    ("station", "#2f5d8a", None),
+    ("warehouse", "#555c66", "warehouses"),
+    ("builders yard", "#555c66", None),
+    ("workshop", "#8d939c", "workshops and trade counters"),
+    ("trade counter", "#8d939c", None),
+    ("marina", "#5b8fb0", "marina"),
+    ("pitch", "#9ccf7f", "sports pitches and hall"),
+    ("sports hall", "#9ccf7f", None),
+    ("park", "#7fae6a", "parks and greens"),
+    ("bandstand", "#7fae6a", None),
+]
+
+
+def style_of(use):
+    u = use.lower()
+    for key, colour, _ in STYLE:
+        if key in u:
+            return key, colour
+    return "other", "#a9adb4"
+
+
+def fill_of(use):
+    return style_of(use)[1]
+
+
+def is_home(use):
+    return any(h in use for h in ("terrace", "semis", "detached"))
+
+
 HEAD = 34.0       # cul-de-sac turning head radius (kit CulDeSac is 96 x 69 at town scale)
 
 # ------------------------------------------------------------------ roads
@@ -75,26 +138,66 @@ RING = [
 ]
 
 
+def centre_use(x, z):
+    """What fronts a town-centre street: shops at the square, flats toward the
+    river, terraces beyond. One building deep, always."""
+    r = math.hypot(x, z * 1.4)
+    if r < 430:
+        return ("shops with flats", "Town Centre")
+    if z > 60 and r < 1000:
+        return ("flats", "Riverside")
+    if r < 640:
+        return ("shops", "Town Centre")
+    return ("terraced row", "Mill Street Terraces" if z < 0 else "Riverside")
+
+
+def industrial_use(x, z):
+    return ("warehouse" if z < -250 or z > 40 else ("trade counter" if int(x // 96) % 3 == 0 else "workshop"),
+            "Industrial Estate")
+
+
 def roads():
     out = [road("Ring Road", R, RING)]
 
     # ---- through roads, each as near its v1 line as axis/45 allows
     out += [
-        road("North Road", M, [(0, -60), (0, -1080)]),
+        road("North Road", M, [(0, -60), (0, -1080)], front="both",
+             use_at=lambda x, z: ("shops with flats", "Town Centre") if z > -150 else None),
         road("High Street", M, [(-60, 0), (-400, 0), (-505, -105), (-1255, -105)], front="both",
-             use_at=lambda x, z: ("shops with flats", "Town Centre") if x > -520 else ("terraced row", "Station")),
-        road("Station Road", M, [(-505, -105), (-737, -337), (-938, -337)]),
-        road("Riverside Road", M, [(60, 0), (1340, 0), (1400, -60)], front="both",
-             use_at=lambda x, z: ("shops with flats", "Town Centre") if x < 620 else ("terraced row", "Riverside")),
-        road("Bridge Street", M, [(0, 60), (0, 200), (100, 300), (100, 700), (0, 800)]),
-        road("Mapleford Road", M, [(-1350, -400), (-2400, -400)]),
-        road("Estate Road", M, [(-1255, -105), (-2300, -105)]),
+             use_at=lambda x, z: ("shops with flats", "Town Centre") if x > -520 else
+             (("shops", "Station") if x > -700 else ("terraced row", "Station"))),
+        road("Station Road", M, [(-505, -105), (-737, -337), (-938, -337)], front="both",
+             use="shops", district="Station"),
+        road("Riverside Road", M, [(60, 0), (1340, 0), (1400, -60)], front="both", use_at=centre_use),
+        road("Bridge Street", M, [(0, 60), (0, 200), (100, 300), (100, 700), (0, 800)], front="both",
+             use_at=lambda x, z: ("shops with flats", "Town Centre") if z < 300 else None),
+        road("Mapleford Road", M, [(-1350, -400), (-2400, -400)], front="both", use_at=industrial_use),
+        road("Estate Road", M, [(-1255, -105), (-2300, -105)], front="both", use_at=industrial_use),
         # Greenbridge Road takes Moss Lane's line due west; the old diagonal to
         # the south-west corner is where Plot 3 now stands
         road("Greenbridge Road", M, [(-1150, 560), (-2400, 560)],
              front="right", district="Westdale"),
         road("Hollingford Road", M, [(1250, 600), (1300, 600), (1500, 800), (2400, 800)],
              front="both", district="Hollingford"),
+    ]
+
+    # ---- Town Centre: a proper little grid. Every shop fronts a street; nothing
+    # stands behind anything else.
+    tc = "Town Centre"
+    out += [
+        road("Guild Street", S, [(-330, 130), (0, 130)], use_at=centre_use),              # NEW
+        road("Quay Street", S, [(0, 130), (480, 130)], use_at=centre_use),                # NEW
+        road("Tanner Row", S, [(-330, 0), (-330, 260)], use_at=centre_use),               # NEW
+        road("Wharf Street", S, [(250, 0), (250, 260)], use_at=centre_use),               # NEW
+        road("Marina Way", S, [(760, 0), (760, 190)], use_at=centre_use, head=True),      # NEW
+        road("Chapel Street", S, [(-150, 0), (-150, -330)], use_at=centre_use),           # NEW
+        road("Fountain Street", S, [(250, 0), (250, -200)], use_at=centre_use),           # NEW
+        road("Dyers Lane", S, [(500, 0), (500, -200)], use_at=centre_use),                # NEW
+        road("Park Street", S, [(750, 0), (750, -200)], use_at=centre_use),               # NEW
+        # side streets tying the terraces together
+        road("Spinner Street", S, [(450, -200), (450, -600)], district="Mill Street Terraces"),   # NEW
+        road("Park Road", S, [(900, -200), (900, -600)], district="Mill Street Terraces"),        # NEW
+        road("Loom Street", S, [(-200, -330), (-200, -600)], district="Mill Street Terraces"),    # NEW
     ]
 
     # ---- Mill Street Terraces: untouched
@@ -117,7 +220,7 @@ def roads():
                          ("Holly Close", 225, -920), ("Hayfield Close", 400, -920),
                          ("Laurel Close", 650, -920), ("Maple Close", 850, -920),
                          ("Oak Close", 1050, -870)]:
-        semis = abs(x) >= 1000
+        semis = abs(x) >= 800
         out.append(road(name, S, [(x, -600), (x, end)], district=nf,
                         use="semis" if semis else "terraced row", head=end != -920))
 
@@ -128,9 +231,14 @@ def roads():
         road("Cooper Street", S, [(-1350, -240), (-640, -240)], district=st),
         road("Signal Street", S, [(-1150, 25), (-560, 25)], district=st),          # NEW
         road("Lock Street", S, [(-1150, 150), (-540, 150)], district=st),
-        road("Foundry Way", S, [(-1480, -400), (-1480, 120)], front="none"),
-        road("Lune Street", S, [(-440, 260), (480, 260)], district="Town Centre",
-             use="flats"),
+        road("Foundry Way", S, [(-1480, -400), (-1480, 110)], use_at=industrial_use),
+        road("Lune Street", S, [(-440, 260), (480, 260)], use_at=centre_use),
+        road("Platform Street", S, [(-850, -240), (-850, 150)], district=st),     # NEW
+        road("Goods Yard Lane", S, [(-1000, -105), (-1000, -240)], district=st),  # NEW
+        # the industrial estate gets the same treatment: units front a road
+        road("Forge Lane", S, [(-1800, -400), (-1800, 110)], use_at=industrial_use),    # NEW
+        road("Furnace Lane", S, [(-2120, -400), (-2120, 110)], use_at=industrial_use),  # NEW
+        road("Wharf Road", S, [(-1480, 110), (-2250, 110)], front="right", use_at=industrial_use),  # NEW
     ]
 
     # ---- Riverside (south bank, inside the ring): one new street
@@ -141,6 +249,9 @@ def roads():
         road("Viaduct Road", S, [(-545, 620), (100, 620)], district=rv),
         road("Weir Road", S, [(-1150, 560), (-615, 560)], district=rv),
         road("Fuller Street", S, [(-1090, 690), (-615, 690)], district=rv),         # NEW
+        road("Sluice Lane", S, [(-850, 560), (-850, 800)], district=rv),            # NEW
+        road("Dye Works Lane", S, [(600, 560), (600, 800)], district=rv),           # NEW
+        road("Osier Lane", S, [(-250, 620), (-250, 800)], district=rv),             # NEW
     ]
 
     # ---- south of the ring
@@ -148,7 +259,7 @@ def roads():
         road("Sports Centre Road", S, [(0, 800), (0, 1200), (590, 1200)], district=rv,
              front="none"),
         road("Cedar Road", S, [(-470, 800), (-470, 1500)], district=rv, head=True),
-        road("Paddock Road", S, [(400, 800), (400, 1500)], district=rv, head=True),           # NEW
+        road("Paddock Road", S, [(400, 800), (400, 1500)], district=rv, head=True, use="semis"),           # NEW
         road("Hollins Road", S, [(590, 800), (590, 1500)], district=rv, head=True),           # was x=520
         road("Plot 1 Lane", L, [(970, 800), (970, 860)]),
     ]
@@ -156,10 +267,10 @@ def roads():
     # ---- Westdale, rebuilt round Plot 3
     wd = "Westdale"
     out += [
-        road("Moss Lane", S, [(-2240, 430), (-1250, 430)], district=wd),
+        road("Moss Lane", S, [(-2240, 430), (-1250, 430)], district=wd, use="semis"),
         road("Reed Road", S, [(-1600, 430), (-1600, 560)], district=wd, front="none"),
         road("Alder Road", S, [(-1310, 560), (-1310, 1480)], district=wd),
-        road("Tanner's Lane", S, [(-2240, 560), (-2240, 1480)], district=wd),       # NEW
+        road("Tanner's Lane", S, [(-2240, 560), (-2240, 1480)], district=wd, use="semis"),      # NEW
         road("Orchard Road", S, [(-2240, 1480), (-690, 1480)], district=wd),
         road("Fern Street", S, [(-1310, 800), (-1000, 800)], district=wd),
         road("Westdale Avenue", S, [(-1310, 950), (-690, 950)], district=wd),
@@ -177,10 +288,10 @@ def roads():
     out += [
         road("Plot 4 Lane", L, [(-1350, -750), (-1350, -1210), (-1400, -1210)]),
         road("Mapleford Lane", S, [(-2250, -670), (-1350, -670)], district=p4),
-        road("Drift Close", S, [(-2250, -670), (-2250, -1060)], district=p4, head=True),
+        road("Drift Close", S, [(-2250, -670), (-2250, -1060)], district=p4, head=True, use="detached house"),
         road("Tollgate Road", S, [(-1350, -1210), (-1350, -1590), (-2120, -1590)], district=p4, head=True),
         road("Drovers Road", S, [(-1350, -1210), (-760, -1210)], district=p4, head=True),
-        road("Pinfold Close", S, [(-950, -1210), (-950, -1110)], district=p4, head=True),
+        road("Pinfold Close", S, [(-950, -1210), (-950, -1110)], district=p4, head=True, use="detached house"),
         road("Smithy Close", S, [(-1120, -1210), (-1120, -1460), (-880, -1460)], district=p4,
              use="semis", head=True),
     ]
@@ -190,8 +301,8 @@ def roads():
     out += [
         road("Plot 2 Lane", L, [(1400, -600), (1400, -1080), (1440, -1080)]),
         road("Millbrook Road", S, [(1400, -700), (2300, -700)], district=p2),
-        road("Lune View", S, [(1560, -570), (2250, -570)], district=p2, head=True),
-        road("Fell Lane", S, [(2300, -700), (2300, -1320)], district=p2, head=True),
+        road("Lune View", S, [(1560, -570), (2250, -570)], district=p2, head=True, use="detached house"),
+        road("Fell Lane", S, [(2300, -700), (2300, -1320)], district=p2, head=True, use="semis"),
         road("Quarry Road", S, [(1400, -1080), (900, -1080), (780, -1200)], district=p2, head=True),
         road("Kiln Close", S, [(1180, -1080), (1180, -1400)], district=p2, use="semis", head=True),
         road("Millbrook Rise", S, [(1400, -1080), (1400, -1330)], district=p2, head=True),
@@ -204,9 +315,10 @@ def roads():
         road("Lunebank Road", S, [(1400, 300), (1500, 300), (1940, 740), (1940, 800)], district=hf),
         road("Ferry Lane", S, [(1500, 300), (1593, 207)], district=hf, front="none"),
         road("Fellmonger Street", S, [(1500, 480), (1760, 740), (1760, 800)], district=hf),
-        road("Bleach Street", S, [(1593, 207), (2126, 740), (2126, 800)], district=hf),
+        road("Bleach Street", S, [(1593, 207), (2126, 740), (2126, 800)], district=hf, use="semis"),
         # beside Plot 1
-        road("Garth Road", S, [(1510, 800), (1510, 1560)], district=hf, head=True),
+        road("Garth Road", S, [(1510, 800), (1510, 1560)], district=hf, head=True, use="detached house"),
+        road("Ropewalk", S, [(1660, 640), (1843, 457)], district=hf),               # NEW, ties the three diagonals
     ]
     return out
 
@@ -239,6 +351,9 @@ EXTRA_BLOCKS = {
         {"centre": (525.0, -760.0), "size": (110.0, 180.0), "yaw": 0.0, "use": "park"},       # allotments
         {"centre": (75.0, -645.0), "size": (110.0, 30.0), "yaw": 0.0, "use": "shops"},        # parade on the avenue
         {"centre": (-75.0, -555.0), "size": (110.0, 30.0), "yaw": 0.0, "use": "shops"},
+    ],
+    "Town Centre": [
+        {"centre": (-365.0, 95.0), "size": (30.0, 30.0), "yaw": 0.0, "use": "pub"},          # v1's pub, off Tanner Row's line
     ],
     "Westdale": [
         {"centre": (-1110.0, 1025.0), "size": (140.0, 90.0), "yaw": 0.0, "use": "school"},   # v1's school, moved 140 east off Alder Road
@@ -371,7 +486,7 @@ class Town:
     def carry_over(self):
         for dist in self.live["districts"]:
             for blk in dist["blocks"]:
-                if is_housing(blk["use"]) or blk["use"] == "corner shop":
+                if is_housing(blk["use"]) or blk["use"] in REGENERATED:
                     continue
                 b = dict(blk)
                 if any(abs(b["centre"][0] - p["centre"][0]) < PLOT / 2 + DROP_NEAR_PLOT
@@ -401,46 +516,57 @@ class Town:
         b["centre"] = (x0, z0)
         return False
 
-    # --- housing from frontage -------------------------------------------
+    # --- everything from frontage ------------------------------------------
+    def fits(self, cell, skip=None, heads=True, run=()):
+        cx, cz = cell["centre"]
+        reach = max(cell["size"]) + 110
+        return (self.ground_clear(cell, heads=heads)
+                and self.road_clear(cell, skip=skip)
+                and not any(overlap(cell, k, 6) for _, k in self.kept)
+                and not any(overlap(cell, c, 10) for c in self.cells
+                            if abs(c["centre"][0] - cx) < reach and abs(c["centre"][1] - cz) < reach
+                            and not any(c is mine for mine in run)))
+
     def frontage(self):
         order = sorted((r for r in self.roads if r["front"] != "none"),
                        key=lambda r: (r["kind"] != M, -sum(math.dist(a, b) for a, b in segments(r))))
         for r in order:
-            setback = r["width"] / 2 + PAVE + GARDEN + DEPTH / 2
             for a, b in segments(r):
                 seg = math.dist(a, b)
-                if seg < 2 * CELL:
-                    continue
                 ux, uz = (b[0] - a[0]) / seg, (b[1] - a[1]) / seg
                 yaw = math.degrees(math.atan2(uz, ux))
                 for side, label in ((1, "left"), (-1, "right")):
                     if r["front"] not in ("both", label):
                         continue
                     nx, nz = uz * side, -ux * side
-                    n = int(seg // CELL)
-                    start = (seg - n * CELL) / 2
-                    run = []
-                    for k in range(n):
-                        t = start + (k + 0.5) * CELL
-                        cx, cz = a[0] + ux * t + nx * setback, a[1] + uz * t + nz * setback
-                        use, district = (r["use_at"](cx, cz) if r["use_at"] else (r["use"], r["district"]))
-                        cell = {"centre": (cx, cz), "size": (CELL, DEPTH), "yaw": yaw,
-                                "use": use, "district": district}
+                    key = f"{r['name']}|{label}|{a}"
+                    run, t = [], 4.0
+                    while t < seg - 4.0:
+                        px, pz = a[0] + ux * t, a[1] + uz * t
+                        got = r["use_at"](px, pz) if r["use_at"] else (r["use"], r["district"])
+                        if got is None:
+                            self.flush(run, r, yaw, key)
+                            run, t = [], t + 11.0
+                            continue
+                        use, district = got
+                        w, depth, _, _, garden = TYPES[use]
+                        if t + w > seg - 4.0:
+                            break
+                        setback = r["width"] / 2 + PAVE + garden + depth / 2
+                        m = t + w / 2
+                        cell = {"centre": (a[0] + ux * m + nx * setback, a[1] + uz * m + nz * setback),
+                                "size": (w, depth), "yaw": yaw, "use": use, "district": district}
                         if run and run[-1]["use"] != use:
-                            self.flush(run, r, yaw)
+                            self.flush(run, r, yaw, key)
                             run = []
-                        ok = (self.ground_clear(cell)
-                              and self.road_clear(cell, skip=(r, (a, b)))
-                              and not any(overlap(cell, k, 6) for _, k in self.kept)
-                              and not any(overlap(cell, c, 10) for c in self.cells
-                                          if abs(c["centre"][0] - cell["centre"][0]) < 60
-                                          and abs(c["centre"][1] - cell["centre"][1]) < 60))
-                        if ok:
+                        if self.fits(cell, skip=(r, (a, b)), run=run):
                             run.append(cell)
+                            self.cells.append(cell)
+                            t += w
                         else:
-                            self.flush(run, r, yaw)
-                            run = []
-                    self.flush(run, r, yaw)
+                            self.flush(run, r, yaw, key)
+                            run, t = [], t + 11.0
+                    self.flush(run, r, yaw, key)
 
     def head_rows(self):
         """A short row across the end of each cul-de-sac, looking back down it."""
@@ -451,36 +577,48 @@ class Town:
             seg = math.dist((ax, az), (bx, bz))
             ux, uz = (bx - ax) / seg, (bz - az) / seg
             yaw = math.degrees(math.atan2(uz, ux)) + 90
-            d = HEAD + GARDEN + DEPTH / 2
+            got = r["use_at"](bx, bz) if r["use_at"] else (r["use"], r["district"])
+            if got is None or got[0] not in HOMES:
+                continue
+            w, depth, _, _, garden = TYPES[got[0]]
+            d = HEAD + garden + depth / 2
             run = []
-            for k in (-1, 0, 1):
-                cell = {"centre": (bx + ux * d - uz * k * CELL, bz + uz * d + ux * k * CELL),
-                        "size": (CELL, DEPTH), "yaw": yaw, "use": r["use"], "district": r["district"]}
-                if (self.ground_clear(cell, heads=False) and self.road_clear(cell)
-                        and not any(overlap(cell, k2, 6) for _, k2 in self.kept)
-                        and not any(overlap(cell, c, 10) for c in self.cells)):
-                    run.append(cell)
-                else:
+            for k in ((-0.5, 0.5) if got[0] == "semis" else (-1, 0, 1)):
+                cell = {"centre": (bx + ux * d - uz * k * w, bz + uz * d + ux * k * w),
+                        "size": (w, depth), "yaw": yaw, "use": got[0], "district": got[1]}
+                if not self.fits(cell, heads=False, run=run):
                     run = []
                     break
+                run.append(cell)
+            self.cells.extend(run)
             n = len(self.rows)
-            self.flush(run, r, yaw)
+            self.flush(run, r, yaw, r["name"] + "|head")
             for _, row in self.rows[n:]:
                 row["closes_street"] = True   # faces down the street, so square to it on purpose
 
-    def flush(self, run, r, yaw):
-        while len(run) >= 2:
-            take = run[:ROW_CELLS]
-            if len(run) - len(take) == 1:       # never strand a single house
-                take = run[:ROW_CELLS - 1]
+    def flush(self, run, r, yaw, key=""):
+        if not run:
+            return
+        use = run[0]["use"]
+        w, depth, group, gap, _ = TYPES[use]
+        if use == "terraced row" and len(run) == 1:
+            self.cells.remove(run[0])           # never strand a single terraced house
+            return
+        # a corner shop on the end of roughly one terrace in three
+        if use == "terraced row" and len(run) >= 5 and sum(map(ord, key)) % 3 == 0:
+            shop, run = run[0], run[1:]
+            self.rows.append((shop["district"] or "Rivermere", {
+                "centre": shop["centre"], "size": (w - 4.0, depth), "yaw": yaw,
+                "use": "corner shop", "street": r["name"]}))
+        while run:
+            take = run[:group]
+            if use == "terraced row" and len(run) - len(take) == 1:
+                take = run[:group + 1] if group + 1 <= len(run) else take
             run = run[len(take):]
             (x0, z0), (x1, z1) = take[0]["centre"], take[-1]["centre"]
-            length = len(take) * CELL - ROW_GAP
-            use = take[0]["use"]
             self.rows.append((take[0]["district"] or "Rivermere", {
                 "centre": ((x0 + x1) / 2, (z0 + z1) / 2),
-                "size": (length, DEPTH), "yaw": yaw, "use": use, "street": r["name"]}))
-            self.cells.extend(take)
+                "size": (len(take) * w - gap, depth), "yaw": yaw, "use": use, "street": r["name"]}))
 
     # --- output ----------------------------------------------------------
     def data(self):
@@ -507,7 +645,7 @@ class Town:
 # ------------------------------------------------------------------ audit
 
 
-def audit(d, title):
+def audit(d, title, home=is_housing):
     print(f"\n== {title}")
     allsegs = [(r, a, b) for r in d["roads"] for a, b in segments(r)]
     total = {}
@@ -523,7 +661,7 @@ def audit(d, title):
         s = sum(t.values())
         print(f"    {k:12s} {s:8,.0f}  axis {100 * t['axis'] / s:3.0f}%  45 {100 * t['45'] / s:3.0f}%  "
               f"other {100 * t['other'] / s:3.0f}%")
-    housing = [b for dist in d["districts"] for b in dist["blocks"] if is_housing(b["use"])]
+    housing = [b for dist in d["districts"] for b in dist["blocks"] if home(b["use"])]
     blocks = sum(len(dist["blocks"]) for dist in d["districts"])
     stacked = off = 0
     for b in housing:
@@ -532,10 +670,10 @@ def audit(d, title):
             dd = seg_dist(b["centre"], p, q)
             if dd < best:
                 best, bseg = dd, (p, q)
-        if best > 55:
+        if best > 55 and not b.get("closes_street"):
             stacked += 1
         street = math.degrees(math.atan2(bseg[1][1] - bseg[0][1], bseg[1][0] - bseg[0][0]))
-        long_axis = b["yaw"] + (0 if b["size"][0] >= b["size"][1] else 90)
+        long_axis = b["yaw"] + (0 if "street" in b or b["size"][0] >= b["size"][1] else 90)
         diff = abs((long_axis - street + 90) % 180 - 90)
         if diff > 5 and best <= 55 and not b.get("closes_street"):
             off += 1
@@ -543,6 +681,20 @@ def audit(d, title):
           f"({100 * stacked / max(1, len(housing)):.0f}%); off-parallel {off}")
     frontage = sum(max(b["size"]) for b in housing)
     print(f"  housing frontage {frontage:,.0f} studs")
+    trade = [b for dist in d["districts"] for b in dist["blocks"]
+             if any(k in b["use"] for k in ("shop", "flats", "workshop", "trade", "warehouse"))]
+    deep = 0
+    for b in trade:
+        reach = min(b["size"]) / 2 + 40
+        if min(seg_dist(b["centre"], p, q) - r["width"] / 2 for r, p, q in allsegs) > reach:
+            deep += 1
+    print(f"  commercial + industrial blocks {len(trade)}; with no street frontage {deep}")
+    mix = {}
+    for dist in d["districts"]:
+        for b in dist["blocks"]:
+            k = style_of(b["use"])[0]
+            mix[k] = mix.get(k, 0) + 1
+    print("  mix: " + ", ".join(f"{k} {v}" for k, v in sorted(mix.items(), key=lambda kv: -kv[1])))
 
 
 def main():
@@ -554,7 +706,7 @@ def main():
     d = town.data()
 
     audit(live, "v1 (live TownLayout.luau)")
-    audit(d, "v3 (this plan)")
+    audit(d, "v3 (this plan)", home=is_home)
     print(f"  carried over {len(town.kept)} non-housing blocks; nudged {len(town.nudged)}, "
           f"dropped {len(town.dropped)}")
     for name, old, new in town.nudged:
@@ -565,22 +717,48 @@ def main():
         print(f"  {p['name']}: {p['was']} -> {p['centre']}  moved {math.dist(p['was'], p['centre']):.0f}")
 
     docs = ROOT / "docs"
-    svg = build_svg(d)
+    counts = {}
+    for dist in d["districts"]:
+        for b in dist["blocks"]:
+            k = style_of(b["use"])[0]
+            counts[k] = counts.get(k, 0) + 1
+    legend, seen = [], set()
+    for key, colour, label in STYLE:
+        if label and label not in seen:
+            seen.add(label)
+            n = sum(counts.get(k2, 0) for k2, c2, _ in STYLE if c2 == colour)
+            legend.append((colour, f"{label} ({n})"))
+    d["legend"] = legend
+
+    import town_map
+    town_map.use_fill = fill_of
+    town_map.is_housing = lambda use: False     # no special outline: colour carries the type
+    svg = town_map.build_svg(d)
     minX, _, minZ, _ = EXTENT
     heads = "".join(
         f'<circle cx="{(x - minX) * 0.34 + 40:.1f}" cy="{(z - minZ) * 0.34 + 40:.1f}" '
         f'r="{HEAD * 0.34:.1f}" fill="#6b7078"/>' for x, z in d["heads"])
     svg = svg.replace("<circle", heads + "<circle", 1)
+    # swap the stock five-line legend for the full building mix
+    k = svg.rindex('<rect x="40"')
+    k2 = svg.index("<line", k)
+    lx, h = 640, 100 + 17 * len(legend)
+    box = [f'<rect x="{lx}" y="{h - 60 - 17 * len(legend)}" width="300" height="{30 + 17 * len(legend)}" '
+           f'fill="#ffffff" fill-opacity="0.92" stroke="#b9bcb4"/>',
+           f'<text x="{lx + 10}" y="{h - 40 - 17 * len(legend)}" font-size="14" font-weight="700" '
+           f'fill="#2d3036">Rivermere v3: what stands where</text>']
+    for n, (colour, label) in enumerate(legend):
+        y = h - 22 - 17 * (len(legend) - n)
+        box.append(f'<rect x="{lx + 10}" y="{y - 10}" width="16" height="12" fill="{colour}"/>')
+        box.append(f'<text x="{lx + 34}" y="{y}" font-size="12" fill="#3a3e45">{label.replace("&", "&amp;")}</text>')
+    svg = svg[:k] + "".join(box) + svg[k2:]
     (docs / "town_map_v3.svg").write_text(svg, encoding="utf-8")
     body = svg.replace("<svg ", '<svg style="width:100%;height:auto;display:block" ', 1)
     (docs / "town_map_v3_view.html").write_text(
         '<!doctype html><meta charset="utf-8"><title>Rivermere v3</title>'
         "<style>html,body{margin:0;background:#22262b}</style>" + body, encoding="utf-8")
-    try:
-        from town_png import render
-        render(d, docs / "town_map_v3.png", scale=0.5)
-    except ImportError:
-        pass
+    from town_png import render
+    render(d, docs / "town_map_v3.png", scale=0.5, fill=fill_of)
     return d
 
 

@@ -29,7 +29,7 @@ def _font(size):
     return ImageFont.load_default()
 
 
-def render(d, out, scale=0.5, crop=None, flag=None, labels=True):
+def render(d, out, scale=0.5, crop=None, flag=None, labels=True, fill=None):
     """crop = (minX, maxX, minZ, maxZ) in world studs; flag = predicate(block)."""
     minX, maxX, minZ, maxZ = crop or d["extent"]
     pad = 20
@@ -93,8 +93,11 @@ def render(d, out, scale=0.5, crop=None, flag=None, labels=True):
             if flag and flag(blk):
                 g.polygon(corners, fill="#ff1744", outline="#7a0019")
             else:
-                outline = "#7a2f1b" if is_housing(blk["use"]) else None
-                g.polygon(corners, fill=use_fill(blk["use"]), outline=outline)
+                if fill:
+                    g.polygon(corners, fill=fill(blk["use"]), outline="#00000055")
+                else:
+                    outline = "#7a2f1b" if is_housing(blk["use"]) else None
+                    g.polygon(corners, fill=use_fill(blk["use"]), outline=outline)
 
     x, y = P(0, 0)
     g.ellipse((x - 60 * scale, y - 60 * scale, x + 60 * scale, y + 60 * scale), fill="#d8c98a", outline="#8a7b3f")
@@ -126,6 +129,19 @@ def render(d, out, scale=0.5, crop=None, flag=None, labels=True):
         for lm in d["landmarks"]:
             x, y = P(*lm["at"])
             g.ellipse((x - 5, y - 5, x + 5, y + 5), fill="#b2402f")
+
+    if d.get("legend") and not crop:
+        f = _font(max(10, int(26 * scale)))
+        lh = int(34 * scale)
+        rows = d["legend"]
+        x0, y0 = P(-640, 0)[0], pad + 6      # open ground north of the ring
+        g.rectangle((x0, y0, x0 + int(640 * scale), y0 + lh * (len(rows) + 1) + 6),
+                    fill=(255, 255, 255, 235), outline="#b9bcb4")
+        g.text((x0 + 8, y0 + 4), "What stands where", fill="#15171a", font=f)
+        for n, (colour, label) in enumerate(rows):
+            y = y0 + lh * (n + 1)
+            g.rectangle((x0 + 8, y + 3, x0 + 8 + lh, y + lh - 5), fill=colour, outline="#00000055")
+            g.text((x0 + 16 + lh, y + 2), label, fill="#2d3036", font=f)
 
     img.save(out)
     return out
