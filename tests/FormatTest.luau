@@ -34,10 +34,19 @@ function T.ordinalKnowsTheTeens()
 	end
 end
 
-function T.surnameIsTheLastWord()
+function T.surnameIsEverythingAfterTheFirstName()
 	assert(Format.surname("Danny Rashford-Lyle") == "Rashford-Lyle", "hyphens stay together")
+	assert(Format.surname("Matteo De Luca") == "De Luca", "a two-word surname stays whole")
 	assert(Format.surname("Pelé") == "Pelé", "one name is its own surname")
 	assert(Format.surname("") == "", "and nothing is nothing")
+end
+
+function T.cardNameIsAnInitialAndTheSurname()
+	assert(Format.cardName("Killian Moreau") == "K. Moreau", "got " .. Format.cardName("Killian Moreau"))
+	assert(Format.cardName("Matteo De Luca") == "M. De Luca", "got " .. Format.cardName("Matteo De Luca"))
+	assert(Format.cardName("Álvaro Ortega") == "Á. Ortega", "the initial is a whole character")
+	assert(Format.cardName("Trialist") == "Trialist", "one name stays as it is")
+	assert(Format.cardName("") == "", "and nothing is nothing")
 end
 
 return T

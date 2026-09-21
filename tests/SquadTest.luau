@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Squad = require(ReplicatedStorage.Shared.Squad)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Nations = require(ReplicatedStorage.Shared.Nations)
 
 local T = {}
 
@@ -1002,6 +1003,105 @@ function T.aBetterCoachIsNeverAWorseJudge()
 	local players = Squad.generate(3, 60)
 	assert(Squad.perceived(players[1], 0) == players[1].overall, "a Pro Coach sees the real rating")
 	assert(math.abs(Squad.perceived(players[1], 6) - players[1].overall) <= 6, "and nobody is wrong by more than the spread")
+end
+
+-- Nationality: everybody comes from somewhere, and the name matches the flag
+local function nameFits(p: any): boolean
+	local nation = Nations.get(p.nation)
+	local first, last = p.name:match("^(%S+) (.+)$")
+	return nation.code == p.nation and table.find(nation.first, first) ~= nil and table.find(nation.last, last) ~= nil
+end
+
+function T.everyGeneratedPlayerHasANationThatFitsHisName()
+	for _, p in Squad.generate(21, 45) do
+		assert(type(p.nation) == "string" and nameFits(p), p.name .. " does not fit " .. tostring(p.nation))
+	end
+	for _, p in Squad.prospects(22, 60, #Config.ScoutLevels) do
+		assert(nameFits(p), "prospect " .. p.name .. " does not fit " .. tostring(p.nation))
+	end
+	local players = Squad.generate(23, 45)
+	table.remove(players, 1)
+	for _, p in Squad.promoteYouth(players, Random.new(1), 100) do
+		assert(nameFits(p), "graduate " .. p.name .. " does not fit " .. tostring(p.nation))
+	end
+end
+
+function T.aGrassrootsSquadIsMostlyHomeGrown()
+	local home, total = 0, 0
+	for seed = 1, 20 do
+		for _, p in Squad.generate(seed, 45) do
+			total += 1
+			if Nations.get(p.nation).home then
+				home += 1
+			end
+		end
+	end
+	assert(home / total > 0.8, ("only %d of %d starting players are home-grown"):format(home, total))
+end
+
+function T.aBetterScoutLooksFurtherAbroad()
+	local function abroad(level: number): number
+		local n, total = 0, 0
+		for seed = 1, 150 do
+			for _, p in Squad.prospects(seed, 60, level) do
+				total += 1
+				if not Nations.get(p.nation).home then
+					n += 1
+				end
+			end
+		end
+		return n / total
+	end
+	local first, last = abroad(1), abroad(#Config.ScoutLevels)
+	assert(Squad.scoutReach(1) == 0, "a Local Scout is local")
+	assert(Squad.scoutReach(#Config.ScoutLevels) == 1, "the top network covers the world")
+	assert(last > first + 0.25, ("top scout %.0f%% abroad vs local scout %.0f%%"):format(last * 100, first * 100))
+end
+
+function T.theMatchdaySquadCarriesTheNation()
+	local players = Squad.generate(24, 45)
+	for _, m in Squad.matchSquad(players, Squad.autoLineup(players)) do
+		assert(type((m :: any).nation) == "string", m.name .. " lost his nation on matchday")
+	end
+end
+
+-- Rarity: the card colour, from the overall alone
+function T.rarityFollowsTheOverall()
+	local previous = 0
+	for i, tier in Config.Rarity do
+		assert(tier.min > previous or i == 1, tier.name .. " does not start above the tier below")
+		previous = tier.min
+		assert(Squad.rarity(tier.min) == tier.name, ("%d should be %s"):format(tier.min, tier.name))
+		if i > 1 then
+			assert(Squad.rarity(tier.min - 1) == Config.Rarity[i - 1].name, "the point below a tier belongs to the one under it")
+		end
+	end
+	assert(Squad.rarity(Squad.MIN_OVERALL) == "Bronze" and Squad.rarity(Squad.MAX_OVERALL) == Config.Rarity[#Config.Rarity].name, "the ends of the scale")
+	assert(Squad.rarity(Config.StartingSquadOverall) == "Bronze", "a new club is a bronze club")
+	assert(Squad.rarity(Config.Divisions[#Config.Divisions].baseStrength) == "Gold", "the top division is gold standard")
+end
+
+function T.aRareCardIsAYoungPlayerWithRealHeadroom()
+	assert(Squad.rollsRare(18, Config.RareHeadroom), "a teenager with a high ceiling is the rare card")
+	assert(not Squad.rollsRare(18, Config.RareHeadroom - 1), "not quite enough headroom")
+	assert(not Squad.rollsRare(Config.RareMaxAge + 1, 30), "too old to be a wonderkid")
+end
+
+function T.rareCardsAreActuallyRare()
+	for _, level in { 1, #Config.ScoutLevels } do
+		local rare, total = 0, 0
+		for seed = 1, 300 do
+			for _, p in Squad.prospects(seed, 50, level) do
+				total += 1
+				if p.rare then
+					rare += 1
+					assert(p.age <= Config.RareMaxAge, p.name .. " is shiny at " .. p.age)
+				end
+			end
+		end
+		local share = rare / total
+		assert(share > 0.03 and share < 0.15, ("scout level %d: %.0f%% of cards are rare"):format(level, share * 100))
+	end
 end
 
 return T

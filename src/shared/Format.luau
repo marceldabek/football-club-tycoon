@@ -32,9 +32,21 @@ function Format.ordinal(n: number): string
 end
 
 -- "Danny Rashford-Lyle" -> "Rashford-Lyle", for shirt backs and cards.
+-- Everything after the first name, so "Matteo De Luca" keeps his "De Luca".
 function Format.surname(full: string): string
-	local last = string.match(full, "([^%s]+)$")
-	return last or full
+	local rest = string.match(full, "^%S+%s+(.+)$")
+	return rest or full
+end
+
+-- "Killian Moreau" -> "K. Moreau", how a card names a player (Marcel,
+-- 2026-09-21). A single name stays as it is. The initial is one whole UTF-8
+-- character, so "Álvaro" is "Á." rather than half a letter.
+function Format.cardName(full: string): string
+	local first, rest = string.match(full, "^(%S+)%s+(.+)$")
+	if not first then
+		return full
+	end
+	return (string.match(first, utf8.charpattern) or "") .. ". " .. rest
 end
 
 return Format

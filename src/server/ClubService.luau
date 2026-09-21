@@ -11,6 +11,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Squad = require(ReplicatedStorage.Shared.Squad)
 local Bids = require(ReplicatedStorage.Shared.Bids)
 local Format = require(ReplicatedStorage.Shared.Format) -- X342
+local Nations = require(ReplicatedStorage.Shared.Nations)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local Profile = require(ReplicatedStorage.Shared.Profile)
 local Trade = require(ReplicatedStorage.Shared.Trade)
@@ -278,6 +279,10 @@ function ClubService.restore(data: any?)
 		if type(copy.look) ~= "number" then
 			copy.look = Squad.lookSeedFor(copy.id, copy.name)
 		end
+		-- and saves from before nationality get a stable home
+		if type(copy.nation) ~= "string" then
+			copy.nation = Nations.codeFor(copy.id, copy.name)
+		end
 		table.insert(players, copy)
 	end
 	local maxId = 0
@@ -317,6 +322,10 @@ function ClubService.restore(data: any?)
 				local copy = table.clone(p)
 				if type(copy.look) ~= "number" then
 					copy.look = Squad.lookSeedFor(copy.id, copy.name)
+				end
+				-- and saves from before nationality get a stable home
+				if type(copy.nation) ~= "string" then
+					copy.nation = Nations.codeFor(copy.id, copy.name)
 				end
 				table.insert(shortlist, copy)
 			end
@@ -500,6 +509,8 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 			apps = 0,
 			goals = 0,
 			look = prospect.look, -- X227: keep the face the shortlist showed
+			nation = prospect.nation,
+			rare = prospect.rare,
 		}
 		nextId += 1
 		table.insert(players, signed)

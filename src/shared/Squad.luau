@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local TeamGen = require(ReplicatedStorage.Shared.TeamGen)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Nations = require(ReplicatedStorage.Shared.Nations)
 
 local Squad = {}
 
@@ -23,6 +24,8 @@ export type Player = {
 	apps: number,
 	goals: number,
 	look: number, -- appearance seed, see Appearance.luau
+	nation: string?, -- Nations code; nil only on saves from before nationality
+	rare: boolean?, -- the shiny card, decided once when he is generated
 }
 
 -- X337: a prospect's ceiling reaches the player as the band his scout will
@@ -40,6 +43,7 @@ export type MatchPlayer = {
 	role: Pitch.Role,
 	overall: number,
 	look: number,
+	nation: string?,
 }
 
 export type Sub = { out: number, ["in"]: number, minute: number?, afterEvent: number? }
@@ -84,8 +88,16 @@ local function byId(players: { Player }): { [number]: Player }
 end
 Squad.byId = byId
 
+-- The shiny version of a card: a young player who rolled a long way to go.
+-- It is his own headroom, before any scout's or academy's boost, so a better
+-- scout finds better players without every one of them being shiny. Decided
+-- once in makePlayer and kept on the card, so it never leaks the exact ceiling.
+function Squad.rollsRare(age: number, headroom: number): boolean
+	return age <= Config.RareMaxAge and headroom >= Config.RareHeadroom
+end
+
 -- Builds one player. `avg` is the target overall; spread and potential are TEMP.
-local function makePlayer(rng: Random, id: number, name: string, number: number, role: Pitch.Role, avg: number, potentialBoost: number, maxAge: number?): Player
+local function makePlayer(rng: Random, id: number, person: TeamGen.Person, number: number, role: Pitch.Role, avg: number, potentialBoost: number, maxAge: number?): Player
 	local age = rng:NextInteger(17, maxAge or 33)
 	local overall = clampOverall(avg + rng:NextInteger(-6, 6))
 	-- younger players carry more headroom
@@ -102,7 +114,8 @@ local function makePlayer(rng: Random, id: number, name: string, number: number,
 	local potential = clampOverall(overall + headroom + potentialBoost)
 	return {
 		id = id,
-		name = name,
+		name = person.name,
+		nation = person.nation,
 		number = number,
 		role = role,
 		age = age,
@@ -112,6 +125,7 @@ local function makePlayer(rng: Random, id: number, name: string, number: number,
 		apps = 0,
 		goals = 0,
 		look = rng:NextInteger(1, 2 ^ 30),
+		rare = Squad.rollsRare(age, headroom),
 	}
 end
 
@@ -128,10 +142,10 @@ end
 -- Starting squad: 16 players with ids and shirt numbers 1..16.
 function Squad.generate(seed: number, avgOverall: number): { Player }
 	local rng = Random.new(seed)
-	local names = TeamGen.generateNames(rng, #GENERATE_ROLES)
+	local people = TeamGen.generatePeople(rng, #GENERATE_ROLES)
 	local players: { Player } = {}
 	for i, role in GENERATE_ROLES do
-		table.insert(players, makePlayer(rng, i, names[i], i, role, avgOverall, 0))
+		table.insert(players, makePlayer(rng, i, people[i], i, role, avgOverall, 0))
 	end
 	return players
 end
@@ -302,7 +316,7 @@ function Squad.matchSquad(players: { Player }, lineup: Lineup): { MatchPlayer }
 	local function add(id: number?)
 		local p = if id then map[id] else nil
 		if p then
-			table.insert(out, { id = p.id, name = p.name, number = p.number, role = p.role, overall = p.overall, look = p.look })
+			table.insert(out, { id = p.id, name = p.name, number = p.number, role = p.role, overall = p.overall, look = p.look, nation = p.nation })
 		end
 	end
 	for slot = 1, #Pitch.ROLES do
@@ -784,9 +798,10 @@ function Squad.promoteYouth(players: { Player }, rng: Random, firstId: number, a
 	-- club's own level, so it never drops below where a new club starts.
 	local avg = math.max(Squad.average(players) - 6, Config.StartingSquadOverall - 5)
 	local function promote(role: Pitch.Role)
-		local name = TeamGen.generateNames(rng, 1, taken)[1]
-		taken[name] = true
-		local p = makePlayer(rng, firstId + #graduates, name, Squad.freeNumber(players), role, avg, 8, 19)
+		-- the academy is local lads: reach 0
+		local person = TeamGen.generatePeople(rng, 1, taken)[1]
+		taken[person.name] = true
+		local p = makePlayer(rng, firstId + #graduates, person, Squad.freeNumber(players), role, avg, 8, 19)
 		table.insert(players, p)
 		table.insert(graduates, p)
 	end
@@ -872,6 +887,27 @@ function Squad.potentialBand(potential: number, width: number, seed: number, flo
 	return low, high
 end
 
+-- How far this scout's net is cast, 0..1 (see Nations.pick): the Local Scout
+-- finds the lads down the road, the top network most of its players abroad.
+function Squad.scoutReach(scoutLevel: number): number
+	local top = #Config.ScoutLevels
+	if top <= 1 then
+		return 0
+	end
+	return math.clamp((scoutLevel - 1) / (top - 1), 0, 1)
+end
+
+-- The card colour, from the overall alone: Config.Rarity is in ascending order.
+function Squad.rarity(overall: number): string
+	local name = Config.Rarity[1].name
+	for _, tier in Config.Rarity do
+		if overall >= tier.min then
+			name = tier.name
+		end
+	end
+	return name
+end
+
 -- Scout shortlist. Better scouts find more and higher-ceiling players.
 -- Ids are negative and unique per seed so they never clash with squad ids.
 function Squad.prospects(seed: number, avgOverall: number, scoutLevel: number, avoidNames: { [string]: boolean }?): { Prospect }
@@ -880,7 +916,7 @@ function Squad.prospects(seed: number, avgOverall: number, scoutLevel: number, a
 		return {}
 	end
 	local rng = Random.new(seed)
-	local names = TeamGen.generateNames(rng, level.prospects, avoidNames)
+	local people = TeamGen.generatePeople(rng, level.prospects, avoidNames, Squad.scoutReach(scoutLevel))
 	local list: { Prospect } = {}
 	for i = 1, level.prospects do
 		local role: Pitch.Role = GENERATE_ROLES[rng:NextInteger(3, #GENERATE_ROLES)]
@@ -888,7 +924,7 @@ function Squad.prospects(seed: number, avgOverall: number, scoutLevel: number, a
 			role = "GK"
 		end
 		-- scouts look for players with a future: nobody over 27 on a shortlist
-		local p = makePlayer(rng, -(seed * 100 + i), names[i], 0, role, avgOverall + level.overallBonus, level.potentialBoost, 27)
+		local p = makePlayer(rng, -(seed * 100 + i), people[i], 0, role, avgOverall + level.overallBonus, level.potentialBoost, 27)
 		local prospect = p :: any
 		prospect.fee = Squad.fee(p)
 		-- X337: what the scout will actually say about his ceiling
