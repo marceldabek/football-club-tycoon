@@ -75,7 +75,7 @@ local BUS_EVERY = 8 -- 1 in 8 spawns is a bus
 local BUS_STOP_DWELL = 4 -- TEMP seconds stopped
 local BUS_STOP_REACH = 40 -- a stop this close to the road centreline serves it (the Station stop is 36 out)
 -- F3.3 cyclists: on residential streets only (lanes are too narrow to pass), by the kerb.
--- A lane is 6.5 wide, so there is no room to pass: cars queue behind a cyclist.
+-- A lane is 7.9 wide and a car 6.9, so there is no room to pass: cars queue behind a cyclist.
 local BIKE_EVERY = 8 -- TEMP: 1 in 8 spawns on a quiet street is a bike
 local BIKE_SPEED = 11 -- TEMP studs/s
 local BIKE_KERB_INSET = 1.6 -- rider (1.3 wide) clears a car in the lane on a 20-wide residential street
@@ -408,8 +408,8 @@ local function kitCarTemplates(): { Instance }
 end
 
 -- X372: the double-decker from ClientKit. Stored at real-bus size it is 8.3
--- wide, wider than a 6.5 lane, so it is drawn at RoadTiles.BUS_SCALE: still
--- nine studs tall beside a 5-stud townsperson.
+-- wide, wider than a 7.9 lane, so it is drawn at RoadTiles.BUS_SCALE: still
+-- over ten studs tall beside a 5-stud townsperson.
 local function kitBusTemplate(): Instance?
 	local clientKit = ReplicatedStorage:FindFirstChild("ClientKit")
 	return clientKit and clientKit:FindFirstChild("Bus")
@@ -791,7 +791,7 @@ local function moveCar(car: Car, dt: number)
 	-- driving backwards, which the old box cars hid.
 	local direction = lineDirection * car.direction
 	-- the kit carriageway, not TownLayout's nominal road width (26 on a main road
-	-- put cars on the kerb of the 12.9-wide kit street)
+	-- put cars on the kerb of the narrower kit street)
 	local carriageway = RoadTiles.carriagewayWidth(currentRoad.kind)
 	local flatPos = point
 		+ (if car.isBike

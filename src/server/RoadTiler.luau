@@ -192,6 +192,36 @@ local function stretchZ(model: Model, factor: number)
 	end
 end
 
+-- A street-scale kit piece is 44 across; a residential corridor is 36, and the
+-- front gardens start at its edge. On a straight the verge MeshPart is two grass
+-- strips, so it is narrowed across the road until its outer edges sit on the
+-- corridor's. Its inner edges slide in under the paving, so it also drops
+-- VERGE_TUCK to keep the two tops off one plane. (Bends and junction pieces keep
+-- their full verge: their grass is not two parallel strips.)
+local VERGE_TUCK = 0.02
+local roadWidths: { [string]: number }? = nil
+local function cropVerge(model: Model, tile: RoadTiles.Tile)
+	if tile.kind ~= "straight" then
+		return
+	end
+	if not roadWidths then
+		local widths: { [string]: number } = {}
+		for _, road in TownLayout.ROADS do
+			widths[road.name] = road.width
+		end
+		roadWidths = widths
+	end
+	local width = (roadWidths :: { [string]: number })[tile.road]
+	local corridor = width and RoadTiles.corridorHalf(tile.roadKind, width)
+	local pieceHalf = RoadTiles.KIT_HALF_WIDTH * tile.scale
+	local verge = RoadTiler.vergeOf(model)
+	if not (corridor and verge) or pieceHalf <= corridor + 0.05 then
+		return
+	end
+	verge.Size = Vector3.new(verge.Size.X * corridor / pieceHalf, verge.Size.Y, verge.Size.Z)
+	verge.CFrame -= Vector3.new(0, VERGE_TUCK, 0)
+end
+
 local function districtModel(parent: Instance, cache: { [string]: Model }, district: string): Model
 	local model = cache[district]
 	if not model then
@@ -241,6 +271,7 @@ function RoadTiler.build(parent: Instance, origin: CFrame, filter: { district: s
 			stretchZ(model, tile.stretch)
 			local paved = alley or RoadTiler.isPavedVerge(tile.cframe.Position)
 			tintVerge(model, paved)
+			cropVerge(model, tile)
 		end
 		if opts and opts.carve then
 			carveTerrain(origin, tile)

@@ -88,7 +88,7 @@ function tests.tilesSitAtThePlannedLevelAndLength()
 		return
 	end
 	withBuild("Northfields", function(holder, _)
-		local tileLen = 110 * 0.816
+		local tileLen = 110 * RoadTiles.STREET_SCALE
 		for _, m in (holder:FindFirstChild("Roads_Northfields") :: Model):GetChildren() do
 			if m:IsA("Model") then
 				local cf, size = m:GetBoundingBox()
@@ -97,7 +97,8 @@ function tests.tilesSitAtThePlannedLevelAndLength()
 				assert(top < RoadTiles.SURFACE_Y + 0.8 and top > RoadTiles.SURFACE_Y - 1, ("%s top at %.2f"):format(m.Name, top))
 				if m:GetAttribute("TileKind") == "straight" then
 					assert(size.Z > tileLen * 0.05 and size.Z < tileLen * 1.5, ("straight length %.1f"):format(size.Z))
-					assert(math.abs(size.X - 44 * 0.816) < 0.2, ("straight width %.2f"):format(size.X))
+					-- the full piece, or cropped to its road's corridor (RoadTiler's cropVerge), never under the paving
+					assert(size.X < 44 * RoadTiles.STREET_SCALE + 0.2 and size.X > 2 * RoadTiles.KIT_PAVING_OUTER * RoadTiles.STREET_SCALE, ("straight width %.2f"):format(size.X))
 				end
 			end
 		end

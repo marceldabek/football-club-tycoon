@@ -4,6 +4,7 @@
 -- FurniturePlan's bookkeeping.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local FurniturePlan = require(ReplicatedStorage.Shared.FurniturePlan)
+local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles)
 
 local T = {}
 
@@ -84,7 +85,7 @@ T["furniture stands on its own road's pavement strip"] = function()
 			local road = roadNamed(input, pl.road)
 			local d = FurniturePlan.polylineDistance(pl.cframe.Position, road.points)
 			-- behind the KIT kerb and still on the kit road piece (paving or verge), never past its back edge
-			assert(d >= FurniturePlan.kerbOf(road) and d <= FurniturePlan.kerbOf(road) + FurniturePlan.PAVEMENT_WIDTH and d <= 22 * 0.816, ("%s on %s is %.1f from the centreline"):format(pl.category, pl.road, d))
+			assert(d >= FurniturePlan.kerbOf(road) and d <= FurniturePlan.kerbOf(road) + FurniturePlan.PAVEMENT_WIDTH and d <= RoadTiles.KIT_HALF_WIDTH * RoadTiles.STREET_SCALE, ("%s on %s is %.1f from the centreline"):format(pl.category, pl.road, d))
 			assert(math.abs(pl.cframe.Position.Y - FurniturePlan.PAVEMENT_Y) < 1e-4, pl.category .. " is not on the pavement top")
 		end
 	end
@@ -194,7 +195,7 @@ T["cars park only in front of housing, along the kerb"] = function()
 		local p = pl.cframe.Position
 		assert(pl.road == "Side Street", "car on " .. pl.road)
 		assert(math.abs(math.abs(p.X) - FurniturePlan.parkingOffset({ kind = "residential" })) < 0.01, "car is not against the kerb")
-		assert(math.abs(p.X) + FurniturePlan.CAR_HALF_WIDTH < 15.85 * 0.816 / 2, "car hangs over the kerb")
+		assert(math.abs(p.X) + FurniturePlan.CAR_HALF_WIDTH < RoadTiles.carriagewayWidth("residential") / 2, "car hangs over the kerb")
 		assert(pl.scale == FurniturePlan.CAR_SCALE, "parked cars are traffic sized")
 		local z = p.Z
 		assert((z > 110 - 66 and z < 110 + 66) or (z > 250 - 66 and z < 250 + 66), ("car at z=%.0f is not in front of a terrace"):format(z))

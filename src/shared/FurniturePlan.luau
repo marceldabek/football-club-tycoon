@@ -77,7 +77,7 @@ FurniturePlan.PAVEMENT_WIDTH = 8
 FurniturePlan.PAVEMENT_Y = RoadTiles.SURFACE_Y
 FurniturePlan.ROAD_Y = RoadTiles.roadTop("residential")
 -- Parked hatchbacks at the size client Traffic drives them (RoadTiles.CAR_SCALE):
--- full size they are 9.8 wide on a 12.9 carriageway.
+-- full size they are 9.8 wide on a 15.85 carriageway.
 FurniturePlan.CAR_SCALE = RoadTiles.CAR_SCALE
 FurniturePlan.CAR_HALF_WIDTH = 9.8 * FurniturePlan.CAR_SCALE / 2
 FurniturePlan.CAR_KERB_GAP = 0.4

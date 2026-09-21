@@ -59,7 +59,7 @@ function tests.straightFitsItsRemainderExactly()
 	local plan = RoadTiles.plan({ road("A", { v(0, 0), v(300, 0) }) }, {})
 	assert(count(plan, "straight") == 3, "expected 3 straights, got " .. count(plan, "straight"))
 	assert(plan.stats.tiles == 3, "only straights expected")
-	local tileLen = 110 * 0.816
+	local tileLen = 110 * RoadTiles.STREET_SCALE
 	for _, t in plan.tiles do
 		assert(math.abs(t.stretch * tileLen - 100) < 1e-3, "each tile should cover 100 studs")
 		assert(t.stretch > 0.66 and t.stretch < 1.5, "stretch out of range " .. t.stretch)
@@ -336,6 +336,42 @@ function tests.wholeTownResolvesAndJoinsUp()
 		assert(t.stretch > 0.01 and t.stretch < 1.5, ("stretch %.2f on %s"):format(t.stretch, t.road))
 		assert(t.scale >= 0.5, ("scale %.2f on %s"):format(t.scale, t.road))
 	end
+end
+
+-- Full kit scale: a T is 110 long but the layout spaces junctions for 90. Two T's
+-- 90 apart keep their pieces, overlapping along their plain arms, at different
+-- heights so the two tops are not on one plane. 60 apart would put an arm into
+-- the neighbour's crossing, so one of them gives way as before.
+function tests.junctionsOverlapTheirPlainArmsInsteadOfDowngrading()
+	local function plan(gap: number)
+		return RoadTiles.plan({
+			{ name = "Through", kind = "residential", points = { Vector3.new(-300, 0, 0), Vector3.new(300, 0, 0) }, district = "Test" },
+			{ name = "Side A", kind = "residential", points = { Vector3.new(0, 0, 0), Vector3.new(0, 0, 300) }, district = "Test" },
+			{ name = "Side B", kind = "residential", points = { Vector3.new(gap, 0, 0), Vector3.new(gap, 0, -300) }, district = "Test" },
+		} :: any, {}, {})
+	end
+	local near = plan(90)
+	local tees = {}
+	for _, t in near.tiles do
+		if t.kind == "tee" then
+			table.insert(tees, t)
+		end
+	end
+	assert(#tees == 2 and #near.makeshift == 0, "both junctions keep a T piece")
+	assert((near.stats.overlapped or 0) == 1, "counted as an overlap")
+	assert(math.abs(math.abs(tees[1].cframe.Y - tees[2].cframe.Y) - RoadTiles.OVERLAP_LIFT) < 1e-6, "one sits a lift above the other")
+	for _, t in near.tiles do
+		assert(t.scale == RoadTiles.STREET_SCALE, "nothing shrunk to fit")
+	end
+	local tooNear = plan(60)
+	assert(#tooNear.makeshift > 0, "an arm may not reach into the next junction's crossing")
+end
+
+function tests.corridorHalfIsWhereTheGardensStart()
+	assert(RoadTiles.corridorHalf("residential", 20) == 18, "20 road + 8 pavement each side")
+	assert(RoadTiles.corridorHalf("lane", 10) == nil and RoadTiles.corridorHalf("alley", 8) == nil, "no pavement, no corridor")
+	local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
+	assert(RoadTiles.LAYOUT_PAVEMENT == TownLayout.PAVEMENT_WIDTH, "mirrors TownLayout.PAVEMENT_WIDTH")
 end
 
 return tests

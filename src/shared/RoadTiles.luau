@@ -13,11 +13,15 @@
 --   CulDeSac heads, whose grass mound rises above it (see `level` in PIECES).
 --
 -- TWO ROAD SIZES (Marcel, 2026-09-20), uniform scale so markings stay in proportion
---   STREET 0.816 : every street (ring, main, residential, plot lane). 44 -> 35.9, the
---     36-stud residential corridor (20 road + 16 pavement). One size means no width
---     step where a side street leaves a bigger road: v3 first built ring / main at
---     0.93 and 34 junctions jogged 14%. Main (42) and ring (48) corridors are wider
---     than the piece; the spare is terrain grass, the same as the verge.
+--   STREET 1.0   : every street (ring, main, residential, plot lane) at the kit's own
+--     size: carriageway 15.85, a 7.9 lane, 3.7 of paving. It was 0.816 (44 -> 35.9, to
+--     fit the 36-stud residential corridor), which made a lane 6.5 wide: a car had to
+--     be drawn at half size to fit and looked like a toy beside a 4-stud-wide avatar.
+--     One size still means no width step where a side street leaves a bigger road.
+--     The piece is now 44 across and a residential corridor 36, so RoadTiler crops
+--     the grass verge of the straights to the corridor (RoadTiles.corridorHalf). The
+--     layout spaces its junctions for 90-stud pieces and a T or crossroads is now
+--     110: neighbours overlap along their plain arms (armsMayOverlap).
 --   ALLEY  0.5   : back alleys, 44 -> 22. RoadTiler paves the whole piece (no grass
 --     verge, no asphalt). TownLayout has five, behind back-to-back terraced rows.
 --
@@ -76,9 +80,10 @@ export type Plan = { tiles: { Tile }, exempt: { Exempt }, stats: { [string]: num
 local PREFIX = "UKSP__ModularRoads__"
 RoadTiles.PREFIX = PREFIX
 RoadTiles.SURFACE_Y = 0.35 -- pavement top above ground
-RoadTiles.STREET_SCALE = 0.816
+RoadTiles.STREET_SCALE = 1
 RoadTiles.ALLEY_SCALE = 0.5
 RoadTiles.ALLEY_LIFT = 0.02 -- alley tiles overlap street verges; keeps the two tops off one plane
+RoadTiles.OVERLAP_LIFT = 0.012 -- per level, for junction pieces whose plain arms overlap (see armsMayOverlap)
 RoadTiles.SCALE = {
 	ring = RoadTiles.STREET_SCALE, main = RoadTiles.STREET_SCALE, residential = RoadTiles.STREET_SCALE,
 	lane = RoadTiles.STREET_SCALE, alley = RoadTiles.ALLEY_SCALE,
@@ -100,6 +105,17 @@ end
 function RoadTiles.carriagewayWidth(kind: string): number
 	return RoadTiles.KIT_CARRIAGEWAY * (RoadTiles.SCALE[kind] or RoadTiles.STREET_SCALE)
 end
+-- Centreline to the edge of a road's own ground: TownLayout's nominal width plus
+-- its pavement, which is where TownFrontage starts the front gardens. A kit piece
+-- is wider than that on a residential street (22 against 18); RoadTiler crops the
+-- straights' verge to it. nil for the kinds TownLayout gives no pavement (lane, alley).
+RoadTiles.LAYOUT_PAVEMENT = 8 -- TownLayout.PAVEMENT_WIDTH (this module requires nothing)
+function RoadTiles.corridorHalf(kind: string, width: number): number?
+	if kind == "lane" or kind == "alley" then
+		return nil
+	end
+	return width / 2 + RoadTiles.LAYOUT_PAVEMENT
+end
 -- Centreline radius of the kit's bend pieces, unscaled (measured in Studio
 -- 2026-09-20 from top-down captures: where the kerbs leave the straight, over
 -- the carriageway width as the ruler. The meshes' collision hulls cut the
@@ -112,11 +128,11 @@ RoadTiles.KIT_BEND45_RADIUS = 40
 RoadTiles.ISLAND_SHARE = 0.45
 -- One size for every kit hatchback on the streets, moving or parked, and for the
 -- double-decker (TEMP). The hatchback mesh is 9.8 x 8.4 x 19.4 and the bus
--- 8.3 x 12.1 x 27.4 as stored; a lane is 6.47 wide at STREET_SCALE, so 0.6 gives
--- a 5.9-wide car and 0.74 a 6.1-wide bus: as big as the lane allows beside a
--- 4-stud-wide avatar.
-RoadTiles.CAR_SCALE = 0.6
-RoadTiles.BUS_SCALE = 0.74
+-- 8.3 x 12.1 x 27.4 as stored. A lane is 7.9 wide: 0.7 gives a 6.9 x 5.9 x 13.6 car
+-- (two 2-stud avatars sit side by side in it, half a stud to spare each side of
+-- the lane) and 0.88 a 7.3 x 10.6 x 24 bus.
+RoadTiles.CAR_SCALE = 0.7
+RoadTiles.BUS_SCALE = 0.88
 RoadTiles.RANK = { ring = 4, main = 3, residential = 2, lane = 1, alley = 0 } :: { [string]: number }
 RoadTiles.ARTERIAL = "Arterial"
 -- TEMP: the Town Centre box (yellow lines, and the district for roads with none).
@@ -526,9 +542,10 @@ local function emitNode(node, tiles: { Tile }, exempt: { Exempt })
 	local kind = node.kind
 	local road = nodeRoad(node)
 	local yellow = inCentre(node.pos) or road.kind == "lane"
+	local lift = Vector3.new(0, (node.lift or 0) * RoadTiles.OVERLAP_LIFT, 0)
 	local function add(def, cf: CFrame, tileKind: string, r)
 		table.insert(tiles, {
-			piece = pieceName(def, yellow), cframe = cf, scale = node.scale, stretch = 1, kind = tileKind,
+			piece = pieceName(def, yellow), cframe = cf + lift, scale = node.scale, stretch = 1, kind = tileKind,
 			road = r.name, roadKind = r.kind, district = RoadTiles.districtOf(r), yellow = yellow, tucked = false,
 		})
 	end
@@ -562,7 +579,7 @@ local function emitNode(node, tiles: { Tile }, exempt: { Exempt })
 		local s = node.scale
 		local arm = node.arms[1]
 		table.insert(tiles, {
-			piece = PREFIX .. def.name, cframe = anchored(node.pos, { node = { def.node[1] * s, def.node[2] * s } }, arm.dir, def.dirA),
+			piece = PREFIX .. def.name, cframe = anchored(node.pos, { node = { def.node[1] * s, def.node[2] * s } }, arm.dir, def.dirA) + lift,
 			scale = s, stretch = 1, kind = "head", road = arm.road.name, roadKind = arm.road.kind, district = RoadTiles.districtOf(arm.road),
 			yellow = yellow, tucked = false,
 		})
@@ -672,9 +689,31 @@ end
 -- Tolerated: under a big roundabout (the E3 disc hides the overlap), and a bend or
 -- head next to a plain dead end (the piece simply runs a little past the end, which
 -- only happens on the plot lanes, where it runs into the plot's own entrance).
+-- How far from its node a piece is more than plain straight road (the crossing
+-- road and its kerb radii, a bend's curve, a head's bulb), unscaled. Beyond this
+-- an arm is an ordinary straight section.
+local CORE = { tee = 28, cross = 28, bend90 = RoadTiles.KIT_BEND90_RADIUS + 3, bend45 = 20, head = 45 } :: { [string]: number }
+
+-- Two pieces of one scale on a straight run may overlap where both are plain
+-- arm: the cross-sections are identical there, and emitNode lifts one of them
+-- OVERLAP_LIFT so the two tops are not on one plane. (The layout spaces its
+-- junctions for 90-stud pieces; at full kit scale a T or crossroads is 110.) What
+-- may not happen is an arm reaching into its neighbour's core.
+local function armsMayOverlap(run): boolean
+	local a, b = run.from.node, run.to.node
+	local coreA, coreB = CORE[a.kind], CORE[b.kind]
+	if not (coreA and coreB) or math.abs(a.scale - b.scale) > 1e-3 then
+		return false
+	end
+	return run.len >= run.from.trim + coreB * b.scale and run.len >= run.to.trim + coreA * a.scale
+end
+
 local function inConflict(run): boolean
 	local a, b = run.from.node, run.to.node
 	if run.len - run.from.trim - run.to.trim >= -0.5 then
+		return false
+	end
+	if armsMayOverlap(run) then
 		return false
 	end
 	if a.kind == "roundabout" or b.kind == "roundabout" then
@@ -742,6 +781,38 @@ function RoadTiles.plan(roads: { RoadIn }, roundabouts: { RoundaboutIn }?, bridg
 	for _, run in runs do
 		if inConflict(run) then
 			stats.unresolved += 1
+		end
+	end
+
+	-- Overlapping neighbours (armsMayOverlap) must not share a height: give each
+	-- node the lowest level none of the nodes it overlaps has.
+	local overlaps: { [any]: { any } } = {}
+	for _, run in runs do
+		if run.len - run.from.trim - run.to.trim < -0.5 and armsMayOverlap(run) then
+			local a, b = run.from.node, run.to.node
+			overlaps[a] = overlaps[a] or {}
+			overlaps[b] = overlaps[b] or {}
+			table.insert(overlaps[a], b)
+			table.insert(overlaps[b], a)
+			stats.overlapped = (stats.overlapped or 0) + 1
+		end
+	end
+	for _, node in nodeList do
+		local near = overlaps[node]
+		if near then
+			local level = 0
+			local clash = true
+			while clash do
+				clash = false
+				for _, other in near do
+					if other.lift == level then
+						clash = true
+						level += 1
+						break
+					end
+				end
+			end
+			node.lift = level
 		end
 	end
 

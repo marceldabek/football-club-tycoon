@@ -29,16 +29,43 @@ Measured from close top-down captures, the 90 bend's centreline radius is about
 23.7 studs (corner was 9.8 studs off the asphalt centre) and the 45 bend's about
 32.6 (2.7 studs off). The "25 to 32 studs" figure for the 90 bend was wrong.
 
-### Left for a decision
+### Road scale (done 2026-09-20, after the fixes above)
 
-- **D1 road scale.** Kept at 0.816 (decided earlier the same day). Cars at 0.6 are
-  as large as a 6.47 lane allows. Going bigger means wider roads.
-- **Pavement width.** Still 3 studs; a figure is 4 across the arms. The verge is
-  one mesh, so it cannot be part-repainted as paving. Needs a wider road scale or
-  extra paving parts from RoadTiler.
-- **Walkers do not cross roads.** They pace between junctions. A crossing
-  behaviour would need cars to give way to them.
-- Car park bays were laid out for 0.85 cars; at 0.6 the cars sit small in a 9-wide bay.
+Marcel asked for wider roads so cars can be the right size. Every street is now at
+the kit's own scale, `RoadTiles.STREET_SCALE = 1` (was 0.816):
+
+| | 0.816 | 1.0 |
+|---|---|---|
+| Carriageway / lane | 12.9 / 6.5 | 15.85 / 7.9 |
+| Paved strip | 3.0 | 3.7 |
+| Car (`CAR_SCALE`) | 0.6: 5.9 x 5.0 x 11.6 | 0.7: 6.9 x 5.9 x 13.6 |
+| Bus (`BUS_SCALE`) | 0.74: 6.2 wide | 0.88: 7.3 x 10.6 x 24 |
+
+What made it possible without moving any street or house:
+- **Junction spacing.** The layout spaces junctions for 90-stud pieces; a T or
+  crossroads is 110 at full scale, and a plain rescale turned 17 junctions into
+  makeshift tucks. `RoadTiles.armsMayOverlap` lets neighbouring pieces overlap
+  along their plain arm sections (never into the other's crossing, curve or
+  bulb), one of them lifted `OVERLAP_LIFT` (0.012) so the tops are not coplanar.
+  Result: 0 makeshift, 0 shrunk, 21 overlapped runs, 606 tiles (was 734).
+- **Corridor.** The piece is 44 across, a residential corridor 36.
+  `RoadTiler.cropVerge` narrows the verge of each straight to
+  `RoadTiles.corridorHalf`, so the grass stops at the garden fences. Bends and
+  junction pieces keep their full verge (4 studs over the corridor edge there).
+- Everything else reads `RoadTiles`: furniture, parked cars (372 placed, 0
+  clipped), walkers, traffic lanes, bend radii.
+
+Suite 764 passed. Checked in play: street view, a 45 bend into a T, and an
+overlapped pair of T's on Hollingford Road show no seam.
+
+### Still open
+
+- **Pavement width.** 3.7 studs; a figure is 4 across the arms.
+- **Walkers do not cross roads.** They pace between junctions.
+- Bends and junction pieces still carry their full 22-stud verge, 4 past a
+  residential corridor. Nothing was seen clipping, but lots beside a T are the
+  place to look.
+- Car park bays were laid out for 0.85 cars; 0.7 cars sit a little small in a 9-wide bay.
 
 ---
 
