@@ -278,3 +278,28 @@ spawn lands in the office; all three outer doors open onto paving; a match
 plays through; West stand levels 2 and 4 stop cleanly at the clubhouse.
 Not yet eyeballed: the walkout itself (the debug match was 20 s) and the
 "take my seat" / audio-ducking behaviour in the lobby.
+
+## As built (phase 2 exterior, 2026-09-20)
+
+All in `Clubhouse.luau`: `buildShell` is the styled shell, `dressExterior` the kit
+clutter (model `Clubhouse.Exterior`). The slice clubhouse this follows is itself
+brick primitives plus a handful of Poly Haven props, so this is too.
+
+- Brick walls run up past the roof as a **parapet with a stone coping**; the felt
+  roof sits inside it on top of the rooms. `Clubhouse.ROOF_TOP` is the coping top.
+- A darker brick **plinth** course round the foot of the walls, broken at doors.
+- **Windows** come from `OPENINGS` entries with `glazed = true`: white uPVC frame
+  in the wall thickness, glass, stone sill. Office window, a sidelight either side
+  of the front doors, and a high slot window in each dressing room on the pitch
+  side. Add a window by adding an opening; walls, linings and frames follow.
+- **Front doors**: leaves folded back (doorways stay open, non-colliding), steel
+  canopy on two posts with a club-colour edge, bulkhead light under it, and a
+  dark club-colour **fascia** over it with a crest either side of the club name
+  (after RivermereTurnstileEntrance.png). Players' door and office side door get
+  leaves too; the players' header keeps the club name.
+- Kiosk hatch: shutter box, counter, and a TEMP "TEAS - PIES - HOT DRINKS" board.
+- Rainwater pipes on the street-side corners.
+- Kit props: utility box, power box, security camera, air-con unit, park bench,
+  litter bin, dumpster with lids and two bin bags round the north end.
+- **Rundown at tier 1**: damp patches on the street wall (`Damp` frames), hidden
+  with the office's at `OFFICE_TIER_PAINT` by `WorldBuilder.dressOffice`.

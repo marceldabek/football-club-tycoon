@@ -1382,9 +1382,12 @@ function WorldBuilder.dressOffice(tier: number)
 		end
 	end
 	-- the damp stains are frames on the wall guis; the fixtures notice stays
-	for _, gui in office:GetDescendants() do
-		if gui:IsA("Frame") and gui.Name == "Damp" then
-			gui.Visible = not painted
+	-- and so are the ones on the clubhouse's street wall
+	for _, room in { office, club and club:FindFirstChild("Clubhouse") } do
+		for _, gui in (room :: Instance):GetDescendants() do
+			if gui:IsA("Frame") and gui.Name == "Damp" then
+				gui.Visible = not painted
+			end
 		end
 	end
 

@@ -120,7 +120,7 @@ function T.spawnIsInsideTheOffice()
 	assert(p.Y > Clubhouse.FLOOR_Y and p.Y < Clubhouse.FLOOR_Y + 2, "spawn not on the floor")
 end
 
-function T.oneRoofOverEverything()
+function T.oneRoofInsideAParapet()
 	local club = build()
 	local shell = (club:FindFirstChild("Clubhouse") :: Instance):FindFirstChild("Shell") :: Instance
 	local roofs = {}
@@ -130,16 +130,22 @@ function T.oneRoofOverEverything()
 		end
 	end
 	assert(#roofs == 1, ("%d roofs"):format(#roofs))
+	-- the felt sits inside the parapet, so it covers every room but not the
+	-- thickness of the outer walls
 	local lo, hi = bounds(roofs[1] :: BasePart)
-	local s = Clubhouse.SHELL
-	assert(lo.X <= s.x0 and hi.X >= s.x1 and lo.Z <= s.z0 and hi.Z >= s.z1, "roof does not cover the footprint")
-	assert(math.abs(hi.Y - Clubhouse.ROOF_TOP) < 0.01, "ROOF_TOP out of step with the roof")
-	for _, d in club:GetDescendants() do
+	for name, r in Clubhouse.ROOMS do
+		assert(lo.X <= r.x0 and hi.X >= r.x1 and lo.Z <= r.z0 and hi.Z >= r.z1, "roof does not cover " .. name)
+	end
+	assert(math.abs(lo.Y - (Clubhouse.FLOOR_Y + Clubhouse.HEIGHT)) < 0.01, "roof is not sitting on the rooms")
+	-- nothing built into the shell rises above the coping (kit props may)
+	local highest = -math.huge
+	for _, d in shell:GetDescendants() do
 		if d:IsA("BasePart") then
 			local _, top = bounds(d)
-			assert(top.Y <= hi.Y + 0.01, d:GetFullName() .. " rises above the roof")
+			highest = math.max(highest, top.Y)
 		end
 	end
+	assert(math.abs(highest - Clubhouse.ROOF_TOP) < 0.01, ("ROOF_TOP %.2f but the shell tops out at %.2f"):format(Clubhouse.ROOF_TOP, highest))
 end
 
 -- Nothing the wall builder emits may share a volume with another wall piece:
@@ -164,4 +170,37 @@ function T.wallsAndFloorsDoNotInterpenetrate()
 	end
 end
 
+function T.everyWindowIsGlazedAndFramed()
+	local club = build()
+	local shell = (club:FindFirstChild("Clubhouse") :: Instance):FindFirstChild("Shell") :: Instance
+	local windows = 0
+	for _, o in Clubhouse.OPENINGS do
+		if o.glazed then
+			windows += 1
+			assert(shell:FindFirstChild(o.name .. "Glass"), o.name .. " has no glass")
+			assert(shell:FindFirstChild(o.name .. "Frame"), o.name .. " has no frame")
+		end
+	end
+	assert(windows >= 4, "expected the office window, two sidelights and the dressing room slots")
+end
+
+-- The exterior is kit dressing: it must never block a doorway (everyDoorwayIsClear
+-- covers that) and must survive a place with no kit installed.
+function T.exteriorDressingIsPlaced()
+	local club = build()
+	local ext = (club:FindFirstChild("Clubhouse") :: Instance):FindFirstChild("Exterior")
+	assert(ext and #ext:GetChildren() >= 8, "exterior props missing")
+	local s = Clubhouse.SHELL
+	for _, m in (ext :: Instance):GetChildren() do
+		if m:IsA("Model") then
+			local cf, size = m:GetBoundingBox()
+			local p = cf.Position
+			local inside = p.X > s.x0 + 1 and p.X < s.x1 - 1 and p.Z > s.z0 + 1 and p.Z < s.z1 - 1
+			assert(not inside, m.Name .. " ended up inside the building")
+			assert(size.Magnitude < 20, m.Name .. " is implausibly large")
+		end
+	end
+end
+
 return T
+

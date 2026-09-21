@@ -34,6 +34,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
+local CrestBadge = require(ReplicatedStorage.Shared.CrestBadge)
 local KitPlacer = require(script.Parent.KitPlacer)
 
 local Clubhouse = {}
@@ -51,7 +52,10 @@ Clubhouse.SHELL = { x0 = -(Pitch.SIDE_EDGE + 36), x1 = -Pitch.SIDE_EDGE, z0 = -4
 Clubhouse.GAP_Z = 41
 Clubhouse.FLOOR_Y = DECK_Y + 0.1 -- a touch proud of the paving outside
 Clubhouse.HEIGHT = 12 -- clear height of every room
-Clubhouse.ROOF_TOP = Clubhouse.FLOOR_Y + Clubhouse.HEIGHT + 1
+-- a flat felt roof behind a brick parapet with a stone coping; ROOF_TOP is the
+-- top of the coping, the highest point of the building
+local ROOF_T, PARAPET_H, COPING_T = 0.5, 1.6, 0.3
+Clubhouse.ROOF_TOP = Clubhouse.FLOOR_Y + Clubhouse.HEIGHT + PARAPET_H + COPING_T
 
 local SHELL = Clubhouse.SHELL
 local FLOOR_Y = Clubhouse.FLOOR_Y
@@ -82,7 +86,8 @@ Clubhouse.OFFICE = Clubhouse.ROOMS.Office
 -- An opening is a hole through whatever stands on the plane `axis = at`
 -- (within a stud), from `from` to `to` along the other axis, `sill` to `top`
 -- above the floor.
-export type Opening = { name: string, axis: "x" | "z", at: number, from: number, to: number, sill: number, top: number }
+-- `glazed` openings are windows: the shell fits a uPVC frame and glass.
+export type Opening = { name: string, axis: "x" | "z", at: number, from: number, to: number, sill: number, top: number, glazed: boolean? }
 
 Clubhouse.OPENINGS = {
 	{ name = "FrontDoors", axis = "x", at = SHELL.x0 + 0.5, from = -4, to = 4, sill = 0, top = DOOR_H },
@@ -93,7 +98,13 @@ Clubhouse.OPENINGS = {
 	{ name = "CorridorMouth", axis = "x", at = PART_X, from = -4, to = 4, sill = 0, top = DOOR_H },
 	{ name = "HomeDoor", axis = "z", at = COR_WALL, from = -139, to = -134, sill = 0, top = DOOR_H },
 	{ name = "AwayDoor", axis = "z", at = -COR_WALL, from = -139, to = -134, sill = 0, top = DOOR_H },
-	{ name = "OfficeWindow", axis = "x", at = SHELL.x0 + 0.5, from = 24, to = 34, sill = 3.5, top = 8.5 },
+	{ name = "OfficeWindow", axis = "x", at = SHELL.x0 + 0.5, from = 24, to = 34, sill = 3.5, top = 8.5, glazed = true },
+	-- sidelights either side of the front doors, and a high slot window in each
+	-- dressing room on the pitch side (too high to see in through)
+	{ name = "LobbyLightN", axis = "x", at = SHELL.x0 + 0.5, from = -12, to = -7, sill = 3.5, top = DOOR_H, glazed = true },
+	{ name = "LobbyLightS", axis = "x", at = SHELL.x0 + 0.5, from = 7, to = 12, sill = 3.5, top = DOOR_H, glazed = true },
+	{ name = "HomeSlot", axis = "x", at = SHELL.x1 - 0.5, from = 8.5, to = 12.5, sill = 7.5, top = 9.5, glazed = true },
+	{ name = "AwaySlot", axis = "x", at = SHELL.x1 - 0.5, from = -12.5, to = -8.5, sill = 7.5, top = 9.5, glazed = true },
 	{ name = "KioskHatch", axis = "x", at = SHELL.x0 + 0.5, from = -34, to = -26, sill = 3.5, top = 7.5 },
 } :: { Opening }
 
@@ -102,7 +113,11 @@ Clubhouse.OPENINGS = {
 Clubhouse.SPAWN = CFrame.new(-152.5, FLOOR_Y + 0.5, 34) * CFrame.Angles(0, math.pi, 0)
 
 local BRICK = Color3.fromRGB(150, 84, 62) -- WorldBuilder's STAND_BRICK
-local ROOF = Color3.fromRGB(70, 70, 70)
+local PLINTH_BRICK = Color3.fromRGB(112, 64, 48) -- a darker course at the foot of the walls
+local STONE = Color3.fromRGB(206, 196, 176) -- copings and sills, as on the stands' back walls
+local FELT = Color3.fromRGB(52, 52, 54)
+local UPVC = Color3.fromRGB(235, 235, 232)
+local STEEL = Color3.fromRGB(70, 74, 80)
 local OFFICE_WALL = Color3.fromRGB(170, 160, 135) -- stained beige; dressOffice repaints it
 local CONCRETE = Color3.fromRGB(96, 98, 104)
 local TILE = Color3.fromRGB(150, 148, 142)
@@ -147,7 +162,8 @@ local function wall(parent: Instance, name: string, axis: "x" | "z", c0: number,
 
 	local cuts: { Opening } = {}
 	for _, o in Clubhouse.OPENINGS do
-		if o.axis == axis and math.abs(o.at - (c0 + c1) / 2) < 1 and o.to > a0 and o.from < a1 then
+		-- (a low run such as the plinth passes under a window untouched)
+		if o.axis == axis and math.abs(o.at - (c0 + c1) / 2) < 1 and o.to > a0 and o.from < a1 and FLOOR_Y + o.sill < y1 then
 			table.insert(cuts, o)
 		end
 	end
@@ -221,26 +237,109 @@ end
 
 -- -------------------------------------------------------------------- shell
 
-local function buildShell(parent: Instance)
+local function buildShell(parent: Instance, addSign: (BasePart, string, { Enum.NormalId }?) -> ())
 	local shell = model("Shell", parent)
-	local y0, y1 = DECK_Y, FLOOR_Y + H -- walls stand on the slab and stop under the roof
+	-- walls stand on the slab and carry on past the roof as the parapet
+	local y0, y1 = DECK_Y, FLOOR_Y + H + PARAPET_H
 	-- the slab everything stands on; room floor coverings lie on top of it
 	slab(shell, "Slab", SHELL.x0, SHELL.x1, GROUND_Y, DECK_Y, SHELL.z0, SHELL.z1, Color3.fromRGB(130, 128, 122), Enum.Material.Concrete)
 	-- the long walls run corner to corner, the short ones fit between them
-	wall(shell, "WallW", "x", SHELL.x0, SHELL.x0 + OUTER_T, SHELL.z0, SHELL.z1, y0, y1, BRICK, Enum.Material.Brick)
+	local west = wall(shell, "WallW", "x", SHELL.x0, SHELL.x0 + OUTER_T, SHELL.z0, SHELL.z1, y0, y1, BRICK, Enum.Material.Brick)
 	wall(shell, "WallE", "x", SHELL.x1 - OUTER_T, SHELL.x1, SHELL.z0, SHELL.z1, y0, y1, BRICK, Enum.Material.Brick)
 	wall(shell, "WallN", "z", SHELL.z0, SHELL.z0 + OUTER_T, SHELL.x0 + OUTER_T, SHELL.x1 - OUTER_T, y0, y1, BRICK, Enum.Material.Brick)
 	wall(shell, "WallS", "z", SHELL.z1 - OUTER_T, SHELL.z1, SHELL.x0 + OUTER_T, SHELL.x1 - OUTER_T, y0, y1, BRICK, Enum.Material.Brick)
-	-- one roof over the lot, a little proud of the walls all round
-	slab(shell, "Roof", SHELL.x0 - 0.5, SHELL.x1 + 0.5, FLOOR_Y + H, Clubhouse.ROOF_TOP, SHELL.z0 - 0.5, SHELL.z1 + 0.5, ROOF, Enum.Material.Slate)
+	-- one felt roof over the lot, sitting inside the parapet on top of the rooms
+	slab(shell, "Roof", SHELL.x0 + OUTER_T, SHELL.x1 - OUTER_T, FLOOR_Y + H, FLOOR_Y + H + ROOF_T, SHELL.z0 + OUTER_T, SHELL.z1 - OUTER_T, FELT, Enum.Material.Concrete)
+	-- stone coping along the parapet, overhanging both faces a little
+	local over = 0.2
+	for _, x in { { SHELL.x0 - over, SHELL.x0 + OUTER_T + over }, { SHELL.x1 - OUTER_T - over, SHELL.x1 + over } } do
+		slab(shell, "Coping", x[1], x[2], y1, y1 + COPING_T, SHELL.z0 - over, SHELL.z1 + over, STONE, Enum.Material.Concrete)
+	end
+	for _, z in { { SHELL.z0 - over, SHELL.z0 + OUTER_T + over }, { SHELL.z1 - OUTER_T - over, SHELL.z1 + over } } do
+		slab(shell, "Coping", SHELL.x0 + OUTER_T + over, SHELL.x1 - OUTER_T - over, y1, y1 + COPING_T, z[1], z[2], STONE, Enum.Material.Concrete)
+	end
+	-- a darker course at the foot of the walls, a touch proud of them, broken at
+	-- the doors
+	local proud, plinthTop = 0.2, DECK_Y + 1.2
+	wall(shell, "PlinthW", "x", SHELL.x0 - proud, SHELL.x0, SHELL.z0 - proud, SHELL.z1 + proud, y0, plinthTop, PLINTH_BRICK, Enum.Material.Brick)
+	wall(shell, "PlinthE", "x", SHELL.x1, SHELL.x1 + proud, SHELL.z0 - proud, SHELL.z1 + proud, y0, plinthTop, PLINTH_BRICK, Enum.Material.Brick)
+	wall(shell, "PlinthN", "z", SHELL.z0 - proud, SHELL.z0, SHELL.x0, SHELL.x1, y0, plinthTop, PLINTH_BRICK, Enum.Material.Brick)
+	wall(shell, "PlinthS", "z", SHELL.z1, SHELL.z1 + proud, SHELL.x0, SHELL.x1, y0, plinthTop, PLINTH_BRICK, Enum.Material.Brick)
 
-	-- the office window and the kiosk shutter fill their openings
-	local glass = slab(shell, "OfficeWindowGlass", SHELL.x0 + 0.2, SHELL.x0 + 0.4, FLOOR_Y + 3.5, FLOOR_Y + 8.5, 24, 34,
-		Color3.fromRGB(170, 205, 225), Enum.Material.Glass)
-	glass.Transparency = 0.5
+	-- X170 outdoors: a tier 1 clubhouse is as tired outside as the office is
+	-- inside. WorldBuilder.dressOffice hides every "Damp" frame once the club
+	-- can afford paint.
+	for i = 1, math.min(3, #west) do
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = "Wear"
+		gui.Face = Enum.NormalId.Left -- -X, the street side
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 12
+		gui.LightInfluence = 1
+		gui.Parent = west[i]
+		-- rain streaks down from the coping and a tide mark of damp along the foot
+		for _, s in { { 0.08, 0.0, 0.05, 0.42 }, { 0.37, 0.0, 0.03, 0.3 }, { 0.62, 0.0, 0.06, 0.5 }, { 0.9, 0.0, 0.04, 0.36 }, { 0.0, 0.86, 1.0, 0.14 } } do
+			local f = Instance.new("Frame")
+			f.Name = "Damp"
+			f.Position = UDim2.fromScale(s[1], s[2])
+			f.Size = UDim2.fromScale(s[3], s[4])
+			f.BackgroundColor3 = Color3.fromRGB(40, 34, 28)
+			f.BackgroundTransparency = 0.8
+			f.BorderSizePixel = 0
+			f.Parent = gui
+			-- fades out downwards (or upwards, for the tide mark) instead of ending in an edge
+			local fade = Instance.new("UIGradient")
+			fade.Rotation = if s[2] == 0 then 90 else -90
+			fade.Transparency = NumberSequence.new(0, 1)
+			fade.Parent = f
+		end
+	end
+
+	-- uPVC windows: a white frame in the thickness of the brick, glass set in it
+	-- and a stone sill outside
+	local bar = 0.25
+	for _, o in Clubhouse.OPENINGS do
+		if not o.glazed then
+			continue
+		end
+		assert(o.axis == "x", "glazed openings are only fitted in the east and west walls")
+		local onWest = math.abs(o.at - SHELL.x0) < 1
+		local face = if onWest then SHELL.x0 else SHELL.x1
+		local out = if onWest then -1 else 1
+		local xa, xb = math.min(face, face - out * OUTER_T), math.max(face, face - out * OUTER_T)
+		local ya, yb = FLOOR_Y + o.sill, FLOOR_Y + o.top
+		slab(shell, o.name .. "Frame", xa, xb, ya, ya + bar, o.from, o.to, UPVC)
+		slab(shell, o.name .. "Frame", xa, xb, yb - bar, yb, o.from, o.to, UPVC)
+		slab(shell, o.name .. "Frame", xa, xb, ya + bar, yb - bar, o.from, o.from + bar, UPVC)
+		slab(shell, o.name .. "Frame", xa, xb, ya + bar, yb - bar, o.to - bar, o.to, UPVC)
+		local panes = { { o.from + bar, o.to - bar } }
+		if o.to - o.from > 6 then -- a mullion down the middle of a wide window
+			local mid = (o.from + o.to) / 2
+			slab(shell, o.name .. "Frame", xa, xb, ya + bar, yb - bar, mid - bar / 2, mid + bar / 2, UPVC)
+			panes = { { o.from + bar, mid - bar / 2 }, { mid + bar / 2, o.to - bar } }
+		end
+		local xm = (xa + xb) / 2
+		for _, pane in panes do
+			local glass = slab(shell, o.name .. "Glass", xm - 0.05, xm + 0.05, ya + bar, yb - bar, pane[1], pane[2],
+				Color3.fromRGB(150, 180, 200), Enum.Material.Glass)
+			glass.Transparency = 0.45
+		end
+		local s0, s1 = math.min(face + out * proud, face + out * 0.5), math.max(face + out * proud, face + out * 0.5)
+		slab(shell, o.name .. "Sill", s0, s1, ya - 0.3, ya, o.from - 0.3, o.to + 0.3, STONE, Enum.Material.Concrete)
+	end
+
+	-- the kiosk hatch: roller shutter down, its box above, a counter and a board
 	slab(shell, "KioskShutter", SHELL.x0 + 0.2, SHELL.x0 + 0.4, FLOOR_Y + 3.5, FLOOR_Y + 7.5, -34, -26,
 		Color3.fromRGB(120, 124, 130), Enum.Material.DiamondPlate)
-	slab(shell, "KioskCounter", SHELL.x0 - 1.2, SHELL.x0, FLOOR_Y + 3.2, FLOOR_Y + 3.5, -34.5, -25.5, Color3.fromRGB(206, 196, 176), Enum.Material.Concrete)
+	slab(shell, "KioskShutterBox", SHELL.x0 - 0.7, SHELL.x0, FLOOR_Y + 7.5, FLOOR_Y + 8.3, -34.4, -25.6, STEEL, Enum.Material.Metal)
+	slab(shell, "KioskCounter", SHELL.x0 - 1.2, SHELL.x0, FLOOR_Y + 3.2, FLOOR_Y + 3.5, -34.5, -25.5, STONE, Enum.Material.Concrete)
+	local kioskSign = slab(shell, "KioskSign", SHELL.x0 - 0.2, SHELL.x0, FLOOR_Y + 8.6, FLOOR_Y + 9.9, -36, -24, Color3.fromRGB(236, 232, 214))
+	addSign(kioskSign, "TEAS - PIES - HOT DRINKS", { Enum.NormalId.Left }) -- TEMP wording
+	for _, d in kioskSign:GetDescendants() do
+		if d:IsA("TextLabel") then
+			d.TextColor3 = Color3.fromRGB(40, 44, 52)
+		end
+	end
 
 	-- a paved apron outside each public door, level with the slab, so nobody
 	-- steps up off the grass into a doorway. PlotGrounds brings the paths here.
@@ -248,32 +347,128 @@ local function buildShell(parent: Instance)
 	slab(shell, "FrontApron", SHELL.x0 - 12, SHELL.x0, GROUND_Y, DECK_Y, -16, 16, paving, Enum.Material.Pavement)
 	slab(shell, "SideApron", SHELL.x0, -147, GROUND_Y, DECK_Y, SHELL.z1, SHELL.z1 + 6, paving, Enum.Material.Pavement)
 
-	-- club-colour header over the players' door, carrying the club's name the
-	-- way the tunnel mouth did (WorldBuilder.setClubName finds "ClubName")
+	-- Doors. Every outer doorway stays open (nothing to operate, and the teams
+	-- walk through one), so the leaves stand folded back at a right angle.
+	local doorColour = Config.HomeKit:Lerp(Color3.new(0, 0, 0), 0.45)
+	local leafTop = FLOOR_Y + DOOR_H - 0.15
+	local function leaf(name: string, x0: number, x1: number, z0: number, z1: number)
+		local l = slab(shell, name, x0, x1, FLOOR_Y, leafTop, z0, z1, doorColour)
+		l.CanCollide = false
+	end
+	for _, zSign in { -1, 1 } do
+		local za, zb = zSign * 4, zSign * 4.3
+		leaf("FrontDoorLeaf", SHELL.x0 - 4.1, SHELL.x0 - proud, math.min(za, zb), math.max(za, zb))
+		leaf("PlayersDoorLeaf", SHELL.x1 + 0.5, SHELL.x1 + 4.4, math.min(za, zb), math.max(za, zb))
+	end
+	leaf("OfficeDoorLeaf", -150, -149.7, SHELL.z1 + proud, SHELL.z1 + 5)
+
+	-- canopy over the front doors on two steel posts, club colour along its edge
+	local canopyY = FLOOR_Y + DOOR_H + 0.1
+	slab(shell, "Canopy", SHELL.x0 - 5, SHELL.x0, canopyY, canopyY + 0.4, -6.5, 6.5, STEEL, Enum.Material.Metal)
+	slab(shell, "CanopyEdge", SHELL.x0 - 5.2, SHELL.x0 - 5, canopyY - 0.2, canopyY + 0.6, -6.5, 6.5, Config.HomeKit)
+	for _, zSign in { -1, 1 } do
+		slab(shell, "CanopyPost", SHELL.x0 - 4.8, SHELL.x0 - 4.5, DECK_Y, canopyY, zSign * 6.2 - 0.15, zSign * 6.2 + 0.15, STEEL, Enum.Material.Metal)
+	end
+	-- a bulkhead light over each outer door, for evening fixtures
+	local function doorLight(x0: number, x1: number, y: number, z0: number, z1: number)
+		local l = slab(shell, "DoorLight", x0, x1, y, y + 0.35, z0, z1, BULB, Enum.Material.Neon)
+		l.CanCollide = false
+		local glow = Instance.new("PointLight")
+		glow.Brightness = 0.6
+		glow.Range = 14
+		glow.Color = Color3.fromRGB(255, 240, 215)
+		glow.Parent = l
+	end
+	doorLight(SHELL.x0 - 3, SHELL.x0 - 2, canopyY - 0.35, -1, 1)
+	doorLight(-153.3, -151.7, FLOOR_Y + DOOR_H + 0.4, SHELL.z1, SHELL.z1 + 0.4)
+
+	-- rainwater pipes down the street-side corners
+	for _, zSign in { -1, 1 } do
+		local z = zSign * (SHELL.z1 - 1.5)
+		local pipe = Color3.fromRGB(38, 40, 44)
+		slab(shell, "Downpipe", SHELL.x0 - 0.5, SHELL.x0, DECK_Y + 1.2, y1 - 0.6, z - 0.2, z + 0.2, pipe, Enum.Material.Metal)
+		slab(shell, "Hopper", SHELL.x0 - 0.8, SHELL.x0, y1 - 0.6, y1, z - 0.4, z + 0.4, pipe, Enum.Material.Metal)
+	end
+
+	-- Signs. The fascia over the front doors, like the navy board over the gates
+	-- in RivermereTurnstileEntrance.png: crest, the club's name, crest.
+	-- WorldBuilder.setClubName fills every label called "ClubName".
+	local fascia = slab(shell, "Fascia", SHELL.x0 - 0.3, SHELL.x0, canopyY + 0.7, canopyY + 3.5, -13, 13, doorColour)
+	slab(shell, "FasciaTrim", SHELL.x0 - 0.4, SHELL.x0, canopyY + 3.5, canopyY + 3.7, -13.2, 13.2, STONE, Enum.Material.Concrete)
 	local header = slab(shell, "PlayersHeader", SHELL.x1, SHELL.x1 + 0.4, FLOOR_Y + DOOR_H, FLOOR_Y + DOOR_H + 3, -7, 7, Config.HomeKit)
-	-- and a plain name board over the front doors; styled in the exterior pass
-	local front = slab(shell, "FrontSign", SHELL.x0 - 0.4, SHELL.x0, FLOOR_Y + DOOR_H + 0.5, FLOOR_Y + DOOR_H + 3.5, -9, 9, Config.HomeKit)
-	for _, sign in { { header, Enum.NormalId.Right }, { front, Enum.NormalId.Left } } do
+	for _, sign in { { header, Enum.NormalId.Right, false }, { fascia, Enum.NormalId.Left, true } } do
 		local gui = Instance.new("SurfaceGui")
+		gui.Name = "NameGui"
 		gui.Face = sign[2] :: Enum.NormalId
 		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 		gui.PixelsPerStud = 24
 		gui.LightInfluence = 0.25
 		gui.Parent = sign[1] :: Part
+		local crests = sign[3] :: boolean
 		local label = Instance.new("TextLabel")
 		label.Name = "ClubName"
-		label.Size = UDim2.fromScale(1, 1)
+		label.AnchorPoint = Vector2.new(0.5, 0.5)
+		label.Position = UDim2.fromScale(0.5, 0.5)
+		label.Size = if crests then UDim2.fromScale(0.72, 0.7) else UDim2.fromScale(1, 0.7)
 		label.BackgroundTransparency = 1
 		label.Font = Enum.Font.GothamBlack
 		label.TextScaled = true
 		label.TextColor3 = Color3.new(1, 1, 1)
 		label.Text = "CLUB"
 		label.Parent = gui
-		local pad = Instance.new("UIPadding")
-		pad.PaddingTop = UDim.new(0.15, 0)
-		pad.PaddingBottom = UDim.new(0.15, 0)
-		pad.Parent = label
+		if crests then
+			for _, x in { 0.07, 0.93 } do
+				CrestBadge.draw(gui, Config.HomeKit, UDim2.fromOffset(44, 54), UDim2.fromScale(x, 0.5), Vector2.new(0.5, 0.5))
+			end
+		end
 	end
+end
+
+-- The clutter a real clubhouse collects outside, from the bought kit
+-- (docs/PLOT_KIT_PLAN.md: the plot is dressed at vertical-slice density). Names
+-- and yaws follow tools/kit/place_slice_D_props.luau, whose clubhouse faces
+-- the same way. Anything the kit is missing falls back to a grey block.
+local function dressExterior(parent: Instance)
+	local ext = model("Exterior", parent)
+	local grey = Color3.fromRGB(110, 112, 116)
+	-- places a kit piece, then slides it along `axis` until the side of its
+	-- bounding box facing the wall touches `face`
+	local function mount(name: string, at: Vector3, yawDeg: number, size: Vector3, axis: ("x" | "z")?, face: number?): Model?
+		local m = KitPlacer.place(name, CFrame.new(at) * CFrame.Angles(0, math.rad(yawDeg), 0), ext, {
+			fallbackSize = size,
+			fallbackColor = grey,
+		})
+		if m and axis and face then
+			local cf, sz = m:GetBoundingBox()
+			local c = if axis == "x" then cf.Position.X else cf.Position.Z
+			-- world-aligned half extent along the axis
+			local r, u, l = cf.RightVector, cf.UpVector, cf.LookVector
+			local half = if axis == "x"
+				then (math.abs(r.X) * sz.X + math.abs(u.X) * sz.Y + math.abs(l.X) * sz.Z) / 2
+				else (math.abs(r.Z) * sz.X + math.abs(u.Z) * sz.Y + math.abs(l.Z) * sz.Z) / 2
+			local side = if c < face then 1 else -1 -- which way the wall is
+			local shift = (face - side * half) - c
+			m:PivotTo(m:GetPivot() + (if axis == "x" then Vector3.new(shift, 0, 0) else Vector3.new(0, 0, shift)))
+		end
+		return m
+	end
+
+	local wx = SHELL.x0 - 0.2 -- the plinth's street face
+	-- services on the street wall between the front doors and the office window
+	mount("PH__utility_box_01", Vector3.new(wx - 1, DECK_Y, 14.5), 90, Vector3.new(1.2, 3.1, 1.4), "x", wx)
+	mount("PH__power_box_01", Vector3.new(wx - 1, FLOOR_Y + 3, 19), 90, Vector3.new(0.9, 1.4, 0.9), "x", SHELL.x0)
+	mount("PH__security_camera_01", Vector3.new(wx - 1, FLOOR_Y + 10, SHELL.z1 - 0.8), 135, Vector3.new(0.5, 0.8, 1.5), "x", SHELL.x0)
+	mount("PH__exterior_aircon_unit", Vector3.new(-152, FLOOR_Y + 6, SHELL.z0 - 1.5), 0, Vector3.new(2.2, 2.6, 1.0), "z", SHELL.z0)
+	-- somewhere to sit and somewhere to put the pie wrapper, by the front doors
+	mount("UKSP__ParkBenches__ParkBench02", Vector3.new(wx - 1.5, DECK_Y, -9.5), 90, Vector3.new(1.8, 2.6, 5), "x", wx)
+	mount("UKSP__LitterBin__LitterBin", Vector3.new(wx - 1.2, DECK_Y, 14.5 - 3), 90, Vector3.new(1.4, 3, 1.4), "x", wx)
+	-- the bins, round the north end out of the way
+	local bx, bz = -150.5, SHELL.z0 - 3.2
+	mount("UKSP__dumpster__DumpsterNew", Vector3.new(bx, GROUND_Y, bz), 0, Vector3.new(7, 5.5, 4))
+	mount("UKSP__dumpster__DumpsterLeftLid", Vector3.new(bx - 2.5, GROUND_Y + 5.5, bz), 0, Vector3.new(2.4, 0.3, 4))
+	mount("UKSP__dumpster__DumpsterRightLid", Vector3.new(bx + 2.5, GROUND_Y + 5.5, bz), 0, Vector3.new(2.4, 0.3, 4))
+	mount("UKSP__TrashBags__Bag01", Vector3.new(bx - 5.2, GROUND_Y, bz + 0.6), 20, Vector3.new(2, 1.8, 2))
+	mount("UKSP__TrashBags__Bag03", Vector3.new(bx - 4.4, GROUND_Y, bz - 2), 140, Vector3.new(2, 1.8, 2))
 end
 
 -- ---------------------------------------------------- lobby, corridor, store
@@ -578,7 +773,8 @@ export type Helpers = {
 -- them up there by name. Everything else is under `Clubhouse`.
 function Clubhouse.build(club: Instance, helpers: Helpers): ProximityPrompt
 	local house = model("Clubhouse", club)
-	buildShell(house)
+	buildShell(house, helpers.addSign)
+	dressExterior(house)
 	buildLobby(house, helpers.addSign)
 	buildDressingRooms(club, helpers.addSign)
 	buildOffice(club, helpers.addPrompt)
