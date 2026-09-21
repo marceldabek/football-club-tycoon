@@ -58,6 +58,24 @@ function T.recipesFitTheirLotBox()
 	end
 end
 
+-- A corner shop ends a terrace built from the same modules at ~1.25, so it is never
+-- built under kit size (it was a prefab shrunk to 0.87: doors shorter than a person).
+function T.cornerShopsAreBuiltAtLeastFullSize()
+	local seen = 0
+	for _, lot in lots() do
+		if lot.use == "corner shop" then
+			seen += 1
+			local recipe = TradeRecipes.recipeFor(lot)
+			for _, p in recipe.pieces do
+				assert(p.fit or (p.scale or 1) >= 1, ("%s has %s at scale %.2f"):format(lot.id, p.kit, p.scale or 1))
+			end
+			local _, hi = TradeRecipes.bounds(recipe)
+			assert(hi.Y >= 20, ("%s is only %.1f tall"):format(lot.id, hi.Y))
+		end
+	end
+	assert(seen > 0, "no corner shop lots in the fixture")
+end
+
 function T.shopfrontsSitAtTheStreetEdge()
 	for _, lot in lots() do
 		if lot.use == "shops with flats" or lot.use == "shops" then

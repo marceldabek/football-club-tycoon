@@ -51,6 +51,7 @@ HouseRecipes.MODULE = M
 HouseRecipes.BODY = Vector3.new(2 * M, 2 * M + 5.5, 2 * M)
 HouseRecipes.SCALE_MIN = 0.85
 HouseRecipes.SCALE_MAX = 1.35
+HouseRecipes.PREFAB_BACK_OVERFLOW = 7.5
 HouseRecipes.TRIMS = { "ts1", "ts3" }
 
 -- Bounding sizes of the pieces recipes use (X, Y, Z), from the Studio inventory. Used by the
@@ -296,10 +297,15 @@ end
 
 -- Uniform scale that fits a recipe body into a unit box of `width` x `depth`.
 function HouseRecipes.scaleFor(recipe: Recipe, width: number, depth: number): number
-	local s = math.min(width / recipe.body.X, depth / recipe.body.Z)
 	if recipe.prefab then
-		return s
+		-- The prefab house is 26.9 deep where the modular bodies are 16.5, so fitting it to a
+		-- 26-deep lot left it at 0.97 beside neighbours at 1.2: a house two-thirds their height.
+		-- It fits the frontage like they do and may run PREFAB_BACK_OVERFLOW into its own back
+		-- garden (lots keep 10 studs clear of each other, so it still clears whatever is behind).
+		local s = math.min(width / recipe.body.X, (depth + HouseRecipes.PREFAB_BACK_OVERFLOW) / recipe.body.Z)
+		return math.clamp(s, HouseRecipes.SCALE_MIN, HouseRecipes.SCALE_MAX)
 	end
+	local s = math.min(width / recipe.body.X, depth / recipe.body.Z)
 	return math.clamp(s, HouseRecipes.SCALE_MIN, HouseRecipes.SCALE_MAX)
 end
 

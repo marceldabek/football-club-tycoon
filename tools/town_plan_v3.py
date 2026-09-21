@@ -103,6 +103,7 @@ def is_home(use):
     return any(h in use for h in ("terrace", "semis", "detached"))
 
 
+SINGLE_SEMI_TRIM = 5.0  # a semis street's odd cell becomes a detached house this much narrower than the cell
 STOP_CLEAR = 16.0  # nothing is generated this close to a bus stop (shelter + painted bay)
 HEAD = 34.0       # cul-de-sac turning head radius (kit CulDeSac is 96 x 69 at town scale)
 FAN_ANGLE = 65.0  # a close's side lots stand this far round the bulb from the end lot
@@ -679,10 +680,22 @@ class Town:
                 take = run[:group + 1] if group + 1 <= len(run) else take
             run = run[len(take):]
             (x0, z0), (x1, z1) = take[0]["centre"], take[-1]["centre"]
+            lot_use, lot_w, lot_d, lot_unit = use, len(take) * w - gap, depth, w
+            cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
+            if use == "semis" and len(take) == 1:
+                # never strand half a pair: on 25 - 12 = 13 studs it was built at two-thirds size.
+                # The odd cell takes a detached house instead, as wide as the cell allows, on a
+                # detached house's own building line (deeper garden, deeper lot: further back).
+                det_cell, det_depth, _, _, det_garden = TYPES["detached house"]
+                back = (det_garden - TYPES[use][4]) + (det_depth - depth) / 2
+                fx, fz = take[0]["front"]
+                # (25 - 5 is exactly a detached lot's 34 - 14 frontage)
+                lot_use, lot_w, lot_d, lot_unit = "detached house", w - SINGLE_SEMI_TRIM, det_depth, det_cell
+                cx, cz = cx - fx * back, cz - fz * back
             self.rows.append((take[0]["district"] or "Rivermere", {
-                "centre": ((x0 + x1) / 2, (z0 + z1) / 2),
-                "size": (len(take) * w - gap, depth), "yaw": yaw, "use": use, "street": r["name"],
-                "front": take[0]["front"], "units": len(take), "unit_width": w,
+                "centre": (cx, cz),
+                "size": (lot_w, lot_d), "yaw": yaw, "use": lot_use, "street": r["name"],
+                "front": take[0]["front"], "units": len(take), "unit_width": lot_unit,
                 "corner": first or not run, "key": key}))
             first = False
 

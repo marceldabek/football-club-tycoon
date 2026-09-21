@@ -13,9 +13,9 @@ local EPS = 1e-3
 -- PARITY-BEGIN (written by `python tools/town_v3_parity.py --write`; do not edit by hand)
 local PARITY = {
 	total = 892,
-	byUse = { ["corner shop"] = 47, ["detached house"] = 109, ["flats"] = 10, ["semis"] = 214, ["shops"] = 16, ["shops with flats"] = 34, ["terraced row"] = 437, ["trade counter"] = 4, ["warehouse"] = 3, ["workshop"] = 18 },
+	byUse = { ["corner shop"] = 47, ["detached house"] = 130, ["flats"] = 10, ["semis"] = 193, ["shops"] = 16, ["shops with flats"] = 34, ["terraced row"] = 437, ["trade counter"] = 4, ["warehouse"] = 3, ["workshop"] = 18 },
 	byDistrict = { ["Hollingford"] = 100, ["Industrial Estate"] = 25, ["Mapleford"] = 85, ["Mill Street Terraces"] = 59, ["Millbrook"] = 110, ["Northfields"] = 120, ["Riverside"] = 143, ["Station"] = 43, ["Town Centre"] = 40, ["Westdale"] = 167 },
-	positionSum = 71124,
+	positionSum = 71123,
 	idSum = 1862291,
 }
 -- PARITY-END
@@ -190,6 +190,10 @@ function T.lotFieldsAreConsistent()
 		end
 		if lot.use == "terraced row" then
 			assert(lot.units >= 2, lot.id .. " is a stranded single terraced house")
+		end
+		if lot.use == "semis" then
+			-- half a pair on a 13-stud lot was built at two-thirds size; the odd cell is a detached house
+			assert(lot.units == 2, lot.id .. " is a stranded half of a pair of semis")
 		end
 		assert(math.abs(lot.front.Magnitude - 1) < EPS and lot.front.Y == 0, lot.id .. " front is not a flat unit vector")
 	end

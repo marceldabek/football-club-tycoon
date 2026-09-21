@@ -62,6 +62,7 @@ TownFrontage.TYPES = {
 
 TownFrontage.HOMES = { ["terraced row"] = true, ["semis"] = true, ["detached house"] = true }
 
+TownFrontage.SINGLE_SEMI_TRIM = 5 -- a semis street's odd cell becomes a detached house this much narrower than the cell
 TownFrontage.END_MARGIN = 4 -- no cell within this of a segment end
 TownFrontage.SAMPLE_STEP = 10 -- spacing of the outline points a clearance is tested at
 TownFrontage.SKIP = 11 -- how far to step on when a cell does not fit
@@ -439,20 +440,32 @@ function TownFrontage.build(): { Lot }
 			end
 			local a, b = run[from], run[from + take - 1]
 			from += take
+			local lotUse, lotW, lotD, lotUnit = use, take * t.cell - t.gap, t.depth, t.cell
+			local cx, cz = (a.cx + b.cx) / 2, (a.cz + b.cz) / 2
+			if use == "semis" and take == 1 then
+				-- never strand half a pair: on 25 - 12 = 13 studs it was built at two-thirds size.
+				-- The odd cell takes a detached house instead, as wide as the cell allows, on a
+				-- detached house's own building line (deeper garden, deeper lot: further back).
+				local det = TownFrontage.TYPES["detached house"]
+				local back = (det.garden - t.garden) + (det.depth - t.depth) / 2
+				-- (25 - 5 is exactly a detached lot's 34 - 14 frontage)
+				lotUse, lotW, lotD, lotUnit = "detached house", t.cell - TownFrontage.SINGLE_SEMI_TRIM, det.depth, det.cell
+				cx, cz = cx - a.fx * back, cz - a.fz * back
+			end
 			table.insert(rows, {
 				key = key,
-				use = use,
+				use = lotUse,
 				district = a.district or "Rivermere",
 				street = road.name,
-				cx = (a.cx + b.cx) / 2,
-				cz = (a.cz + b.cz) / 2,
-				w = take * t.cell - t.gap,
-				d = t.depth,
+				cx = cx,
+				cz = cz,
+				w = lotW,
+				d = lotD,
 				yaw = yaw,
 				fx = a.fx,
 				fz = a.fz,
 				units = take,
-				unitWidth = t.cell,
+				unitWidth = lotUnit,
 				corner = first or from > #run,
 				closesStreet = closes,
 			})

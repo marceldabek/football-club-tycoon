@@ -38,6 +38,7 @@ export type Lot = {
 }
 
 local M = 8.25 -- MEH module, studs (measured)
+local CORNER_SHOP_SCALE_MAX = 1.25 -- HouseRecipes' usual terrace scale: a corner shop never outgrows its row
 TradeRecipes.MODULE = M
 
 TradeRecipes.USES = {
@@ -413,9 +414,17 @@ function TradeRecipes.recipeFor(lot: Lot): Recipe
 	elseif use == "shops" or use == "supermarket" then
 		return { kind = "shops", gap = if use == "supermarket" then "EC4" else "EC1", pieces = parade(lot, rng, 1, false) }
 	elseif use == "corner shop" then
-		local kit = if rng:NextInteger(0, 1) == 0 then "MEH__House_02_VAR1__ts1" else "MEH__House_02_VAR1__ts3"
-		local s = math.min(1, (lot.size.Z - 0.5) / SIZES[kit].Z, (lot.size.X - 0.5) / SIZES[kit].X)
-		add(pieces, kit, 0, 0, -lot.size.Z / 2 + 0.25 + SIZES[kit].Z * s / 2, 0, s)
+		-- A two-bay shop with a flat over, built like the parades and scaled up to fill its
+		-- 18-wide lot. It stands at the end of a terrace whose houses are the same modules at
+		-- about 1.25, so it has to be near their size: the prefab house that stood here was
+		-- 26.9 deep on a 24-deep lot, so it was shrunk to 0.87 and its door was under 5 studs,
+		-- shorter than the people walking past it (Marcel: "one of the houses is tiny").
+		local k = math.clamp(lot.size.X / (2 * M), 1, CORNER_SHOP_SCALE_MAX)
+		local inner = table.clone(lot)
+		inner.size = lot.size / k
+		for _, p in parade(inner, rng, 2, true) do
+			add(pieces, p.kit, p.pos.X * k, p.pos.Y * k, p.pos.Z * k, p.yaw, if p.fit then nil else (p.scale or 1) * k, if p.fit then p.fit * k else nil)
+		end
 		return { kind = "corner shop", gap = "EC1", pieces = pieces }
 	elseif use == "flats" then
 		flatsBlock(pieces, rng, 0, -lot.size.Z / 2 + 4 + 1.5 * M)

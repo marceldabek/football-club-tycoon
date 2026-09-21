@@ -96,9 +96,12 @@ function tests.scaled_units_fit_real_lot_boxes()
 		for _, r in HouseRecipes.forKind(box.kind) do
 			local s = HouseRecipes.scaleFor(r, box.width, box.depth)
 			assert(r.body.X * s <= box.width + 0.01, r.id .. " is wider than its unit")
-			assert(r.body.Z * s <= box.depth + 0.01, r.id .. " is deeper than its lot")
+			-- the prefab is far deeper than the modular bodies: it may run into its own back garden
+			local over = if r.prefab then HouseRecipes.PREFAB_BACK_OVERFLOW else 0
+			assert(r.body.Z * s <= box.depth + over + 0.01, r.id .. " is deeper than its lot")
 			assert(r.body.Y * s <= 30, r.id .. " is taller than the nominal 28 (+chimney)")
-			assert(s >= 0.85, r.id .. " scaled so small that doors drop under avatar height")
+			-- a kit door is 5.3 tall and a person 5.5: anything under ~1.05 reads as a doll's house
+			assert(s >= 1.05, ("%s is built at %.2f, a house visibly smaller than its neighbours"):format(r.id, s))
 		end
 	end
 end
