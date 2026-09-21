@@ -23,6 +23,7 @@ local player = Players.LocalPlayer -- X318: for the Quality attribute
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local MatchdayRoutes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MatchdayRoutes"))
 local RoadTiles = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoadTiles"))
+local CarWheels = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("CarWheels"))
 local Townsfolk = require(script.Parent.Townsfolk)
 
 -- ------------------------------------------------------------------ tuning
@@ -338,12 +339,15 @@ local function buildCars(crowd: PlotCrowd)
 		local model: Model
 		if #kitCars > 0 then
 			model = (kitCars[rng:NextInteger(1, #kitCars)] :: Model):Clone()
+			local kitName = model.Name
 			model.Name = "ParkedCar"
 			model:ScaleTo(model:GetScale() * KIT_CAR_SCALE)
 			local _, size = model:GetBoundingBox()
 			-- the kit car's length runs along its pivot Z; a bay's along local X
 			local flip = if rng:NextNumber() < 0.5 then 0 else math.pi
 			model:PivotTo(base * CFrame.Angles(0, math.pi / 2 + flip, 0) * CFrame.new(0, size.Y / 2, 0))
+			local face = clientKit and clientKit:FindFirstChild("WheelFace")
+			CarWheels.fitParked(model, kitName, if face and face:IsA("BasePart") then face else nil)
 		else
 			model = Instance.new("Model")
 			model.Name = "ParkedCar"

@@ -13,7 +13,10 @@
 --   ServerStorage.Kit.<Folder>.<name> -- the same, sorted into category folders (Town, Vehicles, ...)
 --   ServerStorage.Assets.<dotted.path> -- generic asset library, see Assets.luau
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
+
+local CarWheels = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("CarWheels"))
 
 local KitPlacer = {}
 
@@ -255,6 +258,13 @@ function KitPlacer.place(name: string, cframe: CFrame, parent: Instance, opts: P
 	local correction = target.Position - actualBottom
 	if correction.Magnitude > 1e-5 then
 		model:PivotTo(model:GetPivot() + correction)
+	end
+
+	-- after the bounding-box placement, so the wheels cannot shift it
+	if CarWheels.SPEC[name] then
+		local faceKit = KitPlacer.find(CarWheels.FACE_KIT)
+		local face = faceKit and faceKit:FindFirstChild(CarWheels.FACE_PART, true)
+		CarWheels.fitParked(model, name, if face and face:IsA("BasePart") then face else nil)
 	end
 
 	model:SetAttribute("Kit", name)

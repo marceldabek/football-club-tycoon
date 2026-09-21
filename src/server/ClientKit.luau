@@ -8,6 +8,9 @@
 --                    and Traffic. Each copy's WorldPivot is the mesh's own
 --                    CFrame: pivot Z is the car's length, -Z its front.
 --
+--   ClientKit.WheelFace the spoked wheel face for Shared.CarWheels (the cars'
+--                    own wheels are baked into their meshes and cannot turn).
+--
 --   ClientKit.Cruiser the one-mesh cabin cruiser (Kit.Boats.BoatCruiser) for
 --                    Cruiser.client's boat on the River Lune. Pivot: waterline,
 --                    bow to -Z, as stored in the kit.
@@ -20,6 +23,8 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
+
+local CarWheels = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("CarWheels"))
 
 local ClientKit = {}
 
@@ -90,6 +95,21 @@ function ClientKit.publish(): string
 		count += 1
 	end
 	cars.Parent = root
+
+	-- the spoked wheel face Traffic and MatchdayLife lay over the cars' baked wheels
+	local oldFace = root:FindFirstChild("WheelFace")
+	if oldFace then
+		oldFace:Destroy()
+	end
+	local faceKit = kit and kit:FindFirstChild(CarWheels.FACE_KIT, true)
+	local face = faceKit and faceKit:FindFirstChild(CarWheels.FACE_PART, true)
+	if face and face:IsA("BasePart") then
+		local copy = face:Clone()
+		copy.Name = "WheelFace"
+		copy:ClearAllChildren()
+		copy.Anchored = true
+		copy.Parent = root
+	end
 
 	-- X372: the double-decker, same treatment as the cars. Traffic used to build
 	-- buses from primitives at 4.4 x 3.0 x 13.5 studs - three studs tall, so a

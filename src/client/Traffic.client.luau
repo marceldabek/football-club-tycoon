@@ -27,6 +27,7 @@ local TownLayout = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild
 local TrafficMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrafficMath"))
 local RoadTiles = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoadTiles"))
 local RoadPaths = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoadPaths"))
+local CarWheels = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("CarWheels"))
 local Townsfolk = require(script.Parent:WaitForChild("Townsfolk"))
 
 -- ------------------------------------------------------------------ tuning
@@ -202,6 +203,8 @@ type Car = {
 	parts: { BasePart },
 	meshOffsets: { Vector3 }?, -- X128: a kit mesh car's single offset (replaces CAR_OFFSETS)
 	meshYaw: number, -- X128: turn so the kit mesh's front faces the root's -Z
+	wheels: { CarWheels.Wheel }?, -- a kit car's turning wheels, laid over the ones baked into its mesh
+	rolled: number, -- studs driven, for the wheels' turn
 	isBus: boolean,
 	isBike: boolean,
 	bike: BikeRig?, -- a cyclist: the rider is posed and pedals (drawBike), not moved by fixed offsets
@@ -544,6 +547,7 @@ local function spawnCar(roadIndex: number, distance: number, direction: number)
 	local meshOffsets: { Vector3 }? = nil
 	local meshYaw = 0
 	local bike: BikeRig? = nil
+	local wheels: { CarWheels.Wheel }? = nil
 	local kitCars = kitCarTemplates()
 	local kitBus = if isBus then kitBusTemplate() else nil
 	if kitBus then
@@ -567,6 +571,9 @@ local function spawnCar(roadIndex: number, distance: number, direction: number)
 		meshOffsets = { Vector3.new(0, mesh.Size.Y / 2 + 0.05, 0) }
 		local yaw = template:GetAttribute("FrontYaw")
 		meshYaw = if type(yaw) == "number" then yaw else 0
+		local clientKit = ReplicatedStorage:FindFirstChild("ClientKit")
+		local face = clientKit and clientKit:FindFirstChild("WheelFace")
+		wheels = CarWheels.build(mesh, template.Name, if face and face:IsA("BasePart") then face else nil, model)
 	elseif isBike then
 		-- X371: buildBike needs the shared rig for its rider and returns nil
 		-- without it; a riderless bike would look worse than no bike at all
@@ -592,6 +599,8 @@ local function spawnCar(roadIndex: number, distance: number, direction: number)
 		parts = parts,
 		meshOffsets = meshOffsets,
 		meshYaw = meshYaw,
+		wheels = wheels,
+		rolled = 0,
 		isBus = isBus,
 		isBike = isBike,
 		bike = bike,
@@ -913,6 +922,17 @@ local function draw(car: Car, rootCFrame: CFrame)
 		local cf = rootCFrame * CFrame.new(offsets[i])
 		table.insert(moveCFrames, if car.meshYaw ~= 0 then cf * CFrame.Angles(0, car.meshYaw, 0) else cf)
 	end
+	local wheels = car.wheels
+	if wheels then
+		local meshCFrame = moveCFrames[#moveCFrames]
+		-- rolling towards the mesh's -Z is a negative turn about its X; a mesh
+		-- turned half round (meshYaw) is driving towards its own +Z
+		local way = if car.meshYaw ~= 0 then 1 else -1
+		for _, wheel in wheels do
+			table.insert(moveParts, wheel.part)
+			table.insert(moveCFrames, CarWheels.cframe(wheel, meshCFrame, way * car.rolled / wheel.radius))
+		end
+	end
 end
 
 -- Give way to the ring: is a car on it coming up to this arm's entry, or sitting just past it?
@@ -1208,6 +1228,7 @@ RunService.RenderStepped:Connect(function(dt: number)
 	table.clear(moveCFrames)
 
 	for _, car in cars do
+		car.rolled += car.speed * dt
 		moveCar(car, dt)
 	end
 
