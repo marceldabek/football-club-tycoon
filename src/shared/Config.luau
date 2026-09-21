@@ -479,11 +479,13 @@ Config.CardArt = {
 	Back = "rbxassetid://111886688815403",
 }
 Config.CardAspect = 683 / 1024
--- the glow behind a card as it turns, and the ink that reads on its art
+-- The glow behind a card as it turns, and the ink that reads on its art.
+-- Measured: bronze, gold, rare and epic are dark everywhere a label sits (14-101
+-- luminance) and only silver and legend are light, so only those two take dark ink.
 Config.CardTint = {
-	Bronze = { glow = Color3.fromRGB(176, 110, 60), ink = Color3.fromRGB(34, 22, 14) },
+	Bronze = { glow = Color3.fromRGB(176, 110, 60), ink = Color3.fromRGB(255, 233, 205) },
 	Silver = { glow = Color3.fromRGB(200, 208, 220), ink = Color3.fromRGB(24, 28, 36) },
-	Gold = { glow = Color3.fromRGB(255, 204, 72), ink = Color3.fromRGB(36, 26, 8) },
+	Gold = { glow = Color3.fromRGB(255, 204, 72), ink = Color3.fromRGB(255, 241, 203) },
 	Rare = { glow = Color3.fromRGB(70, 150, 255), ink = Color3.fromRGB(240, 246, 255) },
 	Epic = { glow = Color3.fromRGB(176, 90, 255), ink = Color3.fromRGB(248, 240, 255) },
 	Legend = { glow = Color3.fromRGB(255, 240, 200), ink = Color3.fromRGB(30, 24, 12) },
