@@ -9,8 +9,8 @@
 -- threaded through a replication payload to reach the UI.
 --
 -- Everything scales off `size`, so the same call works at 20px in a table row
--- and at 84px on the summary card. When real crest art exists these become
--- ImageLabels behind the same interface and no call site changes.
+-- and at 84px on the summary card. League clubs with crest art show it inside
+-- the same shield frame (Crest.applyArt), so no call site changes.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -48,6 +48,40 @@ function Crest.initials(name: string?): string
 		end
 	end
 	return out
+end
+
+-- League crest art (docs/CRESTS.md). Kept in this one function so the player's
+-- crest (the crest builder) can change around it: it adds or updates an `Art`
+-- image inside `shield` and, while art shows, hides the shield's own fill, ring
+-- and every other child. Returns true when art is shown. The player's club and
+-- unknown clubs have no art and get their shield back.
+function Crest.applyArt(shield: Frame, name: string?, isPlayer: boolean?): boolean
+	local image = Config.clubCrestImage(name, isPlayer)
+	local art = shield:FindFirstChild("Art") :: ImageLabel?
+	if image and not art then
+		local label = Instance.new("ImageLabel")
+		label.Name = "Art"
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(1, 1)
+		label.ScaleType = Enum.ScaleType.Fit
+		label.ZIndex = shield.ZIndex + 1
+		label.Parent = shield
+		art = label
+	end
+	if art then
+		art.Visible = image ~= nil
+		art.Image = image or ""
+	end
+	local showArt = image ~= nil
+	shield.BackgroundTransparency = if showArt then 1 else 0
+	for _, child in shield:GetChildren() do
+		if child:IsA("UIStroke") then
+			child.Enabled = not showArt
+		elseif child:IsA("GuiObject") and child ~= art then
+			child.Visible = not showArt
+		end
+	end
+	return showArt
 end
 
 -- A shield for `name` at `size` pixels square, parented to `parent`.
@@ -94,6 +128,7 @@ function Crest.draw(parent: Instance, name: string?, size: number, options: Opti
 		})
 	end
 
+	Crest.applyArt(shield, name, opts.isPlayer)
 	return shield
 end
 
@@ -111,6 +146,7 @@ function Crest.update(shield: Frame, name: string?, isPlayer: boolean?)
 		letters.Text = Crest.initials(name)
 		letters.TextColor3 = accent
 	end
+	Crest.applyArt(shield, name, isPlayer)
 end
 
 return Crest

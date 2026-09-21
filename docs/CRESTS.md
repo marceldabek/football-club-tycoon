@@ -506,7 +506,15 @@ works as an app icon.
 
 ## Notes for later
 
-- These 40 names already exist in `Config.TeamNamePools`. Nothing needs renaming.
+- **The art is in (2026-09-21).** All 40 crests were checked against their prompts
+  and each one matches its own club, so no club was renamed. `tools/prep_crests.py`
+  matches the generated files to `Config.Clubs`, keys out the white background,
+  pads to 256px and writes `assets/ui/crests/keyed/tier<N>_<kebab-name>.png` plus
+  `contact_sheet.png`. The uploaded ids are in `assets/ui/crests/asset_ids.json` and
+  on each club's `crest` field, and `Crest.applyArt` draws them in every UI crest.
+  To replace one crest: regenerate it, run the script, upload that keyed PNG through
+  Studio MCP, then update the id in both places. Crests in the 3D world are a planned follow-up.
+- Club names live in `Config.Clubs` (previously `Config.TeamNamePools`).
 - Two colours per crest is deliberate: it matches the procedural crest fallback in
   `MatchSummary.luau` and `ClubPanel.client.luau`, which fills a shield with a kit colour
   and draws initials over it. When the PNGs land, the same two colours can drive the kit

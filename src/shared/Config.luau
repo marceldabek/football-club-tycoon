@@ -69,59 +69,61 @@ Config.PrizeByPosition = { 5000, 3000, 1800, 900, 700, 500 }
 -- is the crest stroke and initials. They belong to the club rather than to a
 -- squad slot, so a club looks the same in every table it ever appears in and
 -- no two clubs in a division collide. The prose descriptions these were mixed
--- from are in docs/CRESTS.md, alongside the crest art prompts.
-export type Club = { name: string, kit: { number }, accent: { number } }
+-- from are in docs/CRESTS.md, alongside the crest art prompts. `crest` is the
+-- uploaded crest art, made by tools/prep_crests.py (ids in
+-- assets/ui/crests/asset_ids.json).
+export type Club = { name: string, kit: { number }, accent: { number }, crest: string? }
 
 Config.Clubs = {
 	{ -- Sunday Parks League
-		{ name = "Bramblewick Rovers", kit = { 94, 32, 48 }, accent = { 240, 232, 210 } },
-		{ name = "Oakhollow United", kit = { 32, 78, 46 }, accent = { 224, 176, 48 } },
-		{ name = "Fenmoor Athletic", kit = { 88, 64, 44 }, accent = { 176, 206, 226 } },
-		{ name = "Kestrel Green FC", kit = { 58, 142, 62 }, accent = { 245, 245, 245 } },
-		{ name = "Ashby Wanderers", kit = { 26, 42, 84 }, accent = { 240, 240, 240 } },
-		{ name = "Millpond Town", kit = { 92, 100, 108 }, accent = { 150, 204, 198 } },
-		{ name = "Sunday Legends", kit = { 196, 44, 44 }, accent = { 30, 30, 32 } },
-		{ name = "Hedgerow FC", kit = { 46, 92, 52 }, accent = { 198, 48, 44 } },
+		{ name = "Bramblewick Rovers", kit = { 94, 32, 48 }, accent = { 240, 232, 210 }, crest = "rbxassetid://80005649982051" },
+		{ name = "Oakhollow United", kit = { 32, 78, 46 }, accent = { 224, 176, 48 }, crest = "rbxassetid://70710877850593" },
+		{ name = "Fenmoor Athletic", kit = { 88, 64, 44 }, accent = { 176, 206, 226 }, crest = "rbxassetid://127635815616084" },
+		{ name = "Kestrel Green FC", kit = { 58, 142, 62 }, accent = { 245, 245, 245 }, crest = "rbxassetid://133529044971674" },
+		{ name = "Ashby Wanderers", kit = { 26, 42, 84 }, accent = { 240, 240, 240 }, crest = "rbxassetid://98675295190843" },
+		{ name = "Millpond Town", kit = { 92, 100, 108 }, accent = { 150, 204, 198 }, crest = "rbxassetid://118215410297780" },
+		{ name = "Sunday Legends", kit = { 196, 44, 44 }, accent = { 30, 30, 32 }, crest = "rbxassetid://134936231917712" },
+		{ name = "Hedgerow FC", kit = { 46, 92, 52 }, accent = { 198, 48, 44 }, crest = "rbxassetid://84743077103799" },
 	},
 	{ -- County League
-		{ name = "Thornbury Town", kit = { 112, 30, 52 }, accent = { 110, 186, 228 } },
-		{ name = "Redcliffe Rangers", kit = { 170, 66, 44 }, accent = { 226, 202, 160 } },
-		{ name = "Saltmarsh United", kit = { 104, 126, 106 }, accent = { 240, 240, 236 } },
-		{ name = "Wexford Vale", kit = { 20, 72, 48 }, accent = { 212, 172, 60 } },
-		{ name = "Brindle Heath", kit = { 108, 62, 130 }, accent = { 62, 60, 62 } },
-		{ name = "Copperfield Celtic", kit = { 184, 96, 42 }, accent = { 26, 132, 84 } },
-		{ name = "Norbury Athletic", kit = { 30, 66, 168 }, accent = { 242, 242, 242 } },
-		{ name = "Larkspur Rovers", kit = { 72, 96, 186 }, accent = { 238, 230, 206 } },
+		{ name = "Thornbury Town", kit = { 112, 30, 52 }, accent = { 110, 186, 228 }, crest = "rbxassetid://114213435453133" },
+		{ name = "Redcliffe Rangers", kit = { 170, 66, 44 }, accent = { 226, 202, 160 }, crest = "rbxassetid://102185941845550" },
+		{ name = "Saltmarsh United", kit = { 104, 126, 106 }, accent = { 240, 240, 236 }, crest = "rbxassetid://86431092760259" },
+		{ name = "Wexford Vale", kit = { 20, 72, 48 }, accent = { 212, 172, 60 }, crest = "rbxassetid://131558361135538" },
+		{ name = "Brindle Heath", kit = { 108, 62, 130 }, accent = { 62, 60, 62 }, crest = "rbxassetid://93073668770639" },
+		{ name = "Copperfield Celtic", kit = { 184, 96, 42 }, accent = { 26, 132, 84 }, crest = "rbxassetid://106518266628291" },
+		{ name = "Norbury Athletic", kit = { 30, 66, 168 }, accent = { 242, 242, 242 }, crest = "rbxassetid://110432272484035" },
+		{ name = "Larkspur Rovers", kit = { 72, 96, 186 }, accent = { 238, 230, 206 }, crest = "rbxassetid://98618619404588" },
 	},
 	{ -- Regional Premier
-		{ name = "Harrowgate City", kit = { 32, 140, 140 }, accent = { 214, 178, 72 } },
-		{ name = "Blackwater Albion", kit = { 26, 26, 28 }, accent = { 242, 242, 242 } },
-		{ name = "Ironbridge FC", kit = { 38, 40, 44 }, accent = { 230, 118, 34 } },
-		{ name = "Greyfriars United", kit = { 120, 118, 112 }, accent = { 102, 26, 44 } },
-		{ name = "Stonemoor Town", kit = { 126, 124, 118 }, accent = { 84, 116, 62 } },
-		{ name = "Kingsmere Rovers", kit = { 28, 54, 122 }, accent = { 196, 200, 208 } },
-		{ name = "Eastwick Athletic", kit = { 106, 28, 50 }, accent = { 232, 172, 40 } },
-		{ name = "Dunmore Wanderers", kit = { 26, 62, 44 }, accent = { 238, 238, 234 } },
+		{ name = "Harrowgate City", kit = { 32, 140, 140 }, accent = { 214, 178, 72 }, crest = "rbxassetid://89136781947470" },
+		{ name = "Blackwater Albion", kit = { 26, 26, 28 }, accent = { 242, 242, 242 }, crest = "rbxassetid://137483410788992" },
+		{ name = "Ironbridge FC", kit = { 38, 40, 44 }, accent = { 230, 118, 34 }, crest = "rbxassetid://80624236355605" },
+		{ name = "Greyfriars United", kit = { 120, 118, 112 }, accent = { 102, 26, 44 }, crest = "rbxassetid://107926702587019" },
+		{ name = "Stonemoor Town", kit = { 126, 124, 118 }, accent = { 84, 116, 62 }, crest = "rbxassetid://92471280324009" },
+		{ name = "Kingsmere Rovers", kit = { 28, 54, 122 }, accent = { 196, 200, 208 }, crest = "rbxassetid://81259684266159" },
+		{ name = "Eastwick Athletic", kit = { 106, 28, 50 }, accent = { 232, 172, 40 }, crest = "rbxassetid://75114112965825" },
+		{ name = "Dunmore Wanderers", kit = { 26, 62, 44 }, accent = { 238, 238, 234 }, crest = "rbxassetid://80649590047065" },
 	},
 	{ -- National League
-		{ name = "Northgate United", kit = { 58, 96, 138 }, accent = { 240, 240, 242 } },
-		{ name = "Silverton City", kit = { 188, 192, 198 }, accent = { 22, 34, 68 } },
-		{ name = "Marlow Park FC", kit = { 38, 96, 82 }, accent = { 240, 242, 240 } },
-		{ name = "Whitcombe Town", kit = { 238, 236, 228 }, accent = { 124, 30, 32 } },
-		{ name = "Ravensmoor", kit = { 24, 24, 28 }, accent = { 118, 124, 134 } },
-		{ name = "Castlebridge Albion", kit = { 206, 176, 108 }, accent = { 132, 28, 34 } },
-		{ name = "Ferndale Athletic", kit = { 46, 104, 58 }, accent = { 28, 28, 30 } },
-		{ name = "Highfield Rovers", kit = { 86, 42, 136 }, accent = { 242, 242, 244 } },
+		{ name = "Northgate United", kit = { 58, 96, 138 }, accent = { 240, 240, 242 }, crest = "rbxassetid://96691531768758" },
+		{ name = "Silverton City", kit = { 188, 192, 198 }, accent = { 22, 34, 68 }, crest = "rbxassetid://138770016688524" },
+		{ name = "Marlow Park FC", kit = { 38, 96, 82 }, accent = { 240, 242, 240 }, crest = "rbxassetid://121509247915821" },
+		{ name = "Whitcombe Town", kit = { 238, 236, 228 }, accent = { 124, 30, 32 }, crest = "rbxassetid://136003139644576" },
+		{ name = "Ravensmoor", kit = { 24, 24, 28 }, accent = { 118, 124, 134 }, crest = "rbxassetid://121156442509192" },
+		{ name = "Castlebridge Albion", kit = { 206, 176, 108 }, accent = { 132, 28, 34 }, crest = "rbxassetid://95565014231839" },
+		{ name = "Ferndale Athletic", kit = { 46, 104, 58 }, accent = { 28, 28, 30 }, crest = "rbxassetid://90842001941503" },
+		{ name = "Highfield Rovers", kit = { 86, 42, 136 }, accent = { 242, 242, 244 }, crest = "rbxassetid://85944504314060" },
 	},
 	{ -- Premier Division
-		{ name = "Royal Kingsbury", kit = { 74, 34, 118 }, accent = { 198, 166, 96 } },
-		{ name = "Meridian City", kit = { 20, 32, 72 }, accent = { 110, 226, 120 } },
-		{ name = "Old Aldgate", kit = { 96, 24, 44 }, accent = { 238, 232, 216 } },
-		{ name = "Wentworth United", kit = { 18, 18, 20 }, accent = { 214, 190, 138 } },
-		{ name = "Crownhill FC", kit = { 188, 32, 48 }, accent = { 244, 244, 244 } },
-		{ name = "Lancaster Park", kit = { 192, 44, 44 }, accent = { 72, 78, 88 } },
-		{ name = "Westbrook Athletic", kit = { 104, 178, 228 }, accent = { 56, 58, 64 } },
-		{ name = "Sovereign Town", kit = { 206, 172, 78 }, accent = { 20, 26, 56 } },
+		{ name = "Royal Kingsbury", kit = { 74, 34, 118 }, accent = { 198, 166, 96 }, crest = "rbxassetid://93733984887730" },
+		{ name = "Meridian City", kit = { 20, 32, 72 }, accent = { 110, 226, 120 }, crest = "rbxassetid://93037926006920" },
+		{ name = "Old Aldgate", kit = { 96, 24, 44 }, accent = { 238, 232, 216 }, crest = "rbxassetid://106237213633529" },
+		{ name = "Wentworth United", kit = { 18, 18, 20 }, accent = { 214, 190, 138 }, crest = "rbxassetid://117483564005068" },
+		{ name = "Crownhill FC", kit = { 188, 32, 48 }, accent = { 244, 244, 244 }, crest = "rbxassetid://90872577899741" },
+		{ name = "Lancaster Park", kit = { 192, 44, 44 }, accent = { 72, 78, 88 }, crest = "rbxassetid://94742145790594" },
+		{ name = "Westbrook Athletic", kit = { 104, 178, 228 }, accent = { 56, 58, 64 }, crest = "rbxassetid://139127742926599" },
+		{ name = "Sovereign Town", kit = { 206, 172, 78 }, accent = { 20, 26, 56 }, crest = "rbxassetid://113243549323776" },
 	},
 }
 
@@ -184,6 +186,25 @@ function Config.clubCrest(name: string?, isPlayer: boolean?): (Color3, Color3)
 		hash = (hash * 31 + name:byte(i)) % 360
 	end
 	return Config.pitchKit(Color3.fromHSV(hash / 360, 0.55, 0.55)), Color3.fromRGB(240, 240, 240)
+end
+
+-- League crest art by club name. The player's club never has league art (its
+-- crest comes from the crest builder), and neither does an unknown name, so
+-- both keep the drawn shield.
+local crestImageByName: { [string]: string } = {}
+for _, tierClubs in Config.Clubs do
+	for _, club in tierClubs do
+		if club.crest then
+			crestImageByName[club.name] = club.crest
+		end
+	end
+end
+
+function Config.clubCrestImage(name: string?, isPlayer: boolean?): string?
+	if isPlayer or name == nil then
+		return nil
+	end
+	return crestImageByName[name]
 end
 
 -- Squad (Milestone 3). All TEMP.

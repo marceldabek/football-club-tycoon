@@ -624,6 +624,7 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		homeInitials.TextColor3 = leftAccent
 		homeShield.BackgroundColor3 = leftKit
 		tintStroke(homeShield, leftAccent)
+		Crest.applyArt(homeShield, leftName, leftIsUs)
 		homeName.Text = leftName
 		homeSub.Text = if leftIsUs then scorerText(data.scorers) else ""
 		local rightKit, rightAccent = Config.clubCrest(rightName, not leftIsUs)
@@ -631,6 +632,7 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		awayInitials.TextColor3 = rightAccent
 		awayShield.BackgroundColor3 = rightKit
 		tintStroke(awayShield, rightAccent)
+		Crest.applyArt(awayShield, rightName, not leftIsUs)
 		awayName.Text = rightName
 		awaySub.Text = if leftIsUs then "" else scorerText(data.scorers)
 		score.Text = if away
