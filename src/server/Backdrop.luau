@@ -15,6 +15,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local TownBuilder = require(script.Parent.TownBuilder)
+local TreeKit = require(script.Parent.TreeKit)
 
 local Backdrop = {}
 
@@ -127,16 +128,17 @@ end
 -- every road, the (ring-extended) river, Workspace.VerticalSlice, and — when
 -- `p` sits inside the town extent — is within EXTENT_EDGE_BAND of its
 -- boundary (fields/trees may fringe the town but not sit deep inside it).
+-- `plotClearance` overrides PLOT_CLEARANCE (the near fields sit closer).
 -- Pure: only reads TownLayout data and does Vector3/CFrame maths, no
 -- workspace access, so it's safe to unit test without building anything.
-function Backdrop.isClear(p: Vector3, radius: number): boolean
+function Backdrop.isClear(p: Vector3, radius: number, plotClearance: number?): boolean
 	for i = 1, #TownLayout.PLOTS do
 		local cf = TownLayout.plotCFrame(i)
 		local localP = cf:PointToObjectSpace(Vector3.new(p.X, cf.Position.Y, p.Z))
 		local h = TownLayout.PLOT_SIZE / 2
 		local dx = math.max(math.abs(localP.X) - h, 0)
 		local dz = math.max(math.abs(localP.Z) - h, 0)
-		if math.sqrt(dx * dx + dz * dz) < radius + PLOT_CLEARANCE then
+		if math.sqrt(dx * dx + dz * dz) < radius + (plotClearance or PLOT_CLEARANCE) then
 			return false
 		end
 	end
@@ -346,6 +348,42 @@ local function hedgerowTree(parent: Instance, pos: Vector3, rng: Random): number
 	return 2
 end
 
+-- One field slab ringed by its four dry stone walls (5 parts). Returns the
+-- wall footprints so callers can stand trees along them.
+local function walledField(parent: Instance, cx: number, cz: number, sx: number, sz: number, style: FieldStyle, styleRng: Random): { HedgeBox }
+	local tint = styleRng:NextNumber(-0.06, 0.06)
+	part({
+		Name = "Field",
+		Size = Vector3.new(sx, 0.2, sz),
+		CFrame = CFrame.new(cx, 0.15, cz),
+		Color = if tint > 0 then style.colour:Lerp(Color3.new(1, 1, 0.8), tint) else style.colour:Lerp(Color3.new(0, 0, 0), -tint),
+		Material = style.material,
+		CastShadow = false,
+		Parent = parent,
+	})
+
+	-- east/west walls a little taller and deeper than north/south, so no two
+	-- meeting walls share a top or bottom plane
+	local baseH = styleRng:NextNumber(HEDGE_MIN_H, HEDGE_MAX_H - 0.3)
+	local hedges = Backdrop.hedgeBoxes(cx, cz, sx, sz, HEDGE_THICKNESS, 0.1)
+	for _, hedge in hedges do
+		local eastWest = hedge.side == "+X" or hedge.side == "-X"
+		local bottom = if eastWest then -0.6 else -0.5
+		local top = if eastWest then baseH + 0.3 else baseH
+		part({
+			Name = "FieldWall",
+			Size = Vector3.new(hedge.size.X, top - bottom, hedge.size.Z),
+			CFrame = CFrame.new(hedge.centre.X, (top + bottom) / 2, hedge.centre.Z),
+			Color = WALL_COLOUR:Lerp(Color3.fromRGB(212, 204, 186), styleRng:NextNumber(0, 0.5)),
+			Material = Enum.Material.Cobblestone,
+			MaterialVariant = WALL_VARIANT,
+			CastShadow = false,
+			Parent = parent,
+		})
+	end
+	return hedges
+end
+
 -- One flat field Part ringed by four hedges, tiled along the band strips
 -- between the town extent and FIELD_BAND studs beyond it, with clumps of
 -- trees along the hedgerows. Skips any tile isClear rejects (river crossing,
@@ -399,38 +437,8 @@ local function buildFields(parent: Instance): number
 			local radius = math.sqrt((sx / 2) ^ 2 + (sz / 2) ^ 2)
 			if Backdrop.isClear(centre, radius) then
 				local style = Backdrop.FIELD_STYLES[rng:NextInteger(1, #Backdrop.FIELD_STYLES)]
-				local tint = styleRng:NextNumber(-0.06, 0.06)
-				part({
-					Name = "Field",
-					Size = Vector3.new(sx, 0.2, sz),
-					CFrame = CFrame.new(cx, 0.15, cz),
-					Color = if tint > 0 then style.colour:Lerp(Color3.new(1, 1, 0.8), tint) else style.colour:Lerp(Color3.new(0, 0, 0), -tint),
-					Material = style.material,
-					CastShadow = false,
-					Parent = fieldsModel,
-				})
-				partsUsed += 1
-
-				-- east/west hedges a little taller and deeper than north/south,
-				-- so no two meeting hedges share a top or bottom plane
-				local baseH = styleRng:NextNumber(HEDGE_MIN_H, HEDGE_MAX_H - 0.3)
-				local hedges = Backdrop.hedgeBoxes(cx, cz, sx, sz, HEDGE_THICKNESS, 0.1)
-				for _, hedge in hedges do
-					local eastWest = hedge.side == "+X" or hedge.side == "-X"
-					local bottom = if eastWest then -0.6 else -0.5
-					local top = if eastWest then baseH + 0.3 else baseH
-					part({
-						Name = "FieldWall",
-						Size = Vector3.new(hedge.size.X, top - bottom, hedge.size.Z),
-						CFrame = CFrame.new(hedge.centre.X, (top + bottom) / 2, hedge.centre.Z),
-						Color = WALL_COLOUR:Lerp(Color3.fromRGB(212, 204, 186), styleRng:NextNumber(0, 0.5)),
-						Material = Enum.Material.Cobblestone,
-						MaterialVariant = WALL_VARIANT,
-						CastShadow = false,
-						Parent = fieldsModel,
-					})
-					partsUsed += 1
-				end
+				local hedges = walledField(fieldsModel, cx, cz, sx, sz, style, styleRng)
+				partsUsed += 5
 
 				-- one to three tree clumps along random hedgerows
 				for _ = 1, styleRng:NextInteger(1, 3) do
@@ -459,6 +467,134 @@ local function buildFields(parent: Instance): number
 		end
 	end
 	return partsUsed + treeParts
+end
+
+-- ------------------------------------------------------------- near fields
+
+-- Marcel, 2026-09-21: the patchwork starts too far behind Plot 1, so a row of
+-- smaller walled fields fills the grass between the plot's back fence and the
+-- far fields, with a few trees in the lanes between them. Plot 1 backs onto
+-- the south edge of the extent (yaw 270, entrance north), so "behind" is +Z.
+local NEAR_PLOT = 1
+local NEAR_PLOT_GAP = 14 -- plot boundary to the first wall
+-- The far south fields' nearest possible wall face is ext.maxZ + 43.8 (strip
+-- centre 300 out, at most 0.85 x 600 deep); stop short of it.
+local NEAR_BACK_PAST_EXTENT = 36
+local NEAR_HALF_RUN = 800 -- how far the row runs either side of the plot centre
+local NEAR_ROAD_CLEARANCE = 55 -- pavement + a house + its back garden
+local NEAR_TREE_BUDGET = 22
+
+export type FieldRect = { cx: number, cz: number, sx: number, sz: number }
+
+-- A rectangle is clear when points every ~40 studs round its edge (and its
+-- centre) avoid the plots, the river and VerticalSlice, and keep a house's
+-- depth away from every road.
+local function nearRectClear(rect: FieldRect): boolean
+	local function pointClear(x: number, z: number): boolean
+		local p = Vector3.new(x, 0, z)
+		if not Backdrop.isClear(p, 0, NEAR_PLOT_GAP - 2) then
+			return false
+		end
+		for _, road in TownLayout.ROADS do
+			if TownLayout.distanceToPolyline(p, road.points) < road.width / 2 + NEAR_ROAD_CLEARANCE then
+				return false
+			end
+		end
+		return true
+	end
+	if not pointClear(rect.cx, rect.cz) then
+		return false
+	end
+	local nx, nz = math.max(math.ceil(rect.sx / 40), 1), math.max(math.ceil(rect.sz / 40), 1)
+	for i = 0, nx do
+		local x = rect.cx - rect.sx / 2 + rect.sx * i / nx
+		if not (pointClear(x, rect.cz - rect.sz / 2) and pointClear(x, rect.cz + rect.sz / 2)) then
+			return false
+		end
+	end
+	for j = 0, nz do
+		local z = rect.cz - rect.sz / 2 + rect.sz * j / nz
+		if not (pointClear(rect.cx - rect.sx / 2, z) and pointClear(rect.cx + rect.sx / 2, z)) then
+			return false
+		end
+	end
+	return true
+end
+
+-- Pure: the row of field rectangles behind NEAR_PLOT, west to east, with a
+-- lane of 16..28 studs between neighbours. A slot that isn't clear is stepped
+-- past 40 studs at a time rather than dropping the whole field.
+function Backdrop.nearFieldRects(): { FieldRect }
+	local rng = Random.new(2611)
+	local plot = TownLayout.PLOTS[NEAR_PLOT]
+	local minZ = plot.centre.Z + TownLayout.PLOT_SIZE / 2 + NEAR_PLOT_GAP
+	local maxZ = TownLayout.EXTENT.maxZ + NEAR_BACK_PAST_EXTENT
+	local out: { FieldRect } = {}
+	local x = plot.centre.X - NEAR_HALF_RUN
+	local endX = plot.centre.X + NEAR_HALF_RUN
+	while x < endX - 90 do
+		local sx = math.min(rng:NextNumber(130, 210), endX - x)
+		local front = minZ + rng:NextNumber(0, 18) -- a ragged front line, one straight back line
+		local rect = { cx = x + sx / 2, cz = (front + maxZ) / 2, sx = sx, sz = maxZ - front }
+		if nearRectClear(rect) then
+			table.insert(out, rect)
+			x += sx + rng:NextNumber(16, 28)
+		else
+			x += 40
+		end
+	end
+	return out
+end
+
+local function nearTree(parent: Instance, pos: Vector3, rng: Random): number
+	local oak = TreeKit.tree(parent, pos, { height = rng:NextNumber(20, 30), rng = rng, name = "FieldTree" })
+	if oak then
+		return 1
+	end
+	hedgerowTree(parent, pos, rng)
+	return 1
+end
+
+local function buildNearFields(parent: Instance): number
+	local rng = Random.new(2612)
+	local model = Instance.new("Model")
+	model.Name = "NearFields"
+	model.Parent = parent
+	local treesModel = Instance.new("Model")
+	treesModel.Name = "NearFieldTrees"
+	treesModel.Parent = parent
+
+	local rects = Backdrop.nearFieldRects()
+	local trees = 0
+	local function tryTree(x: number, z: number)
+		local p = Vector3.new(x, GROUND_Y, z)
+		if trees < NEAR_TREE_BUDGET and Backdrop.isClear(p, 4, NEAR_PLOT_GAP - 8) then
+			trees += nearTree(treesModel, p, rng)
+		end
+	end
+
+	for i, rect in rects do
+		local style = Backdrop.FIELD_STYLES[rng:NextInteger(1, #Backdrop.FIELD_STYLES)]
+		walledField(model, rect.cx, rect.cz, rect.sx, rect.sz, style, rng)
+
+		-- trees in the lane between this field and the next one along
+		local nextRect = rects[i + 1]
+		if nextRect then
+			local laneMin = rect.cx + rect.sx / 2
+			local laneMax = nextRect.cx - nextRect.sx / 2
+			if laneMax - laneMin < 60 then -- a real lane, not a stepped-over gap
+				local laneX = (laneMin + laneMax) / 2
+				for _ = 1, rng:NextInteger(1, 3) do
+					tryTree(laneX + rng:NextNumber(-3, 3), rect.cz + rng:NextNumber(-0.45, 0.45) * rect.sz)
+				end
+			end
+		end
+		-- and now and then one in the lane along the back, before the far fields
+		if rng:NextNumber() < 0.5 then
+			tryTree(rect.cx + rng:NextNumber(-0.4, 0.4) * rect.sx, rect.cz + rect.sz / 2 + rng:NextNumber(7, 12))
+		end
+	end
+	return #rects
 end
 
 -- -------------------------------------------------------------------- trees
@@ -638,6 +774,7 @@ function Backdrop.build(): Folder
 	backdrop.Name = "Backdrop"
 	local hills = buildHills()
 	buildFields(backdrop)
+	buildNearFields(backdrop)
 	buildTrees(backdrop, hills)
 	buildTurbines(backdrop)
 	backdrop.Parent = workspace

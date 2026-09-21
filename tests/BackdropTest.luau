@@ -78,4 +78,26 @@ function T.fieldStylesAreTextureFreeNaturalMaterials()
 	end
 end
 
+function T.nearFieldsSitBehindPlotOneWithLanesBetween()
+	-- Plot 1's back boundary is z 1195.5 + 380 = 1575.5; the far fields' walls
+	-- start no nearer than z 1743.8.
+	local rects = Backdrop.nearFieldRects()
+	assert(#rects >= 4, "expected a row of fields behind Plot 1, got " .. #rects)
+	local behindPlot = 0
+	for i, r in rects do
+		assert(r.cz - r.sz / 2 >= 1575.5 + 10, "field " .. i .. " starts inside the plot margin")
+		assert(r.cz + r.sz / 2 <= 1740, "field " .. i .. " runs into the far fields")
+		assert(r.sx >= 60 and r.sz >= 100, "field " .. i .. " is a sliver")
+		if r.cx > 670 and r.cx < 1430 then
+			behindPlot += 1
+		end
+		local nextRect = rects[i + 1]
+		if nextRect then
+			local lane = (nextRect.cx - nextRect.sx / 2) - (r.cx + r.sx / 2)
+			assert(lane >= 16 - 1e-6, ("lane after field %d is %.1f wide"):format(i, lane))
+		end
+	end
+	assert(behindPlot >= 2, "fields directly behind the plot, got " .. behindPlot)
+end
+
 return T
