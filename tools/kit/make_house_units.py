@@ -88,7 +88,7 @@ def parse_recipes():
 
     def end_cap(side, windowed):
         yaw = 90 if side < 0 else -90
-        out = [piece("Roof_Wall_Full_A", side * M, 2 * M, 0, yaw, "gable")]
+        out = [piece("Roof_Wall_Full_A", side * (M - brick_plane.get("Roof_Wall_Full_A", 0.0)), 2 * M, 0, yaw, "gable")]
 
         def side_wall(name, y, z):
             out.append(piece(name, side * (M - brick_plane.get(name, 0.0)), y, z, yaw, "side"))
@@ -227,6 +227,31 @@ def classify(uv):
     return brick, slate
 
 
+def verge_cover(side):
+    """Slates carried over the gable. The roof slopes stop on the gable's centre line and the top
+    of the gable piece renders near black beside them, which reads from above as a slit you can
+    see into (Marcel, 2026-09-21; a neon block in the attic proved it is not one). Two slate
+    strips, a hair above it, run the roof out past the gable's outer face. They ride in the trim
+    mesh, so they sample the slate quadrant of the trim sheet, well inside it."""
+    x0, x1 = side * (M - 0.02), side * (M + 0.43)
+    lift = 0.035
+    eaves_y, ridge_y = 2 * M + 0.674 + lift, 2 * M + 5.5 + lift  # the two roof slopes' own line
+    u0, u1, v_eaves, v_ridge = 0.60, 0.627, 0.98, 0.52
+    tris, nrms, uvs = [], [], []
+    for zs in (-1.0, 1.0):
+        a = np.array([x0, eaves_y, zs * 8.613]); b = np.array([x1, eaves_y, zs * 8.613])
+        c = np.array([x1, ridge_y, 0.0]); d = np.array([x0, ridge_y, 0.0])
+        quad = [(a, b, c), (a, c, d)]
+        quv = [((u0, v_eaves), (u1, v_eaves), (u1, v_ridge)), ((u0, v_eaves), (u1, v_ridge), (u0, v_ridge))]
+        n = np.cross(b - a, c - a)
+        n = n / np.linalg.norm(n)
+        for tri, tuv in zip(quad, quv):
+            if n[1] < 0:  # face the sky
+                tri, tuv = (tri[0], tri[2], tri[1]), (tuv[0], tuv[2], tuv[1])
+            tris.append(tri); uvs.append(tuv); nrms.append([n if n[1] > 0 else -n] * 3)
+    return np.array(tris, float), np.array(nrms, float).reshape(-1, 3, 3), np.array(uvs, float)
+
+
 def build_unit(pieces):
     layers = {k: ([], [], []) for k in LAYERS}
     for p in pieces:
@@ -251,6 +276,11 @@ def build_unit(pieces):
             if mask.any():
                 L = layers[key]
                 L[0].append(pos[mask]); L[1].append(nrm[mask]); L[2].append(tuv[mask])
+    for p in pieces:
+        if p["role"] == "gable":
+            pos, nrm, uv = verge_cover(1.0 if p["x"] > 0 else -1.0)
+            L = layers["trim"]
+            L[0].append(pos); L[1].append(nrm); L[2].append(uv)
     out = {}
     for key, (P, N, T) in layers.items():
         if P:

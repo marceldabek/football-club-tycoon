@@ -1,7 +1,8 @@
 --!strict
 -- Rivermere v3, Lane C: builds commercial, industrial and civic buildings from TradeRecipes.
--- Every visible object is a kit clone placed through KitPlacer. No Parts are created here; the only
--- primitives in the output are inside the Creator Store `ChurchSpire` keeper, tagged V3Exempt EC7.
+-- Every visible object is a kit clone placed through KitPlacer. The only primitives in the output
+-- are inside the Creator Store `ChurchSpire` keeper (V3Exempt EC7) and the dark core inside a
+-- corner shop's body (EH1, as in HouseAssembler).
 -- Contract: docs/TOWN_V3_BUILD.md section 4.3, streaming and budget rules from section 9.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -42,6 +43,19 @@ local function applyTrim(model: Model, index: number)
 			sheet:Clone().Parent = d
 		end
 	end
+end
+
+-- Merged house unit meshes (HOUSE__<unit>__masonry / __roof / __trim, see Shared/HouseUnits) wear
+-- the tileable brick or slate from Kit.Appearances, or the trim sheet.
+local TRIM_NAMES = { "ts1", "ts3" }
+local function unitLook(kit: string, trim: number): SurfaceAppearance?
+	local layer = string.match(kit, "__(%a+)$")
+	local prefix = if layer == "masonry" then "HouseBrick_" elseif layer == "roof" then "HouseSlate_" else nil
+	if not prefix then
+		return trimSheet(trim) or trimSheet(1)
+	end
+	local found = KitPlacer.find(prefix .. TRIM_NAMES[trim])
+	return if found and found:IsA("SurfaceAppearance") then found else nil
 end
 
 -- Stretches a one-mesh kit piece to `box` (width, height, depth in the target frame) and puts its
@@ -97,7 +111,32 @@ function TradeAssembler.buildLot(parent: Instance, origin: CFrame, lot: TradeRec
 	end
 	local frame = TradeAssembler.lotFrame(origin, lot)
 	local trim = if TradeRecipes.seedOf(lot.id) % 3 == 0 then 2 else 1
-	for _, piece in recipe.pieces do
+	local pieces = recipe.pieces
+	if recipe.fallback then
+		for _, piece in pieces do
+			if not KitPlacer.find(piece.kit) or not unitLook(piece.kit, trim) then
+				pieces = recipe.fallback -- a place without the merged house units
+				break
+			end
+		end
+	end
+	if recipe.core and pieces == recipe.pieces then
+		-- Same guard as HouseAssembler.putCore (register row EH1): kit walls are single-sided.
+		local core = Instance.new("Part")
+		core.Name = "Core"
+		core.Anchored = true
+		core.CanCollide = false
+		core.CanQuery = false
+		core.CanTouch = false
+		core.CastShadow = false
+		core.Material = Enum.Material.SmoothPlastic
+		core.Color = Color3.fromRGB(24, 24, 28)
+		core.Size = recipe.core.size
+		core.CFrame = frame * CFrame.new(recipe.core.pos + Vector3.new(0, recipe.core.size.Y / 2, 0))
+		core:SetAttribute("V3Exempt", "EH1")
+		core.Parent = model
+	end
+	for _, piece in pieces do
 		local target = frame * CFrame.new(piece.pos) * CFrame.Angles(0, math.rad(piece.yaw), 0)
 		local placed = KitPlacer.place(piece.kit, target, model, { scale = piece.scale })
 		if piece.fit and not placed:GetAttribute("KitMissing") then
@@ -105,6 +144,13 @@ function TradeAssembler.buildLot(parent: Instance, origin: CFrame, lot: TradeRec
 		end
 		if string.sub(piece.kit, 1, 5) == "MEH__" then
 			applyTrim(placed, trim)
+		elseif string.sub(piece.kit, 1, 7) == "HOUSE__" then
+			local look = unitLook(piece.kit, trim)
+			for _, d in placed:GetDescendants() do
+				if look and d:IsA("MeshPart") and not d:FindFirstChildOfClass("SurfaceAppearance") then
+					look:Clone().Parent = d
+				end
+			end
 		end
 		V3Perf.applyDefaults(placed, kindOf(piece.kit))
 		if recipe.gap == "EC7" then

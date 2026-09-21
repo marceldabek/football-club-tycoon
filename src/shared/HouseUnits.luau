@@ -156,63 +156,63 @@ HouseUnits.UNITS = {
 		},
 	},
 	D01_villa = {
-		signature = "Chimney_A@-70,207,0,0,14,10|Chimney_A@70,207,0,0,14,10|Door_A@0,0,-79,0,10,10|Door_Canopy_A@0,50,-90,0,10,10|Roof_A@0,165,-43,0,10,20|Roof_A@0,165,43,180,10,20|Roof_Wall_Full_A@-82,165,0,90,10,10|Roof_Wall_Full_A@83,165,0,270,10,10|Wall_A@-82,0,41,90,10,10|Wall_A@-82,83,41,90,10,10|Wall_A@0,0,83,180,20,10|Wall_A@83,0,0,270,20,10|Wall_WindowCentre_B@0,83,-81,0,10,10|Wall_WindowDoor_A@0,0,-81,0,10,10|Wall_Window_B@-81,0,-41,90,10,10|Wall_Window_C@-81,83,-41,90,10,10",
+		signature = "Chimney_A@-70,207,0,0,14,10|Chimney_A@70,207,0,0,14,10|Door_A@0,0,-79,0,10,10|Door_Canopy_A@0,50,-90,0,10,10|Roof_A@0,165,-43,0,10,20|Roof_A@0,165,43,180,10,20|Roof_Wall_Full_A@-84,165,0,90,10,10|Roof_Wall_Full_A@84,165,0,270,10,10|Wall_A@-82,0,41,90,10,10|Wall_A@-82,83,41,90,10,10|Wall_A@0,0,83,180,20,10|Wall_A@83,0,0,270,20,10|Wall_WindowCentre_B@0,83,-81,0,10,10|Wall_WindowDoor_A@0,0,-81,0,10,10|Wall_Window_B@-81,0,-41,90,10,10|Wall_Window_C@-81,83,-41,90,10,10",
 		meshes = {
-			{ layer = "masonry", name = "HOUSE__D01_villa__masonry", assetId = 125135187856957, offset = Vector3.new(0.0000, 0.0000, 0.0000), size = Vector3.new(16.5000, 24.5414, 16.5000) },
+			{ layer = "masonry", name = "HOUSE__D01_villa__masonry", assetId = 123720074887568, offset = Vector3.new(0.0000, 0.0000, 0.0000), size = Vector3.new(16.5000, 24.5414, 16.5000) },
 			{ layer = "roof", name = "HOUSE__D01_villa__roof", assetId = 124790718821306, offset = Vector3.new(0.0000, 17.1743, -0.0000), size = Vector3.new(16.5000, 4.8257, 17.2261) },
-			{ layer = "trim", name = "HOUSE__D01_villa__trim", assetId = 117712065556798, offset = Vector3.new(0.0000, 0.0000, -0.5788), size = Vector3.new(16.8850, 26.4630, 18.4298) },
+			{ layer = "trim", name = "HOUSE__D01_villa__trim", assetId = 95345266808373, offset = Vector3.new(0.0000, 0.0000, -0.5788), size = Vector3.new(17.3600, 26.4630, 18.4298) },
 		},
 	},
 	D02_bay_villa = {
-		signature = "Chimney_A@70,207,0,0,14,10|Door_B@0,0,-79,0,10,10|Door_Canopy_B@0,50,-90,0,10,10|Roof_A@0,165,-43,0,10,20|Roof_A@0,165,43,180,10,20|Roof_Wall_Full_A@-82,165,0,90,10,10|Roof_Wall_Full_A@83,165,0,270,10,10|Wall_A@-82,0,41,90,10,10|Wall_A@-82,83,41,90,10,10|Wall_A@0,0,83,180,20,10|Wall_A@83,0,0,270,20,10|Wall_WindowCentre_A@0,83,-90,0,10,10|Wall_WindowDoor_B@0,0,-81,0,10,10|Wall_Window_B@-81,0,-41,90,10,10|Wall_Window_C@-81,83,-41,90,10,10",
+		signature = "Chimney_A@70,207,0,0,14,10|Door_B@0,0,-79,0,10,10|Door_Canopy_B@0,50,-90,0,10,10|Roof_A@0,165,-43,0,10,20|Roof_A@0,165,43,180,10,20|Roof_Wall_Full_A@-84,165,0,90,10,10|Roof_Wall_Full_A@84,165,0,270,10,10|Wall_A@-82,0,41,90,10,10|Wall_A@-82,83,41,90,10,10|Wall_A@0,0,83,180,20,10|Wall_A@83,0,0,270,20,10|Wall_WindowCentre_A@0,83,-90,0,10,10|Wall_WindowDoor_B@0,0,-81,0,10,10|Wall_Window_B@-81,0,-41,90,10,10|Wall_Window_C@-81,83,-41,90,10,10",
 		meshes = {
-			{ layer = "masonry", name = "HOUSE__D02_bay_villa__masonry", assetId = 110698099372990, offset = Vector3.new(0.0000, 0.0000, -0.6873), size = Vector3.new(16.5000, 24.5414, 17.8746) },
+			{ layer = "masonry", name = "HOUSE__D02_bay_villa__masonry", assetId = 101991022128510, offset = Vector3.new(0.0000, 0.0000, -0.6873), size = Vector3.new(16.5000, 24.5414, 17.8746) },
 			{ layer = "roof", name = "HOUSE__D02_bay_villa__roof", assetId = 96064290767716, offset = Vector3.new(0.0000, 17.1743, -0.0000), size = Vector3.new(16.5000, 4.8257, 17.2261) },
-			{ layer = "trim", name = "HOUSE__D02_bay_villa__trim", assetId = 133499465170901, offset = Vector3.new(0.0000, 0.0000, -0.6729), size = Vector3.new(16.8850, 26.4630, 18.6179) },
+			{ layer = "trim", name = "HOUSE__D02_bay_villa__trim", assetId = 112034574260330, offset = Vector3.new(0.0000, 0.0000, -0.6729), size = Vector3.new(17.3600, 26.4630, 18.6179) },
 		},
 	},
 	D03_side_door = {
-		signature = "Chimney_A@-70,207,0,0,14,10|Door_C@55,0,-79,0,10,10|Door_Canopy_A@55,50,-90,0,10,10|Roof_A@0,165,-43,0,10,20|Roof_A@0,165,43,180,10,20|Roof_Wall_Full_A@-82,165,0,90,10,10|Roof_Wall_Full_A@83,165,0,270,10,10|Wall_A@-82,0,41,90,10,10|Wall_A@-82,83,41,90,10,10|Wall_A@0,0,83,180,20,10|Wall_A@83,0,0,270,20,10|Wall_Door_B@41,0,-81,0,10,10|Wall_Window_B@-81,0,-41,90,10,10|Wall_Window_C@-81,83,-41,90,10,10|Wall_Window_F@-41,83,-81,0,10,10|Wall_Window_F@41,83,-81,0,10,10|Wall_Window_H@-41,0,-84,0,10,10",
+		signature = "Chimney_A@-70,207,0,0,14,10|Door_C@55,0,-79,0,10,10|Door_Canopy_A@55,50,-90,0,10,10|Roof_A@0,165,-43,0,10,20|Roof_A@0,165,43,180,10,20|Roof_Wall_Full_A@-84,165,0,90,10,10|Roof_Wall_Full_A@84,165,0,270,10,10|Wall_A@-82,0,41,90,10,10|Wall_A@-82,83,41,90,10,10|Wall_A@0,0,83,180,20,10|Wall_A@83,0,0,270,20,10|Wall_Door_B@41,0,-81,0,10,10|Wall_Window_B@-81,0,-41,90,10,10|Wall_Window_C@-81,83,-41,90,10,10|Wall_Window_F@-41,83,-81,0,10,10|Wall_Window_F@41,83,-81,0,10,10|Wall_Window_H@-41,0,-84,0,10,10",
 		meshes = {
-			{ layer = "masonry", name = "HOUSE__D03_side_door__masonry", assetId = 100369226640004, offset = Vector3.new(0.0000, 0.0000, -0.0002), size = Vector3.new(16.5000, 24.5414, 16.5004) },
+			{ layer = "masonry", name = "HOUSE__D03_side_door__masonry", assetId = 113691637602166, offset = Vector3.new(0.0000, 0.0000, -0.0002), size = Vector3.new(16.5000, 24.5414, 16.5004) },
 			{ layer = "roof", name = "HOUSE__D03_side_door__roof", assetId = 111635765513077, offset = Vector3.new(0.0000, 17.1743, -0.0000), size = Vector3.new(16.5000, 4.8257, 17.2261) },
-			{ layer = "trim", name = "HOUSE__D03_side_door__trim", assetId = 72028085001905, offset = Vector3.new(0.0000, 0.0000, -0.5788), size = Vector3.new(16.8850, 26.4630, 18.4298) },
+			{ layer = "trim", name = "HOUSE__D03_side_door__trim", assetId = 112077096537005, offset = Vector3.new(0.0000, 0.0000, -0.5788), size = Vector3.new(17.3600, 26.4630, 18.4298) },
 		},
 	},
 	D04_cottage = {
-		signature = "Chimney_A@-70,207,0,0,14,10|Chimney_A@70,207,0,0,14,10|Door_Double_A@-41,0,-79,0,10,10|Roof_A@0,165,-43,0,10,20|Roof_A@0,165,43,180,10,20|Roof_Wall_Full_A@-82,165,0,90,10,10|Roof_Wall_Full_A@83,165,0,270,10,10|Wall_A@-82,0,41,90,10,10|Wall_A@-82,83,41,90,10,10|Wall_A@0,0,83,180,20,10|Wall_A@83,0,0,270,20,10|Wall_Door_C@-41,0,-81,0,10,10|Wall_Window_B@-81,0,-41,90,10,10|Wall_Window_C@-81,83,-41,90,10,10|Wall_Window_E@-41,83,-81,0,10,10|Wall_Window_E@41,0,-81,0,10,10|Wall_Window_E@41,83,-81,0,10,10",
+		signature = "Chimney_A@-70,207,0,0,14,10|Chimney_A@70,207,0,0,14,10|Door_Double_A@-41,0,-79,0,10,10|Roof_A@0,165,-43,0,10,20|Roof_A@0,165,43,180,10,20|Roof_Wall_Full_A@-84,165,0,90,10,10|Roof_Wall_Full_A@84,165,0,270,10,10|Wall_A@-82,0,41,90,10,10|Wall_A@-82,83,41,90,10,10|Wall_A@0,0,83,180,20,10|Wall_A@83,0,0,270,20,10|Wall_Door_C@-41,0,-81,0,10,10|Wall_Window_B@-81,0,-41,90,10,10|Wall_Window_C@-81,83,-41,90,10,10|Wall_Window_E@-41,83,-81,0,10,10|Wall_Window_E@41,0,-81,0,10,10|Wall_Window_E@41,83,-81,0,10,10",
 		meshes = {
-			{ layer = "masonry", name = "HOUSE__D04_cottage__masonry", assetId = 91096549723082, offset = Vector3.new(0.0000, 0.0000, -0.0001), size = Vector3.new(16.5000, 24.5414, 16.5002) },
+			{ layer = "masonry", name = "HOUSE__D04_cottage__masonry", assetId = 105978775235771, offset = Vector3.new(0.0000, 0.0000, -0.0001), size = Vector3.new(16.5000, 24.5414, 16.5002) },
 			{ layer = "roof", name = "HOUSE__D04_cottage__roof", assetId = 116191127364860, offset = Vector3.new(0.0000, 17.1743, -0.0000), size = Vector3.new(16.5000, 4.8257, 17.2261) },
-			{ layer = "trim", name = "HOUSE__D04_cottage__trim", assetId = 74192584211039, offset = Vector3.new(0.0000, 0.0000, 0.0000), size = Vector3.new(16.8850, 26.4630, 17.2721) },
+			{ layer = "trim", name = "HOUSE__D04_cottage__trim", assetId = 78255550190216, offset = Vector3.new(0.0000, 0.0000, 0.0000), size = Vector3.new(17.3600, 26.4630, 17.2721) },
 		},
 	},
 	cap_plain_left = {
-		signature = "Roof_Wall_Full_A@-82,165,0,90,10,10|Wall_A@-82,0,0,90,20,10",
+		signature = "Roof_Wall_Full_A@-84,165,0,90,10,10|Wall_A@-82,0,0,90,20,10",
 		meshes = {
-			{ layer = "masonry", name = "HOUSE__cap_plain_left__masonry", assetId = 74347500781064, offset = Vector3.new(-8.1537, 0.0000, 0.0000), size = Vector3.new(0.1925, 21.0978, 16.5000) },
-			{ layer = "trim", name = "HOUSE__cap_plain_left__trim", assetId = 93270839410647, offset = Vector3.new(-8.2500, 16.5000, 0.0000), size = Vector3.new(0.3850, 5.5000, 17.2721) },
+			{ layer = "masonry", name = "HOUSE__cap_plain_left__masonry", assetId = 131180629752917, offset = Vector3.new(-8.2497, 0.0000, 0.0000), size = Vector3.new(0.0005, 21.0978, 16.5000) },
+			{ layer = "trim", name = "HOUSE__cap_plain_left__trim", assetId = 98483546336370, offset = Vector3.new(-8.4550, 16.5000, 0.0000), size = Vector3.new(0.4500, 5.5350, 17.2721) },
 		},
 	},
 	cap_win_left = {
-		signature = "Roof_Wall_Full_A@-82,165,0,90,10,10|Wall_A@-82,0,41,90,10,10|Wall_A@-82,83,41,90,10,10|Wall_Window_B@-81,0,-41,90,10,10|Wall_Window_C@-81,83,-41,90,10,10",
+		signature = "Roof_Wall_Full_A@-84,165,0,90,10,10|Wall_A@-82,0,41,90,10,10|Wall_A@-82,83,41,90,10,10|Wall_Window_B@-81,0,-41,90,10,10|Wall_Window_C@-81,83,-41,90,10,10",
 		meshes = {
-			{ layer = "masonry", name = "HOUSE__cap_win_left__masonry", assetId = 83918710549231, offset = Vector3.new(-8.1537, 0.0000, 0.0000), size = Vector3.new(0.1925, 21.0978, 16.5000) },
-			{ layer = "trim", name = "HOUSE__cap_win_left__trim", assetId = 131092285439021, offset = Vector3.new(-8.1564, 2.9717, 0.0000), size = Vector3.new(0.5723, 19.0283, 17.2721) },
+			{ layer = "masonry", name = "HOUSE__cap_win_left__masonry", assetId = 122326542837940, offset = Vector3.new(-8.2497, 0.0000, 0.0000), size = Vector3.new(0.0005, 21.0978, 16.5000) },
+			{ layer = "trim", name = "HOUSE__cap_win_left__trim", assetId = 134466341205498, offset = Vector3.new(-8.2751, 2.9717, 0.0000), size = Vector3.new(0.8098, 19.0633, 17.2721) },
 		},
 	},
 	cap_plain_right = {
-		signature = "Roof_Wall_Full_A@83,165,0,270,10,10|Wall_A@83,0,0,270,20,10",
+		signature = "Roof_Wall_Full_A@84,165,0,270,10,10|Wall_A@83,0,0,270,20,10",
 		meshes = {
-			{ layer = "masonry", name = "HOUSE__cap_plain_right__masonry", assetId = 114970325358858, offset = Vector3.new(8.1537, 0.0000, 0.0000), size = Vector3.new(0.1925, 21.0978, 16.5000) },
-			{ layer = "trim", name = "HOUSE__cap_plain_right__trim", assetId = 91514475602309, offset = Vector3.new(8.2500, 16.5000, 0.0000), size = Vector3.new(0.3850, 5.5000, 17.2721) },
+			{ layer = "masonry", name = "HOUSE__cap_plain_right__masonry", assetId = 116050685971758, offset = Vector3.new(8.2497, 0.0000, 0.0000), size = Vector3.new(0.0005, 21.0978, 16.5000) },
+			{ layer = "trim", name = "HOUSE__cap_plain_right__trim", assetId = 85955750989120, offset = Vector3.new(8.4550, 16.5000, 0.0000), size = Vector3.new(0.4500, 5.5350, 17.2721) },
 		},
 	},
 	cap_win_right = {
-		signature = "Roof_Wall_Full_A@83,165,0,270,10,10|Wall_A@83,0,41,270,10,10|Wall_A@83,83,41,270,10,10|Wall_Window_B@81,0,-41,270,10,10|Wall_Window_C@81,83,-41,270,10,10",
+		signature = "Roof_Wall_Full_A@84,165,0,270,10,10|Wall_A@83,0,41,270,10,10|Wall_A@83,83,41,270,10,10|Wall_Window_B@81,0,-41,270,10,10|Wall_Window_C@81,83,-41,270,10,10",
 		meshes = {
-			{ layer = "masonry", name = "HOUSE__cap_win_right__masonry", assetId = 110482826447265, offset = Vector3.new(8.1537, 0.0000, 0.0000), size = Vector3.new(0.1925, 21.0978, 16.5000) },
-			{ layer = "trim", name = "HOUSE__cap_win_right__trim", assetId = 86960735181470, offset = Vector3.new(8.1564, 2.9717, 0.0000), size = Vector3.new(0.5723, 19.0283, 17.2721) },
+			{ layer = "masonry", name = "HOUSE__cap_win_right__masonry", assetId = 139423880635553, offset = Vector3.new(8.2497, 0.0000, 0.0000), size = Vector3.new(0.0005, 21.0978, 16.5000) },
+			{ layer = "trim", name = "HOUSE__cap_win_right__trim", assetId = 81279902919358, offset = Vector3.new(8.2751, 2.9717, 0.0000), size = Vector3.new(0.8098, 19.0633, 17.2721) },
 		},
 	},
 } :: { [string]: Unit }

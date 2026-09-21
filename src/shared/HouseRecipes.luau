@@ -113,6 +113,10 @@ HouseRecipes.BRICK_PLANE = {
 	Wall_WindowDoor_B = 0.145,
 	Wall_WindowCentre_A = -0.728,
 	Wall_WindowCentre_B = 0.149,
+	-- The gable's brick is the BACK of its 0.39-thick box, the bargeboards the front. Centred on
+	-- the grid line its brick stood 0.19 behind the wall below: a ledge at eaves height that you
+	-- looked down into from above (Marcel 2026-09-21: "top down I can still see into this one").
+	Roof_Wall_Full_A = -0.192,
 } :: { [string]: number }
 
 -- The clear doorway of each door wall, in the piece's own X as Roblox sees it (+X is to the LEFT
@@ -177,8 +181,9 @@ end
 function HouseRecipes.endCap(side: number, windowed: boolean): { Piece }
 	local x = side * M
 	local yaw = if side < 0 then 90 else -90
+	local gableX = side * (M - HouseRecipes.BRICK_PLANE.Roof_Wall_Full_A)
 	local pieces: { Piece } = {
-		{ piece = "Roof_Wall_Full_A", offset = Vector3.new(x, 2 * M, 0), yaw = yaw, role = "gable", tier = 1 },
+		{ piece = "Roof_Wall_Full_A", offset = Vector3.new(gableX, 2 * M, 0), yaw = yaw, role = "gable", tier = 1 },
 	}
 	-- brick face on the grid line, like the fronts, so a windowed module meets the plain one beside it
 	local function sideWall(piece: string, y: number, z: number)

@@ -200,14 +200,14 @@ function tests.brick_faces_sit_on_the_grid_line()
 		assert(plane, id .. ": no BRICK_PLANE for " .. p.piece)
 		if p.role == "front" then
 			assert(math.abs((p.offset.Z - plane) - -M) < 0.005, ("%s: %s brick face is at z %.3f"):format(id, p.piece, p.offset.Z - plane))
-		elseif p.role == "side" then
+		elseif p.role == "side" or p.role == "gable" then
 			local face = math.abs(p.offset.X) + plane * (p.scale or 1)
 			assert(math.abs(face - M) < 0.005, ("%s: %s brick face is at x %.3f"):format(id, p.piece, face))
 		end
 	end
 	for _, r in HouseRecipes.RECIPES do
 		for _, p in r.pieces do
-			if p.role == "front" or p.role == "side" then
+			if p.role == "front" or p.role == "side" or p.role == "gable" then
 				check(r.id, p)
 			end
 		end
@@ -215,7 +215,7 @@ function tests.brick_faces_sit_on_the_grid_line()
 	for _, side in { -1, 1 } do
 		for _, windowed in { true, false } do
 			for _, p in HouseRecipes.endCap(side, windowed) do
-				if p.role == "side" then
+				if p.role == "side" or p.role == "gable" then
 					check("end cap", p)
 				end
 			end

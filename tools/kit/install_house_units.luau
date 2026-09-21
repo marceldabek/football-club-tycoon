@@ -1,9 +1,8 @@
 -- Run once in Studio (Edit mode, command bar or MCP execute_luau). Loads the merged house unit
 -- meshes named in Shared/HouseUnits into ServerStorage.Kit.Meshes and builds the tileable brick
--- and slate SurfaceAppearances in ServerStorage.Kit.Appearances. Safe to re-run: meshes already
--- there are kept (delete one to refetch it), appearances are rebuilt. Pass `true` as the chunk's
--- first argument, or set REFRESH below, to refetch everything after a re-upload.
-local REFRESH = (...) == true
+-- and slate SurfaceAppearances in ServerStorage.Kit.Appearances. Safe to re-run: a mesh is
+-- refetched only when its asset id in HouseUnits changed (each template remembers its id in the
+-- AssetId attribute), appearances are rebuilt.
 
 local IS = game:GetService("InsertService")
 local inst = game.ReplicatedStorage.Shared.HouseUnits
@@ -22,7 +21,7 @@ local fetched, failed = 0, {}
 for _, unit in HouseUnits.UNITS do
 	for _, mesh in unit.meshes do
 		local old = meshes:FindFirstChild(mesh.name)
-		if old and REFRESH then
+		if old and old:GetAttribute("AssetId") ~= ("%.0f"):format(mesh.assetId) then
 			old:Destroy()
 			old = nil
 		end
@@ -39,6 +38,7 @@ for _, unit in HouseUnits.UNITS do
 						d.Anchored = true
 					end
 				end
+				model:SetAttribute("AssetId", ("%.0f"):format(mesh.assetId))
 				model.Parent = meshes
 				if container ~= model then
 					container:Destroy()

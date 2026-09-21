@@ -12,6 +12,8 @@
 -- carries the `gap` id of its row in docs/TOWN_V3_BUILD.md section 7 so the stand-ins can be found
 -- and replaced when the section 8 buy list is approved.
 
+local HouseUnits = require(script.Parent.HouseUnits)
+
 local TradeRecipes = {}
 
 export type Piece = {
@@ -21,7 +23,15 @@ export type Piece = {
 	scale: number?, -- uniform
 	fit: Vector3?, -- non-uniform target box (width, height, depth before yaw); roofs and cladding only
 }
-export type Recipe = { kind: string, gap: string?, pieces: { Piece } }
+export type Recipe = {
+	kind: string,
+	gap: string?,
+	pieces: { Piece },
+	-- Set when `pieces` are merged HOUSE__ unit meshes (Shared/HouseUnits): what to build instead
+	-- in a place whose kit does not hold them, and the dark box that goes inside the body.
+	fallback: { Piece }?,
+	core: { pos: Vector3, size: Vector3 }?,
+}
 export type Lot = {
 	id: string,
 	use: string,
@@ -39,6 +49,10 @@ export type Lot = {
 
 local M = 8.25 -- MEH module, studs (measured)
 local CORNER_SHOP_SCALE_MAX = 1.25 -- HouseRecipes' usual terrace scale: a corner shop never outgrows its row
+-- The corner shop IS one of the terrace's houses standing free: same merged unit meshes, same
+-- scale, so its storeys, door and brick line up with the row it ends.
+local CORNER_SHOP_UNITS = { "D01_villa", "D02_bay_villa", "D03_side_door", "D04_cottage" }
+local CORNER_SHOP_CORE_INSET = 0.7 -- HouseRecipes.CORE_INSET
 TradeRecipes.MODULE = M
 
 TradeRecipes.USES = {
@@ -120,6 +134,11 @@ local SIZES: { [string]: Vector3 } = {
 	["UKSP__PicnicBenches__BenchOld"] = Vector3.new(4.7, 2.7, 4.7),
 	["ForkliftYellow"] = Vector3.new(6.5, 4.0, 6.5),
 }
+for _, key in CORNER_SHOP_UNITS do
+	for _, mesh in HouseUnits.UNITS[key].meshes do
+		SIZES[mesh.name] = mesh.size
+	end
+end
 TradeRecipes.SIZES = SIZES
 
 local CLAD = {
@@ -422,10 +441,23 @@ function TradeRecipes.recipeFor(lot: Lot): Recipe
 		local k = math.clamp(lot.size.X / (2 * M), 1, CORNER_SHOP_SCALE_MAX)
 		local inner = table.clone(lot)
 		inner.size = lot.size / k
+		local fallback: { Piece } = {}
 		for _, p in parade(inner, rng, 2, true) do
-			add(pieces, p.kit, p.pos.X * k, p.pos.Y * k, p.pos.Z * k, p.yaw, if p.fit then nil else (p.scale or 1) * k, if p.fit then p.fit * k else nil)
+			add(fallback, p.kit, p.pos.X * k, p.pos.Y * k, p.pos.Z * k, p.yaw, if p.fit then nil else (p.scale or 1) * k, if p.fit then p.fit * k else nil)
 		end
-		return { kind = "corner shop", gap = "EC1", pieces = pieces }
+		-- That parade had no door leaf, no back faces and stood at 1.09 beside houses at 1.25
+		-- (Marcel 2026-09-21: "still missing its door and is half the size"). Now it is a whole
+		-- merged house unit at the terrace's own scale, front wall on the lot's front edge like
+		-- the row. It overhangs its 18-wide lot by 1.3 a side; the row gap beside it is 6.
+		local s = math.min(CORNER_SHOP_SCALE_MAX, lot.size.Z / (2 * M))
+		local key = CORNER_SHOP_UNITS[seedOf(lot.id .. "#unit") % #CORNER_SHOP_UNITS + 1]
+		local cz = -lot.size.Z / 2 + M * s
+		for _, mesh in HouseUnits.UNITS[key].meshes do
+			add(pieces, mesh.name, mesh.offset.X * s, mesh.offset.Y * s, cz + mesh.offset.Z * s, 0, s)
+		end
+		local inset = CORNER_SHOP_CORE_INSET * s
+		local core = { pos = Vector3.new(0, 0, cz), size = Vector3.new(2 * M * s - 2 * inset, 2 * M * s - 0.05, 2 * M * s - 2 * inset) }
+		return { kind = "corner shop", gap = "EC1", pieces = pieces, fallback = fallback, core = core }
 	elseif use == "flats" then
 		flatsBlock(pieces, rng, 0, -lot.size.Z / 2 + 4 + 1.5 * M)
 		return { kind = "flats", pieces = pieces }

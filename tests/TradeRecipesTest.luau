@@ -49,10 +49,19 @@ function T.recipesFitTheirLotBox()
 	for _, lot in lots() do
 		local lo, hi = TradeRecipes.bounds(TradeRecipes.recipeFor(lot))
 		local hx, hz = lot.size.X / 2 + slack, lot.size.Z / 2 + slack
+		local front, top = hz, lot.size.Y + slack
+		if lot.use == "corner shop" then
+			-- one of its terrace's houses at the terrace's scale (HouseRecipesTest's allowances):
+			-- 1.6 over its trimmed lot a side with the eaves, a bay up to 3 into the 6-deep garden,
+			-- 30 + chimney
+			hx, front, top = lot.size.X / 2 + 2, hz + 3, 34
+		end
 		assert(lo.X >= -hx and hi.X <= hx, ("%s is %.1f..%.1f wide on a %.0f lot"):format(lot.id, lo.X, hi.X, lot.size.X))
-		assert(lo.Z >= -hz and hi.Z <= hz, ("%s is %.1f..%.1f deep on a %.0f lot"):format(lot.id, lo.Z, hi.Z, lot.size.Z))
+		assert(lo.Z >= -front and hi.Z <= hz, ("%s is %.1f..%.1f deep on a %.0f lot"):format(lot.id, lo.Z, hi.Z, lot.size.Z))
 		assert(lo.Y >= -0.01, lot.id .. " goes below ground")
-		if lot.use ~= "church" then
+		if lot.use == "corner shop" then
+			assert(hi.Y <= top, ("%s is %.1f tall"):format(lot.id, hi.Y))
+		elseif lot.use ~= "church" then
 			assert(hi.Y <= lot.size.Y + slack, ("%s is %.1f tall, lot allows %.0f"):format(lot.id, hi.Y, lot.size.Y))
 		end
 	end
@@ -71,6 +80,12 @@ function T.cornerShopsAreBuiltAtLeastFullSize()
 			end
 			local _, hi = TradeRecipes.bounds(recipe)
 			assert(hi.Y >= 20, ("%s is only %.1f tall"):format(lot.id, hi.Y))
+			-- it is one of the terrace's own houses: merged unit meshes (so it has a door leaf and
+			-- seamless brick) at the terrace's 1.25, a dark core inside, the old parade as fallback
+			assert(#recipe.pieces == 3 and recipe.core and recipe.fallback and #recipe.fallback > 3, lot.id .. " is not a merged house unit")
+			for _, p in recipe.pieces do
+				assert(string.sub(p.kit, 1, 7) == "HOUSE__" and math.abs((p.scale or 1) - 1.25) < 0.01, ("%s: %s at %.2f"):format(lot.id, p.kit, p.scale or 1))
+			end
 		end
 	end
 	assert(seen > 0, "no corner shop lots in the fixture")

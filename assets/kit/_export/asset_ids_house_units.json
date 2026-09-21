@@ -1,6 +1,6 @@
 {
  "HOUSE__D01_villa__masonry.glb": {
-  "assetId": "125135187856957",
+  "assetId": "123720074887568",
   "name": "HOUSE D01_villa masonry"
  },
  "HOUSE__D01_villa__roof.glb": {
@@ -8,11 +8,11 @@
   "name": "HOUSE D01_villa roof"
  },
  "HOUSE__D01_villa__trim.glb": {
-  "assetId": "117712065556798",
+  "assetId": "95345266808373",
   "name": "HOUSE D01_villa trim"
  },
  "HOUSE__D02_bay_villa__masonry.glb": {
-  "assetId": "110698099372990",
+  "assetId": "101991022128510",
   "name": "HOUSE D02_bay_villa masonry"
  },
  "HOUSE__D02_bay_villa__roof.glb": {
@@ -20,11 +20,11 @@
   "name": "HOUSE D02_bay_villa roof"
  },
  "HOUSE__D02_bay_villa__trim.glb": {
-  "assetId": "133499465170901",
+  "assetId": "112034574260330",
   "name": "HOUSE D02_bay_villa trim"
  },
  "HOUSE__D03_side_door__masonry.glb": {
-  "assetId": "100369226640004",
+  "assetId": "113691637602166",
   "name": "HOUSE D03_side_door masonry"
  },
  "HOUSE__D03_side_door__roof.glb": {
@@ -32,11 +32,11 @@
   "name": "HOUSE D03_side_door roof"
  },
  "HOUSE__D03_side_door__trim.glb": {
-  "assetId": "72028085001905",
+  "assetId": "112077096537005",
   "name": "HOUSE D03_side_door trim"
  },
  "HOUSE__D04_cottage__masonry.glb": {
-  "assetId": "91096549723082",
+  "assetId": "105978775235771",
   "name": "HOUSE D04_cottage masonry"
  },
  "HOUSE__D04_cottage__roof.glb": {
@@ -44,7 +44,7 @@
   "name": "HOUSE D04_cottage roof"
  },
  "HOUSE__D04_cottage__trim.glb": {
-  "assetId": "74192584211039",
+  "assetId": "78255550190216",
   "name": "HOUSE D04_cottage trim"
  },
  "HOUSE__S01_plain__masonry.glb": {
@@ -264,35 +264,35 @@
   "name": "HOUSE T10_bay_plain trim"
  },
  "HOUSE__cap_plain_left__masonry.glb": {
-  "assetId": "74347500781064",
+  "assetId": "131180629752917",
   "name": "HOUSE cap_plain_left masonry"
  },
  "HOUSE__cap_plain_left__trim.glb": {
-  "assetId": "93270839410647",
+  "assetId": "98483546336370",
   "name": "HOUSE cap_plain_left trim"
  },
  "HOUSE__cap_plain_right__masonry.glb": {
-  "assetId": "114970325358858",
+  "assetId": "116050685971758",
   "name": "HOUSE cap_plain_right masonry"
  },
  "HOUSE__cap_plain_right__trim.glb": {
-  "assetId": "91514475602309",
+  "assetId": "85955750989120",
   "name": "HOUSE cap_plain_right trim"
  },
  "HOUSE__cap_win_left__masonry.glb": {
-  "assetId": "83918710549231",
+  "assetId": "122326542837940",
   "name": "HOUSE cap_win_left masonry"
  },
  "HOUSE__cap_win_left__trim.glb": {
-  "assetId": "131092285439021",
+  "assetId": "134466341205498",
   "name": "HOUSE cap_win_left trim"
  },
  "HOUSE__cap_win_right__masonry.glb": {
-  "assetId": "110482826447265",
+  "assetId": "139423880635553",
   "name": "HOUSE cap_win_right masonry"
  },
  "HOUSE__cap_win_right__trim.glb": {
-  "assetId": "86960735181470",
+  "assetId": "81279902919358",
   "name": "HOUSE cap_win_right trim"
  }
 }
