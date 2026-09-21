@@ -172,6 +172,13 @@ if strayClub then
 	print("[FCT] removed a stray Workspace.Club saved in the place file")
 	strayClub:Destroy()
 end
+-- The same suite leaves its state folder behind. Clients take it for a
+-- single-club place and never look at their own plot (ClubRef.state).
+local strayState = game:GetService("ReplicatedStorage"):FindFirstChild("ClubState")
+if strayState then
+	print("[FCT] removed a stray ReplicatedStorage.ClubState saved in the place file")
+	strayState:Destroy()
+end
 
 Scenery.setupTown()
 TownBuilder.build()

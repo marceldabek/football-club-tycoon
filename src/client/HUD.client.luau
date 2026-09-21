@@ -720,8 +720,8 @@ function refreshHintText()
 		end
 	end
 	if played == 0 then
+		-- no beacon: the button is on screen, so there is nowhere to walk to
 		hintLabel.Text = "Welcome to your club. Have a look around, then hit PLAY MATCH at the top."
-		hintTarget = "MatchdayBoard"
 	elseif not grown then
 		-- X331: whichever side is cheapest, which after match 1 is a free
 		-- Bleachers on an empty plot rather than £1,500 for the East Stand

@@ -38,8 +38,13 @@ function ClubRef.state(): Folder?
 			cached = folder
 		end
 	else
+		-- A live single-club place always has a Phase. An empty ClubState is a
+		-- stray the Edit-mode tests saved into the place file: before the first
+		-- claim there is no Clubs folder either, so it was cached here for good
+		-- and every screen bound to a folder nothing ever writes to (no PLAY
+		-- MATCH, no naming card, a stale hint).
 		local legacy = ReplicatedStorage:FindFirstChild("ClubState")
-		if legacy and legacy:IsA("Folder") and not ReplicatedStorage:FindFirstChild("Clubs") then
+		if legacy and legacy:IsA("Folder") and legacy:GetAttribute("Phase") ~= nil and not ReplicatedStorage:FindFirstChild("Clubs") then
 			cached = legacy
 		end
 	end
