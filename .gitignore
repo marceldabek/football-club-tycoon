@@ -37,3 +37,4 @@ diff_review.txt
 # Generated map viewer (regenerate with tools/town_map.py)
 docs/town_map_view.html
 docs/town_plan_v2_view.html
+.superpowers/
