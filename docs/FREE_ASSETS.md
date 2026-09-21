@@ -230,6 +230,46 @@ All of the above are new picks beyond what's already cached in `assets/kit/` (th
 | Modular Wooden Pier — Poly Haven | polyhaven.com/a/modular_wooden_pier | **CC0** | FBX/GLTF/Blend, structures category, part of smugglers_cove collection | Generic wooden pier/pontoon planking — usable for the riverside jetty even though the collection theme is piratical, the geometry itself is just planks and posts | **USE — for pontoons/jetty only, not boats** |
 | Small leisure boats/cabin cruisers | — | — | **Not found free anywhere with a no-login CC0 licence.** | **SKIP — build simple hull shapes procedurally**, or leave river boats as a later paid purchase if the riverside district needs them to look convincing up close |
 
+### Creator Store boat search (2026-09-20)
+
+Marcel wants the primitive `RiverDresser.buildBoat` boats replaced. Nothing boat-like is in the user inventory. Free candidates were loaded with `game:GetObjects` and measured, then destroyed; paid ones were judged from thumbnails only.
+
+| Name | Asset id | Price | Measured / seen | Verdict |
+|---|---|---|---|---|
+| Low Poly Boats Pack — FreeflowStore | 109063229458367 | $2.99 | Thumbnail: white cabin cruiser, fishing trawler, rowboat, orange RIB, canoe, small motor boat; clean low poly | **BUY — best match for the cruisers in RivermereRiverside.png** |
+| Low Poly Boat Dock Pack x40 — Lukami_th | 100886767972531 | $2.99 | 40 MeshParts, one palette texture, no scripts: sloop, sailing dinghy, cabin fishing boat, rowboat, tug, plus dock segments, buoys, life ring post | **BUY — sailboats + marina props; skip the pirate pieces** |
+| Boat & Ship Pack — ThePaparazziGamer | 70480610338573 | $2.99 | 6 static boats: sailboat, cabin cruiser, speedboat, tug, raft, galleon | MAYBE — only if the two above fall short |
+| Realistic Boat Props — NyrexBLX | 70910961574456 | $4.99 | 20+ realistic yachts, catamarans, Zodiacs | SKIP — realistic style clashes with the kit, likely heavy |
+| Boat Kit — OrcaCreations | 128770210037289 | $7.99 | Futuristic yacht, speedboat, jet ski, with scripts | SKIP — wrong look |
+| Sailboat Mesh — EthanTheBigGuy22 | 13217041580 | free | **1 MeshPart**, no scripts, 10 x 50 x 35 studs, modern sloop with furled sails | **USE — free sailing yacht, scale to ~0.5** |
+| Sodor Canal Boats | 3068964802 | free | 45 parts, 13 unions, no scripts, 85 studs long (several boats) | MAYBE — proper British narrowboat look, but parts/unions not meshes |
+| Narrow boat — Powering_Manipulatn | 9451707268 | free | 117 parts, 4 unions, no scripts, 8 x 9 x 49 | SKIP — too many parts per boat, has an interior |
+| X-Scow Sailboat | 9818814242 | free | 111 parts, 1 mesh | SKIP — part count |
+| Bayliner — Spitter1212 | 15355071615 | free | 1,454 parts, 1 script | SKIP |
+
+### Free-only deep sweep (2026-09-20, later)
+
+Marcel: no more paid assets, no primitives, realistic river boats. Swept 37 keywords through the Creator Store toolbox API (1,726 models, 1,707 free), filtered on the store's own technical details (MeshParts, triangles, scripts), checked thumbnails on contact sheets, then measured the survivors with `game:GetObjects`. The paid rows above are dead.
+
+| Role on the river | Name | Asset id | Measured | Verdict |
+|---|---|---|---|---|
+| Sailing yacht | Sailboat Mesh | 13217041580 | 1 mesh, 2,532 tris, no scripts, 10 x 50 x 35 | **USE** |
+| Classic wooden launch | Riva Aquarama Classic Yacht | 15676599201 | 2 meshes, 3,984 tris, textured, 43 x 11 x 13 | **USE** (rename, drop the brand) |
+| Cabin cruiser | yacht (fajnygosciu1234) | 4959431139 | 1 mesh, 332 tris, textured, huge (scale ~0.25) | **USE** — low poly, only clean free cruiser found |
+| Rowing boat | Victorian Row Boat | 116487004496295 | 1 mesh, 7,046 tris, textured, 8 x 7 x 22 | **USE** |
+| Rowing boat with oars | Sketchfab boat | 12997707753 | 1 mesh, 4,743 tris, textured | MAYBE — name says Sketchfab, licence unknown |
+| Kayak | surf rescue X2 kayak | 14477799492 | 2 meshes, 4,244 tris, textured | **USE** — riverside park / pontoon dressing |
+| Open day boat | LightBleuBoat | 6954360328 | 1 mesh, 1,054 tris, textured, 14 x 12 x 55 | **USE** — scale down |
+| Inflatable | Inflatable Boat | 18948715302 | 3 meshes, 4,986 tris, tiny (scale up) | MAYBE |
+| Sailing dinghy | optimist dinghy | 110556433742403 | 10 meshes, 4,372 tris, untextured grey | MAYBE — needs colouring |
+| Narrowboat | Canal boat (TiagoMay14) | 10637705416 | right look, but 230 parts + 2 scripts | SKIP — mostly primitives |
+| Small trawler | Fishing Boat | 14398379816 | 369 parts | SKIP |
+| Cabin cruiser / yacht / speedboat | L4D2 Speedboat 8713310648, L4D "One 4 All" Sailboat 8713461501, Fishing Boat 1614127059 | — | good-looking single meshes | **SKIP — ripped from Valve games, not safe to ship** |
+
+**Installed 2026-09-20:** the six USE rows live in `ServerStorage.Kit.Boats` as `BoatSailYacht`, `BoatLaunch`, `BoatCruiser`, `BoatRowing`, `BoatDayBoat`, `BoatKayak` (pivot on the waterline, bow to -Z, `SourceAssetId` attribute). Rebuild them with `tools/kit/install_boats.luau` in Edit mode. `RiverDresser.buildBoat` clones them for the river moorings and the marina; `ClientKit` publishes `BoatCruiser` for `Cruiser.client`. The primitive boats are gone. The kayak is installed but not placed anywhere yet.
+
+Gap: no free mesh narrowboat exists. Options: Studio `generate_mesh` (free, allowed for props by CLAUDE.md s27), or leave narrowboats out.
+
 ---
 
 ## 17. Playground

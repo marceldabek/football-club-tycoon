@@ -1,9 +1,10 @@
 --!strict
 -- A motor cruiser on the River Lune (backlog X150, RivermereRiverside.png). It
 -- laps the straight reach between the swans and the marina along
--- Shared.TownLifeMath.cruiserPose, bobbing a little. Client-only: 7 parts moved
--- with one BulkMoveTo, only while the camera is within NEAR of the reach, and
--- gone on Quality "Low". Built like RiverDresser's moored boats (bow to -Z).
+-- Shared.TownLifeMath.cruiserPose, bobbing a little. Client-only: the kit
+-- cruiser mesh plus a wake, moved with one BulkMoveTo, only while the camera is
+-- within NEAR of the reach, and gone on Quality "Low". Bow to -Z, like
+-- RiverDresser's moored boats.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -37,16 +38,27 @@ local function piece(name: string, size: Vector3, offset: CFrame, colour: Color3
 	table.insert(offsets, offset)
 end
 
-local hull = Color3.fromRGB(245, 245, 245)
-piece("Hull", Vector3.new(6, 2.4, LENGTH), CFrame.new(0, 0.2, 0), hull)
-piece("Bow", Vector3.new(6, 2.4, 5), CFrame.new(0, 0.2, -LENGTH / 2 - 2.5), hull, nil, "WedgePart")
-piece("Stripe", Vector3.new(6.1, 0.4, LENGTH - 0.1), CFrame.new(0, 0.6, 0), Color3.fromRGB(24, 40, 78))
-piece("Cabin", Vector3.new(4.6, 2.2, LENGTH * 0.35), CFrame.new(0, 2.5, -LENGTH * 0.1), Color3.fromRGB(240, 240, 235))
-piece("Glass", Vector3.new(4.2, 1.2, 0.2), CFrame.new(0, 2.9, -LENGTH * 0.1 - LENGTH * 0.175 - 0.1), Color3.fromRGB(40, 60, 80), Enum.Material.Glass)
+-- the boat itself: the kit cabin cruiser published by the server's ClientKit
+-- (pivot on the waterline, bow to -Z). No kit, no cruiser: never primitives.
+local clientKit = ReplicatedStorage:WaitForChild("ClientKit", 10)
+local template = clientKit and clientKit:WaitForChild("Cruiser", 10)
+if not (template and template:IsA("Model")) then
+	return
+end
+local boat = template:Clone()
+local pivot = boat:GetPivot()
+for _, d in boat:GetDescendants() do
+	if d:IsA("BasePart") then
+		table.insert(parts, d)
+		-- TownLifeMath.cruiserPose is the old hull centre; the water is 0.9 below it
+		table.insert(offsets, CFrame.new(0, -0.9, 0) * pivot:ToObjectSpace(d.CFrame))
+	end
+end
+boat.Parent = folder
 -- a short white wash trailing the stern, flat on the water
 local wake = Color3.fromRGB(235, 242, 245)
-piece("Wake", Vector3.new(5, 0.1, 6), CFrame.new(0, -0.9, LENGTH / 2 + 3), wake) -- on the rendered water, level with the hull bottom
-parts[#parts].Transparency = 0.35
+piece("Wake", Vector3.new(4, 0.05, 9), CFrame.new(0, -0.9, LENGTH / 2 + 4), wake)
+parts[#parts].Transparency = 0.6 -- a faint wash, not a slab behind the mesh boat
 
 local mid = (TownLifeMath.CRUISER_FROM + TownLifeMath.CRUISER_TO) / 2
 local reach = (TownLifeMath.CRUISER_TO - TownLifeMath.CRUISER_FROM).Magnitude / 2

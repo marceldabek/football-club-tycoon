@@ -395,8 +395,12 @@ local function buildPontoons(parent: Instance, boats: Instance, f: Frame, rng: R
 		local nextFinger = fingers[i + 1]
 		if nextFinger ~= nil and rng:NextNumber() < BERTH_FILL then
 			local c = at(f, (fs + nextFinger) / 2, BOAT_T, -2.2)
-			RiverDresser.buildBoat(boats, CFrame.lookAt(c, c - f.inward), rng)
-			count += 5
+			local boat = RiverDresser.buildBoat(boats, CFrame.lookAt(c, c - f.inward), rng)
+			for _, d in boat:GetDescendants() do
+				if d:IsA("BasePart") then
+					count += 1 -- kit boats are one or two MeshParts
+				end
+			end
 		end
 	end
 	return count

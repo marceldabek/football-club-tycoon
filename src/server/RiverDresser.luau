@@ -12,8 +12,8 @@
 --   Promenade   paving strips behind the quay, top at y 0.35
 --   Railings    black top rail + posts along the quay
 --   Furniture   benches, planters, lamps every FURNITURE_SPACING
---   Moorings    wooden pontoons out on the water + simple boats (the marina reach)
--- Budget: roughly 6 parts per 10 studs of promenade + 8 parts a boat.
+--   Moorings    wooden pontoons out on the water + kit boats (the marina reach)
+-- Budget: roughly 6 parts per 10 studs of promenade + 1-2 MeshParts a boat.
 --
 -- The TownLayout "marina" block interrupts the promenade (isClear treats it
 -- like any other block); MarinaDresser builds the marina quay in that gap
@@ -22,6 +22,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local KitPlacer = require(script.Parent.KitPlacer)
+local V3Perf = require(script.Parent.V3Perf)
 local Planting = require(script.Parent.Planting)
 local ForecourtDresser = require(script.Parent.ForecourtDresser)
 
@@ -47,8 +48,6 @@ local TownCrest = require(game:GetService("ReplicatedStorage").Shared.TownCrest)
 local SquareDresser = require(script.Parent.SquareDresser)
 
 local TIMBER = Color3.fromRGB(120, 92, 64)
-local BOAT_HULLS = { Color3.fromRGB(245, 245, 245), Color3.fromRGB(30, 50, 100), Color3.fromRGB(180, 40, 40) }
-local MAST_H = 16 -- X143: sailing boats' masts above the cabin roof
 
 local MARINA_X0, MARINA_X1 = 780, 1120 -- moorings along this reach of the north bank
 local MARINA_USE = "marina"
@@ -281,44 +280,36 @@ function RiverDresser.heritageLamp(cf: CFrame, parent: Instance, basket: boolean
 	return m
 end
 
--- A simple moored boat, 5 parts, centred on `cf` with the bow towards its -Z
--- (LookVector). Hull length 16..24 plus a 5-stud bow; width 6.
+-- A moored boat: one kit model from ServerStorage.Kit.Boats (free Creator Store
+-- meshes, see docs/FREE_ASSETS.md section 16), centred on `cf` with the bow
+-- towards its -Z (LookVector). Every template's pivot is its waterline, plan
+-- centre, bow to -Z. At most 7.3 studs wide, so a 12-stud berth still fits.
+-- A missing template gets KitPlacer's grey KitMissing block, never primitives.
+RiverDresser.MOTOR_BOATS = { "BoatCruiser", "BoatCruiser", "BoatLaunch", "BoatDayBoat", "BoatRowing" }
+RiverDresser.SAIL_BOAT = "BoatSailYacht"
+-- the rendered water surface, below a berth `cf` (whose Y is the old hull centre)
+local BOAT_WATERLINE = -0.9
+
 function RiverDresser.buildBoat(parent: Instance, cf: CFrame, rng: Random): Model
-	local m = Instance.new("Model")
-	m.Name = "Boat"
-	m.Parent = parent
-	local hull = BOAT_HULLS[rng:NextInteger(1, #BOAT_HULLS)]
-	local length = rng:NextNumber(16, 24)
-	-- hull body + a wedge bow, cabin, windscreen, cover
-	part({ Name = "Hull", Size = Vector3.new(6, 2.4, length), CFrame = cf * CFrame.new(0, 0.2, 0), Color = hull, Parent = m })
-	part({
-		Name = "Bow",
-		Size = Vector3.new(6, 2.4, 5),
-		CFrame = cf * CFrame.new(0, 0.2, -length / 2 - 2.5), -- full height at local +Z meets the hull (X32)
-		Color = hull,
-		Parent = m,
-	}, "WedgePart")
-	part({ Name = "Cabin", Size = Vector3.new(4.6, 2.2, length * 0.35), CFrame = cf * CFrame.new(0, 2.5, -length * 0.1), Color = Color3.fromRGB(240, 240, 235), Parent = m })
-	part({ Name = "Glass", Size = Vector3.new(4.2, 1.2, 0.2), CFrame = cf * CFrame.new(0, 2.9, -length * 0.1 - length * 0.175 - 0.1), Color = Color3.fromRGB(40, 60, 80), Material = Enum.Material.Glass, Parent = m })
-	part({ Name = "Cover", Size = Vector3.new(5.4, 0.4, length * 0.3), CFrame = cf * CFrame.new(0, 1.6, length * 0.3), Color = Color3.fromRGB(30, 40, 60), Material = Enum.Material.Fabric, Parent = m })
-	-- X143: about half are sailing boats with a mast, boom and forestay. Picked
-	-- from the berth position rather than `rng`, so nothing placed after a boat moves.
-	if RiverDresser.hasMast(cf.Position) then
-		local mastZ = -length * 0.1
-		local top = Vector3.new(0, 3.6 + MAST_H, mastZ)
-		part({ Name = "SailMast", Size = Vector3.new(0.35, MAST_H, 0.35), CFrame = cf * CFrame.new(0, 3.6 + MAST_H / 2, mastZ), Color = Color3.fromRGB(225, 225, 220), Material = Enum.Material.Metal, CastShadow = false, Parent = m })
-		part({ Name = "Boom", Size = Vector3.new(0.3, 0.3, length * 0.45), CFrame = cf * CFrame.new(0, 5.2, mastZ + length * 0.225), Color = Color3.fromRGB(225, 225, 220), Material = Enum.Material.Metal, CastShadow = false, Parent = m })
-		local bowTip = Vector3.new(0, 1.4, -length / 2) -- the hull top where the bow wedge starts (the wedge slopes away from there)
-		local stay = top - bowTip
-		part({
-			Name = "Forestay",
-			Size = Vector3.new(0.08, 0.08, stay.Magnitude),
-			CFrame = cf * CFrame.lookAt((top + bowTip) / 2, top),
-			Color = Color3.fromRGB(60, 60, 60),
-			CastShadow = false,
-			Parent = m,
-		})
+	-- two rng draws, as the primitive boats made, so nothing placed after a boat moves
+	local pick = rng:NextInteger(1, #RiverDresser.MOTOR_BOATS)
+	local scale = rng:NextNumber(0.94, 1.06)
+	-- X143: about half are sailing boats. Picked from the berth position rather
+	-- than `rng`, so the share holds whatever else draws from the stream.
+	local kind = if RiverDresser.hasMast(cf.Position) then RiverDresser.SAIL_BOAT else RiverDresser.MOTOR_BOATS[pick]
+	local template = KitPlacer.find(kind)
+	if not (template and template:IsA("Model")) then
+		local missing = KitPlacer.place(kind, cf * CFrame.new(0, BOAT_WATERLINE, 0), parent, { fallbackSize = Vector3.new(6, 2.4, 20) })
+		missing.Name = "Boat"
+		return missing
 	end
+	local m = template:Clone() :: Model
+	m.Name = "Boat" -- Quality hides whole models by this name
+	m:ScaleTo(m:GetScale() * scale)
+	m:PivotTo(cf * CFrame.new(0, BOAT_WATERLINE, 0))
+	m:SetAttribute("Kit", kind)
+	V3Perf.applyDefaults(m, "decor")
+	m.Parent = parent
 	return m
 end
 
@@ -508,6 +499,18 @@ function RiverDresser.build(): string
 				Material = Enum.Material.SmoothPlastic,
 				Parent = moorings,
 			})
+		end
+		-- a kayak pulled up on the pontoon deck (top at -1.2; the kit pivot is 0.3
+		-- above the kayak's underside). No rng: the boats keep their stream.
+		local kayak = KitPlacer.find("BoatKayak")
+		if kayak and kayak:IsA("Model") then
+			local k = kayak:Clone()
+			k.Name = "Boat" -- Quality hides whole models by this name
+			local at = deck + dir * 6 + run.normal * 0.8
+			k:PivotTo(CFrame.lookAt(Vector3.new(at.X, -0.9, at.Z), Vector3.new(at.X, -0.9, at.Z) + dir))
+			k:SetAttribute("Kit", "BoatKayak")
+			V3Perf.applyDefaults(k, "decor")
+			k.Parent = moorings
 		end
 		local boat = mid - run.normal * 14
 		RiverDresser.buildBoat(moorings, CFrame.lookAt(Vector3.new(boat.X, -2.2, boat.Z), Vector3.new(boat.X, -2.2, boat.Z) + dir * (if rng:NextNumber() < 0.5 then 1 else -1)), rng)

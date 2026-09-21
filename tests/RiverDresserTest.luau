@@ -2,6 +2,7 @@
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RiverDresser = require(ServerScriptService.Server.RiverDresser)
+local KitPlacer = require(ServerScriptService.Server.KitPlacer)
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 
 local T = {}
@@ -76,6 +77,26 @@ function T.aboutHalfTheBoatsHaveAMast()
 	end
 	local share = masts / total
 	assert(share > 0.35 and share < 0.65, "mast share " .. share)
+	-- a stand-in kit, so the test needs no ServerStorage.Kit
+	local kit = Instance.new("Folder")
+	local boats = Instance.new("Folder")
+	boats.Name = "Boats"
+	boats.Parent = kit
+	local names = table.clone(RiverDresser.MOTOR_BOATS)
+	table.insert(names, RiverDresser.SAIL_BOAT)
+	for _, name in names do
+		if not boats:FindFirstChild(name) then
+			local m = Instance.new("Model")
+			m.Name = name
+			local hull = Instance.new("MeshPart")
+			hull.Name = "Hull"
+			hull.Size = Vector3.new(6, 3, 20)
+			hull.Parent = m
+			m.WorldPivot = CFrame.new(0, -0.5, 0) -- the waterline
+			m.Parent = boats
+		end
+	end
+	KitPlacer.setLibraryRoot(kit)
 	local folder = Instance.new("Folder")
 	local rng = Random.new(3)
 	local with, without = nil, nil
@@ -87,10 +108,34 @@ function T.aboutHalfTheBoatsHaveAMast()
 			without = RiverDresser.buildBoat(folder, CFrame.new(p), rng)
 		end
 	end
-	assert(with and with:FindFirstChild("SailMast") and with:FindFirstChild("Boom") and with:FindFirstChild("Forestay"), "sailing boat rigged")
-	assert(without and not without:FindFirstChild("SailMast"), "motor boat has no mast")
-	assert(#without:GetChildren() == 5, "motor boat still 5 parts")
+	KitPlacer.setLibraryRoot(nil)
+	assert(with and with:GetAttribute("Kit") == RiverDresser.SAIL_BOAT, "sailing yacht on a mast berth")
+	assert(without and table.find(RiverDresser.MOTOR_BOATS, without:GetAttribute("Kit")), "motor boat elsewhere")
+	for _, boat in { with, without } do
+		assert(boat.Name == "Boat", "named Boat so Quality can hide it")
+		assert(boat:GetAttribute("KitMissing") == nil, "a real kit model, not the fallback")
+		assert(math.abs(boat:GetPivot().Position.Y - -0.9) < 1e-3, "waterline pivot sits on the water")
+		for _, d in boat:GetDescendants() do
+			if d:IsA("BasePart") then
+				assert(d:IsA("MeshPart"), "no primitive parts in a boat: " .. d.Name)
+				assert(d.Anchored and not d.CanCollide, "anchored, no collision")
+			end
+		end
+	end
 	folder:Destroy()
+	kit:Destroy()
+end
+
+function T.aMissingBoatIsFlaggedNotBuiltFromPrimitives()
+	local empty = Instance.new("Folder")
+	KitPlacer.setLibraryRoot(empty)
+	local folder = Instance.new("Folder")
+	local boat = RiverDresser.buildBoat(folder, CFrame.new(0, 0, 0), Random.new(1))
+	KitPlacer.setLibraryRoot(nil)
+	assert(boat:GetAttribute("KitMissing") ~= nil, "flagged KitMissing")
+	assert(#boat:GetChildren() == 1, "one fallback block")
+	folder:Destroy()
+	empty:Destroy()
 end
 
 return T

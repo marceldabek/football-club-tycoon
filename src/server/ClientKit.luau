@@ -8,6 +8,10 @@
 --                    and Traffic. Each copy's WorldPivot is the mesh's own
 --                    CFrame: pivot Z is the car's length, -Z its front.
 --
+--   ClientKit.Cruiser the one-mesh cabin cruiser (Kit.Boats.BoatCruiser) for
+--                    Cruiser.client's boat on the River Lune. Pivot: waterline,
+--                    bow to -Z, as stored in the kit.
+--
 -- Place-file models that are already in ReplicatedStorage.ClientKit (the swan,
 -- X113) are left alone.
 
@@ -24,7 +28,11 @@ ClientKit.FRONT_YAW = { HatchbackNavy = math.pi, HatchbackRed = math.pi, Hatchba
 
 -- X372: the town's double-decker, published to ReplicatedStorage.ClientKit.Bus.
 ClientKit.BUS = "BusDoubleDecker"
-ClientKit.BUS_FRONT_YAW = math.pi
+-- Measured like the cars, with the mesh unrotated (Traffic clones the MeshPart
+-- alone): its front already faces -Z. Pi here drove every bus tail first.
+ClientKit.BUS_FRONT_YAW = 0
+
+ClientKit.CRUISER = "BoatCruiser"
 
 function ClientKit.publish(): string
 	local kit = ServerStorage:FindFirstChild("Kit")
@@ -110,7 +118,31 @@ function ClientKit.publish(): string
 			copy:Destroy()
 		end
 	end
-	return ("client kit: %d cars, %d bus"):format(count, buses)
+
+	local oldCruiser = root:FindFirstChild("Cruiser")
+	if oldCruiser then
+		oldCruiser:Destroy()
+	end
+	local cruiserTemplate = kit and kit:FindFirstChild(ClientKit.CRUISER, true)
+	local cruisers = 0
+	if cruiserTemplate and cruiserTemplate:IsA("Model") then
+		local copy = cruiserTemplate:Clone()
+		copy.Name = "Cruiser"
+		for _, d in copy:GetDescendants() do
+			if d:IsA("LuaSourceContainer") or d:IsA("Sound") then
+				d:Destroy()
+			elseif d:IsA("BasePart") then
+				d.Anchored = true
+				d.CanCollide = false
+				d.CanQuery = false
+				d.CanTouch = false
+				d.CastShadow = false
+			end
+		end
+		copy.Parent = root
+		cruisers = 1
+	end
+	return ("client kit: %d cars, %d bus, %d cruiser"):format(count, buses, cruisers)
 end
 
 return ClientKit
