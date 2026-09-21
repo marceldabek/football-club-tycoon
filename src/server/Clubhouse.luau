@@ -235,6 +235,118 @@ local function model(name: string, parent: Instance): Model
 	return m
 end
 
+-- -------------------------------------------------------------------- doors
+
+-- Every doorway gets a frame and its leaves, from the houses' kit doors
+-- (MEH Door_A panelled, Door_B half glazed, Door_C fully glazed). `hinges` names the
+-- jamb(s) a leaf hangs on, `swing` is the side of the wall it opens to (+1 or
+-- -1 along the wall's own axis). Painted doors take the club colour, the rest
+-- stay white uPVC like the windows.
+type Door = { opening: string, hinges: { "from" | "to" }, swing: number, kit: string, painted: boolean? }
+local DOORS: { Door } = {
+	{ opening = "FrontDoors", hinges = { "from", "to" }, swing = -1, kit = "Door_B", painted = true },
+	{ opening = "PlayersDoor", hinges = { "from", "to" }, swing = 1, kit = "Door_A", painted = true },
+	{ opening = "OfficeSideDoor", hinges = { "to" }, swing = 1, kit = "Door_B", painted = true },
+	-- the lobby's two doors open into their rooms: folded back into the lobby
+	-- they would hide the ends of the matchday board
+	{ opening = "OfficeLobbyDoor", hinges = { "to" }, swing = 1, kit = "Door_A" },
+	{ opening = "StoreLobbyDoor", hinges = { "to" }, swing = -1, kit = "Door_A" },
+	-- into the dressing rooms, in the gap the benches leave at the doorway
+	{ opening = "HomeDoor", hinges = { "from" }, swing = 1, kit = "Door_A" },
+	{ opening = "AwayDoor", hinges = { "from" }, swing = -1, kit = "Door_A" },
+}
+
+local FRAME = 0.3 -- jamb and head section
+local FRAME_PROUD = 0.25 -- how far the frame stands off each wall face (clears the plinth)
+local LEAF_T = 0.2
+local DOOR_TRIM = "MEH__House_02_VAR1__ts1" -- the kit doors are untextured; they share this trim sheet
+
+-- Every outer doorway stays open (nothing to operate, and the teams walk
+-- through one), so a leaf stands folded back at a right angle with its hinge
+-- edge butted against the face of its jamb, and three hinge pins in the corner
+-- between the two.
+local function hangDoor(parent: Instance, o: Opening, d: Door, paint: Color3)
+	-- the wall the opening is in: brick + lining on the shell, two linings elsewhere
+	local c0, c1 = o.at - LINING, o.at + LINING
+	if o.axis == "x" then
+		if math.abs(o.at - SHELL.x0) < 1 then
+			c0, c1 = SHELL.x0, SHELL.x0 + OUTER_T + LINING
+		elseif math.abs(o.at - SHELL.x1) < 1 then
+			c0, c1 = SHELL.x1 - OUTER_T - LINING, SHELL.x1
+		end
+	elseif math.abs(o.at - SHELL.z1) < 1 then
+		c0, c1 = SHELL.z1 - OUTER_T - LINING, SHELL.z1
+	elseif math.abs(o.at - SHELL.z0) < 1 then
+		c0, c1 = SHELL.z0, SHELL.z0 + OUTER_T + LINING
+	end
+	local f0, f1 = c0 - FRAME_PROUD, c1 + FRAME_PROUD
+	local top = FLOOR_Y + o.top
+
+	-- a box given across the wall (c), along it (a) and in height
+	local function box(name: string, ca: number, cb: number, aa: number, ab: number, y0: number, y1: number, colour: Color3, material: Enum.Material?): Part
+		if o.axis == "x" then
+			return slab(parent, name, ca, cb, y0, y1, aa, ab, colour, material)
+		end
+		return slab(parent, name, aa, ab, y0, y1, ca, cb, colour, material)
+	end
+	local function point(c: number, a: number, y: number): Vector3
+		return if o.axis == "x" then Vector3.new(c, y, a) else Vector3.new(a, y, c)
+	end
+
+	box(o.name .. "Frame", f0, f1, o.from, o.from + FRAME, FLOOR_Y, top - FRAME, UPVC)
+	box(o.name .. "Frame", f0, f1, o.to - FRAME, o.to, FLOOR_Y, top - FRAME, UPVC)
+	box(o.name .. "Frame", f0, f1, o.from, o.to, top - FRAME, top, UPVC)
+
+	local width = (o.to - o.from - 2 * FRAME) / #d.hinges
+	local y0, y1 = FLOOR_Y + 0.05, top - FRAME - 0.05
+	local trim = KitPlacer.find(DOOR_TRIM)
+	local sa = trim and trim:FindFirstChildWhichIsA("SurfaceAppearance", true)
+	for _, side in d.hinges do
+		-- the leaf stands in line with its jamb, starting at the frame's face
+		local band = if side == "from" then o.from + FRAME / 2 else o.to - FRAME / 2
+		local face = if d.swing > 0 then f1 else f0
+		local m = KitPlacer.place("MEH__" .. d.kit .. "__ts1", CFrame.new(point(face, band, y0)), parent, {
+			fallbackSize = Vector3.new(width, y1 - y0, LEAF_T),
+			fallbackColor = if d.painted then paint else UPVC,
+		})
+		m.Name = o.name .. "Leaf"
+		local leaf = m:FindFirstChildWhichIsA("BasePart", true) :: BasePart
+		-- the kit door is one mesh, X across and hinged on its -X edge
+		leaf.Size = Vector3.new(width, y1 - y0, LEAF_T)
+		local right = (point(face + d.swing, band, y0) - point(face, band, y0)).Unit
+		leaf.CFrame = CFrame.fromMatrix(point(face + d.swing * width / 2, band, (y0 + y1) / 2), right, Vector3.yAxis)
+		leaf.CanCollide = false
+		if leaf:IsA("MeshPart") then
+			leaf.DoubleSided = true -- modelled for a house front, so it has no back
+		end
+		if leaf:IsA("MeshPart") and sa and not leaf:FindFirstChildOfClass("SurfaceAppearance") then
+			local skin = sa:Clone()
+			if d.painted then
+				skin.Color = paint
+			end
+			skin.Parent = leaf
+		end
+
+		-- hinge pins in the corner between the jamb's face and the leaf, on the wall side
+		local out = if side == "from" then -1 else 1
+		local r = 0.08
+		for _, frac in { 0.12, 0.5, 0.88 } do
+			local pin = part({
+				Name = o.name .. "Hinge",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.6, 2 * r, 2 * r),
+				CFrame = CFrame.new(point(face + d.swing * r, band + out * (LEAF_T / 2 + r), y0 + (y1 - y0) * frac))
+					* CFrame.Angles(0, 0, math.pi / 2),
+				Color = STEEL,
+				Material = Enum.Material.Metal,
+				CanCollide = false,
+				Parent = parent,
+			})
+			pin.CastShadow = false
+		end
+	end
+end
+
 -- -------------------------------------------------------------------- shell
 
 local function buildShell(parent: Instance, addSign: (BasePart, string, { Enum.NormalId }?) -> ())
@@ -347,20 +459,15 @@ local function buildShell(parent: Instance, addSign: (BasePart, string, { Enum.N
 	slab(shell, "FrontApron", SHELL.x0 - 12, SHELL.x0, GROUND_Y, DECK_Y, -16, 16, paving, Enum.Material.Pavement)
 	slab(shell, "SideApron", SHELL.x0, -147, GROUND_Y, DECK_Y, SHELL.z1, SHELL.z1 + 6, paving, Enum.Material.Pavement)
 
-	-- Doors. Every outer doorway stays open (nothing to operate, and the teams
-	-- walk through one), so the leaves stand folded back at a right angle.
+	-- Doors: a frame and hung leaves in every doorway, inside and out.
 	local doorColour = Config.HomeKit:Lerp(Color3.new(0, 0, 0), 0.45)
-	local leafTop = FLOOR_Y + DOOR_H - 0.15
-	local function leaf(name: string, x0: number, x1: number, z0: number, z1: number)
-		local l = slab(shell, name, x0, x1, FLOOR_Y, leafTop, z0, z1, doorColour)
-		l.CanCollide = false
+	local byName: { [string]: Opening } = {}
+	for _, o in Clubhouse.OPENINGS do
+		byName[o.name] = o
 	end
-	for _, zSign in { -1, 1 } do
-		local za, zb = zSign * 4, zSign * 4.3
-		leaf("FrontDoorLeaf", SHELL.x0 - 4.1, SHELL.x0 - proud, math.min(za, zb), math.max(za, zb))
-		leaf("PlayersDoorLeaf", SHELL.x1 + 0.5, SHELL.x1 + 4.4, math.min(za, zb), math.max(za, zb))
+	for _, d in DOORS do
+		hangDoor(shell, byName[d.opening], d, Config.HomeKit:Lerp(Color3.new(0, 0, 0), 0.25))
 	end
-	leaf("OfficeDoorLeaf", -150, -149.7, SHELL.z1 + proud, SHELL.z1 + 5)
 
 	-- canopy over the front doors on two steel posts, club colour along its edge
 	local canopyY = FLOOR_Y + DOOR_H + 0.1

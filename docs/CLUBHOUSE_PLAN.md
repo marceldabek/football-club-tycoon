@@ -295,8 +295,16 @@ brick primitives plus a handful of Poly Haven props, so this is too.
 - **Front doors**: leaves folded back (doorways stay open, non-colliding), steel
   canopy on two posts with a club-colour edge, bulkhead light under it, and a
   dark club-colour **fascia** over it with a crest either side of the club name
-  (after RivermereTurnstileEntrance.png). Players' door and office side door get
-  leaves too; the players' header keeps the club name.
+  (after RivermereTurnstileEntrance.png). The players' header keeps the club name.
+- **Doors** (2026-09-21): every doorway, inside and out, is listed in `DOORS` and
+  built by `hangDoor`: a white frame through the wall, leaves from the houses' kit
+  doors (`MEH__Door_A` panelled, `Door_B` half glazed, `Door_C` fully glazed)
+  stretched to the opening, and three hinge pins between jamb and leaf. Leaves
+  stand open at 90 degrees, butted against the jamb, non-colliding. Outer doors
+  are tinted club colour through the trim sheet's `SurfaceAppearance.Color`; inner
+  ones stay white. The kit door has no back face, so leaves set `DoubleSided`.
+  The lobby doors open into the office and store so they do not hide the
+  matchday board.
 - Kiosk hatch: shutter box, counter, and a TEMP "TEAS - PIES - HOT DRINKS" board.
 - Rainwater pipes on the street-side corners.
 - Kit props: utility box, power box, security camera, air-con unit, park bench,

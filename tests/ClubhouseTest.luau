@@ -184,6 +184,42 @@ function T.everyWindowIsGlazedAndFramed()
 	assert(windows >= 4, "expected the office window, two sidelights and the dressing room slots")
 end
 
+-- Every doorway (not the open corridor mouth) has a frame and at least one leaf,
+-- and each leaf's bounding box touches a frame piece: no floating doors.
+function T.everyDoorIsHungOnItsFrame()
+	local club = build()
+	local shell = (club:FindFirstChild("Clubhouse") :: Instance):FindFirstChild("Shell") :: Instance
+	for _, o in Clubhouse.OPENINGS do
+		if o.sill > 0 or o.name == "CorridorMouth" then
+			continue
+		end
+		local frames, leaves = {}, {}
+		for _, c in shell:GetChildren() do
+			if c.Name == o.name .. "Frame" then
+				table.insert(frames, c)
+			elseif c.Name == o.name .. "Leaf" then
+				table.insert(leaves, c)
+			end
+		end
+		assert(#frames == 3, o.name .. " has no frame")
+		assert(#leaves >= 1, o.name .. " has no leaf")
+		for _, leaf in leaves do
+			local p = leaf:FindFirstChildWhichIsA("BasePart", true) :: BasePart
+			assert(not p.CanCollide, o.name .. " leaf would block the doorway")
+			local a0, a1 = bounds(p)
+			local touching = false
+			for _, f in frames do
+				local b0, b1 = bounds(f :: BasePart)
+				local eps = 0.01
+				if a0.X <= b1.X + eps and b0.X <= a1.X + eps and a0.Y <= b1.Y + eps and b0.Y <= a1.Y + eps and a0.Z <= b1.Z + eps and b0.Z <= a1.Z + eps then
+					touching = true
+				end
+			end
+			assert(touching, o.name .. " leaf is not touching its frame")
+		end
+	end
+end
+
 -- The exterior is kit dressing: it must never block a doorway (everyDoorwayIsClear
 -- covers that) and must survive a place with no kit installed.
 function T.exteriorDressingIsPlaced()
