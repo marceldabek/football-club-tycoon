@@ -291,6 +291,17 @@ Gap: no free mesh narrowboat exists. Options: Studio `generate_mesh` (free, allo
 
 ---
 
+## 19. Bicycle (the town cyclists)
+
+| Asset | Source | Licence | Notes | Verdict |
+|---|---|---|---|---|
+| "Bicycle bike cycle" by Wish Game, asset `91358100215341` | Roblox Creator Store, free | Creator Store standard | Low-poly mountain bike: 3 MeshParts (`Metal`, `Body` = frame, `Black` = tyres / saddle / grips), no scripts, no textures, so the frame takes any colour. `15022611108` is the same mesh in orange. | **USED** (2026-09-20): `tools/kit/install_bicycle.luau` installs it as `ServerStorage.Kit.Vehicles.Bicycle` (4.8 studs long, front to -Z, pivot on the ground); `ClientKit` publishes it and `Traffic.client` seats a pedalling rider on it. |
+
+Looked at and passed over: `5075243985` Japanese-style bike (176 parts), `10416886834` BMX (22 scripts),
+`3368927099` animated bicycle (15 parts, a script), `15989546761` (two bikes in one mesh).
+
+---
+
 ## Summary: top USE items (concrete, licence-verified, add to the kit)
 
 1. `street_lamp_01` — Poly Haven, CC0, ornate cast-iron lamppost, 30.6k tris (decimate)
