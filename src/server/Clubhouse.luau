@@ -238,22 +238,25 @@ end
 -- -------------------------------------------------------------------- doors
 
 -- Every doorway gets a frame and its leaves, from the houses' kit doors
--- (MEH Door_A panelled, Door_B half glazed, Door_C fully glazed). `hinges` names the
--- jamb(s) a leaf hangs on, `swing` is the side of the wall it opens to (+1 or
--- -1 along the wall's own axis). Painted doors take the club colour, the rest
--- stay white uPVC like the windows.
-type Door = { opening: string, hinges: { "from" | "to" }, swing: number, kit: string, painted: boolean? }
+-- (MEH Door_A, panelled: it reads the same either way up, which the half glazed
+-- Door_B does not, and a tinted glazed Door_C is a red slab). `hinges` names
+-- the jamb(s) a leaf hangs on, `swing`
+-- is the side of the wall it opens to (+1 or -1 along the wall's own axis) and
+-- `open` how far, in degrees: 180 is folded flat back against the wall.
+-- Painted doors take the club colour, the rest stay white uPVC like the windows.
+type Door = { opening: string, hinges: { "from" | "to" }, swing: number, open: number, kit: string, painted: boolean? }
 local DOORS: { Door } = {
-	{ opening = "FrontDoors", hinges = { "from", "to" }, swing = -1, kit = "Door_B", painted = true },
-	{ opening = "PlayersDoor", hinges = { "from", "to" }, swing = 1, kit = "Door_A", painted = true },
-	{ opening = "OfficeSideDoor", hinges = { "to" }, swing = 1, kit = "Door_B", painted = true },
+	-- not quite flat: the sidelights' sills are in the way
+	{ opening = "FrontDoors", hinges = { "from", "to" }, swing = -1, open = 150, kit = "Door_A", painted = true },
+	{ opening = "PlayersDoor", hinges = { "from", "to" }, swing = 1, open = 180, kit = "Door_A", painted = true },
+	{ opening = "OfficeSideDoor", hinges = { "to" }, swing = 1, open = 180, kit = "Door_A", painted = true },
 	-- the lobby's two doors open into their rooms: folded back into the lobby
 	-- they would hide the ends of the matchday board
-	{ opening = "OfficeLobbyDoor", hinges = { "to" }, swing = 1, kit = "Door_A" },
-	{ opening = "StoreLobbyDoor", hinges = { "to" }, swing = -1, kit = "Door_A" },
-	-- into the dressing rooms, in the gap the benches leave at the doorway
-	{ opening = "HomeDoor", hinges = { "from" }, swing = 1, kit = "Door_A" },
-	{ opening = "AwayDoor", hinges = { "from" }, swing = -1, kit = "Door_A" },
+	{ opening = "OfficeLobbyDoor", hinges = { "to" }, swing = 1, open = 180, kit = "Door_A" },
+	{ opening = "StoreLobbyDoor", hinges = { "to" }, swing = -1, open = 180, kit = "Door_A" },
+	-- out into the corridor: the benches and pegs leave no wall to fold back on inside
+	{ opening = "HomeDoor", hinges = { "to" }, swing = -1, open = 180, kit = "Door_A" },
+	{ opening = "AwayDoor", hinges = { "to" }, swing = 1, open = 180, kit = "Door_A" },
 }
 
 local FRAME = 0.3 -- jamb and head section
@@ -261,10 +264,10 @@ local FRAME_PROUD = 0.25 -- how far the frame stands off each wall face (clears 
 local LEAF_T = 0.2
 local DOOR_TRIM = "MEH__House_02_VAR1__ts1" -- the kit doors are untextured; they share this trim sheet
 
--- Every outer doorway stays open (nothing to operate, and the teams walk
--- through one), so a leaf stands folded back at a right angle with its hinge
--- edge butted against the face of its jamb, and three hinge pins in the corner
--- between the two.
+-- Every doorway stays open (nothing to operate, and the teams walk through
+-- one). A leaf turns about the outer corner of its jamb, where three hinge pins
+-- sit on the frame's face against the leaf's end. The kit door is only a front
+-- face, so the leaf is a solid core with that face laid on the side you see.
 local function hangDoor(parent: Instance, o: Opening, d: Door, paint: Color3)
 	-- the wall the opening is in: brick + lining on the shell, two linings elsewhere
 	local c0, c1 = o.at - LINING, o.at + LINING
@@ -301,41 +304,58 @@ local function hangDoor(parent: Instance, o: Opening, d: Door, paint: Color3)
 	local y0, y1 = FLOOR_Y + 0.05, top - FRAME - 0.05
 	local trim = KitPlacer.find(DOOR_TRIM)
 	local sa = trim and trim:FindFirstChildWhichIsA("SurfaceAppearance", true)
+	local colour = if d.painted then paint else UPVC
+	local across, along = point(1, 0, 0), point(0, 1, 0)
+	local theta = math.rad(d.open)
 	for _, side in d.hinges do
-		-- the leaf stands in line with its jamb, starting at the frame's face
-		local band = if side == "from" then o.from + FRAME / 2 else o.to - FRAME / 2
-		local face = if d.swing > 0 then f1 else f0
-		local m = KitPlacer.place("MEH__" .. d.kit .. "__ts1", CFrame.new(point(face, band, y0)), parent, {
-			fallbackSize = Vector3.new(width, y1 - y0, LEAF_T),
-			fallbackColor = if d.painted then paint else UPVC,
+		local out = if side == "from" then -1 else 1 -- along the wall, away from the opening
+		local edge = if side == "from" then o.from else o.to
+		local pivot = point(if d.swing > 0 then f1 else f0, edge, 0)
+		-- hinge to free edge, and back face to front face, for a leaf opened by theta
+		local reach = across * (d.swing * math.sin(theta)) - along * (out * math.cos(theta))
+		local front = across * (-d.swing * math.cos(theta)) - along * (out * math.sin(theta))
+		local centre = pivot + reach * (width / 2) + Vector3.yAxis * ((y0 + y1) / 2)
+
+		local leaf = model(o.name .. "Leaf", parent)
+		part({
+			Name = "Core",
+			Size = Vector3.new(width, y1 - y0, LEAF_T),
+			CFrame = CFrame.fromMatrix(centre + front * (LEAF_T / 2), reach, Vector3.yAxis),
+			Color = colour,
+			CanCollide = false,
+			Parent = leaf,
 		})
-		m.Name = o.name .. "Leaf"
-		local leaf = m:FindFirstChildWhichIsA("BasePart", true) :: BasePart
-		-- the kit door is one mesh, X across and hinged on its -X edge
-		leaf.Size = Vector3.new(width, y1 - y0, LEAF_T)
-		local right = (point(face + d.swing, band, y0) - point(face, band, y0)).Unit
-		leaf.CFrame = CFrame.fromMatrix(point(face + d.swing * width / 2, band, (y0 + y1) / 2), right, Vector3.yAxis)
-		leaf.CanCollide = false
-		if leaf:IsA("MeshPart") then
-			leaf.DoubleSided = true -- modelled for a house front, so it has no back
-		end
-		if leaf:IsA("MeshPart") and sa and not leaf:FindFirstChildOfClass("SurfaceAppearance") then
-			local skin = sa:Clone()
-			if d.painted then
-				skin.Color = paint
+
+		local m = KitPlacer.place("MEH__" .. d.kit .. "__ts1", CFrame.new(centre), leaf)
+		local face = m:FindFirstChildWhichIsA("MeshPart", true)
+		if m:GetAttribute("KitMissing") ~= nil or not face then
+			m:Destroy() -- the core alone still reads as a door
+		else
+			-- The mesh looks down its -Z with the handle at +X. The handle belongs at
+			-- the free edge, so a leaf of the other hand takes the face upside down.
+			local up = if reach:Cross(Vector3.yAxis):Dot(front) < 0 then Vector3.yAxis else -Vector3.yAxis
+			local depth = face.Size.Z
+			face.Size = Vector3.new(width, y1 - y0, depth)
+			face.CFrame = CFrame.fromMatrix(centre + front * (LEAF_T + depth / 2), reach, up)
+			face.CanCollide = false
+			face.CastShadow = false
+			if sa and not face:FindFirstChildOfClass("SurfaceAppearance") then
+				local skin = sa:Clone()
+				if d.painted then
+					skin.Color = paint
+				end
+				skin.Parent = face
 			end
-			skin.Parent = leaf
 		end
 
-		-- hinge pins in the corner between the jamb's face and the leaf, on the wall side
-		local out = if side == "from" then -1 else 1
+		-- hinge pins on the frame's face, against the end of the leaf
 		local r = 0.08
 		for _, frac in { 0.12, 0.5, 0.88 } do
 			local pin = part({
 				Name = o.name .. "Hinge",
 				Shape = Enum.PartType.Cylinder,
 				Size = Vector3.new(0.6, 2 * r, 2 * r),
-				CFrame = CFrame.new(point(face + d.swing * r, band + out * (LEAF_T / 2 + r), y0 + (y1 - y0) * frac))
+				CFrame = CFrame.new(pivot + across * (d.swing * r) - along * (out * r) + Vector3.yAxis * (y0 + (y1 - y0) * frac))
 					* CFrame.Angles(0, 0, math.pi / 2),
 				Color = STEEL,
 				Material = Enum.Material.Metal,
@@ -567,7 +587,7 @@ local function dressExterior(parent: Instance)
 	mount("PH__security_camera_01", Vector3.new(wx - 1, FLOOR_Y + 10, SHELL.z1 - 0.8), 135, Vector3.new(0.5, 0.8, 1.5), "x", SHELL.x0)
 	mount("PH__exterior_aircon_unit", Vector3.new(-152, FLOOR_Y + 6, SHELL.z0 - 1.5), 0, Vector3.new(2.2, 2.6, 1.0), "z", SHELL.z0)
 	-- somewhere to sit and somewhere to put the pie wrapper, by the front doors
-	mount("UKSP__ParkBenches__ParkBench02", Vector3.new(wx - 1.5, DECK_Y, -9.5), 90, Vector3.new(1.8, 2.6, 5), "x", wx)
+	mount("UKSP__ParkBenches__ParkBench02", Vector3.new(wx - 1.5, DECK_Y, -10.5), 90, Vector3.new(1.8, 2.6, 5), "x", wx)
 	mount("UKSP__LitterBin__LitterBin", Vector3.new(wx - 1.2, DECK_Y, 14.5 - 3), 90, Vector3.new(1.4, 3, 1.4), "x", wx)
 	-- the bins, round the north end out of the way
 	local bx, bz = -150.5, SHELL.z0 - 3.2

@@ -297,14 +297,17 @@ brick primitives plus a handful of Poly Haven props, so this is too.
   dark club-colour **fascia** over it with a crest either side of the club name
   (after RivermereTurnstileEntrance.png). The players' header keeps the club name.
 - **Doors** (2026-09-21): every doorway, inside and out, is listed in `DOORS` and
-  built by `hangDoor`: a white frame through the wall, leaves from the houses' kit
-  doors (`MEH__Door_A` panelled, `Door_B` half glazed, `Door_C` fully glazed)
-  stretched to the opening, and three hinge pins between jamb and leaf. Leaves
-  stand open at 90 degrees, butted against the jamb, non-colliding. Outer doors
-  are tinted club colour through the trim sheet's `SurfaceAppearance.Color`; inner
-  ones stay white. The kit door has no back face, so leaves set `DoubleSided`.
-  The lobby doors open into the office and store so they do not hide the
-  matchday board.
+  built by `hangDoor`: a white frame through the wall, and leaves that turn about
+  the outer corner of their jamb with three hinge pins on the frame face. The kit
+  door (`MEH__Door_A`, panelled) is only a front face with no thickness, so a leaf
+  is a solid `Core` slab with that face laid on the visible side; the other hand
+  takes the face upside down so the handle stays at the free edge (Door_A reads the
+  same either way up; Door_B does not, and a tinted glazed Door_C is a red slab).
+  Doors are held wide open, non-colliding: `open = 180` folds flat back on the
+  wall, the front pair stop at 150 for the sidelight sills. Outer doors are tinted
+  club colour through `SurfaceAppearance.Color`; inner ones stay white. Lobby
+  doors open into the office and store (the matchday board is in the way in the
+  lobby); dressing room doors fold back into the corridor (benches inside).
 - Kiosk hatch: shutter box, counter, and a TEMP "TEAS - PIES - HOT DRINKS" board.
 - Rainwater pipes on the street-side corners.
 - Kit props: utility box, power box, security camera, air-con unit, park bench,
