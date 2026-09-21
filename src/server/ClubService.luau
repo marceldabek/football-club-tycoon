@@ -42,11 +42,8 @@ local bid: Bids.Bid? = nil
 local academy: { string } = {}
 -- X276: the list used to be re-rolled after every match, so a prospect the
 -- player was saving up for vanished and the fee they were quoted never applied.
--- It now survives and is only re-scouted every few matches. TEMP number.
--- Marcel, 2026-09-21: a new scout report after every match (it kept for 4
--- under X276). It can be a poor one.
-local SHORTLIST_MATCHES = 1
-local shortlistAge = 0 -- matches played since it was last scouted
+-- Marcel, 2026-09-21: a new report after every match again, but a card can be
+-- pinned, which keeps the man and the fee he was quoted (Shared/Pack).
 local nextId = 1
 local rng = Random.new()
 
@@ -105,7 +102,6 @@ local function publish()
 		pinned = if pack.pinned then publishedProspect(pack.pinned) else nil,
 		packRevealed = pack.revealed,
 		packFree = pack.free,
-		shortlistMatchesLeft = math.max(SHORTLIST_MATCHES - shortlistAge, 0),
 		bid = bid, -- X323
 	}))
 	ClubState.set("CoachLevel", coachLevel)
@@ -162,17 +158,8 @@ local function refreshShortlist()
 	else
 		Pack.replace(pack, Squad.prospects(seed, Squad.average(players), scoutLevel, taken), false)
 	end
-	shortlistAge = 0
 	-- the folder on the office desk glows until it has been opened
 	ClubState.set("ScoutReportNew", #pack.shortlist > 0)
-end
-
--- After every match a new report lands, scout or no scout (Marcel, 2026-09-21).
-local function ageShortlist()
-	shortlistAge += 1
-	if #pack.shortlist == 0 or shortlistAge >= SHORTLIST_MATCHES then
-		refreshShortlist()
-	end
 end
 
 -- Manual lineups can rot (injuries, releases). Fill or repair without
@@ -332,7 +319,6 @@ function ClubService.restore(data: any?)
 	autoSquad = data.autoSquad ~= false
 	coachLevel = math.clamp(if type(data.coachLevel) == "number" then data.coachLevel else 0, 0, #Config.CoachLevels - 1)
 	scoutLevel = math.clamp(if type(data.scoutLevel) == "number" then data.scoutLevel else 0, 0, #Config.ScoutLevels)
-	shortlistAge = math.max(if type(data.shortlistAge) == "number" then data.shortlistAge else 0, 0)
 	pack = { shortlist = {}, pinned = nil, free = data.packFree == true, revealed = data.packRevealed == true }
 	-- a save from before packs has played its first match already
 	trialDone = data.trialDone == true or ((ClubState.get("MatchesPlayed") :: number?) or 0) > 0
@@ -389,7 +375,6 @@ function ClubService.serialize()
 		packFree = pack.free,
 		packRevealed = pack.revealed,
 		trialDone = trialDone,
-		shortlistAge = shortlistAge,
 		academy = academy,
 		bid = bid, -- X323
 		nextId = nextId,
@@ -559,14 +544,15 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 		-- was rewritten (X307), and the tests never caught it because they run
 		-- against Studio's copy (known bug 4).
 		scoutLevel += 1
-		-- hiring before match 1 must not burn the free trialist pack
-		if trialDone then
-			refreshShortlist()
+		-- a new scout files a report straight away, except over the free trialist
+		-- pack: re-dealing that would quietly cost the player his free signing
+		if Pack.keepOnHire(pack) then
 			publish()
-			return true, ("%s hired. %d prospects found."):format(nextLevel.name, #pack.shortlist)
+			return true, ("%s hired. His first report lands after your next match."):format(nextLevel.name)
 		end
+		refreshShortlist()
 		publish()
-		return true, ("%s hired."):format(nextLevel.name)
+		return true, ("%s hired. %d prospects found."):format(nextLevel.name, #pack.shortlist)
 	elseif name == "hireCoach" or name == "upgradeCoach" then
 		local nextLevel = Config.CoachLevels[coachLevel + 2]
 		if not nextLevel then
@@ -727,7 +713,7 @@ function ClubService.finishMatch(scorerSlots: { number }, matchSquad: { Squad.Ma
 	-- so it is about the match that was just played
 	local award = Squad.manOfTheMatch(players, lineup.xi, scorerIds, conceded or 0, matchSquad)
 	local news, changes = Squad.afterMatch(players, lineup.xi, scorerIds, coachLevel, rng, subIds, injuredId)
-	ageShortlist()
+	refreshShortlist() -- a new report after every match, scout or no scout
 	recomputeLineup()
 	publish()
 	return news, changes, award

@@ -80,6 +80,13 @@ function Pack.replace(state: State, shortlist: { Squad.Prospect }, free: boolean
 	state.revealed = false
 end
 
+-- A new scout re-scouts at once, which throws the current report away. The one
+-- report that must survive is the rigged trialist pack, where a card is still
+-- free: losing it would cost the player his free signing.
+function Pack.keepOnHire(state: State): boolean
+	return state.free
+end
+
 function Pack.newSeason(state: State)
 	state.pinned = nil -- TEMP: a pin lasts the season
 end

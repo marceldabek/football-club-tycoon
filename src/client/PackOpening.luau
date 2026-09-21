@@ -55,6 +55,7 @@ local STING_FADE = 0.3
 -- 0.12 or 0.04 still let the HUD's match-summary card read straight through it
 -- (measured in Studio at both). The pack is meant to take the screen over.
 local SHADE = 0
+local TOAST_SECONDS = 2.5 -- as long as the HUD holds one
 
 local TIER_RANK: { [string]: number } = {}
 for i, tier in Config.Rarity do
@@ -83,6 +84,11 @@ local function sound(id: string, pitch: number?)
 	end)
 end
 
+-- Sprint.client.luau's two speeds. The humanoid's WalkSpeed when the pack opens
+-- may be a held sprint, so it is not what unfreeze should put back.
+local WALK_SPEED = 16
+local SPRINT_SPEED = 30
+
 -- Movement lock, so nobody wanders off mid-pack. Not PlayerModule:GetControls():
 -- checked in Studio, this place has no PlayerModule in PlayerScripts at all
 -- (only RbxCharacterSounds and our own Client folder), so there is no
@@ -95,7 +101,7 @@ local function freeze(): () -> ()
 	if not humanoid then
 		return function() end
 	end
-	local walk, power, height = humanoid.WalkSpeed, humanoid.JumpPower, humanoid.JumpHeight
+	local power, height = humanoid.JumpPower, humanoid.JumpHeight
 	local held = true
 	local function pin()
 		if held then
@@ -109,7 +115,10 @@ local function freeze(): () -> ()
 	return function()
 		held = false
 		conn:Disconnect()
-		humanoid.WalkSpeed, humanoid.JumpPower, humanoid.JumpHeight = walk, power, height
+		local sprinting = UserInputService:IsKeyDown(Enum.KeyCode.LeftShift)
+			or UserInputService:IsKeyDown(Enum.KeyCode.RightShift)
+		humanoid.WalkSpeed = if sprinting then SPRINT_SPEED else WALK_SPEED
+		humanoid.JumpPower, humanoid.JumpHeight = power, height
 	end
 end
 
@@ -123,10 +132,21 @@ function PackOpening.isOpen(): boolean
 	return gui ~= nil
 end
 
+-- One signing rewrites Club and Cash, and ClubPanel watches both, so a single
+-- action used to rebuild every card two or three times. The redraws are folded
+-- into one deferred pass; if the overlay closed meanwhile it does nothing.
+local redrawQueued = false
 function PackOpening.refresh()
-	if drawResult then
-		drawResult()
+	if not drawResult or redrawQueued then
+		return
 	end
+	redrawQueued = true
+	task.defer(function()
+		redrawQueued = false
+		if drawResult then
+			drawResult()
+		end
+	end)
 end
 
 -- Who can make way when the squad is full: anyone outside the XI, cheapest sale
@@ -233,13 +253,43 @@ local function pickRelease(screen: ScreenGui, club: any, fee: number, purse: num
 	end)
 end
 
+-- A toast with no overlay to put it in: the desk prompt is in the world, so it
+-- can be answered with nothing on screen. Same pill as the HUD's, over the HUD.
+local function flash(message: string)
+	local screen = Theme.screenGui("PackMessage", 60)
+	screen.Parent = player:WaitForChild("PlayerGui")
+	local pill = Theme.pill(screen, "Toast", {
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -72),
+		Size = UDim2.new(0.6, 0, 0, 36),
+		Text = message,
+		TextColor3 = Theme.colors.muted,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextScaled = true,
+	})
+	local max = Instance.new("UITextSizeConstraint") -- TextScaled alone fills the pill
+	max.MaxTextSize = 17
+	max.Parent = pill
+	task.delay(TOAST_SECONDS, function()
+		screen:Destroy()
+	end)
+end
+
 function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: Options)
 	local club = getClub()
 	if gui or not club then
 		return
 	end
+	-- The desk prompt is a world object on a plot anyone can walk onto, and the
+	-- menu button is on screen during a matchday: only the owner of this club,
+	-- between matches and past the naming card, opens a report.
+	local own = ClubRef.state()
+	if not own or own:GetAttribute("Phase") ~= "Manage" or own:GetAttribute("NeedsName") == true then
+		return
+	end
 	local pinnedCount = if club.pinned then 1 else 0
 	if #club.shortlist + pinnedCount == 0 then
+		flash("No scout report yet. One arrives after your next match.")
 		return
 	end
 	actionEvent:FireServer("openReport") -- the folder stops glowing
@@ -270,6 +320,15 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 	shade.Parent = screen
 
 	local resultCards: { PlayerCard.Card } = {}
+	-- SIGN goes busy so a double tap cannot buy the same card twice. A refusal
+	-- from the server has to free it straight away, not after the timeout.
+	local signBusyClears: { () -> () } = {}
+	local function freeSignButtons()
+		for _, clear in signBusyClears do
+			clear()
+		end
+		table.clear(signBusyClears)
+	end
 	local function close()
 		if gui ~= screen then
 			return -- already closed: death and DONE can both land
@@ -333,6 +392,7 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 	end
 
 	local function clearRow()
+		table.clear(signBusyClears) -- the buttons they belong to are about to go
 		for _, card in resultCards do
 			card:destroy() -- the wonderkid sweep outlives a plain ClearAllChildren
 		end
@@ -352,6 +412,33 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 		TextSize = 30,
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
+	-- The HUD's toast renders at DisplayOrder 1, under this opaque screen, so
+	-- "Need £2,000 more" and the like are repeated here while the pack is up.
+	local toast = Theme.pill(screen, "Toast", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0.125),
+		Size = UDim2.new(0.6, 0, 0, 36),
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextScaled = true,
+		Visible = false,
+	})
+	local toastMax = Instance.new("UITextSizeConstraint")
+	toastMax.MaxTextSize = 17
+	toastMax.Parent = toast
+	local toastToken = 0
+	local function showToast(message: string, ok: boolean?)
+		toastToken += 1
+		local mine = toastToken
+		toast.Text = message
+		toast.TextColor3 = if ok then Theme.colors.good else Theme.colors.bad
+		toast.Visible = true
+		task.delay(TOAST_SECONDS, function()
+			if toastToken == mine and toast.Parent then
+				toast.Visible = false
+			end
+		end)
+	end
+
 	local done = Theme.button(screen, "DONE", "primary", {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 0.97, 0),
@@ -411,7 +498,11 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 				end
 				signing = true
 				-- a signing that lands redraws this card away; if the server
-				-- refuses, the button has to come back so it can be tried again
+				-- refuses, its toast frees the button at once, and this is only
+				-- the backstop for a reply that never arrives
+				table.insert(signBusyClears, function()
+					signing = false
+				end)
 				task.delay(1.5, function()
 					signing = false
 				end)
@@ -423,20 +514,22 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 					actionEvent:FireServer("sign", p.id)
 				end
 			end)
-			-- Unpinning throws the card away for good, so it asks twice.
+			-- Unpinning throws the card away for good, so it asks twice...
 			local pin = Theme.button(bar, if pinned then "UNPIN" else "PIN", if short > 0 and not pinned then "primary" else "ghost", {
 				Size = UDim2.new(0.38, -4, 1, 0),
 				Position = UDim2.new(0.62, 4, 0, 0),
 				TextSize = 15,
 			})
+			-- ...and so does pinning over a pin that is already there
+			local confirms = pinned or now.pinned ~= nil
 			local armed = false
 			pin.Activated:Connect(function()
-				if not pinned then
-					actionEvent:FireServer("pin", p.id)
-					return
-				end
-				if armed then
-					actionEvent:FireServer("unpin")
+				if armed or not confirms then
+					if pinned then
+						actionEvent:FireServer("unpin")
+					else
+						actionEvent:FireServer("pin", p.id)
+					end
 					return
 				end
 				armed = true
@@ -444,7 +537,7 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 				task.delay(2, function()
 					if pin.Parent then
 						armed = false
-						pin.Text = "UNPIN"
+						pin.Text = if pinned then "UNPIN" else "PIN"
 					end
 				end)
 			end)
@@ -489,14 +582,15 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 			pushTween = TweenService:Create(camera, TweenInfo.new(CAMERA_IN, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), { CFrame = goal })
 			;(pushTween :: Tween):Play()
 			task.wait(CAMERA_IN * 0.75)
-		else
-			Focus.push("pack")
 		end
 		if cancelled then
 			return
 		end
 		TweenService:Create(shade, TweenInfo.new(SHADE_IN), { BackgroundTransparency = SHADE }):Play()
 		task.wait(SHADE_IN)
+		-- the shade is solid from here, so the close-up's depth of field is only
+		-- costing GPU time behind a screen nobody can see through
+		Focus.pop("pack")
 		if cancelled then
 			return
 		end
@@ -548,9 +642,18 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 				headline.Text = string.upper(Nations.get(entry.player.nation).name)
 				sound(Config.PackAudio.sting, 0.8)
 				task.wait(BUILD_FLAG)
+				-- the build-up is the only part of the show that waits seconds:
+				-- a close during it must not go on stinging and flipping
+				if cancelled then
+					glow:Destroy()
+					return
+				end
 				headline.Text = string.upper(tostring(entry.player.role or ""))
 				task.wait(BUILD_ROLE)
 				glow:Destroy()
+				if cancelled then
+					return
+				end
 			end
 			sound(Config.PackAudio.flip)
 			entry.card:flip()
@@ -644,12 +747,21 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 		end
 	end))
 	-- a matchday starting, or dying at the desk, must not leave the screen dark
-	local state = ClubRef.state()
-	if state then
-		table.insert(conns, state:GetAttributeChangedSignal("Phase"):Connect(function()
-			if state:GetAttribute("Phase") ~= "Manage" then
-				close()
+	table.insert(conns, own:GetAttributeChangedSignal("Phase"):Connect(function()
+		if own:GetAttribute("Phase") ~= "Manage" then
+			close()
+		end
+	end))
+	-- the server answers every action with a Toast, and the HUD's toast is
+	-- buried under this screen, so it is shown here while the pack is open
+	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+	local toastEvent = remotes and remotes:FindFirstChild("Toast")
+	if toastEvent and toastEvent:IsA("RemoteEvent") then
+		table.insert(conns, toastEvent.OnClientEvent:Connect(function(message: string, ok: boolean?)
+			if ok ~= true then
+				freeSignButtons() -- a refused signing can be tried again at once
 			end
+			showToast(message, ok)
 		end))
 	end
 	table.insert(conns, player.CharacterRemoving:Connect(close))
@@ -659,7 +771,8 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 	end
 
 	if club.packRevealed or #club.shortlist == 0 then
-		Focus.push("pack")
+		-- straight to the result state: no camera move to keep sharp, and the
+		-- shade covers the world anyway, so no Focus at all
 		shade.BackgroundTransparency = SHADE
 	else
 		local ok, err = pcall(show)

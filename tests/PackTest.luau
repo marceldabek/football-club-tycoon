@@ -47,6 +47,14 @@ function T.freeSignIsOnceAndNeverThePin()
 	assert(Pack.fee(s, other) == other.fee, "second one costs")
 end
 
+function T.hiringAScoutKeepsOnlyTheFreePack()
+	assert(Pack.keepOnHire(fresh(true)) == true, "the free trialist pack survives a hire")
+	assert(Pack.keepOnHire(fresh(false)) == false, "an ordinary pack is re-dealt by a hire")
+	local spent = fresh(true)
+	Pack.take(spent, spent.shortlist[1].id) -- the free signing is used up
+	assert(Pack.keepOnHire(spent) == false, "nothing left to protect once the free signing is spent")
+end
+
 function T.takeThePin()
 	local s = fresh()
 	local target = s.shortlist[1]

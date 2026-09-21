@@ -134,23 +134,31 @@ local function meetTheEleven(seconds: number)
 
 	local size = meetSlotSize(#starters)
 	local cards: { PlayerCard.Card } = {}
+	local cleaned = false
 	for i, p in starters do
+		if cleaned then
+			break -- the walkout ended while the strip was still being built
+		end
 		local holder = Instance.new("Frame")
 		holder.Name = "Slot"
 		holder.BackgroundTransparency = 1
 		holder.LayoutOrder = i
 		holder.Size = size
 		holder.Parent = strip
-		local card = PlayerCard.new(holder, p, { signed = true, clubName = clubName, faceDown = true })
+		-- compact: eleven cards across a phone leave the six stat rows a couple of
+		-- pixels tall, so the strip shows art, bust, overall, role and the name
+		local card = PlayerCard.new(holder, p, { signed = true, clubName = clubName, faceDown = true, compact = true })
 		table.insert(cards, card)
 		task.delay(0.4 + i * 0.18, function()
 			if card.frame.Parent then
 				card:flip()
 			end
 		end)
+		-- one card a frame: eleven ViewportFrame busts built in a single frame is
+		-- a visible hitch on a mid-range phone, right as the walkout starts
+		task.wait()
 	end
 
-	local cleaned = false
 	local phaseConn: RBXScriptConnection? = nil
 	local function cleanup()
 		if cleaned then
