@@ -77,7 +77,7 @@ local BUS_STOP_REACH = 40 -- a stop this close to the road centreline serves it 
 -- F3.3 cyclists: on residential streets only (lanes are too narrow to pass), by the kerb.
 -- A lane is 7.9 wide and a car 6.9, so there is no room to pass: cars queue behind a cyclist.
 local BIKE_EVERY = 8 -- TEMP: 1 in 8 spawns on a quiet street is a bike
-local BIKE_SPEED = 11 -- TEMP studs/s
+local BIKE_SPEED = 14 -- TEMP studs/s (walkers 5 to 7, cars 20 on the same street)
 local BIKE_KERB_INSET = 1.6 -- rider (1.3 wide) clears a car in the lane on a 20-wide residential street
 -- Roundabouts: a car leaves its road for the ring (TrafficMath.ringArms) and drives the arc.
 local RING_SPEED = 16 -- TEMP studs/s on the ring
@@ -186,6 +186,16 @@ type RingRun = {
 	leave: TrafficMath.RingArm,
 }
 
+-- A cyclist. `parts` is the bike (kit mesh parts, or the primitive wheels and
+-- frame) with `offsets` from the root; the rider's six limbs are posed each frame.
+type BikeRig = {
+	fig: Townsfolk.Figure,
+	parts: { BasePart },
+	offsets: { CFrame },
+	pedal: number, -- crank angle, radians
+	clock: number, -- os.clock() of the last draw
+}
+
 type Car = {
 	ring: RingRun?, -- on a roundabout's ring, off its road
 	model: Model,
@@ -194,6 +204,7 @@ type Car = {
 	meshYaw: number, -- X128: turn so the kit mesh's front faces the root's -Z
 	isBus: boolean,
 	isBike: boolean,
+	bike: BikeRig?, -- a cyclist: the rider is posed and pedals (drawBike), not moved by fixed offsets
 	roadIndex: number,
 	direction: number, -- 1 or -1 along the road's polyline
 	distance: number, -- studs along the current road
@@ -415,42 +426,67 @@ local function buildBus(parent: Instance, color: Color3): { BasePart }
 	return { body, windows, wheelF1, wheelF2, wheelR1, wheelR2, board, windscreen }
 end
 
--- Bike rig: 2 wheels, frame, rider torso, head, 2 legs = 7 parts.
+-- The primitive bike, used only when ClientKit has no Bicycle: 2 wheels and a frame.
+-- X371: the rider is a real R6 figure (Townsfolk), 5 studs like everyone in town,
+-- sat on a saddle 2.4 up and posed by drawBike.
 local BIKE_WHEEL_RADIUS = 1.05
--- X371: the rider is a real R6 figure, so its six parts follow the two wheels
--- and the frame here, in Townsfolk.Figure.all order (torso, head, legL, legR,
--- armL, armR). The old rider was a 1.7-stud torso on 1.5-stud legs -- about a
--- 3.5-stud person, well short of the 5 studs everyone else in town now stands.
--- Saddle height is 2.4; the offsets are translations only, so limbs stay
--- upright exactly as the block rider's did.
 local BIKE_SADDLE_Y = 2.4
 local BIKE_OFFSETS: { Vector3 } = {
 	Vector3.new(0, 0.1 + BIKE_WHEEL_RADIUS, -1.35), -- front wheel
 	Vector3.new(0, 0.1 + BIKE_WHEEL_RADIUS, 1.35), -- rear wheel
 	Vector3.new(0, 1.55, 0), -- frame
-	Vector3.new(0, BIKE_SADDLE_Y + 1.0, 0.25), -- torso centre, one above the saddle
-	Vector3.new(0, BIKE_SADDLE_Y + 2.5, 0.05), -- head
-	Vector3.new(-0.5, BIKE_SADDLE_Y - 0.8, -0.2), -- left leg, down to the pedals
-	Vector3.new(0.5, BIKE_SADDLE_Y - 0.8, -0.2), -- right leg
-	Vector3.new(-1.1, BIKE_SADDLE_Y + 0.9, -0.7), -- left arm, forward to the bars
-	Vector3.new(1.1, BIKE_SADDLE_Y + 0.9, -0.7), -- right arm
 }
+
+-- The rider on the saddle, in root space (root -Z is the way the bike is going).
+-- An R6 leg is one piece, so pedalling is each leg swinging forward and back from
+-- the hip, half a turn apart, between nearly straight down and well forward.
+-- The numbers fit the kit bicycle (tools/kit/install_bicycle.luau: saddle 2.43 up and
+-- 0.77 behind the pivot, grips 2.8 up and 0.9 ahead, bottom bracket 0.83 up and 0.29
+-- behind, cranks about 0.45): the hip-to-bracket line is 33 degrees forward of straight
+-- down and a leg's length long, and a crank's throw either side of it is 14 degrees.
+local BIKE_HIP = Vector3.new(0, BIKE_SADDLE_Y + 0.05, 0.77)
+local BIKE_LEAN = math.rad(32) -- torso tipped forward to the bars
+local BIKE_ARM_REACH = math.rad(60) -- arms forward of the (leant) torso, hands to the grips
+local BIKE_LEG_MID, BIKE_LEG_SWING = math.rad(33), math.rad(14)
+local BIKE_CRANK_PER_STUD = 0.55 -- radians of crank per stud travelled (one turn every ~11 studs)
+
+local function kitBikeTemplate(): Instance?
+	local clientKit = ReplicatedStorage:FindFirstChild("ClientKit")
+	return clientKit and clientKit:FindFirstChild("Bicycle")
+end
 
 -- Returns nil when the shared rig is unavailable: a bike with no rider would
 -- read worse than no bike, so the caller skips the spawn.
-local function buildBike(parent: Instance, color: Color3): { BasePart }?
+local function buildBike(parent: Instance, color: Color3): BikeRig?
 	local fig = Townsfolk.build(parent)
 	if not fig then
 		return nil
 	end
-	local front = wheel("WheelF", BIKE_WHEEL_RADIUS, 0.15, parent)
-	local rear = wheel("WheelR", BIKE_WHEEL_RADIUS, 0.15, parent)
-	local frame = part("Frame", Vector3.new(0.18, 0.25, 2.7), color, false, parent)
-	local parts: { BasePart } = { front, rear, frame }
-	for _, limb in fig.all do
-		table.insert(parts, limb)
+	local parts: { BasePart } = {}
+	local offsets: { CFrame } = {}
+	local kitBike = kitBikeTemplate()
+	if kitBike and kitBike:IsA("Model") then
+		-- ClientKit.Bicycle: pivot on the ground under the bottom bracket, front wheel to -Z
+		local copy = kitBike:Clone()
+		local pivot = copy:GetPivot()
+		for _, d in copy:GetDescendants() do
+			if d:IsA("BasePart") then
+				if d.Name == "Body" then
+					d.Color = color -- the frame
+				end
+				table.insert(parts, d)
+				table.insert(offsets, CFrame.new(0, 0.05, 0) * pivot:ToObjectSpace(d.CFrame))
+			end
+		end
+		copy.Parent = parent
+	else
+		parts = { wheel("WheelF", BIKE_WHEEL_RADIUS, 0.15, parent), wheel("WheelR", BIKE_WHEEL_RADIUS, 0.15, parent),
+			part("Frame", Vector3.new(0.18, 0.25, 2.7), color, false, parent) }
+		for i = 1, 3 do
+			offsets[i] = CFrame.new(BIKE_OFFSETS[i])
+		end
 	end
-	return parts
+	return { fig = fig, parts = parts, offsets = offsets, pedal = math.random() * 2 * math.pi, clock = os.clock() }
 end
 
 -- X128: kit hatchbacks published by the server's ClientKit, if any, at the
@@ -486,6 +522,7 @@ local function spawnCar(roadIndex: number, distance: number, direction: number)
 	local parts: { BasePart }
 	local meshOffsets: { Vector3 }? = nil
 	local meshYaw = 0
+	local bike: BikeRig? = nil
 	local kitCars = kitCarTemplates()
 	local kitBus = if isBus then kitBusTemplate() else nil
 	if kitBus then
@@ -512,12 +549,12 @@ local function spawnCar(roadIndex: number, distance: number, direction: number)
 	elseif isBike then
 		-- X371: buildBike needs the shared rig for its rider and returns nil
 		-- without it; a riderless bike would look worse than no bike at all
-		local built = buildBike(model, color)
-		if not built then
+		bike = buildBike(model, color)
+		if not bike then
 			model:Destroy()
 			return
 		end
-		parts = built
+		parts = bike.parts
 	else
 		parts = if isBus then buildBus(model, color) else buildCar(model, color)
 	end
@@ -536,6 +573,7 @@ local function spawnCar(roadIndex: number, distance: number, direction: number)
 		meshYaw = meshYaw,
 		isBus = isBus,
 		isBike = isBike,
+		bike = bike,
 		roadIndex = roadIndex,
 		direction = direction,
 		distance = distance,
@@ -809,9 +847,44 @@ local function junctionBusy(car: Car, road: TownLayout.Road): boolean
 	return TrafficMath.junctionBusy(endPoint, others, GIVE_WAY_CLEAR)
 end
 
+-- A cyclist: the bike at its offsets, the rider leant to the bars with the legs
+-- going round as fast as the bike is moving.
+local function drawBike(car: Car, bike: BikeRig, rootCFrame: CFrame)
+	local now = os.clock()
+	bike.pedal += car.speed * math.min(now - bike.clock, 0.1) * BIKE_CRANK_PER_STUD
+	bike.clock = now
+	for i, p in bike.parts do
+		table.insert(moveParts, p)
+		table.insert(moveCFrames, rootCFrame * bike.offsets[i])
+	end
+	local hip = rootCFrame * CFrame.new(BIKE_HIP)
+	local back = hip * CFrame.Angles(-BIKE_LEAN, 0, 0)
+	local torsoH = Townsfolk.TORSO_SIZE.Y
+	local halfLeg, halfArm = Townsfolk.LEG_SIZE.Y / 2, Townsfolk.ARM_SIZE.Y / 2
+	local swing = math.sin(bike.pedal) * BIKE_LEG_SWING
+	local fig = bike.fig
+	local cfs = {
+		back * CFrame.new(0, torsoH / 2, 0), -- torso
+		back * CFrame.new(0, torsoH + 0.5, 0) * CFrame.Angles(BIKE_LEAN * 0.8, 0, 0), -- head, looking up the road
+		-- a positive turn about X swings a hanging limb forward (-Z)
+		hip * CFrame.new(-Townsfolk.LEG_X, 0, 0) * CFrame.Angles(BIKE_LEG_MID + swing, 0, 0) * CFrame.new(0, -halfLeg, 0),
+		hip * CFrame.new(Townsfolk.LEG_X, 0, 0) * CFrame.Angles(BIKE_LEG_MID - swing, 0, 0) * CFrame.new(0, -halfLeg, 0),
+		back * CFrame.new(-Townsfolk.ARM_X, torsoH - 0.1, 0) * CFrame.Angles(BIKE_ARM_REACH, 0, 0) * CFrame.new(0, -halfArm, 0),
+		back * CFrame.new(Townsfolk.ARM_X, torsoH - 0.1, 0) * CFrame.Angles(BIKE_ARM_REACH, 0, 0) * CFrame.new(0, -halfArm, 0),
+	}
+	for i = 1, 6 do
+		table.insert(moveParts, fig.all[i])
+		table.insert(moveCFrames, cfs[i])
+	end
+end
+
 -- Queues the car's parts at `rootCFrame` for this frame's BulkMoveTo.
 local function draw(car: Car, rootCFrame: CFrame)
 	car.shown = rootCFrame
+	if car.bike then
+		drawBike(car, car.bike, rootCFrame)
+		return
+	end
 	local offsets = if car.meshOffsets then car.meshOffsets elseif car.isBike then BIKE_OFFSETS elseif car.isBus then BUS_OFFSETS else CAR_OFFSETS
 	local parts = car.parts
 	for i = 1, #parts do

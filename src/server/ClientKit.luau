@@ -12,6 +12,9 @@
 --                    Cruiser.client's boat on the River Lune. Pivot: waterline,
 --                    bow to -Z, as stored in the kit.
 --
+--   ClientKit.Bicycle the cyclists' bike for Traffic. Pivot: on the ground under the
+--                    bottom bracket, front wheel to -Z.
+--
 -- Place-file models that are already in ReplicatedStorage.ClientKit (the swan,
 -- X113) are left alone.
 
@@ -33,6 +36,11 @@ ClientKit.BUS = "BusDoubleDecker"
 ClientKit.BUS_FRONT_YAW = 0
 
 ClientKit.CRUISER = "BoatCruiser"
+
+-- The town cyclists' bicycle (Kit.Vehicles.Bicycle, tools/kit/install_bicycle.luau):
+-- pivot on the ground under the bottom bracket, front wheel to -Z. May be more than
+-- one part. Without it Traffic falls back to its three-part primitive bike.
+ClientKit.BICYCLE = "Bicycle"
 
 function ClientKit.publish(): string
 	local kit = ServerStorage:FindFirstChild("Kit")
@@ -109,8 +117,6 @@ function ClientKit.publish(): string
 			part.CanQuery = false
 			part.CanTouch = false
 			copy.WorldPivot = part.CFrame
-			-- checked in Studio against a marker cube: the windscreen faces +Z,
-			-- so it needs half a turn to match the cars' "-Z is the front" rule
 			copy:SetAttribute("FrontYaw", ClientKit.BUS_FRONT_YAW)
 			copy.Parent = root
 			buses = 1
@@ -142,7 +148,29 @@ function ClientKit.publish(): string
 		copy.Parent = root
 		cruisers = 1
 	end
-	return ("client kit: %d cars, %d bus, %d cruiser"):format(count, buses, cruisers)
+
+	local oldBicycle = root:FindFirstChild("Bicycle")
+	if oldBicycle then
+		oldBicycle:Destroy()
+	end
+	local bicycleTemplate = kit and kit:FindFirstChild(ClientKit.BICYCLE, true)
+	local bicycles = 0
+	if bicycleTemplate and bicycleTemplate:IsA("Model") then
+		local copy = bicycleTemplate:Clone()
+		for _, d in copy:GetDescendants() do
+			if d:IsA("LuaSourceContainer") or d:IsA("Sound") then
+				d:Destroy()
+			elseif d:IsA("BasePart") then
+				d.Anchored = true
+				d.CanCollide = false
+				d.CanQuery = false
+				d.CanTouch = false
+			end
+		end
+		copy.Parent = root
+		bicycles = 1
+	end
+	return ("client kit: %d cars, %d bus, %d cruiser, %d bicycle"):format(count, buses, cruisers, bicycles)
 end
 
 return ClientKit
