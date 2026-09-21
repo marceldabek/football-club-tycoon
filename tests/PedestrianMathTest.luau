@@ -297,4 +297,28 @@ function T.junctionZonesCoverTheMouthAndTheRoadEnd()
 	assert(not PedestrianMath.inZones(sideZones, 150) and not PedestrianMath.inZones(sideZones, 5), "open away from the junction")
 end
 
+-- The margin callback is told whether the other road ends at the join too (a
+-- street carrying on under another name: no junction piece) or is run into (a T).
+function T.junctionZonesTellATeeFromAnEndToEndJoin()
+	local roads = {
+		{ name = "Main", kind = "main", width = 26, points = { Vector3.new(0, 0, 0), Vector3.new(400, 0, 0) } },
+		{ name = "Side", kind = "residential", width = 20, points = { Vector3.new(200, 0, 200), Vector3.new(200, 0, 0) } },
+		{ name = "Onward", kind = "main", width = 26, points = { Vector3.new(400, 0, 0), Vector3.new(800, 0, 0) } },
+	} :: any
+	local seen: { [string]: boolean } = {}
+	local function zonesOf(index: number)
+		local path = PedestrianMath.offsetPolyline(roads[index].points, roads[index].width, 1, 8.5)
+		return PedestrianMath.junctionZones(path, PedestrianMath.cumulativeLengths(path), roads, index, function(): number
+			return 10
+		end, function(_kind: string, endToEnd: boolean): number
+			seen[roads[index].name] = endToEnd
+			return 8
+		end)
+	end
+	zonesOf(2)
+	assert(seen.Side == false, "a side street runs into the main road's side")
+	zonesOf(3)
+	assert(seen.Onward == true, "the onward road meets the main road end to end")
+end
+
 return T

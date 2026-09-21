@@ -184,10 +184,12 @@ local function pathFor(roadIndex: number, side: number): Path
 		length = cumulative[#cumulative] or 0,
 		closed = TrafficMath.isClosed(points, 1e-3),
 		zones = PedestrianMath.junctionZones(points, cumulative, ROADS, roadIndex, function(kind: string): number
-			return RoadTiles.kerbDistance(kind) + MOUTH_EXTRA
-		end, function(kind: string): number
-			-- stop on the other road's paved strip, clear of its kerb
-			return PedestrianMath.kitPavementDistance(kind)
+			-- clear of the junction piece's rounded corner, which is asphalt on this line
+			return math.max(RoadTiles.kerbDistance(kind) + MOUTH_EXTRA, PedestrianMath.junctionCorner(kind) or 0)
+		end, function(kind: string, endToEnd: boolean): number
+			-- stop on the other road's paved strip, clear of its kerb (and of the corner at a T)
+			local corner = if endToEnd then 0 else PedestrianMath.junctionCorner(kind) or 0
+			return math.max(PedestrianMath.kitPavementDistance(kind), corner)
 		end),
 	}
 	if road.head then

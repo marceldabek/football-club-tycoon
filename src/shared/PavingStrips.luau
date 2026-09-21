@@ -34,22 +34,24 @@ local function scaleOf(kind: string): number
 	return RoadTiles.SCALE[kind] or RoadTiles.STREET_SCALE
 end
 
--- Half the gap a `kind` road cuts in a pavement it crosses: out to the back of
--- its own kit paving, which is where its junction piece's corner starts.
+-- Half the gap a `kind` road cuts in a pavement it crosses: out to where its
+-- junction piece's rounded corner has finished (a strip laid nearer than that
+-- lies on the corner's asphalt). An alley just butts in, so its own width.
 local function halfMouth(kind: string): number
-	if kind == "alley" then
-		return RoadTiles.KIT_HALF_WIDTH * RoadTiles.ALLEY_SCALE
-	end
-	return RoadTiles.KIT_PAVING_OUTER * scaleOf(kind)
+	return PedestrianMath.junctionCorner(kind) or RoadTiles.KIT_HALF_WIDTH * RoadTiles.ALLEY_SCALE
 end
 
--- How far short of a `kind` road's centreline a side street's strip stops: at
--- the back of that road's widened pavement, so the two meet in a square corner.
-local function endMargin(kind: string): number
+-- How far short of a `kind` road's centreline a side street's strip stops: clear
+-- of the junction piece's corner at a T, and at the back of that road's widened
+-- pavement where the two only meet end to end (no junction piece there).
+local function endMargin(kind: string, endToEnd: boolean): number
 	if kind == "alley" then
 		return RoadTiles.KIT_HALF_WIDTH * RoadTiles.ALLEY_SCALE
 	end
-	return RoadTiles.pavementOuter(kind)
+	if endToEnd then
+		return RoadTiles.pavementOuter(kind)
+	end
+	return math.max(RoadTiles.pavementOuter(kind), PedestrianMath.junctionCorner(kind) :: number)
 end
 
 local function inCentre(p: Vector3): boolean

@@ -1,6 +1,7 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local PavingStrips = require(ReplicatedStorage.Shared.PavingStrips)
+local PedestrianMath = require(ReplicatedStorage.Shared.PedestrianMath)
 local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles)
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 
@@ -50,7 +51,10 @@ function T.stripsStopAtASideRoadsMouthAndAtItsEnd()
 		road("Through", "residential", { O, O + Vector3.new(400, 0, 0) }),
 		road("Side", "residential", { O + Vector3.new(200, 0, 300), O + Vector3.new(200, 0, 0) }),
 	}
-	local mouth = RoadTiles.KIT_PAVING_OUTER * RoadTiles.STREET_SCALE
+	-- the kit T piece's kerb is still rounding the corner this far from the node
+	local corner = PedestrianMath.junctionCorner("residential") :: number
+	assert(corner > RoadTiles.pavementOuter("residential"), "the corner reaches past the widened pavement")
+	local mouth = corner
 	for _, s in PavingStrips.plan(roads, {}, {}, nil) do
 		local p = s.cframe.Position
 		local alongX = math.abs(s.cframe.LookVector.X) > 0.5
@@ -61,9 +65,23 @@ function T.stripsStopAtASideRoadsMouthAndAtItsEnd()
 		elseif s.road == "Side" then
 			assert(not alongX, "side road strips run along it")
 			local nearEnd = p.Z - s.size.Z / 2 - O.Z
-			assert(nearEnd >= RoadTiles.pavementOuter("residential") - PavingStrips.JOINT - 1.01, "stops at the back of the through road's pavement")
+			assert(nearEnd >= corner - PavingStrips.JOINT - 1.01, "stops clear of the junction piece's corner")
 		end
 	end
+end
+
+function T.aStreetCarryingOnUnderAnotherNameKeepsItsPavement()
+	local roads = {
+		road("First", "residential", { O, O + Vector3.new(300, 0, 0) }),
+		road("Second", "residential", { O + Vector3.new(300, 0, 0), O + Vector3.new(600, 0, 0) }),
+	}
+	local total = 0
+	for _, s in PavingStrips.plan(roads, {}, {}, nil) do
+		total += s.size.Z - 2 * PavingStrips.JOINT
+	end
+	-- both sides of 600 studs, less the square end each road leaves at the join
+	local gap = 4 * RoadTiles.pavementOuter("residential")
+	assert(math.abs(total - (1200 - gap)) < 4.5, ("%.0f studs of strip"):format(total))
 end
 
 function T.aTurningHeadsBulbIsLeftAlone()

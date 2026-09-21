@@ -84,6 +84,21 @@ function PedestrianMath.kitPavementJitter(kind: string): number
 	return math.max(0, half - PedestrianMath.WALKER_HALF_WIDTH)
 end
 
+-- v3: how far from a T / crossroads node the kit piece's kerb is still curving
+-- round the corner. Measured on the built tee at scale 1: the paving only runs
+-- straight beside either road from ~22 studs out, and anything laid nearer than
+-- that on the straight pavement line is over the corner's asphalt.
+PedestrianMath.KIT_JUNCTION_CORNER = 24
+
+-- That distance for a junction with a `kind` road. An alley gets no junction
+-- piece (it butts into the kerb), so nil: keep the caller's own mouth.
+function PedestrianMath.junctionCorner(kind: string): number?
+	if kind == "alley" then
+		return nil
+	end
+	return PedestrianMath.KIT_JUNCTION_CORNER * (RoadTiles.SCALE[kind] or RoadTiles.SCALE.residential)
+end
+
 -- Offset from the road centreline to the middle of the pavement on `side`
 -- (-1 or 1), perpendicular to `direction` in the XZ plane.
 function PedestrianMath.pavementOffset(direction: Vector3, roadWidth: number, side: number): Vector3
@@ -282,13 +297,21 @@ local function meet(a: Vector3, b: Vector3, c: Vector3, d: Vector3): number?
 	return nil
 end
 
+-- Whether `road` itself ends at `p` (rather than passing through it).
+local function endsAt(road: TownLayout.Road, p: Vector3): boolean
+	local a, b = road.points[1], road.points[#road.points]
+	return (a - p).Magnitude <= 2 or (b - p).Magnitude <= 2
+end
+
 -- The stretches of a pavement line (`path`, with its `cumulative` lengths) that
 -- are not pavement at all: the mouth of every road that crosses or joins it, and
 -- the last few studs where its own road runs out into another. A walker turns
 -- round at a zone's edge instead of strolling across open asphalt.
 --   halfMouth(kind)  half the width of the gap a `kind` road cuts in the pavement
---   endMargin(kind)  how far short of a `kind` road's centreline a side road's
---                    pavement stops
+--   endMargin(kind, endToEnd)  how far short of a `kind` road's centreline a side
+--                    road's pavement stops. `endToEnd` is true when that road
+--                    ends there too (one street carrying on under another name,
+--                    or a bend), false when this road runs into its side (a T).
 -- `ownIndex` is the path's own road in `roads`; its raw end points are read from there.
 function PedestrianMath.junctionZones(
 	path: { Vector3 },
@@ -296,7 +319,7 @@ function PedestrianMath.junctionZones(
 	roads: { TownLayout.Road },
 	ownIndex: number,
 	halfMouth: (string) -> number,
-	endMargin: (string) -> number
+	endMargin: (string, boolean) -> number
 ): { Zone }
 	local zones: { Zone } = {}
 	local length = cumulative[#cumulative] or 0
@@ -318,11 +341,12 @@ function PedestrianMath.junctionZones(
 		end
 		-- own road ends on (or at the end of) this one: the pavement stops short of it
 		if own and #own.points >= 2 then
-			local margin = endMargin(other.kind)
-			if TownLayout.distanceToPolyline(own.points[1], other.points) <= 2 then
-				table.insert(zones, { from = -1, to = margin })
+			local first, last = own.points[1], own.points[#own.points]
+			if TownLayout.distanceToPolyline(first, other.points) <= 2 then
+				table.insert(zones, { from = -1, to = endMargin(other.kind, endsAt(other, first)) })
 			end
-			if TownLayout.distanceToPolyline(own.points[#own.points], other.points) <= 2 then
+			if TownLayout.distanceToPolyline(last, other.points) <= 2 then
+				local margin = endMargin(other.kind, endsAt(other, last))
 				table.insert(zones, { from = length - margin, to = length + 1 })
 			end
 		end
