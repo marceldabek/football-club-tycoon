@@ -41,6 +41,7 @@ local PER_CLUB = {
 	-- per-plot folder, so anything a cloned module requires must be cloned too.
 	-- PerClubModulesTest checks that; it is not obvious from reading PlotGrounds.
 	"KitPlacer",
+	"Clubhouse", -- WorldBuilder builds the office and dressing rooms through it
 }
 
 -- exposed so PerClubModulesTest can check the list against what the cloned

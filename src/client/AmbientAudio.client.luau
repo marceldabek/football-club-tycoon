@@ -120,7 +120,7 @@ do
 	stationBox = { st.centre.X - st.size.X / 2, st.centre.X + st.size.X / 2, st.centre.Z - st.size.Z / 2, st.centre.Z + st.size.Z / 2 }
 end
 
--- X175: the camera is inside a club's office or dressing rooms (their models'
+-- X175: the camera is inside a club's office, dressing rooms or lobby (their models'
 -- oriented bounding boxes, refreshed every few seconds as plots come and go)
 type RoomBox = { cf: CFrame, half: Vector3 }
 local rooms: { RoomBox } = {}
@@ -129,7 +129,7 @@ local roomModels: { [Model]: boolean } = {}
 task.spawn(function()
 	local plots = workspace:WaitForChild("Plots", math.huge)
 	local function consider(d: Instance)
-		if d:IsA("Model") and (d.Name == "Office" or d.Name == "DressingRooms") then
+		if d:IsA("Model") and (d.Name == "Office" or d.Name == "DressingRooms" or d.Name == "Lobby") then
 			roomModels[d] = true
 		end
 	end

@@ -239,3 +239,42 @@ doors under a canopy, uPVC windows, club sign, kiosk hatch).
 
 At a high West stand level (or league tier) the main stand is built over the
 clubhouse and a real tunnel appears. Needs its own design talk.
+
+## As built (phase 1, 2026-09-20)
+
+Phase 1 is in: `src/server/Clubhouse.luau`, wired through `WorldBuilder`,
+`PlotService.PER_CLUB`, `PlotGrounds`, `Pitch`, `MatchPresenter`, `HUD`,
+`AmbientAudio`; tests in `tests/ClubhouseTest.luau`. Where the build differs
+from the plan above, the build wins:
+
+- **Clear height is 12, not 10** (roof top at floor + 13). The office honours,
+  trophy shelf and tier fittings are all placed for a 12-high room.
+- **Office side door is at the west end of the south wall** (x -155..-150), and
+  the **kiosk hatch is on the west face** (z -34..-26), not the north wall. An
+  8-row West stand wing runs along the rest of both end walls and would have
+  blocked them. The spawn faces the side door from (-152.5, 34).
+- **A 12- or 16-row West wing (levels 3-4) still blocks the side door and its
+  path.** Accepted: that is the phase 3 case (main stand absorbs the clubhouse).
+- Office/lobby and store/lobby doors are at x -154..-149; the office window is
+  z 24..34. Dressing rooms are 25.6 x 10.8 and hang 12 shirts each.
+- `Office`, `DressingRooms` and `MatchdayBoard` stay **direct children of the
+  club model** (server dressers and clients look them up there). `Clubhouse`
+  holds `Shell` and `Lobby` (hall, corridor, store).
+- Walls: `Shell` is 0.6 brick; every room lines its own walls 0.4 thick, so the
+  exterior pass only has to replace `Shell`.
+- The west stand is two wings at every level, each half the level's length,
+  pushed out from the clubhouse (so level 1 bleachers still appear). Back wall,
+  coping, roof, fascia and pillars are built per span.
+- Pitch-side ad boards keep their old 16-stud gap in front of the players'
+  door rather than clearing the whole clubhouse front.
+- `Scenery` tree keep-out was left alone (it already keeps trees off this
+  ground), and the new paths are not `PlotGrounds.footprints()` entries, like
+  the rest of the footpath.
+- `Clubhouse` had to join `PlotService.PER_CLUB`: per-club module clones resolve
+  `script.Parent.X` against their own folder.
+
+Verified in Studio: 785 tests pass; club claims and builds with no errors;
+spawn lands in the office; all three outer doors open onto paving; a match
+plays through; West stand levels 2 and 4 stop cleanly at the clubhouse.
+Not yet eyeballed: the walkout itself (the debug match was 20 s) and the
+"take my seat" / audio-ducking behaviour in the lobby.

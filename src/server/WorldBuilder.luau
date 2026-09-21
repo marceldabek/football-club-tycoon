@@ -28,6 +28,7 @@ local CrestBadge = require(ReplicatedStorage.Shared.CrestBadge)
 local Assets = require(script.Parent.Assets)
 local PlotContext = require(script.Parent.PlotContext)
 local KitPlacer = require(script.Parent.KitPlacer)
+local Clubhouse = require(script.Parent.Clubhouse)
 
 local WorldBuilder = {}
 
@@ -46,24 +47,18 @@ local CORNER_X = PITCH_W / 2 + 10 -- where the north/south walls stop
 local WALL_H = 3.2
 local TUNNEL_GAP = Pitch.TUNNEL_GAP -- players' tunnel mouth, west side, centred
 
--- The west block. The tunnel does not stop at the wall: it runs straight back
--- through the gap in the west stand into the building behind it, where the
--- dressing rooms are and, at the far end, the office. The player spawns in the
--- office and walks out down the tunnel onto the pitch, which is also how the
--- team comes out.
-local TUNNEL_H = 9
-local TUNNEL_HALF = TUNNEL_GAP / 2 -- inner face of a corridor wall
-local WALL_T = 0.8
-local TUNNEL_OUT = TUNNEL_HALF + WALL_T -- outer face; the terrace stops here
-local PORTAL_D = 4 -- club-coloured surround at the mouth
-local CORRIDOR_END = -(SIDE_EDGE + 94) -- the office door
-local OFFICE_W, OFFICE_D, OFFICE_H = 28, 30, 12 -- W runs along X, D along Z
-local OFFICE_CX, OFFICE_CZ = CORRIDOR_END - OFFICE_W / 2, 0
--- Dressing rooms, one either side of the corridor, clear of the deepest a west
--- stand can ever reach (STAND_X0 + 16 rows * STEP_DEPTH + roof).
-local ROOM_X0, ROOM_X1 = -(SIDE_EDGE + 90), -(SIDE_EDGE + 62)
-local ROOM_DEPTH = 28 -- how far a room reaches out from the corridor wall
-local ROOM_DOOR = { -(SIDE_EDGE + 78), -(SIDE_EDGE + 70) } -- gap in the corridor wall
+-- The west block is the clubhouse (Clubhouse.luau, docs/CLUBHOUSE_PLAN.md): one
+-- small building on the wall line at halfway, holding the office, the dressing
+-- rooms and the door the teams come out of. The west stand is two wings either
+-- side of it. What is fitted inside the office after the build (honours,
+-- trophies, tier fittings) is placed from the office's floor rectangle.
+local OFFICE = Clubhouse.OFFICE
+local OFFICE_Y = Clubhouse.FLOOR_Y
+local OFFICE_H = Clubhouse.HEIGHT
+local CLUBHOUSE_GAP = Clubhouse.GAP_Z -- the west stand's wings stop here
+-- the office's north wall east of the lobby door: the trophy shelf and the
+-- promotion pennants hang along it
+local NORTH_WALL_CX = OFFICE.x1 - 13.5
 
 -- Forecourt: outside the open north-west corner, where the turnstiles, the
 -- concourse and the car park are. The player only comes here to spend money.
@@ -367,10 +362,10 @@ local function buildPerimeter(parent: Instance)
 	local wall = Instance.new("Model")
 	wall.Name = "Perimeter"
 	wall.Parent = parent
-	local g = TUNNEL_OUT -- the tunnel's own walls close the gap
+	local g = Clubhouse.SHELL.z1 -- the clubhouse's own east wall closes the gap
 	-- east side: continuous
 	wallRun(wall, Vector3.new(SIDE_EDGE, 0, -CORNER_Z), Vector3.new(SIDE_EDGE, 0, CORNER_Z), "WallEast")
-	-- west side: split around the tunnel mouth
+	-- west side: split around the clubhouse
 	wallRun(wall, Vector3.new(-SIDE_EDGE, 0, -CORNER_Z), Vector3.new(-SIDE_EDGE, 0, -g), "WallWest")
 	wallRun(wall, Vector3.new(-SIDE_EDGE, 0, g), Vector3.new(-SIDE_EDGE, 0, CORNER_Z), "WallWest")
 	-- ends: continuous
@@ -543,175 +538,6 @@ local function buildDugouts(parent: Instance)
 		for _, tz in { tz0, tz1 } do
 			box("TechnicalSide", Vector3.new(front - inner, 0.1, 0.6), Vector3.new(-(inner + front) / 2, markY, tz), paint, Enum.Material.SmoothPlastic, dugouts)
 		end
-	end
-end
-
--- The tunnel: a mouth in the middle of the west wall with the club name over
--- it, and a corridor that runs all the way back through the stand to the
--- dressing rooms and the office. The footballers come out of it; so does the
--- player, who spawns at the far end of it.
-local function buildTunnel(parent: Instance)
-	local tunnel = Instance.new("Model")
-	tunnel.Name = "Tunnel"
-	tunnel.Parent = parent
-	local h = TUNNEL_H
-	local w = TUNNEL_GAP
-	local colour = Config.HomeKit
-	local dark = Color3.fromRGB(55, 55, 60)
-	local concrete = Color3.fromRGB(96, 98, 104)
-
-	-- Corridor, from the wall line to the office door. Its outer faces are
-	-- what the terrace butts up against, which is why the mouth is the only
-	-- hole in the west stand rather than a slot through the whole thing.
-	local x0, x1 = CORRIDOR_END, -SIDE_EDGE -- x0 is further from the pitch
-	box("Floor", Vector3.new(x1 - x0, DECK_Y, w + WALL_T * 2), Vector3.new((x0 + x1) / 2, DECK_Y / 2, 0),
-		Color3.fromRGB(130, 128, 122), Enum.Material.Concrete, tunnel)
-	box("Ceiling", Vector3.new(x1 - x0 - PORTAL_D, 0.6, w + WALL_T * 2), Vector3.new((x0 + x1 - PORTAL_D) / 2, DECK_Y + h + 0.3, 0),
-		dark, Enum.Material.Concrete, tunnel)
-	-- side walls, broken by a doorway into each dressing room. The front few
-	-- studs are brick piers (X134), under the club-colour header.
-	for _, zSign in { -1, 1 } do
-		local zc = zSign * (TUNNEL_HALF + WALL_T / 2)
-		local runs = { { x0, ROOM_DOOR[1] }, { ROOM_DOOR[2], x1 - PORTAL_D } }
-		for _, run in runs do
-			box("Wall", Vector3.new(run[2] - run[1], h, WALL_T), Vector3.new((run[1] + run[2]) / 2, DECK_Y + h / 2, zc),
-				concrete, Enum.Material.Concrete, tunnel)
-		end
-		box("Surround", Vector3.new(PORTAL_D, h, WALL_T), Vector3.new(x1 - PORTAL_D / 2, DECK_Y + h / 2, zc),
-			STAND_BRICK, Enum.Material.Brick, tunnel)
-		-- header over the doorway
-		box("DoorHeader", Vector3.new(ROOM_DOOR[2] - ROOM_DOOR[1], 3, WALL_T), Vector3.new((ROOM_DOOR[1] + ROOM_DOOR[2]) / 2, DECK_Y + h - 1.5, zc),
-			concrete, Enum.Material.Concrete, tunnel)
-	end
-	-- lintel over the mouth, carrying the club name
-	local header = box("Header", Vector3.new(PORTAL_D, 3, w + WALL_T * 2), Vector3.new(x1 - PORTAL_D / 2, DECK_Y + h + 1.5, 0),
-		colour, Enum.Material.SmoothPlastic, tunnel)
-	box("HeaderTrim", Vector3.new(PORTAL_D + 0.3, 0.4, w + WALL_T * 2 + 0.3), Vector3.new(x1 - PORTAL_D / 2, DECK_Y + h + 3.2, 0),
-		Color3.fromRGB(206, 196, 176), Enum.Material.Concrete, tunnel)
-	-- strip lights down the middle
-	for i = 0, 5 do
-		local lx = x1 - 10 - i * ((x1 - x0) - 14) / 5
-		local strip = box("Strip", Vector3.new(5, 0.3, 1.6), Vector3.new(lx, DECK_Y + h - 0.3, 0),
-			Color3.fromRGB(255, 250, 230), Enum.Material.Neon, tunnel)
-		strip.CanCollide = false
-		local light = Instance.new("PointLight")
-		light.Brightness = 1.6
-		light.Range = 30
-		light.Color = Color3.fromRGB(255, 245, 225)
-		light.Parent = strip
-	end
-
-	-- name plate facing the pitch (+X side of the header)
-	local gui = Instance.new("SurfaceGui")
-	gui.Face = Enum.NormalId.Right
-	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 24
-	gui.LightInfluence = 0.25
-	gui.Parent = header
-	local label = Instance.new("TextLabel")
-	label.Name = "ClubName"
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.GothamBlack
-	label.TextScaled = true
-	label.TextColor3 = Color3.new(1, 1, 1)
-	label.Text = "CLUB"
-	label.Parent = gui
-	local pad = Instance.new("UIPadding")
-	pad.PaddingTop = UDim.new(0.15, 0)
-	pad.PaddingBottom = UDim.new(0.15, 0)
-	pad.Parent = label
-end
-
--- Home and away dressing rooms, one off each side of the tunnel corridor.
--- No mechanics yet: they are a place, and the team walks out of them.
-local function buildDressingRooms(parent: Instance)
-	local rooms = Instance.new("Model")
-	rooms.Name = "DressingRooms"
-	rooms.Parent = parent
-	local concrete = Color3.fromRGB(96, 98, 104)
-	local tile = Color3.fromRGB(150, 148, 142)
-	local h = TUNNEL_H
-	local inner = TUNNEL_HALF + WALL_T -- the corridor wall is the room's near wall
-	local outer = inner + ROOM_DEPTH
-
-	for _, zSign in { -1, 1 } do
-		local home = zSign > 0
-		local room = Instance.new("Model")
-		room.Name = if home then "Home" else "Away"
-		room.Parent = rooms
-		local kit = if home then Config.HomeKit else Color3.fromRGB(150, 150, 155)
-
-		-- extents helper: z is given as a distance from the corridor and
-		-- mirrored onto this side, so both rooms are built from one set of numbers
-		local function slab(name: string, x0: number, x1: number, y0: number, y1: number, zNear: number, zFar: number, colour: Color3, material: Enum.Material): Part
-			return part({
-				Name = name,
-				Size = Vector3.new(x1 - x0, y1 - y0, zFar - zNear),
-				CFrame = CFrame.new((x0 + x1) / 2, DECK_Y + (y0 + y1) / 2, zSign * (zNear + zFar) / 2),
-				Color = colour,
-				Material = material,
-				Parent = room,
-			})
-		end
-
-		slab("Floor", ROOM_X0 - WALL_T, ROOM_X1 + WALL_T, -DECK_Y, 0, inner, outer + WALL_T, tile, Enum.Material.Concrete)
-		slab("Ceiling", ROOM_X0 - WALL_T, ROOM_X1 + WALL_T, h, h + 0.6, inner, outer + WALL_T, Color3.fromRGB(55, 55, 60), Enum.Material.Concrete)
-		slab("WallOuter", ROOM_X0 - WALL_T, ROOM_X1 + WALL_T, 0, h, outer, outer + WALL_T, concrete, Enum.Material.Concrete)
-		slab("WallEndFar", ROOM_X0 - WALL_T, ROOM_X0, 0, h, inner, outer, concrete, Enum.Material.Concrete)
-		slab("WallEndNear", ROOM_X1, ROOM_X1 + WALL_T, 0, h, inner, outer, concrete, Enum.Material.Concrete)
-		-- X141: brick skins on the outside faces (the rooms stay concrete inside),
-		-- wrapping the corners and up over the ceiling's edge
-		local skin, top = 0.2, h + 0.6
-		slab("Cladding", ROOM_X0 - WALL_T - skin, ROOM_X1 + WALL_T + skin, -0.2, top, outer + WALL_T, outer + WALL_T + skin, STAND_BRICK, Enum.Material.Brick)
-		slab("Cladding", ROOM_X0 - WALL_T - skin, ROOM_X0 - WALL_T, -0.2, top, inner, outer + WALL_T, STAND_BRICK, Enum.Material.Brick)
-		slab("Cladding", ROOM_X1 + WALL_T, ROOM_X1 + WALL_T + skin, -0.2, top, inner, outer + WALL_T, STAND_BRICK, Enum.Material.Brick)
-		-- and the bit of corridor wall showing between the room and the office
-		slab("Cladding", CORRIDOR_END + 0.5 + skin, ROOM_X0 - WALL_T - skin, -0.2, top, TUNNEL_HALF + WALL_T, TUNNEL_HALF + WALL_T + skin, STAND_BRICK, Enum.Material.Brick)
-
-		-- Benches down both long sides with a peg rail and a hung shirt above
-		-- each place. The inner run is broken either side of the doorway so
-		-- the way in from the corridor stays clear.
-		local sides = {
-			{ name = "Outer", wallZ = outer, dir = -1, runs = { { ROOM_X0 + 2, ROOM_X1 - 2 } } },
-			{ name = "Inner", wallZ = inner, dir = 1, runs = { { ROOM_X0 + 2, ROOM_DOOR[1] - 1 }, { ROOM_DOOR[2] + 1, ROOM_X1 - 2 } } },
-		}
-		for _, side in sides do
-			local seatZ = side.wallZ + side.dir * 3.2 -- front edge of the bench
-			local z0 = math.min(side.wallZ, seatZ)
-			local z1 = math.max(side.wallZ, seatZ)
-			local legZ = side.wallZ + side.dir * 2.4
-			local railZ = side.wallZ + side.dir * 0.4
-			for _, run in side.runs do
-				if run[2] - run[1] < 4 then
-					continue
-				end
-				slab("Bench" .. side.name, run[1], run[2], 1.6, 2.1, z0, z1, Color3.fromRGB(120, 85, 55), Enum.Material.WoodPlanks)
-				slab("BenchLeg" .. side.name, run[1], run[2], 0, 1.6, math.min(legZ, legZ + side.dir * 0.8), math.max(legZ, legZ + side.dir * 0.8), Color3.fromRGB(70, 70, 75), Enum.Material.Metal)
-				slab("PegRail" .. side.name, run[1], run[2], 6.4, 6.8, math.min(side.wallZ, railZ), math.max(side.wallZ, railZ), Color3.fromRGB(70, 70, 75), Enum.Material.Metal)
-				-- shirts on the pegs, one per place
-				local places = math.max(1, math.floor((run[2] - run[1]) / 4))
-				local step = (run[2] - run[1]) / places
-				for i = 1, places do
-					local sx = run[1] + step * (i - 0.5)
-					local sz0 = math.min(side.wallZ + side.dir * 0.4, side.wallZ + side.dir * 0.8)
-					local shirt = slab("Shirt", sx - 1.6, sx + 1.6, 3.4, 6.4, sz0, sz0 + 0.4, kit, Enum.Material.Fabric)
-					shirt.CanCollide = false
-				end
-			end
-		end
-
-		-- tactics board flat on the far end wall, and a light in the middle
-		local board = slab("TacticsBoard", ROOM_X0, ROOM_X0 + 0.4, 3.5, 8.5, inner + 8, outer - 8, Color3.fromRGB(35, 70, 45), Enum.Material.SmoothPlastic)
-		addSign(board, if home then "HOME" else "AWAY", { Enum.NormalId.Right })
-		local bulb = slab("Bulb", (ROOM_X0 + ROOM_X1) / 2 - 3, (ROOM_X0 + ROOM_X1) / 2 + 3, h - 0.6, h - 0.3, inner + ROOM_DEPTH / 2 - 1, inner + ROOM_DEPTH / 2 + 1,
-			Color3.fromRGB(255, 250, 230), Enum.Material.Neon)
-		bulb.CanCollide = false
-		local light = Instance.new("PointLight")
-		light.Brightness = 1.5
-		light.Range = 34
-		light.Color = Color3.fromRGB(255, 245, 225)
-		light.Parent = bulb
 	end
 end
 
@@ -1050,227 +876,6 @@ local function buildForecourt(parent: Instance)
 	end
 end
 
-local OFFICE_Y = DECK_Y + 0.1 -- office floor, a touch proud of the corridor floor
-
-local function buildOffice(parent: Instance)
-	local office = Instance.new("Model")
-	office.Name = "Office"
-	office.Parent = parent
-
-	local w, d, h = OFFICE_W, OFFICE_D, OFFICE_H
-	-- door faces east, onto the far end of the tunnel corridor
-	local cx, cz = OFFICE_CX, OFFICE_CZ
-	local wallColor = Color3.fromRGB(170, 160, 135) -- stained beige
-	local wallMat = Enum.Material.Concrete
-
-	box("Floor", Vector3.new(w, 1, d), Vector3.new(cx, OFFICE_Y - 0.5, cz),
-		Color3.fromRGB(95, 80, 60), Enum.Material.WoodPlanks, office)
-	box("Roof", Vector3.new(w + 2, 1, d + 2), Vector3.new(cx, OFFICE_Y + h + 0.5, cz),
-		Color3.fromRGB(70, 70, 70), Enum.Material.Slate, office)
-
-	local wy = OFFICE_Y + h / 2
-	local wallW = box("WallW", Vector3.new(1, h, d), Vector3.new(cx - w / 2, wy, cz), wallColor, wallMat, office)
-	local wallN = box("WallN", Vector3.new(w, h, 1), Vector3.new(cx, wy, cz - d / 2), wallColor, wallMat, office)
-	-- X170: the early office is rundown (CLAUDE.md s5): damp stains on the
-	-- inside of the west and north walls and a curling fixtures notice behind
-	-- the desk, drawn with SurfaceGuis (no parts)
-	local function wallGui(wall: BasePart, face: Enum.NormalId): SurfaceGui
-		local gui = Instance.new("SurfaceGui")
-		gui.Name = "Wear"
-		gui.Face = face
-		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		gui.PixelsPerStud = 20
-		gui.LightInfluence = 1
-		gui.Parent = wall
-		return gui
-	end
-	local function stain(gui: SurfaceGui, x: number, y: number, sw: number, sh: number)
-		local f = Instance.new("Frame")
-		f.Name = "Damp"
-		f.Position = UDim2.fromScale(x, y)
-		f.Size = UDim2.fromScale(sw, sh)
-		f.BackgroundColor3 = Color3.fromRGB(110, 96, 70)
-		f.BackgroundTransparency = 0.72
-		f.BorderSizePixel = 0
-		f.Parent = gui
-		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0.5, 0)
-		corner.Parent = f
-	end
-	local westGui = wallGui(wallW, Enum.NormalId.Right) -- +X, into the room
-	stain(westGui, 0.02, 0.62, 0.22, 0.34)
-	stain(westGui, 0.1, 0.8, 0.3, 0.2)
-	stain(westGui, 0.8, 0.0, 0.18, 0.2)
-	local northGui = wallGui(wallN, Enum.NormalId.Back) -- +Z, into the room
-	stain(northGui, 0.0, 0.0, 0.16, 0.24)
-	stain(northGui, 0.86, 0.7, 0.14, 0.3)
-	local notice = Instance.new("Frame")
-	notice.Name = "FixturesNotice"
-	notice.AnchorPoint = Vector2.new(0.5, 0.5)
-	notice.Position = UDim2.fromScale(0.5, 0.38)
-	notice.Size = UDim2.fromOffset(60, 76)
-	notice.Rotation = -4
-	notice.BackgroundColor3 = Color3.fromRGB(236, 228, 204)
-	notice.BorderSizePixel = 0
-	notice.Parent = westGui
-	local noticeText = Instance.new("TextLabel")
-	noticeText.BackgroundTransparency = 1
-	noticeText.Size = UDim2.fromScale(0.86, 0.9)
-	noticeText.Position = UDim2.fromScale(0.07, 0.05)
-	noticeText.Font = Enum.Font.PatrickHand
-	noticeText.TextScaled = true
-	noticeText.TextColor3 = Color3.fromRGB(40, 40, 46)
-	noticeText.Name = "Lines"
-	-- X301: filled from the real fixture list by SeasonService; this is only
-	-- what the notice says before a season exists
-	noticeText.Text = "FIXTURES\n(none yet)"
-	noticeText.Parent = notice
-	box("WallS", Vector3.new(w, h, 1), Vector3.new(cx, wy, cz + d / 2), wallColor, wallMat, office)
-	-- east wall has a doorway facing the ground
-	local doorW = 8
-	local segLen = (d - doorW) / 2
-	box("WallE1", Vector3.new(1, h, segLen), Vector3.new(cx + w / 2, wy, cz - (doorW / 2 + segLen / 2)), wallColor, wallMat, office)
-	box("WallE2", Vector3.new(1, h, segLen), Vector3.new(cx + w / 2, wy, cz + (doorW / 2 + segLen / 2)), wallColor, wallMat, office)
-	box("DoorHeader", Vector3.new(1, 3, doorW), Vector3.new(cx + w / 2, OFFICE_Y + h - 1.5, cz), wallColor, wallMat, office)
-	-- X141: brick skins outside (the stained beige stays inside), wrapping the
-	-- corners; the east skins stop at the tunnel corridor's walls
-	local skin = 0.2
-	local skinH = h + 1
-	local skinY = OFFICE_Y - 1 + skinH / 2
-	local ow, od = w / 2 + 0.5, d / 2 + 0.5 -- outer faces
-	box("Cladding", Vector3.new(skin, skinH, od * 2), Vector3.new(cx - ow - skin / 2, skinY, cz), STAND_BRICK, Enum.Material.Brick, office)
-	for _, zSign in { -1, 1 } do
-		box("Cladding", Vector3.new(ow * 2 + skin * 2, skinH, skin), Vector3.new(cx, skinY, cz + zSign * (od + skin / 2)), STAND_BRICK, Enum.Material.Brick, office)
-		local z0 = TUNNEL_HALF + WALL_T
-		box("Cladding", Vector3.new(skin, skinH, od - z0), Vector3.new(cx + ow + skin / 2, skinY, cz + zSign * (z0 + od) / 2), STAND_BRICK, Enum.Material.Brick, office)
-	end
-
-	-- X373: furnished from the Poly Haven kit instead of boxes. The old desk was
-	-- 4 x 3 x 10 studs -- 3.6 m deep and 1.1 m tall, which is nothing like a
-	-- desk -- and the "computer" was a 1 x 2 x 2.5 block. Every prop here is
-	-- modelled at real scale, so it sits right beside a 5-stud character.
-	--
-	-- Anything the kit is missing falls back to a grey block inside KitPlacer,
-	-- so a clone with no uploads still builds an office you can walk around.
-	local function prop(name: string, at: Vector3, yaw: number, size: Vector3): BasePart?
-		local m = KitPlacer.place("PH__" .. name, CFrame.new(at) * CFrame.Angles(0, yaw, 0), office, {
-			fallbackSize = size,
-			fallbackColor = Color3.fromRGB(120, 110, 100),
-		})
-		return m and m:FindFirstChildWhichIsA("BasePart", true)
-	end
-
-	local floor = OFFICE_Y
-	local deskX, deskZ = cx - 8, cz
-	-- desk turned a quarter so its 5.5-stud length runs along Z, matching the
-	-- old desk's footprint, with the working side facing the chair at -X
-	prop("metal_office_desk", Vector3.new(deskX, floor, deskZ), math.pi / 2, Vector3.new(2.5, 2.2, 5.5))
-	local DESK_TOP = floor + 2.2
-
-	-- the laptop IS the club computer: it carries the screen and the prompt
-	local computer = prop("classic_laptop", Vector3.new(deskX, DESK_TOP, deskZ), -math.pi / 2, Vector3.new(1.8, 1.3, 1.3))
-		or box("Computer", Vector3.new(1.8, 1.3, 1.3), Vector3.new(deskX, DESK_TOP + 0.65, deskZ),
-			Color3.fromRGB(200, 200, 190), Enum.Material.Plastic, office)
-
-	-- desk clutter
-	prop("office_notepads", Vector3.new(deskX - 0.2, DESK_TOP, deskZ - 1.6), 0.4, Vector3.new(0.6, 0.1, 0.8))
-	prop("stationery_supplies", Vector3.new(deskX + 0.3, DESK_TOP, deskZ + 1.5), -0.2, Vector3.new(0.5, 0.2, 0.2))
-
-	-- along the back (-X) wall, clear of the desk
-	prop("wooden_bookshelf_worn", Vector3.new(cx - 12.8, floor, cz - 8), math.pi / 2, Vector3.new(1.6, 5.7, 3.8))
-	local cabinet = prop("drawer_cabinet", Vector3.new(cx - 12.9, floor, cz + 8), math.pi / 2, Vector3.new(1.3, 5.2, 3.1))
-	if cabinet then
-		-- a small telly on top of the cabinet, turned into the room
-		prop("Television_01", Vector3.new(cx - 12.9, floor + 5.2, cz + 8), math.pi / 2, Vector3.new(1.3, 1.3, 1.6))
-	end
-
-	-- a spare chair for a visitor, and the odds and ends of a rundown office
-	prop("painted_wooden_bench", Vector3.new(cx + 6, floor, cz - 10), 0, Vector3.new(3.2, 2.4, 1.4))
-	prop("korean_fire_extinguisher_01", Vector3.new(cx + 12.6, floor, cz - 4), 0, Vector3.new(0.8, 1.8, 1.0))
-	prop("cardboard_box_01", Vector3.new(cx + 9.5, floor, cz + 11), 0.6, Vector3.new(1.1, 0.9, 1.4))
-	prop("football", Vector3.new(cx + 7.8, floor, cz + 12.2), 0, Vector3.new(0.6, 0.6, 0.6))
-
-	-- X373: the room is 28 x 30 studs, so a desk and a bookshelf leave it
-	-- looking abandoned. These fill it out, and for a grassroots club a pair of
-	-- boots and a spare ball say more about the place than filing cabinets do.
-	prop("rubber_boots", Vector3.new(cx + 11.5, floor, cz + 6), -0.5, Vector3.new(1.2, 1.2, 1.6))
-	prop("dirty_football", Vector3.new(cx + 8.6, floor, cz + 11.4), 0, Vector3.new(0.6, 0.6, 0.6))
-	prop("wooden_ladder", Vector3.new(cx + 12.2, floor, cz - 12), math.pi / 2, Vector3.new(1.4, 6.0, 0.6))
-	-- the tyre is modelled standing on its edge (1.6 x 1.7 x 0.5), so it is
-	-- tipped a quarter turn about X to lie flat on the floor like training kit
-	local tyre = KitPlacer.place("PH__old_tyre",
-		CFrame.new(cx - 2, floor, cz + 12) * CFrame.Angles(math.pi / 2, 0.3, 0), office, {
-			fallbackSize = Vector3.new(1.6, 0.5, 1.6),
-			fallbackColor = Color3.fromRGB(30, 30, 32),
-		})
-	-- PH__medical_box measures 1.4 x 0.2 x 1.0: it is a flat panel, not a box,
-	-- and reads as a sheet of card on a shelf. Storage boxes instead.
-	local _ = tyre
-	prop("cardboard_box_01", Vector3.new(cx - 3.2, floor, cz - 12.4), -0.4, Vector3.new(1.1, 0.9, 1.4))
-	prop("cardboard_box_01", Vector3.new(cx - 2.4, floor + 0.9, cz - 12.2), 0.8, Vector3.new(1.1, 0.9, 1.4))
-	prop("stationery_supplies", Vector3.new(cx - 12.6, floor + 5.7, cz - 8), math.pi / 2, Vector3.new(0.5, 0.2, 0.2))
-	-- a bin beside the desk, from the street kit (base and lid are separate meshes)
-	KitPlacer.place("UKSP__TrachCan__TrashcanBase", CFrame.new(deskX + 3.4, floor, deskZ - 3.2), office, {
-		fallbackSize = Vector3.new(2.1, 2.8, 1.9),
-		fallbackColor = Color3.fromRGB(60, 62, 66),
-	})
-	KitPlacer.place("UKSP__TrachCan__TrashcanLid", CFrame.new(deskX + 3.4, floor + 2.8, deskZ - 3.2), office, {
-		fallbackSize = Vector3.new(2.0, 0.5, 2.0),
-		fallbackColor = Color3.fromRGB(60, 62, 66),
-	})
-	-- X169: an old green-screen monitor facing the chair (-X)
-	local screen = Instance.new("SurfaceGui")
-	screen.Name = "Screen"
-	screen.Face = Enum.NormalId.Left
-	screen.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	screen.PixelsPerStud = 60
-	screen.LightInfluence = 0
-	screen.Parent = computer
-	local glass = Instance.new("TextLabel")
-	glass.Name = "Display"
-	glass.Position = UDim2.fromScale(0.08, 0.1)
-	glass.Size = UDim2.fromScale(0.84, 0.66)
-	glass.BackgroundColor3 = Color3.fromRGB(12, 30, 16)
-	glass.BorderSizePixel = 0
-	glass.Font = Enum.Font.Code
-	glass.TextScaled = true
-	glass.TextXAlignment = Enum.TextXAlignment.Left
-	glass.TextColor3 = Color3.fromRGB(90, 230, 110)
-	glass.Text = " CLUB OFFICE\n > _"
-	glass.Parent = screen
-	-- Club management lives on the office computer. The client opens the panel
-	-- when this prompt fires (ProximityPromptService.PromptTriggered).
-	local clubPrompt = addPrompt(computer, "Club Office", "Manage squad, scouting & staff")
-	clubPrompt.Name = "ClubPrompt"
-	clubPrompt.HoldDuration = 0
-	-- X373: the chair at the desk, facing it (+X). Was three boxes.
-	prop("modern_arm_chair_01", Vector3.new(cx - 11.8, floor, cz), math.pi / 2, Vector3.new(2.3, 2.8, 2.7))
-
-	local light = Instance.new("PointLight")
-	light.Brightness = 1.2
-	light.Range = 40
-	light.Color = Color3.fromRGB(255, 235, 200)
-	light.Parent = box("Bulb", Vector3.new(1, 0.5, 1), Vector3.new(cx, OFFICE_Y + h - 1, cz),
-		Color3.fromRGB(255, 240, 200), Enum.Material.Neon, office)
-
-	-- spawn inside the office, facing the door
-	local spawn = Instance.new("SpawnLocation")
-	spawn.Name = "OfficeSpawn"
-	spawn.Size = Vector3.new(4, 1, 4)
-	spawn.CFrame = CFrame.new(cx + 2, OFFICE_Y + 0.5, cz) * CFrame.Angles(0, -math.pi / 2, 0)
-	spawn.Anchored = true
-	spawn.Transparency = 1
-	spawn.CanCollide = false
-	spawn.Neutral = true
-	spawn.Duration = 0
-	-- X278: born disabled. Owners are always placed by PlotService.sendHome, and
-	-- an enabled neutral spawn during the club's load (a yielding store read plus
-	-- the world build) dropped anyone joining or respawning into a stranger's
-	-- office; a later rebuild (reload/wipe) used to re-enable it for good.
-	spawn.Enabled = false
-	spawn.Parent = office
-end
-
 -- X317: the peg rails hung blank kit-colour slabs. The home room named nobody
 -- in the starting XI and the away room was a fixed grey, even though X263/X297
 -- already know the visitors' colour and X301 proved the world can read live
@@ -1405,47 +1010,6 @@ local function bindDressingRooms()
 	task.defer(refresh) -- review: rebuilt rooms need re-hanging
 end
 
--- X312: a new player spawns at the office desk facing a wall. Nothing in the
--- office, the corridor or the tunnel says the pitch is that way, though
--- CLAUDE.md s12 gives minute 0-1 to "walk outside and immediately see your tiny
--- grassroots club". Three signs and an arrow, lit so they read in a dim
--- corridor: over the office door, on the corridor wall, and on the tunnel floor.
-local function buildWayOut(parent: Instance)
-	local signs = Instance.new("Model")
-	signs.Name = "WayOut"
-	signs.Parent = parent
-
-	local green = Color3.fromRGB(26, 92, 48)
-	-- over the office doorway, facing back into the room
-	local overDoor = box("OfficeExit", Vector3.new(0.4, 2.2, 7), Vector3.new(OFFICE_CX + OFFICE_W / 2 - 0.7, OFFICE_Y + OFFICE_H - 3.4, OFFICE_CZ),
-		green, Enum.Material.SmoothPlastic, signs)
-	addSign(overDoor, "TO THE PITCH →", { Enum.NormalId.Left })
-
-	-- on the corridor wall, halfway along, facing anyone walking out
-	local corridor = box("CorridorExit", Vector3.new(6, 2, 0.3), Vector3.new(CORRIDOR_END + 34, DECK_Y + TUNNEL_H - 2.4, TUNNEL_HALF - 0.25),
-		green, Enum.Material.SmoothPlastic, signs)
-	addSign(corridor, "PITCH →", { Enum.NormalId.Front })
-
-	-- and a painted arrow on the tunnel floor at the mouth
-	local arrow = box("TunnelArrow", Vector3.new(10, 0.08, 4), Vector3.new(-(SIDE_EDGE + 8), DECK_Y + 0.06, 0),
-		Color3.fromRGB(236, 232, 210), Enum.Material.SmoothPlastic, signs)
-	local gui = Instance.new("SurfaceGui")
-	gui.Name = "Arrow"
-	gui.Face = Enum.NormalId.Top
-	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 24
-	gui.LightInfluence = 0.3
-	gui.Parent = arrow
-	local label = Instance.new("TextLabel")
-	label.BackgroundTransparency = 1
-	label.Size = UDim2.fromScale(1, 1)
-	label.Font = Enum.Font.GothamBlack
-	label.TextScaled = true
-	label.TextColor3 = Color3.fromRGB(40, 44, 40)
-	label.Text = "PITCH →"
-	label.Parent = gui
-end
-
 -- X291: the office only ever showed league titles, so a club promoted four
 -- times without winning a division had a bare wall and nothing at all for the
 -- players who got it there. A pennant per promotion along the wall above the
@@ -1477,8 +1041,8 @@ function WorldBuilder.buildHonours(promotions: number, servant: any?)
 
 	-- pennants: a little cloth triangle each, hung in a row on the north wall
 	-- above the trophy shelf
-	local wallZ = OFFICE_CZ - OFFICE_D / 2 + 0.9
-	local startX = OFFICE_CX - (shown - 1) * 3 / 2
+	local wallZ = OFFICE.z0 + 0.5
+	local startX = NORTH_WALL_CX - (shown - 1) * 3 / 2
 	for i = 1, shown do
 		local x = startX + (i - 1) * 3
 		local cloth = box(("Pennant%d"):format(i), Vector3.new(2, 3, 0.2), Vector3.new(x, OFFICE_Y + 10.4, wallZ),
@@ -1515,11 +1079,11 @@ function WorldBuilder.buildHonours(promotions: number, servant: any?)
 	-- shelf, two of the trophies and the sixth pennant - that wall only has
 	-- 2.5 clear studs. It hangs on the end wall instead, well clear of the
 	-- fixtures notice at the middle of it.
-	local frame = box("ShirtFrame", Vector3.new(0.4, 8, 6), Vector3.new(OFFICE_CX - OFFICE_W / 2 + 0.9, OFFICE_Y + 8, OFFICE_CZ + 9),
+	local frame = box("ShirtFrame", Vector3.new(0.4, 8, 6), Vector3.new(OFFICE.x1 - 0.4, OFFICE_Y + 7.6, OFFICE.z1 - 4.5),
 		Color3.fromRGB(70, 50, 32), Enum.Material.Wood, model)
 	local gui = Instance.new("SurfaceGui")
 	gui.Name = "Shirt"
-	gui.Face = Enum.NormalId.Right
+	gui.Face = Enum.NormalId.Left -- -X, into the room from the east wall
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = 34
 	gui.LightInfluence = 0.35
@@ -1805,15 +1369,15 @@ function WorldBuilder.dressOffice(tier: number)
 	fittings.Name = "Fittings"
 	fittings.Parent = office
 
-	local cx, cz = OFFICE_CX, OFFICE_CZ
-	local w, d, h = OFFICE_W, OFFICE_D, OFFICE_H
+	local h = OFFICE_H
+	local south = OFFICE.z1 -- inner face of the south wall
 
 	-- the walls themselves: painted over once the club is out of the bottom
 	local painted = level >= OFFICE_TIER_PAINT
 	local wallColour = if painted then Color3.fromRGB(226, 222, 210) else Color3.fromRGB(170, 160, 135)
-	for _, name in { "WallW", "WallN", "WallS", "WallE1", "WallE2", "DoorHeader" } do
-		local wall = office:FindFirstChild(name)
-		if wall and wall:IsA("BasePart") then
+	-- the room's linings, headers and sills included (Clubhouse names them all Wall*)
+	for _, wall in office:GetChildren() do
+		if wall:IsA("BasePart") and wall.Name:sub(1, 4) == "Wall" then
 			wall.Color = wallColour
 		end
 	end
@@ -1825,7 +1389,7 @@ function WorldBuilder.dressOffice(tier: number)
 	end
 
 	-- the computer: a green-screen terminal at the bottom, a flat screen later
-	local computer = office:FindFirstChild("Computer")
+	local computer = office:FindFirstChild("Computer", true) -- a mesh inside the laptop model
 	local display = computer and computer:FindFirstChild("Display", true)
 	if display and display:IsA("TextLabel") then
 		if level >= OFFICE_TIER_SCREEN then
@@ -1854,12 +1418,12 @@ function WorldBuilder.dressOffice(tier: number)
 	end
 
 	if painted then
-		-- a filing cabinet against the south wall: two drawers and a top
-		local cabX = cx - w / 2 + 3
-		local cabZ = cz + d / 2 - 4
+		-- a filing cabinet against the east wall: two drawers and a top
+		local cabX = OFFICE.x1 - 1.5
+		local cabZ = OFFICE.z0 + 5
 		box("Cabinet", Vector3.new(3, 5, 4), Vector3.new(cabX, OFFICE_Y + 2.5, cabZ),
 			Color3.fromRGB(120, 124, 130), Enum.Material.Metal, fittings)
-		box("CabinetHandle", Vector3.new(0.3, 0.4, 2.4), Vector3.new(cabX + 1.6, OFFICE_Y + 3.4, cabZ),
+		box("CabinetHandle", Vector3.new(0.3, 0.4, 2.4), Vector3.new(cabX - 1.65, OFFICE_Y + 3.4, cabZ),
 			Color3.fromRGB(60, 62, 66), Enum.Material.Metal, fittings)
 	end
 
@@ -1868,7 +1432,7 @@ function WorldBuilder.dressOffice(tier: number)
 		-- the far end of the long wall: the wall opposite carries the trophy
 		-- shelf and the promotion pennants (X291). At cx - 11 the board ran
 		-- through the end wall and out of the brick outside (review of X290).
-		local board = box("TacticsBoard", Vector3.new(10, 6, 0.3), Vector3.new(cx - 8, OFFICE_Y + h - 5, cz + d / 2 - 0.6),
+		local board = box("TacticsBoard", Vector3.new(10, 6, 0.3), Vector3.new(-144, OFFICE_Y + h - 5, south - 0.15),
 			Color3.fromRGB(28, 70, 40), Enum.Material.SmoothPlastic, fittings)
 		local gui = Instance.new("SurfaceGui")
 		gui.Name = "Tactics"
@@ -1910,12 +1474,12 @@ function WorldBuilder.dressOffice(tier: number)
 			end
 		end
 		-- a chair on the visitor's side of the desk
-		local guestX = cx - 4
-		box("GuestChairBase", Vector3.new(0.4, 1.4, 0.4), Vector3.new(guestX, OFFICE_Y + 0.7, cz + 3),
+		local guestX, guestZ = OFFICE.x0 + 10, 31
+		box("GuestChairBase", Vector3.new(0.4, 1.4, 0.4), Vector3.new(guestX, OFFICE_Y + 0.7, guestZ),
 			Color3.fromRGB(40, 40, 42), Enum.Material.Metal, fittings)
-		box("GuestChair", Vector3.new(2, 0.5, 2), Vector3.new(guestX, OFFICE_Y + 1.65, cz + 3),
+		box("GuestChair", Vector3.new(2, 0.5, 2), Vector3.new(guestX, OFFICE_Y + 1.65, guestZ),
 			Color3.fromRGB(70, 74, 82), Enum.Material.Fabric, fittings)
-		box("GuestChairBack", Vector3.new(0.4, 2.2, 1.8), Vector3.new(guestX + 0.8, OFFICE_Y + 3, cz + 3),
+		box("GuestChairBack", Vector3.new(0.4, 2.2, 1.8), Vector3.new(guestX + 0.8, OFFICE_Y + 3, guestZ),
 			Color3.fromRGB(70, 74, 82), Enum.Material.Fabric, fittings)
 	end
 
@@ -1927,7 +1491,7 @@ function WorldBuilder.dressOffice(tier: number)
 		-- on the long wall, not the one behind the desk: that one carries the
 		-- fixtures notice (X170/X301) and the panel would cover it
 		-- off-centre, so it clears the tactics board at the other end (review)
-		local panel = box("CrestPanel", Vector3.new(14, 8, 0.3), Vector3.new(cx + 6, OFFICE_Y + h - 6, cz + d / 2 - 0.7),
+		local panel = box("CrestPanel", Vector3.new(14, 8, 0.3), Vector3.new(OFFICE.x1 - 9.5, OFFICE_Y + h - 6, south - 0.15),
 			Color3.fromRGB(26, 30, 38), Enum.Material.SmoothPlastic, fittings)
 		local gui = Instance.new("SurfaceGui")
 		gui.Name = "Brand"
@@ -1952,9 +1516,9 @@ function WorldBuilder.dressOffice(tier: number)
 		label.Parent = gui
 		-- and something alive in the corner
 		-- the far corner: the near one is where the framed shirt hangs (X291)
-		box("PlantPot", Vector3.new(2, 2, 2), Vector3.new(cx - w / 2 + 4, OFFICE_Y + 1, cz - d / 2 + 4),
+		box("PlantPot", Vector3.new(2, 2, 2), Vector3.new(OFFICE.x1 - 1.3, OFFICE_Y + 1, south - 1.3),
 			Color3.fromRGB(150, 90, 60), Enum.Material.Slate, fittings)
-		box("Plant", Vector3.new(3, 5, 3), Vector3.new(cx - w / 2 + 4, OFFICE_Y + 4.5, cz - d / 2 + 4),
+		box("Plant", Vector3.new(2.4, 5, 2.4), Vector3.new(OFFICE.x1 - 1.3, OFFICE_Y + 4.5, south - 1.3),
 			Color3.fromRGB(60, 120, 60), Enum.Material.Grass, fittings)
 	end
 
@@ -2008,21 +1572,21 @@ function WorldBuilder.buildTrophies(count: number)
 	model.Name = "Trophies"
 	model.Parent = office
 
-	local shelfLen = OFFICE_W - 6
+	local shelfLen = 22
 	local shelfY = OFFICE_Y + 7
-	local shelfZ = OFFICE_CZ - OFFICE_D / 2 + 1.5
-	box("Shelf", Vector3.new(shelfLen, 0.5, 2), Vector3.new(OFFICE_CX, shelfY, shelfZ),
+	local shelfZ = OFFICE.z0 + 1
+	box("Shelf", Vector3.new(shelfLen, 0.5, 2), Vector3.new(NORTH_WALL_CX, shelfY, shelfZ),
 		Color3.fromRGB(110, 75, 45), Enum.Material.Wood, model)
 
 	local gold = Color3.fromRGB(230, 190, 60)
 	local spacing = 3
-	local startX = OFFICE_CX - (shown - 1) * spacing / 2
+	local startX = NORTH_WALL_CX - (shown - 1) * spacing / 2
 	for i = 1, shown do
 		local x = startX + (i - 1) * spacing
 		-- generated trophy mesh when the place has it (README "Assets"), else a primitive cup
 		local placed = Assets.place("Trophy", Vector3.new(x, shelfY + 0.25, shelfZ), model, {
 			height = 2.2,
-			lookAt = Vector3.new(x, shelfY, OFFICE_CZ),
+			lookAt = Vector3.new(x, shelfY, (OFFICE.z0 + OFFICE.z1) / 2),
 			name = "Trophy" .. i,
 		})
 		if placed then
@@ -2058,16 +1622,6 @@ function WorldBuilder.buildTrophies(count: number)
 	PlotContext.place(model)
 end
 
-
-local function buildMatchdayBoard(parent: Instance): ProximityPrompt
-	-- Hung on the corridor wall between the office door and the dressing
-	-- rooms, so the player passes it every time they walk out to the pitch.
-	local post = box("MatchdayBoard", Vector3.new(11, 5, 0.4), Vector3.new(CORRIDOR_END + 9, DECK_Y + 4, TUNNEL_HALF - 0.2),
-		Color3.fromRGB(30, 60, 30), Enum.Material.Wood, parent)
-	addSign(post, "MATCHDAY", { Enum.NormalId.Front })
-	return addPrompt(post, "Matchday Board", "Play Match")
-end
-
 -- ---------------------------------------------------------------- stand plots
 
 local PLOTS = Config.StandPlots
@@ -2100,19 +1654,18 @@ local STAND_SPECS = {
 -- Geometry for one plot at one level, in the plot's local frame. Shared by the
 -- builder and the crowd filler so fans always land on the actual steps.
 --
--- The west stand has the tunnel through it. Rows low enough to hit the tunnel
--- stop dead against its side walls; from `crossRow` up the terrace is high
--- enough to carry straight over the corridor roof, so the only hole left in
--- that stand is the mouth itself. Which row that is falls out of the rake, so
--- the gap closes itself as the stand is upgraded.
+-- The west stand has the clubhouse in the middle of it (docs/CLUBHOUSE_PLAN.md),
+-- so it is two wings, one either side. Each wing is half the length the level
+-- calls for, pushed out from the clubhouse as far as the corner allows, so a
+-- first set of bleachers still appears when it is bought. Everything a stand
+-- has along its length (terrace, back wall, coping, roof, fascia) is built
+-- once per span, which for the other three sides is the whole stand.
 type PlotGeometry = {
 	frame: CFrame,
 	length: number,
 	rows: number,
 	stepHeight: number,
-	spans: { { number } }, -- runs of seating along local Z, split around the tunnel
-	crossRow: number, -- first row that carries over the tunnel; rows + 1 if none does
-	crossY: number, -- underside of that row, sitting on the corridor roof
+	spans: { { number } }, -- runs of stand along local Z
 	spec: any,
 }
 
@@ -2125,18 +1678,10 @@ local function plotGeometry(plot: any, level: number): PlotGeometry?
 	local length = math.floor(maxLength * spec.lengthFrac)
 	local half = length / 2
 	local spans: { { number } } = { { -half, half } }
-	local crossRow, crossY = spec.rows + 1, 0
 	if plot.key == "West" then
-		local g = TUNNEL_OUT
-		spans = if half > g + 8 then { { -half, -g }, { g, half } } else {}
-		crossY = DECK_Y + TUNNEL_H + 0.6 -- top of the corridor roof
-		-- the first row whose deck clears it
-		for i = 1, spec.rows do
-			if DECK_Y + spec.stepHeight * i > crossY then
-				crossRow = i
-				break
-			end
-		end
+		local g = CLUBHOUSE_GAP
+		local far = math.min(g + half, maxLength / 2)
+		spans = { { -far, -g }, { g, far } }
 	end
 	return {
 		frame = frame,
@@ -2144,25 +1689,16 @@ local function plotGeometry(plot: any, level: number): PlotGeometry?
 		rows = spec.rows,
 		stepHeight = spec.stepHeight,
 		spans = spans,
-		crossRow = crossRow,
-		crossY = crossY,
 		spec = spec,
 	}
 end
 
--- The runs of terrace on one row: { z0, z1, underside }. Below `crossRow` the
--- west stand is two runs either side of the tunnel; at and above it, one run
--- straight across, resting on the corridor roof.
-local function rowRuns(geo: PlotGeometry, row: number): { { number } }
+-- The runs of terrace on one row: { z0, z1, underside }. The same on every row
+-- now that nothing carries over the clubhouse; kept per row for the callers.
+local function rowRuns(geo: PlotGeometry, _row: number): { { number } }
 	local runs = {}
 	for _, span in geo.spans do
 		table.insert(runs, { span[1], span[2], 0 })
-	end
-	if #geo.spans == 2 and row >= geo.crossRow then
-		-- the first crossing row rests on the corridor roof, the rest on the
-		-- row below, so the terrace over the tunnel is solid all the way up
-		local under = if row == geo.crossRow then geo.crossY else DECK_Y + geo.stepHeight * (row - 1)
-		table.insert(runs, { geo.spans[1][2], geo.spans[2][1], under })
 	end
 	return runs
 end
@@ -2315,17 +1851,10 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 	-- sends local +Z along local +X (outward). Getting this backwards is
 	-- what made the side panels look inside out.
 	--
-	-- The ends beside the tunnel only close off the rows that stop there, so
-	-- they are as tall as the terrace is at that point and no taller.
-	for s, span in geo.spans do
-		for e, zEnd in { span[1], span[2] } do
-			local atTunnel = #geo.spans == 2 and ((s == 1 and e == 2) or (s == 2 and e == 1))
-			local capRows = if atTunnel then math.min(geo.crossRow - 1, rows) else rows
-			if capRows < 1 then
-				continue
-			end
-			local wallH = stepHeight * capRows
-			local wedgeD = STEP_DEPTH * capRows
+	for _, span in geo.spans do
+		for _, zEnd in { span[1], span[2] } do
+			local wallH = stepHeight * rows
+			local wedgeD = STEP_DEPTH * rows
 			local wedge = Instance.new("WedgePart")
 			wedge.Name = "EndWall"
 			wedge.Anchored = true
@@ -2339,21 +1868,19 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 	end
 
 	if level >= 2 then
-		local length = geo.length
 		local wallH = stepHeight * rows + 3
 		local backX = STAND_X0 + depth + 0.5
 		-- X134: brick back walls with a stone coping and a club-colour band on
 		-- the outside, like the town's brick (was pale concrete)
 		local brick = STAND_BRICK
-		-- The back wall parts either side of the tunnel corridor, which runs
-		-- out through here, and carries on as a lintel above it.
-		local wallRuns = { { -length / 2, length / 2 } }
-		if #geo.spans == 2 then
-			wallRuns = { { -length / 2, -TUNNEL_OUT }, { TUNNEL_OUT, length / 2 } }
-			lbox("BackWall", Vector3.new(1, DECK_Y + wallH - geo.crossY, TUNNEL_OUT * 2),
-				Vector3.new(backX, (geo.crossY + DECK_Y + wallH) / 2, 0), brick, Enum.Material.Brick)
-		end
-		for _, run in wallRuns do
+		-- one back wall, coping and roof per span: the west stand's two wings
+		-- each get their own
+		for _, run in geo.spans do
+			local length = run[2] - run[1]
+			local runMid = (run[1] + run[2]) / 2
+			-- roof pillars along the back wall, about as far apart as a full
+			-- stand's six bays
+			local bays = math.max(1, math.floor(length / (geo.length / 6) + 0.5))
 			local backWall = lbox("BackWall", Vector3.new(1, wallH, run[2] - run[1]), Vector3.new(backX, DECK_Y + wallH / 2, (run[1] + run[2]) / 2),
 				brick, Enum.Material.Brick)
 			-- X242: the club's name and a TEMP slogan painted on a board on the
@@ -2371,25 +1898,23 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 				wallGui.LightInfluence = 0.25 -- X270: near-unlit, so it still reads at an evening fixture
 				wallGui.MaxDistance = 300
 				wallGui.Parent = backWall
-				-- between two roof pillars (every length/6 along the wall, see the
-				-- roof below): the gap nearest the middle of this run. Looking at
-				-- the Right face from outside, the GUI's +x runs along local -Z.
-				local runMid = (run[1] + run[2]) / 2
+				-- between two roof pillars (one per bay, see the roof below): the
+				-- bay nearest the middle of this run. Looking at the Right face
+				-- from outside, the GUI's +x runs along local -Z.
 				local gapMid = runMid
 				local boardW = math.min(runLength - 4, 60)
 				if spec.roof then
-					-- only a roofed stand has pillars (every length/6 along the
-					-- wall, see the roof below); otherwise the wall is bare and the
-					-- board belongs in the middle, as wide as it is allowed
+					-- only a roofed stand has pillars; otherwise the wall is bare
+					-- and the board belongs in the middle, as wide as it is allowed
 					local bestGap = math.huge
-					for k = 0, 5 do
-						local mid = -length / 2 + (length / 6) * (k + 0.5)
-						if mid > run[1] + 2 and mid < run[2] - 2 and math.abs(mid - runMid) < bestGap then
+					for k = 0, bays - 1 do
+						local mid = run[1] + (length / bays) * (k + 0.5)
+						if math.abs(mid - runMid) < bestGap then
 							bestGap = math.abs(mid - runMid)
 							gapMid = mid
 						end
 					end
-					boardW = math.min(length / 6 - 3, boardW)
+					boardW = math.min(length / bays - 3, boardW)
 				end
 				local board = Instance.new("Frame")
 				board.Name = "Board"
@@ -2422,20 +1947,21 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 			end
 			lbox("BackBand", Vector3.new(0.1, 1, run[2] - run[1] - 0.2), Vector3.new(backX + 0.55, DECK_Y + wallH - 2, (run[1] + run[2]) / 2),
 				Config.HomeKit, Enum.Material.SmoothPlastic)
-		end
-		-- coping sunk 0.1 into the wall top, overhanging both faces by 0.2
-		lbox("BackCoping", Vector3.new(1.4, 0.5, length + 0.4), Vector3.new(backX, DECK_Y + wallH + 0.15, 0),
-			Color3.fromRGB(206, 196, 176), Enum.Material.Concrete)
+			-- coping sunk 0.1 into the wall top, overhanging both faces by 0.2
+			lbox("BackCoping", Vector3.new(1.4, 0.5, length + 0.4), Vector3.new(backX, DECK_Y + wallH + 0.15, runMid),
+				Color3.fromRGB(206, 196, 176), Enum.Material.Concrete)
 
-		if spec.roof then
+			if not spec.roof then
+				continue
+			end
 			-- cantilever roof over the seats, held by pillars along the back wall
 			local roofY = DECK_Y + stepHeight * rows + 8
 			local roofDepth = depth + 4
 			-- X134: slate-grey steel sheeting (ridged DiamondPlate), dark steel pillars
-			lbox("Roof", Vector3.new(roofDepth, 0.8, length + 4), Vector3.new(roofDepth / 2 - 2, roofY, 0),
+			lbox("Roof", Vector3.new(roofDepth, 0.8, length + 4), Vector3.new(roofDepth / 2 - 2, roofY, runMid),
 				Color3.fromRGB(88, 94, 102), Enum.Material.DiamondPlate)
 			-- fascia across the front of the roof: the obvious place for the club name
-			local fascia = lbox("Fascia", Vector3.new(0.7, 2.6, length + 4), Vector3.new(roofDepth - 2, roofY + 1.7, 0),
+			local fascia = lbox("Fascia", Vector3.new(0.7, 2.6, length + 4), Vector3.new(roofDepth - 2, roofY + 1.7, runMid),
 				Config.HomeKit, Enum.Material.SmoothPlastic)
 			local gui = Instance.new("SurfaceGui")
 			gui.Name = "NameGui"
@@ -2457,11 +1983,8 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 			pad.PaddingTop = UDim.new(0.18, 0)
 			pad.PaddingBottom = UDim.new(0.18, 0)
 			pad.Parent = label
-			for i = 0, 6 do
-				local z = -length / 2 + (length / 6) * i
-				if #geo.spans == 2 and math.abs(z) < TUNNEL_OUT + 2 then
-					continue -- the tunnel corridor comes out here
-				end
+			for i = 0, bays do
+				local z = run[1] + (length / bays) * i
 				lbox("Pillar", Vector3.new(1.5, roofY - DECK_Y, 1.5), Vector3.new(backX + 1.5, DECK_Y + (roofY - DECK_Y) / 2, z),
 					Color3.fromRGB(58, 62, 68), Enum.Material.Metal)
 			end
@@ -2869,13 +2392,9 @@ function WorldBuilder.build(standLevels: { [string]: number }, amenityLevel: num
 	buildPerimeter(club)
 	buildAdBoards(club)
 	buildDugouts(club)
-	buildTunnel(club)
-	buildDressingRooms(club)
 	buildScoreboard(club)
 	buildTurnstiles(club)
 	buildForecourt(club)
-	buildOffice(club)
-	buildWayOut(club) -- X312
 	-- the team coach, parked on the forecourt beside the office (decorative)
 	buildTeamBus(club, Vector3.new(FORECOURT_CX + 18, DECK_Y, FORECOURT_CZ - 22))
 
@@ -2883,7 +2402,8 @@ function WorldBuilder.build(standLevels: { [string]: number }, amenityLevel: num
 	stands.Name = "Stands"
 	stands.Parent = club
 
-	local matchdayPrompt = buildMatchdayBoard(club)
+	-- office, dressing rooms, lobby and the matchday board (docs/CLUBHOUSE_PLAN.md)
+	local matchdayPrompt = Clubhouse.build(club, { addSign = addSign, addPrompt = addPrompt })
 	local standPrompts: { [string]: ProximityPrompt } = {}
 	for _, plot in PLOTS do
 		standPrompts[plot.key] = buildStandSign(club, plot)

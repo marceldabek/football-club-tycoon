@@ -334,8 +334,9 @@ local function indoors(): boolean
 		return false
 	end
 	local club = ClubRef.clubModel()
-	for _, name in { "Office", "DressingRooms" } do
-		local room = club and club:FindFirstChild(name)
+	-- the lobby (with the corridor and the store) sits inside the Clubhouse model
+	for _, name in { "Office", "DressingRooms", "Lobby" } do
+		local room = club and club:FindFirstChild(name, true)
 		if room and room:IsA("Model") then
 			local cf, size = room:GetBoundingBox()
 			local q = cf:PointToObjectSpace(root.Position)

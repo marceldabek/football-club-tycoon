@@ -439,13 +439,14 @@ local function setAll(self: Presenter, fn: (Pitch.Team, number, Footballer.Footb
 	end
 end
 
--- Teams line up outside the tunnel, walk to the centre, then run to their
+-- Teams line up behind the players' door, walk to the centre, then run to their
 -- positions. Yields for `seconds`; ends early if start() is called.
 function Presenter.walkout(self: Presenter, seconds: number)
 	self.mode = "walkout"
 	setAll(self, function(teamName, idx, fb)
-		local side = teamName == "Home" and -2.5 or 2.5
-		fb:teleport(Pitch.TUNNEL + Vector3.new(-4 * idx, 0, side))
+		local side = teamName == "Home" and -Pitch.WALKOUT_FILE_Z or Pitch.WALKOUT_FILE_Z
+		-- queued inside the clubhouse, back down the corridor from the players' door
+		fb:teleport(Pitch.TUNNEL + Vector3.new(-Pitch.WALKOUT_SPACING * idx, 0, side))
 		fb:setTagVisible(false) -- 22 tags in a line just overlap; shown at kickoff
 		fb.speed = WALK_SPEED
 		fb:setTarget(Vector3.new(-36 + 6 * (idx - 1), Pitch.SURFACE_Y, side * 1.6))

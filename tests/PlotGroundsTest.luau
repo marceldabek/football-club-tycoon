@@ -21,8 +21,9 @@ end
 
 -- Hardcoded keep-outs (pitch-local XZ). The stadium one assumes a cautious 4.5
 -- studs per stand row (WorldBuilder uses 3) for 16 rows, plus room for roofs
--- and the floodlight masts' reach. The west block is the tunnel, dressing
--- rooms, office and the north-west forecourt/turnstiles.
+-- and the floodlight masts' reach. The west block is the clubhouse on the west
+-- touchline with its two door aprons (Clubhouse.luau: x -169..-121, z -40..46)
+-- and the north-west forecourt/turnstiles (x -190..-121).
 local ROWS_DEPTH = 16 * 4.5
 local KEEP_OUT: { Rect } = {
 	{
@@ -32,8 +33,8 @@ local KEEP_OUT: { Rect } = {
 	},
 	{
 		name = "WestBlock",
-		min = Vector2.new(-(Pitch.SIDE_EDGE + 130), -(Pitch.END_EDGE + 50)),
-		max = Vector2.new(-Pitch.SIDE_EDGE, 30),
+		min = Vector2.new(-(Pitch.SIDE_EDGE + 70), -(Pitch.END_EDGE + 50)),
+		max = Vector2.new(-Pitch.SIDE_EDGE, 47),
 	},
 }
 

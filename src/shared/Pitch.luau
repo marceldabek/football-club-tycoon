@@ -33,11 +33,16 @@ Pitch.END_MARGIN = 34 -- behind a goal, turf included
 Pitch.SIDE_EDGE = Pitch.WIDTH / 2 + Pitch.SIDE_MARGIN
 Pitch.END_EDGE = Pitch.LENGTH / 2 + Pitch.END_MARGIN
 
--- The players' tunnel: a mouth in the middle of the west side, running back
--- through the stand to the office and the dressing rooms. Separate from the
--- turnstiles the human player walks through (those are at a corner).
-Pitch.TUNNEL_GAP = 16 -- width of the mouth, along Z
+-- Where the teams come out: the players' door of the clubhouse, in the middle
+-- of the west side (server/Clubhouse.luau). A grassroots ground has no tunnel,
+-- just a door onto the touchline; the name is kept for when one arrives.
+-- Separate from the turnstiles the human player walks through (at a corner).
+Pitch.TUNNEL_GAP = 16 -- the stretch of touchline kept clear in front of it, along Z
 Pitch.TUNNEL = Vector3.new(-(Pitch.SIDE_EDGE - 4), Pitch.SURFACE_Y, 0)
+-- the teams queue behind it in two files, down the clubhouse corridor and into
+-- the lobby: 11 a side has to fit in the 34 studs between the two outer doors
+Pitch.WALKOUT_SPACING = 3
+Pitch.WALKOUT_FILE_Z = 2
 
 -- Dugouts: two benches on the west paving, flanking the tunnel mouth. The
 -- presenter seats the substitutes here, so the numbers are shared.

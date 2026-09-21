@@ -23,14 +23,17 @@
 --                      (-313.5..-286)     (-165.5..-134.5) with fascia and roof overhang
 --   footpath           -379..-261 / -269..-261 / -261..-190  along z -12, north, then east
 --                                                          onto the forecourt at z -187
+--   clubhouse spur     -261..-169         -16..-8          on east to the front doors' apron
+--   office path        -250..-157         40..46           car park kerb to the office side door
 --   training pitch 1   230..330           -170..-10        centre (280, -90)
 --   training pitch 2   230..330           10..170          centre (280, 90)
 --   training fence     222..338           -178..178        gap at z -6..6 on the west side
 --
 -- What the constants had to avoid (WorldBuilder / Scenery):
---   * office x -243..-215, z -15..15; dressing rooms x -211..-183 either side of
---     the tunnel corridor (|z| up to ~37). The car park starts at z 40 (south of the
---     office, +Z) and never reaches x > -250, so it clears both.
+--   * the clubhouse (WorldBuilder/Clubhouse.luau) x -157..-121, z -40..40, with a
+--     paved apron at its front doors (x -169..-157, z -16..16) and one at the
+--     office side door (x -157..-147, z 40..46). The car park never reaches
+--     x > -250, so it clears them; two paths here join them up.
 --   * forecourt + turnstiles x -190..-121, z -225..-150 (the NORTH-west corner,
 --     north = -Z). The shop at z -150 sits 97 studs west of it, so it keeps the
 --     requested spot and ends up on the walk from the pedestrian gate to the
@@ -144,7 +147,10 @@ local FENCE_GAP = 6 -- half-width of the west gate between the pitches
 -- footpath
 local PATH_W, PATH_TOP = 8, 0.3
 local PATH_Z = (PEDESTRIAN_GATE[1] + PEDESTRIAN_GATE[2]) / 2 -- -12
-local PATH_X = -265 -- the north-running leg, between the shop and the office
+local PATH_X = -265 -- the north-running leg, past the shop front
+-- Clubhouse.luau's aprons, which the two clubhouse paths run up to
+local CLUBHOUSE_FRONT_APRON_X = -(121 + 36 + 12) -- west edge of the front doors' apron
+local CLUBHOUSE_SIDE_APRON = { x = -(121 + 36), z0 = 40, z1 = 46 } -- west edge, z range
 local FORECOURT_X0 = -(121 + 69) -- WorldBuilder FORECOURT_X0 (-(SIDE_EDGE + 69))
 local PATH_END_Z = -187 -- joins the forecourt's west edge about half-way along
 
@@ -907,6 +913,11 @@ local function buildFootpath(parent: Instance)
 	extents("Path", PATH_X - hw, PATH_X + hw, y0, y1, PATH_END_Z - hw, PATH_Z - hw, CONCRETE, Enum.Material.Concrete, path)
 	-- east onto the forecourt's west edge
 	extents("Path", PATH_X + hw, FORECOURT_X0, y0, y1, PATH_END_Z - hw, PATH_END_Z + hw, CONCRETE, Enum.Material.Concrete, path)
+	-- straight on from the gate to the clubhouse's front doors (docs/CLUBHOUSE_PLAN.md)
+	extents("ClubhousePath", PATH_X + hw, CLUBHOUSE_FRONT_APRON_X, y0, y1, PATH_Z - hw, PATH_Z + hw, CONCRETE, Enum.Material.Concrete, path)
+	-- and from the car park's east kerb to the office side door
+	local side = CLUBHOUSE_SIDE_APRON
+	extents("OfficePath", PARK_X1, side.x, y0, y1, side.z0, side.z1, CONCRETE, Enum.Material.Concrete, path)
 end
 
 -- ---------------------------------------------------------------------- build
