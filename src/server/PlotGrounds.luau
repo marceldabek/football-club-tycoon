@@ -647,6 +647,55 @@ local function buildRoad(parent: Instance)
 	ramp.Parent = parent
 end
 
+-- A 45-degree kit bend is tilted (RoadTiles mouthBDrop) and its verge tops out
+-- ~0.15 above SURFACE_Y, so where the street bends along the entrance wall
+-- (Plot 1) the grass lay over the front pavement. Run once the grounds are in
+-- the world: wherever a street verge tops the pavement, a slab goes over it.
+local LIFT_STEP = 10 -- studs of pavement per slab; a bend climbs ~0.02 over that
+local LIFT_CLEAR = 0.03
+local VERGE_MATERIAL = Enum.Material.LeafyGrass -- RoadTiler.VERGE_MATERIAL (not a per-club module, so not required here)
+local function liftFrontPavement(grounds: Model)
+	local front = grounds:FindFirstChild("FrontPavement") :: Part?
+	local town = workspace:FindFirstChild("Town")
+	local roads = town and town:FindFirstChild("V3Roads")
+	if not front or not roads then
+		return
+	end
+	local verges: { Instance } = {}
+	for _, p in workspace:GetPartBoundsInBox(front.CFrame, front.Size + Vector3.new(0, 4, 0)) do
+		if p.Material == VERGE_MATERIAL and p:IsDescendantOf(roads) then
+			table.insert(verges, p)
+		end
+	end
+	if #verges == 0 then
+		return
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = verges
+	local half = front.Size / 2
+	local bottom = -half.Y -- in the pavement's own space
+	for z0 = -half.Z, half.Z - 0.01, LIFT_STEP do
+		local z1 = math.min(z0 + LIFT_STEP, half.Z)
+		local verge = -math.huge
+		for _, x in { -half.X, 0, half.X } do
+			for _, z in { z0, (z0 + z1) / 2, z1 } do
+				local hit = workspace:Raycast((front.CFrame * CFrame.new(x, 5, z)).Position, -10 * front.CFrame.UpVector, params)
+				if hit then
+					verge = math.max(verge, front.CFrame:PointToObjectSpace(hit.Position).Y)
+				end
+			end
+		end
+		-- a straight's verge is VERGE_TUCK under the paving and needs nothing
+		if verge > half.Y - 0.005 then
+			local top = verge + LIFT_CLEAR
+			local slab = box("FrontPavementLift", Vector3.new(front.Size.X, top - bottom, z1 - z0),
+				front.CFrame * CFrame.new(0, (top + bottom) / 2, (z0 + z1) / 2), CONCRETE, Enum.Material.Pavement, grounds)
+			slab.CastShadow = false
+		end
+	end
+end
+
 local function buildLamp(x: number, z: number, parent: Instance)
 	local base = GROUND_Y + ASPHALT_TOP
 	-- Cylinder parts run along X, so stand the column up with a roll
@@ -1300,6 +1349,7 @@ function PlotGrounds.build(club: Model): Model
 	GroundsPlanting.build(grounds, PlotGrounds.plantingKeepOut(), (PlotContext.index or 0) + 1)
 
 	PlotContext.place(grounds)
+	liftFrontPavement(grounds)
 	bindAcademy()
 	bindShop() -- X300
 	return grounds
