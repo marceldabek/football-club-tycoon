@@ -322,7 +322,9 @@ Config.TrialistBonus = { 4, 6 }
 -- (first row is no scout). Measured by SquadTest.packOddsAreDocumented (400
 -- seeds x Config.PackSize cards per level), which fails if balancing moves
 -- them by more than 3 points - update both together. A tier that never
--- occurred at a level is simply absent, not a zero row.
+-- occurred at a level is simply absent, not a zero row. These are measured
+-- from the TEMP balancing inputs above (Config.Rarity, WalkInPack,
+-- ScoutLevels) and move whenever those do.
 Config.PackOdds = {
 	{ Bronze = 0.404, Silver = 0.596 }, -- level 0: walk-in trialists
 	{ Silver = 1.000 }, -- level 1: Local Scout

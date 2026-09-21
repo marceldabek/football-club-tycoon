@@ -1194,9 +1194,16 @@ function T.packOddsAreDocumented()
 			end
 		end
 		local documented = Config.PackOdds[level + 1]
+		assert(documented, ("Config.PackOdds is missing a row for level %d"):format(level))
 		for tier, n in counts do
 			local measured = n / total
 			assert(math.abs(measured - (documented[tier] or 0)) < 0.03, ("level %d %s: measured %.3f"):format(level, tier, measured))
+		end
+		-- and the other way: a tier documented here but that no longer occurs
+		-- (or has drifted away from what's written down) has to fail too
+		for tier, odds in documented do
+			local measured = (counts[tier] or 0) / total
+			assert(math.abs(measured - odds) < 0.03, ("level %d %s: documented %.3f, measured %.3f"):format(level, tier, odds, measured))
 		end
 	end
 end
