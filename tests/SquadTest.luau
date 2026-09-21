@@ -677,6 +677,34 @@ function T.eachCoachOnlyGetsHisOwnAllowance()
 	assert(not Squad.coachWantsSub(90, three, 3), "and nobody makes a fourth")
 end
 
+-- X271: the coach's own tactics
+
+function T.noCoachNeverChangesTheTactic()
+	for minute = 0, 90, 5 do
+		assert(Squad.coachTactic(minute, 0, 3, 0) == nil, "a club with no coach has nobody to change it at " .. minute)
+	end
+end
+
+function T.aCoachChasesTheGameAndProtectsALead()
+	for level = 1, #Config.CoachLevels - 1 do
+		local from = Config.CoachLevels[level + 1].tacticsFrom
+		assert(from, "every real coach has a minute he starts thinking at")
+		assert(Squad.coachTactic(from - 1, 0, 1, level) == nil, "not before his minute")
+		assert(Squad.coachTactic(from, 0, 1, level) == "Attack", "behind: go for it")
+		assert(Squad.coachTactic(from, 2, 1, level) == "Defend", "ahead: shut it down")
+		assert(Squad.coachTactic(from, 1, 1, level) == "Balanced", "level: as you were")
+	end
+end
+
+function T.aBetterCoachReactsSooner()
+	local last = math.huge
+	for level = 1, #Config.CoachLevels - 1 do
+		local from = Config.CoachLevels[level + 1].tacticsFrom
+		assert(from < last, "level " .. level .. " should react before the one below")
+		last = from
+	end
+end
+
 function T.theCoachNeverExceedsTheMatchLimit()
 	local made = {}
 	for i = 1, Config.MaxSubs do

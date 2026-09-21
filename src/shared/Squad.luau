@@ -358,6 +358,23 @@ function Squad.coachWantsSub(minute: number, made: { Sub }, allowance: number): 
 	return due ~= nil and minute >= due
 end
 
+-- X271: the tactic the coach would be playing now, or nil if he has no view
+-- yet (or there is no coach). A press of ATTACK / DEFEND overrules him for the
+-- rest of the match; that is MatchService's business, not his.
+function Squad.coachTactic(minute: number, ours: number, theirs: number, coachLevel: number): Pitch.Tactic?
+	local coach = Config.CoachLevels[coachLevel + 1]
+	local from = coach and coach.tacticsFrom
+	if not from or minute < from then
+		return nil
+	end
+	if ours < theirs then
+		return "Attack"
+	elseif ours > theirs then
+		return "Defend"
+	end
+	return "Balanced"
+end
+
 -- X334: the change an injury forces. `outIdx` is the slot that went down, so
 -- this is not a choice - it only has to find somebody on the bench who can
 -- take his place (a keeper for a keeper), or give up if there is nobody.

@@ -54,6 +54,9 @@ local live: {
 	timeline: { [string]: any },
 	duration: number,
 }? = nil
+-- X271: the owner has pressed ATTACK / DEFEND this match, so the coach leaves
+-- the tactic alone until the whistle
+local tacticByHand = false
 
 -- Set by Session: called once the result and revenue are applied, so the
 -- profile is saved at the one moment that matters most.
@@ -111,16 +114,27 @@ local function retune(tactic: MatchSim.Tactic)
 	ClubState.set("Timeline", HttpService:JSONEncode(m.timeline))
 end
 
+local function setTactic(tactic: MatchSim.Tactic)
+	if ClubState.get("Tactic") ~= tactic then
+		retune(tactic)
+		ClubState.set("Tactic", tactic)
+	end
+end
+
+local COACH_CALLS = {
+	Attack = "The coach throws men forward.",
+	Defend = "The coach shuts up shop.",
+	Balanced = "The coach settles it back down.",
+}
+
 -- Attack / Defend / Balanced / Sub. Returns false plus a reason if refused.
 function MatchService.applyTactic(action: string): (boolean, string?)
 	if ClubState.get("Phase") ~= "Match" then
 		return false, "No match in progress"
 	end
 	if action == "Attack" or action == "Defend" or action == "Balanced" then
-		if ClubState.get("Tactic") ~= action then
-			retune(action :: MatchSim.Tactic)
-			ClubState.set("Tactic", action)
-		end
+		tacticByHand = true
+		setTactic(action :: MatchSim.Tactic)
 		return true
 	elseif action == "Sub" then
 		local sub = Squad.nextSub(homeSquad, subsMade)
@@ -214,6 +228,7 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	ClubState.set("TimeLeft", duration)
 	ClubState.set("Attendance", attendance)
 	ClubState.set("Tactic", "Balanced")
+	tacticByHand = false
 	ClubState.set("Subs", "[]")
 	ClubState.set("InjuryNews", "") -- X334: last week's casualty is not this week's
 	ClubState.set("InjuryMinute", 0) -- X344
@@ -313,6 +328,17 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 			sub.afterEvent = eventsShown
 			table.insert(subsMade, sub)
 			ClubState.set("Subs", HttpService:JSONEncode(subsMade))
+		end
+		-- X271: and reads the score, unless the owner has taken the tactic over
+		if not tacticByHand then
+			local want = Squad.coachTactic(minute, ClubState.get("HomeGoals") :: number, ClubState.get("AwayGoals") :: number, coachLevel)
+			if want and want ~= ClubState.get("Tactic") then
+				setTactic(want)
+				local owner = ClubState.owner()
+				if owner then
+					remote("Toast"):FireClient(owner, COACH_CALLS[want])
+				end
+			end
 		end
 		ClubState.set("TimeLeft", math.ceil(duration - elapsed))
 		task.wait(0.25)

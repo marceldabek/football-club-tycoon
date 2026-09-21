@@ -245,11 +245,14 @@ Config.RetireMaxAge = 37
 -- at all - a club with no coach picked a bit-for-bit identical XI to a
 -- 10,000 pound Pro Coach. TEMP.
 Config.CoachLevels = {
-	{ name = "No coach", cost = 0, strengthBonus = 0, developMultiplier = 1, autoSubs = 0, misjudge = 6 },
-	{ name = "Volunteer Coach", cost = 800, strengthBonus = 2, developMultiplier = 1.5, autoSubs = 1, misjudge = 4 },
-	{ name = "Qualified Coach", cost = 4000, strengthBonus = 4, developMultiplier = 2, autoSubs = 2, misjudge = 2 },
-	{ name = "Pro Coach", cost = 10000, strengthBonus = 6, developMultiplier = 3, autoSubs = 3, misjudge = 0 },
+	{ name = "No coach", cost = 0, strengthBonus = 0, developMultiplier = 1, autoSubs = 0, misjudge = 6, tacticsFrom = math.huge },
+	{ name = "Volunteer Coach", cost = 800, strengthBonus = 2, developMultiplier = 1.5, autoSubs = 1, misjudge = 4, tacticsFrom = 78 },
+	{ name = "Qualified Coach", cost = 4000, strengthBonus = 4, developMultiplier = 2, autoSubs = 2, misjudge = 2, tacticsFrom = 68 },
+	{ name = "Pro Coach", cost = 10000, strengthBonus = 6, developMultiplier = 3, autoSubs = 3, misjudge = 0, tacticsFrom = 58 },
 }
+-- X271: `tacticsFrom` is the minute a coach starts reading the score and
+-- changing the tactic himself (ATTACK behind, DEFEND ahead). TEMP: a better
+-- coach reacts sooner. Nothing can change after about 80' (MatchSim.lockMinutes).
 -- The minutes a coach thinks about his first, second and third change. TEMP:
 -- an hour in, then the last twenty, then the last ten.
 Config.AutoSubMinutes = { 60, 72, 82 }
