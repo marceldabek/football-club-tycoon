@@ -12,11 +12,11 @@ local EPS = 1e-3
 
 -- PARITY-BEGIN (written by `python tools/town_v3_parity.py --write`; do not edit by hand)
 local PARITY = {
-	total = 861,
-	byUse = { ["corner shop"] = 44, ["detached house"] = 110, ["flats"] = 10, ["semis"] = 206, ["shops"] = 15, ["shops with flats"] = 34, ["terraced row"] = 417, ["trade counter"] = 4, ["warehouse"] = 3, ["workshop"] = 18 },
-	byDistrict = { ["Hollingford"] = 100, ["Industrial Estate"] = 25, ["Mapleford"] = 81, ["Mill Street Terraces"] = 59, ["Millbrook"] = 105, ["Northfields"] = 120, ["Riverside"] = 133, ["Station"] = 42, ["Town Centre"] = 40, ["Westdale"] = 156 },
-	positionSum = 48652,
-	idSum = 1796765,
+	total = 885,
+	byUse = { ["corner shop"] = 45, ["detached house"] = 108, ["flats"] = 10, ["semis"] = 213, ["shops"] = 16, ["shops with flats"] = 34, ["terraced row"] = 434, ["trade counter"] = 4, ["warehouse"] = 3, ["workshop"] = 18 },
+	byDistrict = { ["Hollingford"] = 100, ["Industrial Estate"] = 25, ["Mapleford"] = 84, ["Mill Street Terraces"] = 59, ["Millbrook"] = 109, ["Northfields"] = 120, ["Riverside"] = 138, ["Station"] = 43, ["Town Centre"] = 40, ["Westdale"] = 167 },
+	positionSum = 62804,
+	idSum = 1849160,
 }
 -- PARITY-END
 
@@ -162,7 +162,7 @@ function T.idsAreUniqueAndWellFormed()
 		if side ~= "head" then
 			assert(road.front == "both" or road.front == side, lot.id .. " is on a side its road does not front")
 		else
-			assert(road.head == true, lot.id .. " closes a street that has no turning head")
+			assert(road.head == true or road.closed == true, lot.id .. " closes a street that has no turning head or blunt end")
 		end
 	end
 end
@@ -224,14 +224,23 @@ function T.lotsStandOnTheirStreetsBuildingLine()
 		local a, b = flat(road.points[segment]), flat(road.points[segment + 1])
 		local along = (b - a).Unit
 		local right = TownFrontage.lotCFrame(lot).RightVector
-		if lot.closesStreet then
-			-- across the end of the cul-de-sac, facing back down it
+		if lot.closesStreet and road.head then
+			-- round the turning circle, facing its centre
+			local t = TownFrontage.TYPES[lot.use]
+			local out = lot.centre - b
+			local expected = TownLayout.HEAD_RADIUS + t.garden + t.depth / 2
+			assert(math.abs(out.Magnitude - expected) < 0.01, ("%s is %.2f from the centre of its turning head, expected %.2f"):format(lot.id, out.Magnitude, expected))
+			assert(lot.front:Dot(out.Unit) < -1 + 1e-4, lot.id .. " does not face the centre of its turning head")
+			local round = math.deg(math.acos(math.clamp(out.Unit:Dot(along), -1, 1)))
+			assert(round < 0.1 or math.abs(round - TownFrontage.FAN_ANGLE) < 0.1, ("%s stands %.1f degrees round its turning head"):format(lot.id, round))
+		elseif lot.closesStreet then
+			-- across the blunt end of a terraced street, facing back down it
 			local t = TownFrontage.TYPES[lot.use]
 			assert(math.abs(right:Dot(along)) < 1e-4, lot.id .. " does not stand square across its street end")
 			assert(lot.front:Dot(along) < -1 + 1e-4, lot.id .. " does not face back down its street")
 			local reach = (lot.centre - b):Dot(along)
-			local expected = TownLayout.HEAD_RADIUS + t.garden + t.depth / 2
-			assert(math.abs(reach - expected) < 0.01, ("%s is %.2f beyond its turning head, expected %.2f"):format(lot.id, reach, expected))
+			local expected = road.width / 2 + TownLayout.PAVEMENT_WIDTH + t.garden + t.depth / 2
+			assert(math.abs(reach - expected) < 0.01, ("%s is %.2f beyond its street end, expected %.2f"):format(lot.id, reach, expected))
 		else
 			assert(math.abs(right:Dot(along)) > 1 - 1e-6, lot.id .. " is not parallel to its street")
 			assert(math.abs(lot.front:Dot(along)) < 1e-4, lot.id .. " does not face its street squarely")
@@ -372,6 +381,45 @@ function T.everyFrontedStreetGotSomething()
 			assert((counts[road.name] or 0) >= 1, road.name .. " fronts nothing: fix its line or set front = \"none\"")
 		else
 			assert(counts[road.name] == nil, road.name .. " has front = \"none\" but got lots")
+		end
+	end
+end
+
+-- Marcel, 2026-09-20: a turning circle belongs to a semis / detached close. A terraced
+-- street joins another street or stops at a terrace across its end, and no street end is
+-- left bare: a close has lots round its circle, a blunt end has its row.
+local BARE_ENDS = {
+	-- two flats streets whose circles are 92 apart on the waterfront: the blocks along them close the view
+	["Lune Street"] = true,
+	["Marina Way"] = true,
+}
+local TERRACED_HEADS = {
+	["Riverside Road"] = true, -- TEMP: ends at Riverside Park until Marcel picks between this and a smaller park
+}
+
+function T.everyStreetEndIsBuiltRound()
+	local closing: { [string]: number } = {}
+	for _, lot in TownFrontage.generate() do
+		if lot.closesStreet then
+			closing[lot.street] = (closing[lot.street] or 0) + 1
+		end
+	end
+	for _, road in TownLayout.ROADS do
+		if not (road.head or road.closed) then
+			continue
+		end
+		assert(not (road.head and road.closed), road.name .. " is both a close and a blunt end")
+		local last = road.points[#road.points]
+		local use = road.use
+		if road.useAt then
+			use = (TownFrontage.RULES[road.useAt](last.X, last.Z))
+		end
+		if road.closed then
+			assert(use == "terraced row", road.name .. " has a blunt end but is not a terraced street")
+			assert(closing[road.name] == 1, road.name .. " has no terrace across its blunt end")
+		else
+			assert(use ~= "terraced row" or TERRACED_HEADS[road.name], road.name .. " is a terraced street with a turning circle")
+			assert(BARE_ENDS[road.name] or (closing[road.name] or 0) >= 1, road.name .. " has nothing round its turning circle")
 		end
 	end
 end

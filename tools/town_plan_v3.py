@@ -105,6 +105,7 @@ def is_home(use):
 
 STOP_CLEAR = 16.0  # nothing is generated this close to a bus stop (shelter + painted bay)
 HEAD = 34.0       # cul-de-sac turning head radius (kit CulDeSac is 96 x 69 at town scale)
+FAN_ANGLE = 65.0  # a close's side lots stand this far round the bulb from the end lot
 
 # ------------------------------------------------------------------ roads
 
@@ -112,7 +113,8 @@ R, M, S, L, A = "ring", "main", "residential", "lane", "alley"
 WIDTH = {R: 32.0, M: 26.0, S: 20.0, L: 20.0, A: 10.0}
 
 
-def road(name, kind, pts, front=None, use="terraced row", district=None, use_at=None, head=False):
+def road(name, kind, pts, front=None, use="terraced row", district=None, use_at=None, head=False,
+         closed=False):
     """front: "both" | "left" | "right" | "none" (left of the direction of
     travel). Residential streets default to both sides, everything else to none."""
     if front is None:
@@ -120,7 +122,10 @@ def road(name, kind, pts, front=None, use="terraced row", district=None, use_at=
     return {"name": name, "kind": kind, "width": WIDTH[kind],
             "points": [(float(x), float(z)) for x, z in pts],
             "front": front, "use": use, "district": district, "use_at": use_at,
-            "head": head}  # head: the last point is a cul-de-sac turning head (kit: CulDeSac*)
+            "head": head,      # head: the last point is a cul-de-sac turning head (kit: CulDeSac*)
+            "closed": closed}  # closed: the last point is a blunt end with a terrace across it
+    # (Marcel, 2026-09-20: a turning circle belongs to a semis / detached close; a terraced
+    # street joins another street or stops at a terrace, as Victorian streets do)
 
 
 RING = [
@@ -232,7 +237,7 @@ def roads():
                          ("Hazel Close", -400, -920), ("Rowan Close", -150, -920),
                          ("Holly Close", 225, -920), ("Hayfield Close", 450, -920),
                          ("Laurel Close", 650, -920), ("Maple Close", 900, -920),
-                         ("Oak Close", 1050, -865)]:
+                         ("Oak Close", 1050, -765)]:
         semis = abs(x) >= 800
         out.append(road(name, S, [(x, -600), (x, end)], district=nf,
                         use="semis" if semis else "terraced row", head=end != -920))
@@ -241,7 +246,7 @@ def roads():
     st = "Station"
     out += [
         road("Church Lane", S, [(-295, 0), (-295, -330)], district="Town Centre", front="none"),
-        road("Cooper Street", S, [(-1290, -240), (-720, -240)], district=st, head=True),  # stops short of the ring; turning head short of Station Road
+        road("Cooper Street", S, [(-1290, -240), (-720, -240)], district=st, closed=True),  # stops short of the ring; a terrace across its end short of Station Road
         road("Signal Street", S, [(-1090, 25), (-560, 25)], district=st),          # NEW
         road("Lock Street", S, [(-1150, 150), (-540, 150)], district=st),
         road("Foundry Way", S, [(-1480, -400), (-1480, 110)], use_at="industrial"),
@@ -258,8 +263,9 @@ def roads():
     # ---- Riverside (south bank, inside the ring): one new street
     rv = "Riverside"
     out += [
-        road("Meadow Road", S, [(0, 560), (1180, 560)], district=rv, head=True),
-        road("Tannery Row", S, [(0, 680), (1100, 680)], district=rv, head=True),            # NEW
+        road("Meadow Road", S, [(0, 560), (1135, 560)], district=rv, closed=True),
+        road("Tannery Row", S, [(0, 680), (1060, 680)], district=rv, closed=True),            # NEW
+        road("Tenter Lane", S, [(950, 560), (950, 680)], district=rv, front="none"),  # ties the two ends together
         road("Viaduct Road", S, [(-545, 560), (0, 560)], district=rv),
         road("Weir Road", S, [(-1150, 560), (-615, 560)], district=rv),
         road("Fuller Street", S, [(-1090, 690), (-615, 690)], district=rv),         # NEW
@@ -272,9 +278,9 @@ def roads():
     out += [
         road("Sports Centre Road", S, [(0, 800), (0, 1200), (600, 1200)], district=rv,
              front="none"),
-        road("Cedar Road", S, [(-470, 800), (-470, 1500)], district=rv, head=True),
+        road("Cedar Road", S, [(-470, 800), (-470, 1500)], district=rv, closed=True),
         road("Paddock Road", S, [(400, 800), (400, 1500)], district=rv, head=True, use="semis"),           # NEW
-        road("Hollins Road", S, [(600, 800), (600, 1500)], district=rv, head=True),           # was x=520
+        road("Hollins Road", S, [(600, 800), (600, 1500)], district=rv, closed=True),           # was x=520
         road("Plot 1 Lane", L, [(970, 800), (970, 869)]),
     ]
 
@@ -285,13 +291,13 @@ def roads():
         road("Reed Road", S, [(-1600, 430), (-1600, 560)], district=wd, front="none"),
         road("Alder Road", S, [(-1310, 560), (-1310, 1480)], district=wd),
         road("Tanner's Lane", S, [(-2240, 560), (-2240, 1480)], district=wd, use="semis"),      # NEW
-        # the E-W streets used to stop dead at the railway: now each ends in a turning head short of it
-        road("Orchard Road", S, [(-2240, 1480), (-730, 1480)], district=wd, head=True),
-        road("Fern Street", S, [(-1310, 800), (-1090, 800)], district=wd, head=True),
-        road("Westdale Avenue", S, [(-1310, 950), (-730, 950)], district=wd, head=True),
-        road("Brook Street", S, [(-1310, 1100), (-730, 1100)], district=wd, head=True),
-        road("Westdale Crescent", S, [(-1310, 1250), (-730, 1250)], district=wd, head=True),
-        road("Coronation Street", S, [(-1310, 1365), (-730, 1365)], district=wd, head=True),   # NEW
+        # the E-W streets stop short of the railway, each at a terrace across its end
+        road("Orchard Road", S, [(-2240, 1480), (-730, 1480)], district=wd, closed=True),
+        road("Fern Street", S, [(-1310, 800), (-1128, 800)], district=wd, closed=True),
+        road("Westdale Avenue", S, [(-1310, 950), (-730, 950)], district=wd, closed=True),
+        road("Brook Street", S, [(-1310, 1100), (-730, 1100)], district=wd, closed=True),
+        road("Westdale Crescent", S, [(-1310, 1250), (-730, 1250)], district=wd, closed=True),
+        road("Coronation Street", S, [(-1310, 1365), (-730, 1365)], district=wd, closed=True),   # NEW
         road("Westdale Road", S, [(-850, 800), (-850, 1480)], district=wd),
         road("Plot 3 Lane", L, [(-1860, 560), (-1860, 639)]),
     ]
@@ -304,8 +310,8 @@ def roads():
         road("Plot 4 Lane", L, [(-1350, -750), (-1350, -1210), (-1409, -1210)]),
         road("Mapleford Lane", S, [(-2250, -600), (-1350, -600)], district=p4),
         road("Drift Close", S, [(-2250, -600), (-2250, -1060)], district=p4, head=True, use="detached house"),
-        road("Tollgate Road", S, [(-1350, -1210), (-1350, -1590), (-2120, -1590)], district=p4, head=True),
-        road("Drovers Road", S, [(-1350, -1210), (-760, -1210)], district=p4, head=True),
+        road("Tollgate Road", S, [(-1350, -1210), (-1350, -1590), (-2120, -1590)], district=p4, closed=True),
+        road("Drovers Road", S, [(-1350, -1210), (-760, -1210), (-760, -1000)], district=p4),  # round to the ring
         road("Pinfold Close", S, [(-950, -1210), (-950, -1100)], district=p4, head=True, use="detached house"),
         road("Smithy Close", S, [(-1120, -1210), (-1120, -1460), (-880, -1460)], district=p4,
              use="semis", head=True),
@@ -318,9 +324,9 @@ def roads():
         road("Millbrook Road", S, [(1400, -700), (2300, -700)], district=p2),
         road("Lune View", S, [(1560, -570), (2250, -570)], district=p2, head=True, use="detached house"),
         road("Fell Lane", S, [(2300, -700), (2300, -1320)], district=p2, head=True, use="semis"),
-        road("Quarry Road", S, [(1400, -1080), (900, -1080), (780, -1200)], district=p2, head=True),
+        road("Quarry Road", S, [(1400, -1080), (900, -1080), (780, -1200)], district=p2, closed=True),
         road("Kiln Close", S, [(1180, -1080), (1180, -1400)], district=p2, use="semis", head=True),
-        road("Millbrook Rise", S, [(1400, -1080), (1400, -1330)], district=p2, head=True),
+        road("Millbrook Rise", S, [(1400, -1080), (1400, -1330)], district=p2, closed=True),
     ]
 
     # ---- Hollingford: the 45-degree estate, in the ground Plot 3 left. Every
@@ -585,33 +591,60 @@ class Town:
                     self.flush(run, r, yaw, key)
 
     def head_rows(self):
-        """A short row across the end of each cul-de-sac, looking back down it."""
+        """What stands at a street's last point.
+        head   (a close's turning circle): a fan of three short lots round the bulb, at 0 and
+               +-FAN_ANGLE from the street's line, each facing the centre of the circle.
+        closed (a terraced street's blunt end): one row square across the end, looking back
+               down the street; if an end house does not fit, the two that do still stand."""
         for r in self.roads:
-            if not r["head"] or r["front"] == "none":
+            if not (r["head"] or r["closed"]) or r["front"] == "none":
                 continue
             (ax, az), (bx, bz) = r["points"][-2], r["points"][-1]
             seg = dist((ax, az), (bx, bz))
             ux, uz = (bx - ax) / seg, (bz - az) / seg
-            yaw = math.degrees(math.atan2(uz, ux)) + 90
             got = RULES[r["use_at"]](bx, bz) if r["use_at"] else (r["use"], r["district"])
             if got is None or got[0] not in HOMES:
                 continue
             w, depth, _, _, garden = TYPES[got[0]]
-            d = HEAD + garden + depth / 2
-            run = []
-            for k in ((-0.5, 0.5) if got[0] == "semis" else (-1, 0, 1)):
-                cell = {"centre": (bx + ux * d - uz * k * w, bz + uz * d + ux * k * w),
-                        "size": (w, depth), "yaw": yaw, "use": got[0], "district": got[1],
-                        "front": (-ux, -uz)}
-                if not self.fits(cell, heads=False, run=run):
-                    run = []
-                    break
-                run.append(cell)
-            self.cells.extend(run)
+            key = f"{r['name']}|head|{len(r['points']) - 1}"
             n = len(self.rows)
-            self.flush(run, r, yaw, f"{r['name']}|head|{len(r['points']) - 1}")
+
+            def cell_at(dx, dz, reach, k):
+                # dx, dz: the way the lot looks out from the street's last point; k: cells sideways
+                return {"centre": (bx + dx * reach - dz * k * w, bz + dz * reach + dx * k * w),
+                        "size": (w, depth), "yaw": math.degrees(math.atan2(dz, dx)) + 90,
+                        "use": got[0], "district": got[1], "front": (-dx, -dz)}
+
+            if r["head"]:
+                reach = HEAD + garden + depth / 2
+                ks = (0,) if got[0] == "detached house" else (-0.5, 0.5)
+                placed = []
+                for deg in (0, FAN_ANGLE, -FAN_ANGLE):
+                    t = math.radians(deg)
+                    dx, dz = ux * math.cos(t) - uz * math.sin(t), uz * math.cos(t) + ux * math.sin(t)
+                    run = [cell_at(dx, dz, reach, k) for k in ks]
+                    # the fan's own lots stand closer than the 10-stud cell margin on purpose
+                    if all(self.fits(c, heads=False, run=placed) for c in run):
+                        placed += run
+                        self.cells.extend(run)
+                        self.flush(run, r, run[0]["yaw"], key)
+            else:
+                # the same building line off the street's end as the side rows keep off its centreline
+                reach = r["width"] / 2 + PAVE + garden + depth / 2
+                run, best = [], []
+                for k in ((-0.5, 0.5) if got[0] == "semis" else (-1, 0, 1)):
+                    cell = cell_at(ux, uz, reach, k)
+                    if self.fits(cell, heads=False, run=run):
+                        run.append(cell)
+                        if len(run) > len(best):
+                            best = list(run)
+                    else:
+                        run = []
+                if len(best) >= 2:
+                    self.cells.extend(best)
+                    self.flush(best, r, best[0]["yaw"], key)
             for _, row in self.rows[n:]:
-                row["closes_street"] = True   # faces down the street, so square to it on purpose
+                row["closes_street"] = True   # faces the street end, so square to it on purpose
 
     def flush(self, run, r, yaw, key=""):
         if not run:

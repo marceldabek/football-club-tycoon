@@ -17,7 +17,8 @@
 -- TownLayout.DISTRICTS and every cell accepted before it. Main roads are filled
 -- first, then the rest longest first, so the important frontage wins a clash.
 -- Accepted cells are then joined into lots (a terrace of 6, a pair of semis...).
--- Each cul-de-sac (road.head) also gets a short row across its end.
+-- Each close (road.head) also gets a fan of lots round its turning circle, and each
+-- blunt-ended terraced street (road.closed) a row across its end.
 --
 -- Lot.yaw follows the Roblox convention: TownFrontage.lotCFrame(lot) =
 -- CFrame.new(centre) * CFrame.Angles(0, rad(yaw), 0) puts local +X along the
@@ -39,7 +40,7 @@ export type Lot = {
 	front: Vector3, -- unit vector pointing FROM the lot TO its street (doors face this way)
 	units: number, -- houses/shops in this lot (a terraced row of 6 has units = 6)
 	unitWidth: number, -- frontage per unit
-	closesStreet: boolean, -- the row across the end of a cul-de-sac
+	closesStreet: boolean, -- stands at a street's end: round a turning circle or across a blunt end
 	corner: boolean, -- first/last lot of its run (corner shops, gable ends)
 }
 export type BuildingType = { cell: number, depth: number, group: number, gap: number, garden: number, height: number }
@@ -69,6 +70,7 @@ TownFrontage.CELL_MARGIN = 10 -- between cells of different runs
 TownFrontage.SPECIAL_MARGIN = 6 -- between a cell and a hand-placed special
 TownFrontage.STOP_CLEAR = 16 -- nothing this close to a bus stop (shelter + painted bay)
 TownFrontage.HEAD_CLEAR = 5 -- beyond TownLayout.HEAD_RADIUS
+TownFrontage.FAN_ANGLE = 65 -- a close's side lots stand this far round the bulb from the end lot (mirrored in tools/town_plan_v3.py)
 TownFrontage.CORNER_SHOP_TRIM = 4 -- a corner shop is this much narrower than its cell
 
 local function hyp(x: number, z: number): number
@@ -459,45 +461,90 @@ function TownFrontage.build(): { Lot }
 		return road.use, road.district
 	end
 
-	-- 1. a short row across the end of each cul-de-sac, looking back down it
+	-- 1. what stands at a street's last point
+	--   head   (a close's turning circle): a fan of three short lots round the bulb, at 0 and
+	--          +-FAN_ANGLE from the street's line, each facing the centre of the circle.
+	--   closed (a terraced street's blunt end): one row square across the end, looking back
+	--          down the street; if an end house does not fit, the two that do still stand.
 	for _, road in roads do
-		if not road.head or road.front == "none" then
+		if not (road.head or road.closed) or road.front == "none" then
 			continue
 		end
 		local n = #road.points
 		local a, b = road.points[n - 1], road.points[n]
 		local seg = hyp(b.X - a.X, b.Z - a.Z)
 		local ux, uz = (b.X - a.X) / seg, (b.Z - a.Z) / seg
-		local yaw = math.deg(math.atan2(uz, ux)) + 90
 		local use, district = useAt(road, b.X, b.Z)
 		if use == nil or not TownFrontage.HOMES[use] then
 			continue
 		end
 		local t = TownFrontage.TYPES[use]
-		local d = HEAD + t.garden + t.depth / 2
-		local run: { Cell } = {}
-		for _, k in if use == "semis" then { -0.5, 0.5 } else { -1, 0, 1 } do
-			local cell: Cell = {
-				cx = b.X + ux * d - uz * k * t.cell,
-				cz = b.Z + uz * d + ux * k * t.cell,
+		local key = ("%s|head|%d"):format(road.name, n - 1)
+
+		-- dx, dz: the way the lot looks out from the street's last point; k: cells sideways
+		local function cellAt(dx: number, dz: number, reach: number, k: number): Cell
+			return {
+				cx = b.X + dx * reach - dz * k * t.cell,
+				cz = b.Z + dz * reach + dx * k * t.cell,
 				w = t.cell,
 				d = t.depth,
-				yaw = yaw,
+				yaw = math.deg(math.atan2(dz, dx)) + 90,
 				use = use,
 				district = district,
-				fx = -ux,
-				fz = -uz,
+				fx = -dx,
+				fz = -dz,
 			}
-			if not fits(cell, nil, 0, false, run) then
-				run = {}
-				break
+		end
+
+		if road.head then
+			local reach = HEAD + t.garden + t.depth / 2
+			local ks = if use == "detached house" then { 0 } else { -0.5, 0.5 }
+			local placed: { Cell } = {}
+			for _, deg in { 0, TownFrontage.FAN_ANGLE, -TownFrontage.FAN_ANGLE } do
+				local th = math.rad(deg)
+				local dx, dz = ux * math.cos(th) - uz * math.sin(th), uz * math.cos(th) + ux * math.sin(th)
+				local run: { Cell } = {}
+				local ok = true
+				for _, k in ks do
+					local cell = cellAt(dx, dz, reach, k)
+					-- the fan's own lots stand closer than CELL_MARGIN on purpose
+					if not fits(cell, nil, 0, false, placed) then
+						ok = false
+						break
+					end
+					table.insert(run, cell)
+				end
+				if ok then
+					for _, cell in run do
+						table.insert(placed, cell)
+						table.insert(cells, cell)
+					end
+					flush(run, road, run[1].yaw, key, true)
+				end
 			end
-			table.insert(run, cell)
+		else
+			-- the same building line off the street's end as the side rows keep off its centreline
+			local reach = road.width / 2 + PAVE + t.garden + t.depth / 2
+			local run: { Cell } = {}
+			local best: { Cell } = {}
+			for _, k in if use == "semis" then { -0.5, 0.5 } else { -1, 0, 1 } do
+				local cell = cellAt(ux, uz, reach, k)
+				if fits(cell, nil, 0, false, run) then
+					table.insert(run, cell)
+					if #run > #best then
+						best = table.clone(run)
+					end
+				else
+					run = {}
+				end
+			end
+			if #best >= 2 then
+				for _, cell in best do
+					table.insert(cells, cell)
+				end
+				flush(best, road, best[1].yaw, key, true)
+			end
 		end
-		for _, cell in run do
-			table.insert(cells, cell)
-		end
-		flush(run, road, yaw, ("%s|head|%d"):format(road.name, n - 1), true)
 	end
 
 	-- 2. frontage: main roads first, then longest first (stable)

@@ -75,6 +75,19 @@ function T.aTurningHeadsBulbIsLeftAlone()
 	assert(#strips >= 2, "the rest of the close is widened")
 end
 
+function T.aBluntEndGetsAPavedApron()
+	local closed = road("Terrace", "residential", { O, O + Vector3.new(300, 0, 0) })
+	closed.closed = true
+	local open = PavingStrips.plan({ road("Terrace", "residential", { O, O + Vector3.new(300, 0, 0) }) }, {}, {}, nil)
+	local strips = PavingStrips.plan({ closed }, {}, {}, nil)
+	assert(#strips == #open + 1, "one apron per blunt end")
+	local apron = strips[#strips]
+	local depth = 20 / 2 + TownLayout.PAVEMENT_WIDTH
+	assert(math.abs(apron.cframe.Position.X - (O.X + 300 + depth / 2)) < 0.01 and math.abs(apron.cframe.Position.Z - O.Z) < 0.01, "apron starts at the street's end")
+	assert(math.abs(apron.size.Z - depth) < 0.01, "apron reaches the end terrace's garden line")
+	assert(math.abs(apron.size.X - 2 * RoadTiles.pavementOuter("residential")) < 0.01, "apron spans both pavements")
+end
+
 function T.theTownCentreRoundaboutsAndBridgesAreSkipped()
 	local inCentre = PavingStrips.plan({ road("High", "main", { Vector3.new(-100, 0, 0), Vector3.new(100, 0, 0) }) }, {}, {}, nil)
 	assert(#inCentre == 0, "the centre's verge is already paving")

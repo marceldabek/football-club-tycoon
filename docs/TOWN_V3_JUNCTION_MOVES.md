@@ -58,3 +58,23 @@ street need checking when the moves are applied.
 | Bridge Street runs straight | (0,60) -> (0,800) instead of jogging to x 100. Lune Bridge moves to x 0 (z 330..510). Lune Street crosses it square; Meadow Road and Tannery Row start at x 0; Viaduct Road moves to z 560 and makes a crossroads with Meadow Road. Removes 4 makeshift junctions and two 45 bends. |
 | Station Road leaves High Street square | (-610,-105) -> (-610,-337) -> (-938,-337), replacing the 45-degree split at High Street's bend |
 | Riverside Road reaches the ring north of East Bridge | (60,0) -> (1260,0) -> (1260,-170) -> (1400,-170). Going straight on to (1400,0) is not possible: that point is on East Bridge. |
+
+## D. Street ends (Marcel, 2026-09-20)
+A turning circle belongs to a semis / detached close, not to a Victorian terrace. Applied in
+`tools/town_plan_v3.py`, emitted, digest re-pinned; 0 makeshift junctions, 0 shrunk pieces.
+
+- **Closes keep `head = true` and get a fan**: three short lots round the bulb at 0 and +-65 degrees
+  (`TownFrontage.FAN_ANGLE`), each facing the centre. Each lot is tested on its own, so a lot that
+  hits a plot, the ring or a special is dropped and the others stand (Elder Close 1 of 3 beside the
+  school and the ring; Drift Close, Lune View, Fell Lane 2 of 3). Oak Close's head moved
+  z -865 -> -765 to clear the ring (all 3 lots).
+- **Terraced streets are `closed = true`**: no circle, a terrace of 3 square across the end on the
+  street's own building line, and a paved apron from the road end to its gardens (`PavingStrips`).
+  Cooper Street, Meadow Road (end x 1180 -> 1135), Tannery Row (1100 -> 1060), Cedar Road, Hollins
+  Road, Orchard Road, Fern Street (-1090 -> -1128), Westdale Avenue, Brook Street, Westdale
+  Crescent, Coronation Street, Tollgate Road, Quarry Road, Millbrook Rise (2 houses: Plot 2's margin).
+- **Joined up**: Drovers Road turns north at x -760 to a T on the ring; new Tenter Lane (x 950) ties
+  Meadow Road to Tannery Row.
+- **Left alone**: Riverside Road (the park question above), and the flats streets Marina Way and
+  Lune Street, whose circles are 92 apart on the waterfront.
+- Tests: `TownFrontageTest.everyStreetEndIsBuiltRound`, `PavingStripsTest.aBluntEndGetsAPavedApron`.

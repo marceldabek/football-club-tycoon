@@ -9,6 +9,7 @@
 -- Parts. The strips follow RoadPaths (corners rounded like the kit bends), stop
 -- at the mouth of every road that crosses or joins (where the kit junction piece
 -- has its own rounded corner), short of a turning head's bulb, and are left out
+-- (a blunt-ended street, road.closed, also gets a paved apron across its end)
 -- on roundabouts, bridges, over the river and inside the Town Centre box (whose
 -- whole verge is already paving).
 
@@ -134,6 +135,23 @@ function PavingStrips.plan(
 					end
 					flush(to)
 				end
+			end
+		end
+		if road.closed then
+			-- a blunt end: the kit straight just stops, so pave from it to the garden line
+			-- of the terrace across the end, as wide as the two pavements
+			local n = #road.points
+			local tip = road.points[n]
+			local dir = (tip - road.points[n - 1]).Unit
+			local depth = road.width / 2 + TownLayout.PAVEMENT_WIDTH
+			local mid = tip + dir * (depth / 2)
+			if not skipped(mid, roundabouts, bridges, river) then
+				local centre = Vector3.new(mid.X, top - PavingStrips.THICKNESS / 2, mid.Z)
+				table.insert(out, {
+					cframe = CFrame.lookAt(centre, centre + Vector3.new(dir.X, 0, dir.Z)),
+					size = Vector3.new(2 * outer, PavingStrips.THICKNESS, depth),
+					road = road.name,
+				})
 			end
 		end
 	end

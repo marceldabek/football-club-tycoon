@@ -29,6 +29,9 @@
 --               useAt  = the name of a TownFrontage.RULES rule that picks the use
 --                        (and district) from the position along the street
 --               head   = the last point is a cul-de-sac turning head, HEAD_RADIUS
+--                        (semis / detached closes and flats only)
+--               closed = the last point is a blunt end with a terrace across it
+--                        (a terraced street that joins nothing: no turning circle)
 --               "Plot N Lane" starts on the ring road / a roundabout and ends at
 --               plotCFrame(N) * PLOT_LANE_END, on the vehicle gate line
 --               (PlotGrounds: gate at plot-local x = -380, z 60..100).
@@ -67,6 +70,7 @@ export type Road = {
 	useAt: string?, -- name of a rule in TownFrontage.RULES ("centre", "industrial", ...)
 	district: string?,
 	head: boolean?, -- last point is a cul-de-sac turning head
+	closed: boolean?, -- last point is a blunt end with a terrace across it
 }
 export type River = { name: string, width: number, points: { Vector3 } }
 export type Bridge = { name: string, kind: "road" | "rail" | "foot", from: Vector3, to: Vector3, width: number }
@@ -388,7 +392,7 @@ TownLayout.ROADS = {
 		name = "Oak Close", kind = "residential", width = 20, front = "both", use = "semis",
 		district = "Northfields", head = true,
 		points = {
-			Vector3.new(1050, 0, -600), Vector3.new(1050, 0, -865),
+			Vector3.new(1050, 0, -600), Vector3.new(1050, 0, -765),
 		},
 	},
 	{
@@ -399,7 +403,7 @@ TownLayout.ROADS = {
 	},
 	{
 		name = "Cooper Street", kind = "residential", width = 20, front = "both", use = "terraced row",
-		district = "Station", head = true,
+		district = "Station", closed = true,
 		points = {
 			Vector3.new(-1290, 0, -240), Vector3.new(-720, 0, -240),
 		},
@@ -462,16 +466,22 @@ TownLayout.ROADS = {
 	},
 	{
 		name = "Meadow Road", kind = "residential", width = 20, front = "both", use = "terraced row",
-		district = "Riverside", head = true,
+		district = "Riverside", closed = true,
 		points = {
-			Vector3.new(0, 0, 560), Vector3.new(1180, 0, 560),
+			Vector3.new(0, 0, 560), Vector3.new(1135, 0, 560),
 		},
 	},
 	{
 		name = "Tannery Row", kind = "residential", width = 20, front = "both", use = "terraced row",
-		district = "Riverside", head = true,
+		district = "Riverside", closed = true,
 		points = {
-			Vector3.new(0, 0, 680), Vector3.new(1100, 0, 680),
+			Vector3.new(0, 0, 680), Vector3.new(1060, 0, 680),
+		},
+	},
+	{
+		name = "Tenter Lane", kind = "residential", width = 20, front = "none", district = "Riverside",
+		points = {
+			Vector3.new(950, 0, 560), Vector3.new(950, 0, 680),
 		},
 	},
 	{
@@ -522,7 +532,7 @@ TownLayout.ROADS = {
 	},
 	{
 		name = "Cedar Road", kind = "residential", width = 20, front = "both", use = "terraced row",
-		district = "Riverside", head = true,
+		district = "Riverside", closed = true,
 		points = {
 			Vector3.new(-470, 0, 800), Vector3.new(-470, 0, 1500),
 		},
@@ -536,7 +546,7 @@ TownLayout.ROADS = {
 	},
 	{
 		name = "Hollins Road", kind = "residential", width = 20, front = "both", use = "terraced row",
-		district = "Riverside", head = true,
+		district = "Riverside", closed = true,
 		points = {
 			Vector3.new(600, 0, 800), Vector3.new(600, 0, 1500),
 		},
@@ -575,42 +585,42 @@ TownLayout.ROADS = {
 	},
 	{
 		name = "Orchard Road", kind = "residential", width = 20, front = "both", use = "terraced row",
-		district = "Westdale", head = true,
+		district = "Westdale", closed = true,
 		points = {
 			Vector3.new(-2240, 0, 1480), Vector3.new(-730, 0, 1480),
 		},
 	},
 	{
 		name = "Fern Street", kind = "residential", width = 20, front = "both", use = "terraced row",
-		district = "Westdale", head = true,
+		district = "Westdale", closed = true,
 		points = {
-			Vector3.new(-1310, 0, 800), Vector3.new(-1090, 0, 800),
+			Vector3.new(-1310, 0, 800), Vector3.new(-1128, 0, 800),
 		},
 	},
 	{
 		name = "Westdale Avenue", kind = "residential", width = 20, front = "both", use = "terraced row",
-		district = "Westdale", head = true,
+		district = "Westdale", closed = true,
 		points = {
 			Vector3.new(-1310, 0, 950), Vector3.new(-730, 0, 950),
 		},
 	},
 	{
 		name = "Brook Street", kind = "residential", width = 20, front = "both", use = "terraced row",
-		district = "Westdale", head = true,
+		district = "Westdale", closed = true,
 		points = {
 			Vector3.new(-1310, 0, 1100), Vector3.new(-730, 0, 1100),
 		},
 	},
 	{
 		name = "Westdale Crescent", kind = "residential", width = 20, front = "both", use = "terraced row",
-		district = "Westdale", head = true,
+		district = "Westdale", closed = true,
 		points = {
 			Vector3.new(-1310, 0, 1250), Vector3.new(-730, 0, 1250),
 		},
 	},
 	{
 		name = "Coronation Street", kind = "residential", width = 20, front = "both", use = "terraced row",
-		district = "Westdale", head = true,
+		district = "Westdale", closed = true,
 		points = {
 			Vector3.new(-1310, 0, 1365), Vector3.new(-730, 0, 1365),
 		},
@@ -650,16 +660,16 @@ TownLayout.ROADS = {
 	},
 	{
 		name = "Tollgate Road", kind = "residential", width = 20, front = "both", use = "terraced row",
-		district = "Mapleford", head = true,
+		district = "Mapleford", closed = true,
 		points = {
 			Vector3.new(-1350, 0, -1210), Vector3.new(-1350, 0, -1590), Vector3.new(-2120, 0, -1590),
 		},
 	},
 	{
 		name = "Drovers Road", kind = "residential", width = 20, front = "both", use = "terraced row",
-		district = "Mapleford", head = true,
+		district = "Mapleford",
 		points = {
-			Vector3.new(-1350, 0, -1210), Vector3.new(-760, 0, -1210),
+			Vector3.new(-1350, 0, -1210), Vector3.new(-760, 0, -1210), Vector3.new(-760, 0, -1000),
 		},
 	},
 	{
@@ -705,7 +715,7 @@ TownLayout.ROADS = {
 	},
 	{
 		name = "Quarry Road", kind = "residential", width = 20, front = "both", use = "terraced row",
-		district = "Millbrook", head = true,
+		district = "Millbrook", closed = true,
 		points = {
 			Vector3.new(1400, 0, -1080), Vector3.new(900, 0, -1080), Vector3.new(780, 0, -1200),
 		},
@@ -719,7 +729,7 @@ TownLayout.ROADS = {
 	},
 	{
 		name = "Millbrook Rise", kind = "residential", width = 20, front = "both", use = "terraced row",
-		district = "Millbrook", head = true,
+		district = "Millbrook", closed = true,
 		points = {
 			Vector3.new(1400, 0, -1080), Vector3.new(1400, 0, -1330),
 		},

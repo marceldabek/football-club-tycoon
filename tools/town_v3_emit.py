@@ -61,6 +61,8 @@ def roads():
             fields.append(f'district = "{r["district"]}"')
         if r["head"]:
             fields.append("head = true")
+        if r["closed"]:
+            fields.append("closed = true")
         out.append("\t{")
         line = "\t\t"
         for f in fields:

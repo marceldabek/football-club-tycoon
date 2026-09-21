@@ -469,14 +469,15 @@ function T.turningHeadsAreRealDeadEnds()
 			assert(math.abs(l.X) > plotReach or math.abs(l.Z) > plotReach, ("%s head is inside plot %d"):format(road.name, i))
 		end
 	end
-	assert(heads >= 20, "v3 has cul-de-sac estates; only " .. heads .. " turning heads")
+	assert(heads >= 10, "v3 has cul-de-sac closes; only " .. heads .. " turning heads")
 end
 
 -- Every road end either joins another road / roundabout, leaves town at the
 -- extent, reaches a plot gate, or is a turning head. v3 fixed Westdale's streets
 -- stopping dead at the railway; this keeps it fixed.
 -- KNOWN dead ends carried from the approved drawing are listed, so a NEW one fails.
--- Do not add to this list to get a test green: give the street a turning head.
+-- Do not add to this list to get a test green: give a close a turning head (head)
+-- and a terraced street a terrace across its end (closed).
 local KNOWN_DEAD_ENDS = {
 	["Station Road"] = true, -- ends in the station car park (X51)
 	["Quay Street"] = true, -- ends at the pub and cafes on the waterfront
@@ -507,7 +508,7 @@ function T.roadsDoNotStopDead()
 		end
 		for _, which in { 1, #road.points } do
 			local p = road.points[which]
-			if which == #road.points and (road.head or road.kind == "lane") then
+			if which == #road.points and (road.head or road.closed or road.kind == "lane") then
 				continue
 			end
 			if road.kind == "alley" then
