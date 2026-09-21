@@ -11,9 +11,14 @@
 -- UK traffic drives on the left: TrafficMath.laneOffset(direction, width, -1)
 -- puts each car a quarter-carriageway to the left of the centreline for the
 -- direction it is travelling, so opposite-direction traffic never shares a
--- lane. Road top heights and the bridge deck offset mirror TownBuilder's Y
--- table (ring 0.20 / main 0.21 / residential 0.22 / lane 0.23, deck +0.5)
--- since this client script cannot require the server-only TownBuilder.
+-- lane. Cars follow RoadPaths.townRoads() (the layout with its corners rounded
+-- to the kit bends), not the raw TownLayout polylines, and sit on the kit
+-- carriageway's own top (RoadTiles.roadTop).
+--
+-- The place streams: a road only exists on this client near the streaming
+-- focus (the character, or Player.ReplicationFocus during the plot picker).
+-- Cars spawn round that focus, only where a road tile is really there, and are
+-- removed when the ground under them streams out.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -21,12 +26,15 @@ local RunService = game:GetService("RunService")
 local TownLayout = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TownLayout"))
 local TrafficMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrafficMath"))
 local RoadTiles = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoadTiles"))
+local RoadPaths = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoadPaths"))
 local Townsfolk = require(script.Parent:WaitForChild("Townsfolk"))
 
 -- ------------------------------------------------------------------ tuning
 
-local MAX_CARS = 24 -- mobile budget; raise/lower this alone to retune the pool
-local MAX_CARS_LOW = 8 -- TEMP, Quality "Low" (mirrors Shared.Quality.BUDGETS.Low.maxCars)
+-- TEMP: 16, down from 24. StreetFurniture parks cars in the driving lane of 53 of
+-- the 94 streets, so traffic keeps off them and 24 cars bunched on what was left.
+local MAX_CARS = 16 -- mobile budget; raise/lower this alone to retune the pool
+local MAX_CARS_LOW = 6 -- TEMP, Quality "Low"
 
 -- C3.2: QualityController publishes "High" | "Low" on the LocalPlayer.
 -- X92 (roadmap G1 "extra traffic"): a ground with a crowd arriving or a match
@@ -67,8 +75,8 @@ local BUS_EVERY = 8 -- 1 in 8 spawns is a bus
 local BUS_STOP_DWELL = 4 -- TEMP seconds stopped
 local BUS_STOP_REACH = 40 -- a stop this close to the road centreline serves it (the Station stop is 36 out)
 -- F3.3 cyclists: on residential streets only (lanes are too narrow to pass), by the kerb.
--- Cars don't queue behind them (they're left out of the leader-gap check).
-local BIKE_EVERY = 5 -- TEMP: 1 in 5 spawns on a quiet street is a bike
+-- A lane is 6.5 wide, so there is no room to pass: cars queue behind a cyclist.
+local BIKE_EVERY = 8 -- TEMP: 1 in 8 spawns on a quiet street is a bike
 local BIKE_SPEED = 11 -- TEMP studs/s
 local BIKE_KERB_INSET = 1.6 -- rider (1.3 wide) clears a car in the lane on a 20-wide residential street
 local ISLAND_CLEAR = 4.5 -- X79: vehicle centre from a roundabout island's edge (cars ~6 wide)
@@ -80,14 +88,16 @@ local DESPAWN_DIST = 800
 local RECHECK_INTERVAL = 1 -- seconds between spawn/despawn passes
 local SPAWN_ATTEMPTS_PER_RECHECK = 40
 local MAX_SPAWNS_PER_RECHECK = 4
-local MIN_GAP = 14 -- studs kept behind the car ahead, same road + direction
+local FOLLOW_CLEAR = 8 -- studs of daylight kept behind the vehicle ahead, same road + direction
+local SPAWN_CLEAR = 40 -- no vehicle spawns this close to another
+local LANDING_WAIT = 0.4 -- seconds a car holds at a junction while its place on the next road is taken
+local TURN_TIME = 0.9 -- seconds a car takes to swing onto its new line at a junction or a dead end
 local JOIN_TOLERANCE_EXTRA = 45 -- added to (own road width / 2) when hunting for the next road
 local GIVE_WAY_CLEAR = 22 -- X88: another vehicle this close to the junction makes a car wait (TEMP)
 local GIVE_WAY_WAIT = 1.4 -- seconds, once per junction
-local SPEED_JITTER = 0.15 -- +/- fraction of a kind's base speed, per car
+local SPEED_JITTER = 0.05 -- +/- fraction of a kind's base speed, per car (nobody can overtake, so more made platoons)
 
 local SPEED_BY_KIND: { [TownLayout.RoadKind]: number } = { ring = 40, main = 32, residential = 20, lane = 14 }
-local ROAD_TOP: { [TownLayout.RoadKind]: number } = { ring = 0.20, main = 0.21, residential = 0.22, lane = 0.23 }
 local DECK_ABOVE_ROAD = 0.5
 
 local PALETTE = {
@@ -177,6 +187,10 @@ type Car = {
 	jitter: number, -- per-car multiplier on its kind's base speed
 	speed: number, -- this frame's effective speed (after the leader check)
 	lastPos: Vector3, -- last computed world XZ position (Y = road/deck top), for despawn checks
+	halfLength: number, -- half the vehicle's length, for the follow gap
+	shown: CFrame?, -- the root CFrame drawn last frame
+	turnFrom: CFrame?, -- swinging from this CFrame onto its new line (junction, dead end)...
+	turnT: number, -- ...this far through, 0..1
 	dwell: number, -- seconds left stopped at a bus stop
 	lastStop: number?, -- distance of the stop it last pulled up at on this road (not twice in a row)
 	gaveWay: boolean, -- X88: already waited at the end of this road
@@ -187,6 +201,9 @@ type Car = {
 local root = Instance.new("Folder")
 root.Name = "Traffic"
 root.Parent = workspace
+
+-- ROADS with the corners rounded to the kit bends; same indices
+local ROADS = RoadPaths.townRoads()
 
 local cars: { Car } = {}
 local recheckTimer = 0
@@ -207,7 +224,47 @@ local function flatDistance(a: Vector3, b: Vector3): number
 end
 
 local function roadTopFor(kind: TownLayout.RoadKind): number
-	return ROAD_TOP[kind] or ROAD_TOP.lane
+	return RoadTiles.roadTop(kind)
+end
+
+-- Where the world is streamed in round: the server's ReplicationFocus (plot
+-- picker), else the character, else the camera.
+local function streamingFocus(): Vector3
+	local player = game:GetService("Players").LocalPlayer
+	local focus = player and player.ReplicationFocus
+	if focus and focus:IsA("BasePart") then
+		return focus.Position
+	end
+	local character = player and player.Character
+	local hrp = character and character:FindFirstChild("HumanoidRootPart")
+	if hrp and hrp:IsA("BasePart") then
+		return hrp.Position
+	end
+	return currentCameraPosition()
+end
+
+-- What of the town is streamed in under `point`: "road" for a kit road tile,
+-- "other" for anything else in the town (a bridge deck), nil for nothing.
+local groundParams = RaycastParams.new()
+groundParams.FilterType = Enum.RaycastFilterType.Include
+local function groundAt(point: Vector3): string?
+	local town = workspace:FindFirstChild("Town")
+	if not town then
+		return nil
+	end
+	groundParams.FilterDescendantsInstances = { town }
+	local hit = workspace:Raycast(Vector3.new(point.X, 60, point.Z), Vector3.new(0, -120, 0), groundParams)
+	if not hit then
+		return nil
+	end
+	local model = hit.Instance:FindFirstAncestorWhichIsA("Model")
+	while model do
+		if model.Name:sub(1, #RoadTiles.PREFIX) == RoadTiles.PREFIX then
+			return "road"
+		end
+		model = model:FindFirstAncestorWhichIsA("Model")
+	end
+	return "other"
 end
 
 -- If `point` falls within a road bridge's deck rectangle, the deck top;
@@ -341,19 +398,18 @@ local function buildBike(parent: Instance, color: Color3): { BasePart }?
 	return parts
 end
 
--- X128: kit hatchbacks published by the server's ClientKit, if any. Scaled so
--- they are about the primitive car's size (a real car beside the characters).
-local KIT_CAR_SCALE = 0.5
+-- X128: kit hatchbacks published by the server's ClientKit, if any, at the
+-- town's one car size (parked cars use the same number).
+local KIT_CAR_SCALE = RoadTiles.CAR_SCALE
 local function kitCarTemplates(): { Instance }
 	local clientKit = ReplicatedStorage:FindFirstChild("ClientKit")
 	local cars = clientKit and clientKit:FindFirstChild("Cars")
 	return if cars then cars:GetChildren() else {}
 end
 
--- X372: the double-decker from ClientKit. Unlike the cars it is NOT rescaled
--- here: ClientKit already sizes it to a real bus (2.55 x 4.4 x 11 m). The
--- primitive rig it replaces was 4.4 x 3.0 x 13.5 studs, so three studs tall -
--- a 5-stud townsperson stood taller than a bus.
+-- X372: the double-decker from ClientKit. Stored at real-bus size it is 8.3
+-- wide, wider than a 6.5 lane, so it is drawn at RoadTiles.BUS_SCALE: still
+-- nine studs tall beside a 5-stud townsperson.
 local function kitBusTemplate(): Instance?
 	local clientKit = ReplicatedStorage:FindFirstChild("ClientKit")
 	return clientKit and clientKit:FindFirstChild("Bus")
@@ -362,7 +418,7 @@ end
 -- ------------------------------------------------------------------ spawn / despawn
 
 local function spawnCar(roadIndex: number, distance: number, direction: number)
-	local road = TownLayout.ROADS[roadIndex]
+	local road = ROADS[roadIndex]
 	local quiet = road.kind == "residential"
 	local isBike = quiet and math.random(1, BIKE_EVERY) == 1
 	local isBus = not isBike and math.random(1, BUS_EVERY) == 1
@@ -379,6 +435,7 @@ local function spawnCar(roadIndex: number, distance: number, direction: number)
 	local kitBus = if isBus then kitBusTemplate() else nil
 	if kitBus then
 		local mesh = (kitBus:FindFirstChildWhichIsA("BasePart", true) :: BasePart):Clone()
+		mesh.Size *= RoadTiles.BUS_SCALE
 		mesh.CastShadow = true
 		mesh.Parent = model
 		parts = { mesh }
@@ -410,6 +467,12 @@ local function spawnCar(roadIndex: number, distance: number, direction: number)
 		parts = if isBus then buildBus(model, color) else buildCar(model, color)
 	end
 
+	-- a kit mesh's length is its longer side (FrontYaw only ever turns it half round)
+	local halfLength = if meshOffsets then math.max(parts[1].Size.X, parts[1].Size.Z) / 2
+		elseif isBike then 2.4
+		elseif isBus then BUS_BODY_SIZE.Z / 2
+		else BODY_SIZE.Z / 2
+
 	local car: Car = {
 		model = model,
 		parts = parts,
@@ -424,7 +487,12 @@ local function spawnCar(roadIndex: number, distance: number, direction: number)
 		kind = road.kind,
 		jitter = 1 + (math.random() * 2 - 1) * SPEED_JITTER,
 		speed = 0,
-		lastPos = Vector3.zero,
+		-- the real spot, not zero: the next spawn this pass checks its distance to it
+		lastPos = TrafficMath.pointAt(road.points, distance),
+		halfLength = halfLength,
+		shown = nil,
+		turnFrom = nil,
+		turnT = 0,
 		dwell = 0,
 		gaveWay = false,
 		lastStop = nil,
@@ -462,37 +530,73 @@ local function parkedStreets(): { [string]: boolean }
 	return out
 end
 
-local function randomSpawnCandidate(camPos: Vector3): (number?, number?, number?)
-	local roads = TownLayout.ROADS
-	if #roads == 0 then
-		return nil, nil, nil
+-- Roads traffic may use, with the running sum of their lengths so a spawn lands
+-- on a road in proportion to its length. (Picking by index gave a 120-stud
+-- close the same share of the cars as the 8,400-stud ring road.) Rebuilt when
+-- the list of parked streets changes.
+local eligibleKey: string? = nil
+local eligibleRoads: { number } = {}
+local eligibleCumulative: { number } = {}
+local function refreshEligible(parked: { [string]: boolean })
+	local names = {}
+	for name in parked do
+		table.insert(names, name)
 	end
-	local parked = parkedStreets()
-	for _ = 1, SPAWN_ATTEMPTS_PER_RECHECK do
-		local roadIndex = math.random(1, #roads)
-		local road = roads[roadIndex]
+	table.sort(names)
+	local key = table.concat(names, "|")
+	if key == eligibleKey then
+		return
+	end
+	eligibleKey = key
+	table.clear(eligibleRoads)
+	table.clear(eligibleCumulative)
+	local total = 0
+	for roadIndex, road in ROADS do
 		if #road.points < 2 or parked[road.name] or road.kind == "alley" then
 			continue
 		end
 		local length = TrafficMath.polylineLength(road.points)
-		if length <= 1 then
+		if length > 1 then
+			total += length
+			table.insert(eligibleRoads, roadIndex)
+			table.insert(eligibleCumulative, total)
+		end
+	end
+end
+
+local function randomSpawnCandidate(focus: Vector3): (number?, number?, number?)
+	refreshEligible(parkedStreets())
+	local taken = {}
+	for _, car in cars do
+		table.insert(taken, car.lastPos)
+	end
+	for _ = 1, SPAWN_ATTEMPTS_PER_RECHECK do
+		local pick = TrafficMath.weightedIndex(eligibleCumulative, math.random())
+		if not pick then
+			return nil, nil, nil
+		end
+		local roadIndex = eligibleRoads[pick]
+		local road = ROADS[roadIndex]
+		local distance = math.random() * TrafficMath.polylineLength(road.points)
+		local point = TrafficMath.pointAt(road.points, distance)
+		local dist = flatDistance(point, focus)
+		if dist < SPAWN_MIN_DIST or dist > SPAWN_MAX_DIST then
 			continue
 		end
-		local distance = math.random() * length
-		local point = TrafficMath.pointAt(road.points, distance)
-		local dist = flatDistance(point, camPos)
-		if dist >= SPAWN_MIN_DIST and dist <= SPAWN_MAX_DIST then
-			local direction = if math.random() < 0.5 then 1 else -1
-			return roadIndex, distance, direction
+		-- room for it, and a road really streamed in under it
+		if TrafficMath.crowded(point, taken, SPAWN_CLEAR) or groundAt(point) ~= "road" then
+			continue
 		end
+		local direction = if math.random() < 0.5 then 1 else -1
+		return roadIndex, distance, direction
 	end
 	return nil, nil, nil
 end
 
-local function recheckSpawns(camPos: Vector3)
+local function recheckSpawns(focus: Vector3)
 	local spawned = 0
 	while #cars < maxCars() and spawned < MAX_SPAWNS_PER_RECHECK do
-		local roadIndex, distance, direction = randomSpawnCandidate(camPos)
+		local roadIndex, distance, direction = randomSpawnCandidate(focus)
 		if not roadIndex then
 			break
 		end
@@ -501,10 +605,11 @@ local function recheckSpawns(camPos: Vector3)
 	end
 end
 
-local function recheckDespawns(camPos: Vector3)
+local function recheckDespawns(focus: Vector3)
 	for i = #cars, 1, -1 do
 		local car = cars[i]
-		if flatDistance(car.lastPos, camPos) > DESPAWN_DIST then
+		-- too far, or the town under it has streamed out (it would drive over bare terrain)
+		if flatDistance(car.lastPos, focus) > DESPAWN_DIST or groundAt(car.lastPos) == nil then
 			despawnCarAt(i)
 		end
 	end
@@ -517,16 +622,15 @@ end
 
 -- ------------------------------------------------------------------ minimum gap
 
--- Slows a car towards (never below 0) the speed of the car ahead of it on
--- the same road and travelling the same direction, once the gap between
--- them drops under MIN_GAP. Assumes `car.speed` already holds each car's
--- free-flow speed for this frame.
+-- Slows a vehicle towards the speed of the one ahead of it on the same road and
+-- travelling the same direction (TrafficMath.followSpeed), keeping FOLLOW_CLEAR
+-- studs of daylight between them whatever their lengths. Bikes count: a lane is
+-- too narrow to pass one. On a closed road the front vehicle follows the back
+-- one across the seam. Assumes `car.speed` already holds each car's free-flow
+-- speed for this frame.
 local function applyLeaderGaps()
 	local groups: { [string]: { Car } } = {}
 	for _, car in cars do
-		if car.isBike then
-			continue -- cars pass cyclists; bikes don't hold up the queue
-		end
 		local key = car.roadIndex .. "|" .. car.direction
 		local list = groups[key]
 		if not list then
@@ -534,6 +638,11 @@ local function applyLeaderGaps()
 			groups[key] = list
 		end
 		table.insert(list, car)
+	end
+
+	local function follow(follower: Car, leader: Car, gap: number)
+		local minGap = TrafficMath.followGap(leader.halfLength, follower.halfLength, FOLLOW_CLEAR)
+		follower.speed = TrafficMath.followSpeed(follower.speed, leader.speed, gap, minGap)
 	end
 
 	for _, list in groups do
@@ -549,12 +658,11 @@ local function applyLeaderGaps()
 		-- Walk from the front backwards so a follower always sees its
 		-- leader's already-finalised speed for this frame.
 		for i = #list - 1, 1, -1 do
-			local follower, leader = list[i], list[i + 1]
-			local gap = math.abs(leader.distance - follower.distance)
-			if gap < MIN_GAP then
-				local ratio = math.clamp(gap / MIN_GAP, 0, 1)
-				follower.speed = math.min(follower.speed, leader.speed * ratio)
-			end
+			follow(list[i], list[i + 1], math.abs(list[i + 1].distance - list[i].distance))
+		end
+		local front, back = list[#list], list[1]
+		if #list > 1 and TrafficMath.isClosed(ROADS[front.roadIndex].points, 1e-3) then
+			follow(front, back, front.length - math.abs(front.distance - back.distance))
 		end
 	end
 end
@@ -569,7 +677,7 @@ local stopsByRoad: { [number]: { number } } = {}
 local function stopsOn(roadIndex: number): { number }
 	local cached = stopsByRoad[roadIndex]
 	if not cached then
-		cached = TrafficMath.stopDistances(TownLayout.ROADS[roadIndex].points, stopPositions, BUS_STOP_REACH)
+		cached = TrafficMath.stopDistances(ROADS[roadIndex].points, stopPositions, BUS_STOP_REACH)
 		stopsByRoad[roadIndex] = cached
 	end
 	return cached
@@ -578,7 +686,7 @@ end
 -- ------------------------------------------------------------------ movement
 
 local function switchRoad(car: Car, connection: TrafficMath.Connection, leftover: number)
-	local road = TownLayout.ROADS[connection.roadIndex]
+	local road = ROADS[connection.roadIndex]
 	car.roadIndex = connection.roadIndex
 	car.direction = connection.direction
 	car.kind = road.kind
@@ -586,6 +694,23 @@ local function switchRoad(car: Car, connection: TrafficMath.Connection, leftover
 	car.distance = math.clamp(connection.distance + connection.direction * leftover, 0, car.length)
 	car.lastStop = nil
 	car.gaveWay = false
+	-- swing onto the new line instead of snapping to it
+	car.turnFrom = car.shown
+	car.turnT = 0
+end
+
+-- Is the spot a car would land on (joining `connection`) already taken by a
+-- vehicle going the same way on that road?
+local function landingTaken(car: Car, connection: TrafficMath.Connection): boolean
+	for _, other in cars do
+		if other ~= car and other.roadIndex == connection.roadIndex and other.direction == connection.direction then
+			local need = TrafficMath.followGap(other.halfLength, car.halfLength, FOLLOW_CLEAR)
+			if math.abs(other.distance - connection.distance) < need then
+				return true
+			end
+		end
+	end
+	return false
 end
 
 -- X88: is another vehicle (not on this car's road) near the end this car is reaching?
@@ -601,7 +726,7 @@ local function junctionBusy(car: Car, road: TownLayout.Road): boolean
 end
 
 local function moveCar(car: Car, dt: number)
-	local road = TownLayout.ROADS[car.roadIndex]
+	local road = ROADS[car.roadIndex]
 	if not road then
 		return
 	end
@@ -631,26 +756,35 @@ local function moveCar(car: Car, dt: number)
 		local atEnd = car.direction == 1
 		local overshoot = if atEnd then newDistance - car.length else -newDistance
 		local tolerance = road.width / 2 + JOIN_TOLERANCE_EXTRA
-		local options = TrafficMath.connections(TownLayout.ROADS, car.roadIndex, atEnd, tolerance)
+		local options = TrafficMath.connections(ROADS, car.roadIndex, atEnd, tolerance)
 		local parked = parkedStreets()
 		for i = #options, 1, -1 do
-			local option = TownLayout.ROADS[options[i].roadIndex]
+			local option = ROADS[options[i].roadIndex]
 			if parked[option.name] or option.kind == "alley" then
 				table.remove(options, i)
 			end
 		end
 		if #options > 0 then
-			switchRoad(car, options[math.random(1, #options)], overshoot)
+			local option = options[math.random(1, #options)]
+			if landingTaken(car, option) then
+				-- hold at the mouth until there is room (it re-rolls its turn then)
+				car.distance = math.clamp(newDistance, 0, car.length)
+				car.dwell = LANDING_WAIT
+			else
+				switchRoad(car, option, overshoot)
+			end
 		else
-			-- Dead end: U-turn in place rather than driving off the road.
+			-- Dead end: turn round rather than driving off the road.
 			car.direction = -car.direction
 			car.distance = math.clamp(newDistance, 0, car.length)
+			car.turnFrom = car.shown
+			car.turnT = 0
 		end
 	else
 		car.distance = newDistance
 	end
 
-	local currentRoad = TownLayout.ROADS[car.roadIndex]
+	local currentRoad = ROADS[car.roadIndex]
 	local point, lineDirection = TrafficMath.pointAt(currentRoad.points, car.distance)
 	-- X128: face (and keep left for) the way the car is actually travelling. The
 	-- polyline's own direction put cars going the other way in the same lane,
@@ -670,6 +804,19 @@ local function moveCar(car: Car, dt: number)
 	local y = bridgeDeckY(flatPos, car.kind) or roadTopFor(car.kind)
 	local yaw = math.atan2(-direction.X, -direction.Z)
 	local rootCFrame = CFrame.new(flatPos.X, y, flatPos.Z) * CFrame.Angles(0, yaw, 0)
+	-- at a junction or a dead end the car's line jumps (new road, other lane,
+	-- new heading): ease from where it was drawn onto the new line
+	local turnFrom = car.turnFrom
+	if turnFrom then
+		car.turnT += dt / TURN_TIME
+		if car.turnT >= 1 then
+			car.turnFrom = nil
+		else
+			local t = car.turnT
+			rootCFrame = turnFrom:Lerp(rootCFrame, t * t * (3 - 2 * t))
+		end
+	end
+	car.shown = rootCFrame
 
 	local offsets = if car.meshOffsets then car.meshOffsets elseif car.isBike then BIKE_OFFSETS elseif car.isBus then BUS_OFFSETS else CAR_OFFSETS
 	local parts = car.parts
@@ -774,9 +921,9 @@ RunService.RenderStepped:Connect(function(dt: number)
 	end
 
 	if doRecheck then
-		local camPos = currentCameraPosition()
-		recheckDespawns(camPos)
-		recheckSpawns(camPos)
+		local focus = streamingFocus()
+		recheckDespawns(focus)
+		recheckSpawns(focus)
 	end
 
 	for _, car in cars do

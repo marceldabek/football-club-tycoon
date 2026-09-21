@@ -76,10 +76,10 @@ export type Stats = {
 FurniturePlan.PAVEMENT_WIDTH = 8
 FurniturePlan.PAVEMENT_Y = RoadTiles.SURFACE_Y
 FurniturePlan.ROAD_Y = RoadTiles.roadTop("residential")
--- Parked hatchbacks at the size client Traffic drives them (KIT_CAR_SCALE): full
--- size they are 9.8 wide on a 12.9 carriageway.
-FurniturePlan.CAR_SCALE = 0.5
-FurniturePlan.CAR_HALF_WIDTH = 9.8 * 0.5 / 2
+-- Parked hatchbacks at the size client Traffic drives them (RoadTiles.CAR_SCALE):
+-- full size they are 9.8 wide on a 12.9 carriageway.
+FurniturePlan.CAR_SCALE = RoadTiles.CAR_SCALE
+FurniturePlan.CAR_HALF_WIDTH = 9.8 * FurniturePlan.CAR_SCALE / 2
 FurniturePlan.CAR_KERB_GAP = 0.4
 
 -- Centreline to the back of the kerb / to the carriageway edge of `road`.

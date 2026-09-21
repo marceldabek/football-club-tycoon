@@ -63,11 +63,11 @@ function T.lowBudgetNeverExceedsHigh()
 end
 
 function T.highBudgetMatchesShippedScriptValues()
-	-- Traffic MAX_CARS 24, TownLife BANNER_BUDGET 60 / BUNTING_STRING_BUDGET 40
+	-- Traffic MAX_CARS 16, TownLife BANNER_BUDGET 60 / BUNTING_STRING_BUDGET 40
 	local high = Quality.budget("High")
-	assert(high.maxCars == 24 and high.banners == 60 and high.buntingStrings == 40, "High keeps the old numbers")
+	assert(high.maxCars == 16 and high.banners == 60 and high.buntingStrings == 40, "High keeps the old numbers")
 	local low = Quality.budget("Low")
-	assert(low.maxCars == 8 and low.banners == 20 and low.buntingStrings == 12, "Low matches the constants in Traffic/TownLife")
+	assert(low.maxCars == 6 and low.banners == 20 and low.buntingStrings == 12, "Low matches the constants in Traffic/TownLife")
 end
 
 function T.budgetUnknownFallsBackToHigh()

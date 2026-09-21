@@ -242,4 +242,51 @@ function T.aroundIslandsPushesCarsOntoARingRoundTheIsland()
 	assert(math.abs((c - Vector3.new(100, 0, 100)).Magnitude - ring) < EPS, "centre case on the ring")
 end
 
+-- The island RoadTiles raises and the ring traffic steers round it are one number;
+-- at 0.35 against a 0.45 island, cars drove 2 studs through the island's edge.
+function T.carsClearTheIslandRoadTilesBuilds()
+	local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles)
+	assert(TrafficMath.ISLAND_SHARE == RoadTiles.ISLAND_SHARE, "one island share")
+	local radius, clearance = 40, 4.5
+	local carHalfWidth = 9.8 * RoadTiles.CAR_SCALE / 2
+	local ring = radius * TrafficMath.ISLAND_SHARE + clearance
+	assert(ring - carHalfWidth > radius * RoadTiles.ISLAND_SHARE, "car's inner side is outside the island")
+end
+
+function T.vehiclesFitTheirLane()
+	local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles)
+	local lane = RoadTiles.carriagewayWidth("residential") / 2
+	assert(9.8 * RoadTiles.CAR_SCALE < lane, "car narrower than a lane")
+	assert(8.3 * RoadTiles.BUS_SCALE < lane, "bus narrower than a lane")
+end
+
+function T.followGapCountsBothLengths()
+	-- a car (half 5.8) behind a bus (half 10.1) with 8 clear: 23.9 between centres
+	assert(math.abs(TrafficMath.followGap(10.1, 5.8, 8) - 23.9) < EPS, "gap is both halves plus daylight")
+end
+
+function T.followSpeedEasesDownToTheLeader()
+	assert(TrafficMath.followSpeed(20, 10, 100, 20) == 20, "free beyond twice the gap")
+	assert(math.abs(TrafficMath.followSpeed(20, 10, 30, 20) - 15) < EPS, "half way in: half way to the leader's speed")
+	assert(math.abs(TrafficMath.followSpeed(20, 10, 20, 20) - 10) < EPS, "at the gap: the leader's speed")
+	assert(math.abs(TrafficMath.followSpeed(20, 10, 10, 20) - 5) < EPS, "inside the gap: slower, so it opens")
+	assert(TrafficMath.followSpeed(20, 10, 0, 20) == 0, "touching: stopped")
+	assert(TrafficMath.followSpeed(8, 10, 20, 20) == 8, "never above its own free speed")
+end
+
+function T.weightedIndexFollowsTheWeights()
+	local cumulative = { 10, 10, 110 } -- weights 10, 0, 100
+	assert(TrafficMath.weightedIndex(cumulative, 0) == 1, "start")
+	assert(TrafficMath.weightedIndex(cumulative, 0.05) == 1, "inside the first")
+	assert(TrafficMath.weightedIndex(cumulative, 0.5) == 3, "the long one takes the rest")
+	assert(TrafficMath.weightedIndex(cumulative, 0.999) == 3, "end")
+	assert(TrafficMath.weightedIndex({}, 0.5) == nil, "empty")
+end
+
+function T.crowdedSeesANearbyVehicle()
+	local taken = { Vector3.new(0, 0, 0), Vector3.new(100, 0, 0) }
+	assert(TrafficMath.crowded(Vector3.new(30, 5, 0), taken, 40), "30 away is inside 40")
+	assert(not TrafficMath.crowded(Vector3.new(50, 0, 0), taken, 40), "50 from both")
+end
+
 return T

@@ -14,6 +14,7 @@
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
+local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles)
 local EstateDresser = require(script.Parent.EstateDresser)
 local KitPlacer = require(script.Parent.KitPlacer)
 
@@ -230,7 +231,7 @@ local function buildCarPark(parent: Instance, cf: CFrame, r: Rect)
 	for k = 0, count - 1 do
 		if k % 2 == 0 and rng:NextNumber() < 0.8 then -- every other bay: 9-wide bays, 9.8-wide car
 			local at = (cf * CFrame.new(backX - BAY_D / 2, 0.3, r.z0 + 2 + (k + 0.5) * BAY_W)).Position
-			KitPlacer.place(kits[rng:NextInteger(1, #kits)], CFrame.lookAt(at, at + cf.XVector), m, { fallbackSize = Vector3.new(6, 4, 12), fallbackColor = Color3.fromRGB(150, 152, 156) })
+			KitPlacer.place(kits[rng:NextInteger(1, #kits)], CFrame.lookAt(at, at + cf.XVector), m, { scale = RoadTiles.CAR_SCALE, fallbackSize = Vector3.new(6, 4, 12), fallbackColor = Color3.fromRGB(150, 152, 156) })
 		end
 	end
 	return count

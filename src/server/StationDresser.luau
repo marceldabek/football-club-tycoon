@@ -14,6 +14,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
+local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles)
 local KitPlacer = require(script.Parent.KitPlacer)
 local Planting = require(script.Parent.Planting)
 local SquareDresser = require(script.Parent.SquareDresser)
@@ -269,9 +270,10 @@ local function pavementAt(p: Vector3): boolean
 end
 
 -- X129 (RivermereStation.png: dark cars with a yellow TAXI roof sign): the
--- town's navy hatchback mesh at 0.7 scale (fits the 8-wide lay-by) with a roof
--- sign; the 7-part block taxi stays as the fallback when the kit is missing.
-local TAXI_KIT, TAXI_SCALE = "HatchbackNavy", 0.7
+-- town's navy hatchback mesh at the town's one car size (it was 0.7, bigger
+-- than the cars driving past) with a roof sign; the 7-part block taxi stays as
+-- the fallback when the kit is missing.
+local TAXI_KIT, TAXI_SCALE = "HatchbackNavy", RoadTiles.CAR_SCALE
 
 local function buildTaxi(parent: Instance, cf: CFrame)
 	if KitPlacer.find(TAXI_KIT) then
@@ -844,7 +846,7 @@ function StationDresser.build(): string
 						-- nose in: the kit car's long axis runs along its Z, facing away from the aisle.
 						-- X45: a mix of the kit hatchback and the generated ones
 						local kits = { "HatchbackOrange", "HatchbackNavy", "HatchbackRed", "HatchbackSilver" }
-						KitPlacer.place(kits[rng:NextInteger(1, #kits)], bay * CFrame.new(0, 0.32, 0) * CFrame.Angles(0, math.pi, 0), m, { fallbackSize = Vector3.new(6, 4, 12), fallbackColor = Color3.fromRGB(150, 152, 156) })
+						KitPlacer.place(kits[rng:NextInteger(1, #kits)], bay * CFrame.new(0, 0.32, 0) * CFrame.Angles(0, math.pi, 0), m, { scale = RoadTiles.CAR_SCALE, fallbackSize = Vector3.new(6, 4, 12), fallbackColor = Color3.fromRGB(150, 152, 156) })
 					end
 				end
 				local signAt = Vector3.new(block.centre.X + block.size.X / 2 - 4, 0, block.centre.Z - block.size.Z / 2 - 3)

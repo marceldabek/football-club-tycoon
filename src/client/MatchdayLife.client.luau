@@ -22,6 +22,7 @@ local player = Players.LocalPlayer -- X318: for the Quality attribute
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local MatchdayRoutes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MatchdayRoutes"))
+local RoadTiles = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoadTiles"))
 local Townsfolk = require(script.Parent.Townsfolk)
 
 -- ------------------------------------------------------------------ tuning
@@ -312,7 +313,7 @@ local CAR_COLOURS = {
 	Color3.fromRGB(60, 90, 70),
 }
 local ASPHALT_TOP = 0.2 -- PlotGrounds car park asphalt
-local KIT_CAR_SCALE = 0.85 -- kit hatchbacks are 9.4-9.8 wide; bays are 9
+local KIT_CAR_SCALE = RoadTiles.CAR_SCALE -- the town's one car size (was 0.85 to fill a 9-wide bay: bigger than the cars on the road outside)
 
 local function buildCars(crowd: PlotCrowd)
 	local count = MatchdayRoutes.parkedCars(numberAttribute(crowd.folder, "Attendance"), #BAYS)

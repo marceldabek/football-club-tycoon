@@ -264,4 +264,35 @@ function T.onRoundaboutIsTheDiscOnly()
 	assert(not PedestrianMath.onRoundabout(Vector3.new(0, 0, 0), {}), "no roundabouts")
 end
 
+-- A side street joining a main road: the main road's pavement has a gap at the
+-- mouth, and the side street's pavement stops short of the main carriageway.
+function T.junctionZonesCoverTheMouthAndTheRoadEnd()
+	local roads = {
+		{ name = "Main", kind = "main", width = 26, points = { Vector3.new(0, 0, 0), Vector3.new(400, 0, 0) } },
+		{ name = "Side", kind = "residential", width = 20, points = { Vector3.new(200, 0, 200), Vector3.new(200, 0, 0) } },
+	} :: any
+	local function half(_kind: string): number
+		return 10
+	end
+	local function margin(_kind: string): number
+		return 8
+	end
+	-- the main road's pavement on the side street's side (+Z)
+	local mainPath = PedestrianMath.offsetPolyline(roads[1].points, 26, 1, 8.5)
+	assert(mainPath[1].Z > 0, "test assumes side 1 is +Z here")
+	local mainZones = PedestrianMath.junctionZones(mainPath, PedestrianMath.cumulativeLengths(mainPath), roads, 1, half, margin)
+	assert(PedestrianMath.inZones(mainZones, 200), "the mouth itself")
+	assert(PedestrianMath.inZones(mainZones, 191) and PedestrianMath.inZones(mainZones, 209), "half a mouth either side")
+	assert(not PedestrianMath.inZones(mainZones, 185) and not PedestrianMath.inZones(mainZones, 215), "pavement beyond it")
+	-- the far pavement has no mouth
+	local farPath = PedestrianMath.offsetPolyline(roads[1].points, 26, -1, 8.5)
+	local farZones = PedestrianMath.junctionZones(farPath, PedestrianMath.cumulativeLengths(farPath), roads, 1, half, margin)
+	assert(not PedestrianMath.inZones(farZones, 200), "nothing crosses the far pavement")
+	-- the side street's pavement stops 8 short of the main centreline, and is open before that
+	local sidePath = PedestrianMath.offsetPolyline(roads[2].points, 20, 1, 8.5)
+	local sideZones = PedestrianMath.junctionZones(sidePath, PedestrianMath.cumulativeLengths(sidePath), roads, 2, half, margin)
+	assert(PedestrianMath.inZones(sideZones, 199) and PedestrianMath.inZones(sideZones, 193), "the last 8 studs")
+	assert(not PedestrianMath.inZones(sideZones, 150) and not PedestrianMath.inZones(sideZones, 5), "open away from the junction")
+end
+
 return T

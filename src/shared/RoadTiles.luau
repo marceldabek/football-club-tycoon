@@ -100,6 +100,23 @@ end
 function RoadTiles.carriagewayWidth(kind: string): number
 	return RoadTiles.KIT_CARRIAGEWAY * (RoadTiles.SCALE[kind] or RoadTiles.STREET_SCALE)
 end
+-- Centreline radius of the kit's bend pieces, unscaled (measured in Studio
+-- 2026-09-20 from top-down captures: where the kerbs leave the straight, over
+-- the carriageway width as the ruler. The meshes' collision hulls cut the
+-- outside of the 90 bend short, so raycasts under-read it). RoadPaths rounds the
+-- layout's sharp corners with these so traffic and walkers follow the asphalt.
+RoadTiles.KIT_BEND90_RADIUS = 29
+RoadTiles.KIT_BEND45_RADIUS = 40
+-- A big roundabout's raised island, as a share of its radius. Traffic steers
+-- round the same number (TrafficMath.aroundIslands), so keep it in one place.
+RoadTiles.ISLAND_SHARE = 0.45
+-- One size for every kit hatchback on the streets, moving or parked, and for the
+-- double-decker (TEMP). The hatchback mesh is 9.8 x 8.4 x 19.4 and the bus
+-- 8.3 x 12.1 x 27.4 as stored; a lane is 6.47 wide at STREET_SCALE, so 0.6 gives
+-- a 5.9-wide car and 0.74 a 6.1-wide bus: as big as the lane allows beside a
+-- 4-stud-wide avatar.
+RoadTiles.CAR_SCALE = 0.6
+RoadTiles.BUS_SCALE = 0.74
 RoadTiles.RANK = { ring = 4, main = 3, residential = 2, lane = 1, alley = 0 } :: { [string]: number }
 RoadTiles.ARTERIAL = "Arterial"
 -- TEMP: the Town Centre box (yellow lines, and the district for roads with none).
@@ -557,7 +574,7 @@ local function emitNode(node, tiles: { Tile }, exempt: { Exempt })
 		if big then
 			table.insert(exempt, { id = "E3", shape = "disc", centre = Vector3.new(node.pos.X, top + 0.04, node.pos.Z), radius = r, height = 0.12, look = "asphalt" })
 		end
-		local ir = if big then r * 0.45 else 5
+		local ir = if big then r * RoadTiles.ISLAND_SHARE else 5
 		local ih = if big then 1.2 else 0.16
 		table.insert(exempt, { id = "E3", shape = "disc", centre = Vector3.new(node.pos.X, top + 0.1 + ih / 2, node.pos.Z), radius = ir, height = ih, look = big and "island" or "paint" })
 	end

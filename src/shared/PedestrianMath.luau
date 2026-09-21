@@ -262,6 +262,83 @@ function PedestrianMath.segmentsNear(roads: { TownLayout.Road }, indices: { numb
 	return out
 end
 
+-- ------------------------------------------------------------ junction mouths
+
+export type Zone = { from: number, to: number }
+
+-- Where segment ab meets segment cd (ends included): the fraction along ab, or nil.
+local function meet(a: Vector3, b: Vector3, c: Vector3, d: Vector3): number?
+	local rX, rZ = b.X - a.X, b.Z - a.Z
+	local sX, sZ = d.X - c.X, d.Z - c.Z
+	local den = rX * sZ - rZ * sX
+	if math.abs(den) < 1e-9 then
+		return nil
+	end
+	local t = ((c.X - a.X) * sZ - (c.Z - a.Z) * sX) / den
+	local u = ((c.X - a.X) * rZ - (c.Z - a.Z) * rX) / den
+	if t >= 0 and t <= 1 and u >= 0 and u <= 1 then
+		return t
+	end
+	return nil
+end
+
+-- The stretches of a pavement line (`path`, with its `cumulative` lengths) that
+-- are not pavement at all: the mouth of every road that crosses or joins it, and
+-- the last few studs where its own road runs out into another. A walker turns
+-- round at a zone's edge instead of strolling across open asphalt.
+--   halfMouth(kind)  half the width of the gap a `kind` road cuts in the pavement
+--   endMargin(kind)  how far short of a `kind` road's centreline a side road's
+--                    pavement stops
+-- `ownIndex` is the path's own road in `roads`; its raw end points are read from there.
+function PedestrianMath.junctionZones(
+	path: { Vector3 },
+	cumulative: { number },
+	roads: { TownLayout.Road },
+	ownIndex: number,
+	halfMouth: (string) -> number,
+	endMargin: (string) -> number
+): { Zone }
+	local zones: { Zone } = {}
+	local length = cumulative[#cumulative] or 0
+	local own = roads[ownIndex]
+	for j, other in roads do
+		if j == ownIndex then
+			continue
+		end
+		local half = halfMouth(other.kind)
+		for s = 1, #other.points - 1 do
+			local c, d = other.points[s], other.points[s + 1]
+			for i = 1, #path - 1 do
+				local t = meet(path[i], path[i + 1], c, d)
+				if t then
+					local at = cumulative[i] + t * (cumulative[i + 1] - cumulative[i])
+					table.insert(zones, { from = at - half, to = at + half })
+				end
+			end
+		end
+		-- own road ends on (or at the end of) this one: the pavement stops short of it
+		if own and #own.points >= 2 then
+			local margin = endMargin(other.kind)
+			if TownLayout.distanceToPolyline(own.points[1], other.points) <= 2 then
+				table.insert(zones, { from = -1, to = margin })
+			end
+			if TownLayout.distanceToPolyline(own.points[#own.points], other.points) <= 2 then
+				table.insert(zones, { from = length - margin, to = length + 1 })
+			end
+		end
+	end
+	return zones
+end
+
+function PedestrianMath.inZones(zones: { Zone }, distance: number): boolean
+	for _, z in zones do
+		if distance >= z.from and distance <= z.to then
+			return true
+		end
+	end
+	return false
+end
+
 -- ---------------------------------------------------------- ground and river
 
 -- The road bridge whose deck (carriageway + both footways) covers `p`, or nil.

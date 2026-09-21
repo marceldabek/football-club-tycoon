@@ -187,11 +187,12 @@ function TrafficMath.connections(roads: { RoadLike }, roadIndex: number, atEnd: 
 	return out
 end
 
--- X79: roundabout islands. TownBuilder paints each island at ISLAND_SHARE of
--- the roundabout's radius; a car closer than island + clearance to a centre is
+-- X79: roundabout islands. RoadTiles raises each big island at ISLAND_SHARE of
+-- the roundabout's radius (mirrors RoadTiles.ISLAND_SHARE; a test keeps the two
+-- equal, since this module stays free of other requires); a car closer than island + clearance to a centre is
 -- pushed out onto that ring, heading along it (blended with its road heading
 -- by how deep it was), so it drives round the island instead of over it.
-TrafficMath.ISLAND_SHARE = 0.35
+TrafficMath.ISLAND_SHARE = 0.45
 
 export type RoundaboutLike = { centre: Vector3, radius: number }
 
@@ -224,6 +225,54 @@ function TrafficMath.junctionBusy(point: Vector3, positions: { Vector3 }, clear:
 		end
 	end
 	return false
+end
+
+-- ------------------------------------------------------------------ spacing
+
+-- Centre-to-centre distance a follower keeps behind its leader: both half
+-- lengths plus `clear` studs of daylight. (A fixed 14 between centres put a car's
+-- bonnet 4 studs inside a 27-long bus.)
+function TrafficMath.followGap(leaderHalfLength: number, followerHalfLength: number, clear: number): number
+	return leaderHalfLength + followerHalfLength + clear
+end
+
+-- The follower's speed for this frame. Free-flowing beyond 2 x minGap, eased
+-- down to the leader's speed at minGap, and slower than the leader inside it so
+-- the gap opens again. Never negative, never above `freeSpeed`.
+function TrafficMath.followSpeed(freeSpeed: number, leaderSpeed: number, gap: number, minGap: number): number
+	if minGap <= 0 or gap >= 2 * minGap then
+		return freeSpeed
+	end
+	local cap: number
+	if gap >= minGap then
+		cap = leaderSpeed + math.max(freeSpeed - leaderSpeed, 0) * ((gap - minGap) / minGap)
+	else
+		cap = leaderSpeed * math.max(gap, 0) / minGap
+	end
+	return math.max(0, math.min(freeSpeed, cap))
+end
+
+-- Index i such that cumulative[i - 1] <= r * total < cumulative[i], for picking
+-- an entry with probability proportional to its weight. `cumulative` is the
+-- running sum of the weights; `r` is in [0, 1). Returns nil for an empty list.
+function TrafficMath.weightedIndex(cumulative: { number }, r: number): number?
+	local n = #cumulative
+	if n == 0 or cumulative[n] <= 0 then
+		return nil
+	end
+	local target = math.clamp(r, 0, 1) * cumulative[n]
+	for i = 1, n do
+		if target < cumulative[i] then
+			return i
+		end
+	end
+	return n
+end
+
+-- True if any of `positions` is within `clear` studs (XZ) of `point`. (Same test
+-- as junctionBusy; named for the spawn check.)
+function TrafficMath.crowded(point: Vector3, positions: { Vector3 }, clear: number): boolean
+	return TrafficMath.junctionBusy(point, positions, clear)
 end
 
 -- F2.2 bus stops: distances along a road's polyline where a bus should pull

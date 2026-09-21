@@ -8,9 +8,12 @@
 -- poses each figure (Shared.Townsfolk) plus, for the dog, one
 -- workspace:BulkMoveTo per frame.
 --
--- Known limits (TEMP): walkers keep walking straight through junction gaps
--- where TownBuilder clipped the pavement (they read as crossing the road),
--- and they can overlap each other since there is no avoidance.
+-- Walkers follow RoadPaths.townRoads() (corners rounded to the kit bends) and
+-- hold the middle of the kit's paved strip, which is only 3 studs wide. They
+-- turn round at junction mouths (PedestrianMath.junctionZones) rather than
+-- stroll across open asphalt, step aside for a walker coming the other way, and
+-- fall in behind a slower one. They spawn round the streaming focus, spaced
+-- out, with the budget capped by how much pavement is actually nearby.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -18,6 +21,8 @@ local RunService = game:GetService("RunService")
 local TownLayout = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TownLayout"))
 local TrafficMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrafficMath"))
 local PedestrianMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("PedestrianMath"))
+local RoadTiles = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoadTiles"))
+local RoadPaths = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoadPaths"))
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Townsfolk = require(script.Parent:WaitForChild("Townsfolk"))
 
@@ -44,6 +49,13 @@ local MAX_SPAWNS_PER_RECHECK = 3 -- TEMP: trickle in so arrivals aren't all at o
 local SPEED_MIN = 5 -- TEMP studs/s
 local SPEED_MAX = 7 -- TEMP studs/s
 local RIVER_BRIDGE_SLACK = 12 -- deck ends count as bridge this far out, see PedestrianMath.blockedByRiver
+local SPAWN_CLEAR = 12 -- TEMP: no walker spawns this close to another
+local PAVEMENT_PER_WALKER = 45 -- TEMP: studs of nearby pavement (both sides counted) per walker; caps the budget where few streets are in range
+local MOUTH_EXTRA = 3 -- a side road's mouth is its kerb-to-kerb width plus this much corner each side
+local SIDESTEP = 0.9 -- TEMP studs a walker moves over for one coming the other way
+local SIDESTEP_AHEAD = 7 -- ...when they are this close
+local SIDESTEP_RATE = 2 -- studs/s
+local FOLLOW_AHEAD = 8 -- a walker this close behind another going the same way drops below its pace, so the gap opens to this
 
 -- Figure: Townsfolk's shared R6 rig. Metrics and palettes live there now, so
 -- the walk cycle and the rig itself cannot drift apart.
@@ -74,6 +86,7 @@ type Path = {
 	cumulative: { number },
 	length: number,
 	closed: boolean,
+	zones: { PedestrianMath.Zone }, -- junction mouths: not pavement
 }
 
 type Pedestrian = {
@@ -85,6 +98,7 @@ type Pedestrian = {
 	distance: number,
 	direction: number, -- 1 or -1 along the path
 	speed: number,
+	pace: number, -- this frame's speed (its own, or a slower walker's just ahead)
 	lateral: number,
 	phase: number, -- walk-cycle time offset so walkers aren't in step
 	lastPos: Vector3,
@@ -97,7 +111,9 @@ root.Name = "Pedestrians"
 root.Parent = workspace
 
 local pedestrians: { Pedestrian } = {}
-local walkable = PedestrianMath.walkableRoadIndices(TownLayout.ROADS)
+-- TownLayout.ROADS with the corners rounded to the kit bends; same indices
+local ROADS = RoadPaths.townRoads()
+local walkable = PedestrianMath.walkableRoadIndices(ROADS)
 local pathCache: { [number]: { [number]: Path } } = {}
 local recheckTimer = RECHECK_INTERVAL -- recheck on the first frame
 local firstPass = true
@@ -118,6 +134,35 @@ local function flatDistance(a: Vector3, b: Vector3): number
 	return Vector3.new(a.X - b.X, 0, a.Z - b.Z).Magnitude
 end
 
+-- Where the world is streamed in round: the server's ReplicationFocus (plot
+-- picker), else the character, else the camera. (Same rule as Traffic.)
+local function streamingFocus(): Vector3
+	local player = game:GetService("Players").LocalPlayer
+	local focus = player and player.ReplicationFocus
+	if focus and focus:IsA("BasePart") then
+		return focus.Position
+	end
+	local character = player and player.Character
+	local hrp = character and character:FindFirstChild("HumanoidRootPart")
+	if hrp and hrp:IsA("BasePart") then
+		return hrp.Position
+	end
+	return currentCameraPosition()
+end
+
+-- Is any of the town streamed in under `point`? (No: the walker would stand on
+-- the low stand-in terrain, floating.)
+local groundParams = RaycastParams.new()
+groundParams.FilterType = Enum.RaycastFilterType.Include
+local function townUnder(point: Vector3): boolean
+	local town = workspace:FindFirstChild("Town")
+	if not town then
+		return false
+	end
+	groundParams.FilterDescendantsInstances = { town }
+	return workspace:Raycast(Vector3.new(point.X, 60, point.Z), Vector3.new(0, -120, 0), groundParams) ~= nil
+end
+
 local function pathFor(roadIndex: number, side: number): Path
 	local bySide = pathCache[roadIndex]
 	if not bySide then
@@ -128,7 +173,7 @@ local function pathFor(roadIndex: number, side: number): Path
 	if cached then
 		return cached
 	end
-	local road = TownLayout.ROADS[roadIndex]
+	local road = ROADS[roadIndex]
 	local points = PedestrianMath.offsetPolyline(road.points, road.width, side, PedestrianMath.kitPavementDistance(road.kind))
 	local cumulative = PedestrianMath.cumulativeLengths(points)
 	local path: Path = {
@@ -136,6 +181,12 @@ local function pathFor(roadIndex: number, side: number): Path
 		cumulative = cumulative,
 		length = cumulative[#cumulative] or 0,
 		closed = TrafficMath.isClosed(points, 1e-3),
+		zones = PedestrianMath.junctionZones(points, cumulative, ROADS, roadIndex, function(kind: string): number
+			return RoadTiles.kerbDistance(kind) + MOUTH_EXTRA
+		end, function(kind: string): number
+			-- stop on the other road's paved strip, clear of its kerb
+			return PedestrianMath.kitPavementDistance(kind)
+		end),
 	}
 	bySide[side] = path
 	return path
@@ -230,6 +281,7 @@ local function spawnPedestrian(path: Path, kind: string, distance: number, later
 		distance = distance,
 		direction = if math.random() < 0.5 then 1 else -1,
 		speed = SPEED_MIN + math.random() * (SPEED_MAX - SPEED_MIN),
+		pace = 0,
 		lateral = lateral,
 		phase = math.random() * 10,
 		lastPos = pos,
@@ -257,13 +309,26 @@ local function recheckDespawns(camPos: Vector3)
 	end
 end
 
-local function recheckSpawns(camPos: Vector3)
-	local cap = maxPedestrians()
-	if #pedestrians >= cap or #walkable == 0 then
+local function recheckSpawns(focus: Vector3)
+	if #walkable == 0 then
 		return
 	end
-	local refs = PedestrianMath.segmentsNear(TownLayout.ROADS, walkable, camPos, SPAWN_MAX_DIST)
+	local refs = PedestrianMath.segmentsNear(ROADS, walkable, focus, SPAWN_MAX_DIST)
 	if #refs == 0 then
+		return
+	end
+	-- Pick a segment in proportion to its length (picking by index crowded the
+	-- short ones), and let the pavement in range set the budget: out by a plot only
+	-- one road is near, and all 30 walkers used to pile onto it.
+	local cumulative: { number } = {}
+	local total = 0
+	for i, ref in refs do
+		local points = ROADS[ref.roadIndex].points
+		total += (points[ref.segment + 1] - points[ref.segment]).Magnitude
+		cumulative[i] = total
+	end
+	local cap = math.min(maxPedestrians(), math.floor(total * 2 / PAVEMENT_PER_WALKER))
+	if #pedestrians >= cap then
 		return
 	end
 	-- Empty (join, or the camera just fast-travelled): fill up at once instead
@@ -272,12 +337,16 @@ local function recheckSpawns(camPos: Vector3)
 	local minDist = if firstPass then 0 else SPAWN_MIN_DIST
 	local maxSpawns = if burst then cap else MAX_SPAWNS_PER_RECHECK
 	local spawned = 0
+	local taken: { Vector3 } = {}
+	for _, ped in pedestrians do
+		table.insert(taken, ped.lastPos)
+	end
 	for _ = 1, (if burst then SPAWN_ATTEMPTS_PER_RECHECK * 4 else SPAWN_ATTEMPTS_PER_RECHECK) do
 		if #pedestrians >= cap or spawned >= maxSpawns then
 			break
 		end
-		local ref = refs[math.random(1, #refs)]
-		local road = TownLayout.ROADS[ref.roadIndex]
+		local ref = refs[TrafficMath.weightedIndex(cumulative, math.random()) or 1]
+		local road = ROADS[ref.roadIndex]
 		local side = if math.random() < 0.5 then 1 else -1
 		local path = pathFor(ref.roadIndex, side)
 		local segStart = path.cumulative[ref.segment]
@@ -286,13 +355,18 @@ local function recheckSpawns(camPos: Vector3)
 			continue
 		end
 		local distance = segStart + math.random() * (segEnd - segStart)
-		local lateral = (math.random() * 2 - 1) * PedestrianMath.kitPavementJitter(road.kind)
+		-- the paved strip is 3 studs wide and a figure 4 across the arms: hold its middle
+		local lateral = 0
 		local pos = positionOn(path, distance, lateral)
-		local d = flatDistance(pos, camPos)
-		if d < minDist or d > SPAWN_MAX_DIST or blocked(pos) then
+		local d = flatDistance(pos, focus)
+		if d < minDist or d > SPAWN_MAX_DIST or blocked(pos) or PedestrianMath.inZones(path.zones, distance) then
+			continue
+		end
+		if TrafficMath.crowded(pos, taken, SPAWN_CLEAR) or not townUnder(pos) then
 			continue
 		end
 		spawnPedestrian(path, road.kind, distance, lateral, pos)
+		table.insert(taken, pos)
 		spawned += 1
 	end
 	if spawned > 0 then
@@ -302,14 +376,45 @@ end
 
 -- ------------------------------------------------------------------ movement
 
+-- Walkers sharing a pavement line: one coming the other way close ahead makes
+-- this walker step aside (each to its own side, so they pass shoulder to
+-- shoulder instead of through each other); one close ahead going the same way
+-- holds this walker back until there is a gap. Writes ped.pace and returns the lateral it wants.
+local function mindOthers(ped: Pedestrian): number
+	ped.pace = ped.speed
+	local want = 0
+	for _, other in pedestrians do
+		if other == ped or other.path ~= ped.path then
+			continue
+		end
+		local ahead = (other.distance - ped.distance) * ped.direction
+		if ahead <= 0 then
+			continue
+		end
+		if other.direction ~= ped.direction then
+			if ahead < SIDESTEP_AHEAD then
+				want = ped.direction * SIDESTEP
+			end
+		elseif ahead < FOLLOW_AHEAD then
+			ped.pace = math.min(ped.pace, other.speed * 0.85)
+		end
+	end
+	return want
+end
+
 local function movePedestrian(ped: Pedestrian, dt: number)
 	local path = ped.path
 	local prevDistance = ped.distance
+	local want = mindOthers(ped)
+	ped.lateral += math.clamp(want - ped.lateral, -SIDESTEP_RATE * dt, SIDESTEP_RATE * dt)
 	local newDistance, newDirection =
-		PedestrianMath.advance(ped.distance, ped.direction, ped.speed * dt, path.length, path.closed)
+		PedestrianMath.advance(ped.distance, ped.direction, ped.pace * dt, path.length, path.closed)
 	local pos, pathDir = positionOn(path, newDistance, ped.lateral)
-	if blocked(pos) then
-		-- Would step into the river (no bridge here): turn round on the spot.
+	-- a junction mouth ahead counts like the river, unless the walker is somehow
+	-- already inside one (then it just keeps going until it is out)
+	local mouth = PedestrianMath.inZones(path.zones, newDistance) and not PedestrianMath.inZones(path.zones, prevDistance)
+	if blocked(pos) or mouth then
+		-- Would step into the river (no bridge here) or out across a side road: turn round on the spot.
 		ped.direction = -ped.direction
 		pos, pathDir = positionOn(path, prevDistance, ped.lateral)
 	else
@@ -320,7 +425,7 @@ local function movePedestrian(ped: Pedestrian, dt: number)
 
 	local facing = pathDir * ped.direction
 	local yaw = math.atan2(-facing.X, -facing.Z)
-	local bob, swing = PedestrianMath.walkCycle(elapsed + ped.phase, ped.speed)
+	local bob, swing = PedestrianMath.walkCycle(elapsed + ped.phase, ped.pace)
 	local y = PedestrianMath.groundY(pos, ped.kind, TownLayout.BRIDGES) + bob
 	-- Townsfolk.pose wants base.Position between the feet, on the ground --
 	-- exactly what rootCFrame already was before the limb offsets were applied.
@@ -354,9 +459,9 @@ RunService.RenderStepped:Connect(function(dt: number)
 	recheckTimer += dt
 	if recheckTimer >= RECHECK_INTERVAL then
 		recheckTimer = 0
-		local camPos = currentCameraPosition()
-		recheckDespawns(camPos)
-		recheckSpawns(camPos)
+		local focus = streamingFocus()
+		recheckDespawns(focus)
+		recheckSpawns(focus)
 	end
 
 	table.clear(moveParts)
