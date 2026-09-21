@@ -202,6 +202,21 @@ function tests.bigRoundaboutTrimsArmsAndLeavesAStandIn()
 	local laneDashes = math.floor(2 * math.pi * RoadTiles.laneLineRadius(40) / (RoadTiles.RB_LANE_DASH + RoadTiles.RB_LANE_GAP))
 	assert(looks.paint == 9 + laneDashes + 1, "paint: " .. tostring(looks.paint))
 	assert((looks.paving or 0) >= 12, "a pavement ring between the arms")
+	-- kit dressing: the island's lamp and hedges, then a bollard and a warning sign per arm
+	local pieces: { [string]: number } = {}
+	for _, prop in plan.props do
+		pieces[prop.piece] = (pieces[prop.piece] or 0) + 1
+		local reach = Vector3.new(prop.cframe.X, 0, prop.cframe.Z).Magnitude
+		if prop.piece == RoadTiles.RB_KIT.ahead then
+			assert(reach > 40 + RoadTiles.RB_PAVEMENT, "the sign stands up the arm, outside the ring")
+			local lateral = math.min(math.abs(prop.cframe.X), math.abs(prop.cframe.Z))
+			assert(lateral > RoadTiles.KIT_PAVING_OUTER, "on the verge, not the paving or the road")
+		else
+			assert(reach < RoadTiles.islandRadius(40), "on the island")
+		end
+	end
+	assert(pieces[RoadTiles.RB_KIT.lamp] == 1 and pieces[RoadTiles.RB_KIT.hedge] == RoadTiles.RB_HEDGES, "lamp in a hedge ring")
+	assert(pieces[RoadTiles.RB_KIT.bollard] == 3 and pieces[RoadTiles.RB_KIT.ahead] == 3, "a bollard and a sign per arm")
 	for _, t in plan.tiles do
 		for _, m in RoadTiles.mouths(t) do
 			assert(m.Magnitude >= 31.9, "no tile reaches inside the trimmed circle")

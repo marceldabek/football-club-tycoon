@@ -77,7 +77,9 @@ export type Exempt = { id: string, shape: string, centre: Vector3, radius: numbe
 -- A junction that got no proper kit piece: a side road tucks under the through road.
 -- TownLayout is spaced so that there are none (docs/TOWN_V3_JUNCTION_MOVES.md); a test holds it there.
 export type Makeshift = { pos: Vector3, kind: string, downgraded: boolean, arms: { { road: string, dir: Vector3, run: number, how: string, nextAt: number, nextKind: string, nextTrim: number, nextPos: Vector3 } } }
-export type Plan = { tiles: { Tile }, exempt: { Exempt }, stats: { [string]: number }, makeshift: { Makeshift } }
+-- A kit piece that is not a road tile (roundabout dressing): bounding-box bottom centre at `cframe`.
+export type Prop = { piece: string, cframe: CFrame, scale: number, home: Vector3 }
+export type Plan = { tiles: { Tile }, exempt: { Exempt }, props: { Prop }, stats: { [string]: number }, makeshift: { Makeshift } }
 
 local PREFIX = "UKSP__ModularRoads__"
 RoadTiles.PREFIX = PREFIX
@@ -168,6 +170,18 @@ RoadTiles.RB_DISC_HEIGHT = 0.3
 RoadTiles.RB_KERB_UP = 0.1 -- pavement ring and island kerb above the disc
 RoadTiles.RB_LANE_DASH = 4 -- circulating lane line: studs of paint, then RB_LANE_GAP of gap
 RoadTiles.RB_LANE_GAP = 5
+-- Kit dressing on a big roundabout.
+RoadTiles.RB_KIT = {
+	ahead = "UKSP__Signs__SignNew31", -- "roundabout ahead" warning triangle
+	bollard = "UKSP__TrafficProps__BollardStayLeftA",
+	hedge = "HedgeLong", -- 18.8 long, 10.6 tall as stored
+	lamp = "UKSP__StreetLights__StreetLight01",
+}
+RoadTiles.RB_SIGN_BACK = 40 -- the warning sign stands this far up the arm from the rim...
+RoadTiles.RB_SIGN_MIN = 12 -- ...or nearer on a short arm, but not nearer than this
+RoadTiles.RB_HEDGE_RING = 7 -- radius of the island's hedge ring
+RoadTiles.RB_HEDGES = 6
+RoadTiles.RB_HEDGE_SCALE = 0.4
 -- One size for every kit hatchback on the streets, moving or parked, and for the
 -- double-decker (TEMP). The hatchback mesh is 9.8 x 8.4 x 19.4 and the bus
 -- 8.3 x 12.1 x 27.4 as stored. A lane is 7.9 wide: 0.7 gives a 6.9 x 5.9 x 13.6 car
@@ -585,7 +599,10 @@ end
 -- the rim with a gap at each arm's carriageway, a kerbed grass island, dashed
 -- give-way lines across each entry lane and a chevron board facing each arm.
 -- `armDirs` point out of the centre; `kerbBack` and `carriageway` are the arms' section.
-function RoadTiles.dressRoundabout(centre: Vector3, radius: number, armDirs: { Vector3 }, kerbBack: number, carriageway: number, exempt: { Exempt })
+-- `armRuns` (optional, one per arm) is how far each arm runs straight from the centre;
+-- `props` (optional) collects the kit pieces: a lamp in a hedge ring on the island, a
+-- keep-left bollard in front of each chevron board, a "roundabout ahead" sign up each arm.
+function RoadTiles.dressRoundabout(centre: Vector3, radius: number, armDirs: { Vector3 }, kerbBack: number, carriageway: number, exempt: { Exempt }, props: { Prop }?, armRuns: { number }?)
 	local discTop = RoadTiles.SURFACE_Y + RoadTiles.RB_DISC_TOP
 	local function box(look: string, cf: CFrame, size: Vector3)
 		table.insert(exempt, { id = "E3", shape = "box", centre = cf.Position, radius = 0, height = size.Y, look = look, cframe = cf, size = size, home = centre })
@@ -651,6 +668,37 @@ function RoadTiles.dressRoundabout(centre: Vector3, radius: number, armDirs: { V
 	-- solid edge line round the island
 	disc("paint", ir + 1.2, discTop - 0.02, 0.025)
 
+	if props then
+		local grassTop = discTop + 0.9
+		local function prop(piece: string, cf: CFrame, scale: number)
+			table.insert(props, { piece = piece, cframe = cf, scale = scale, home = centre })
+		end
+		local kit = RoadTiles.RB_KIT
+		prop(kit.lamp, CFrame.new(centre.X, grassTop, centre.Z), 1)
+		for k = 1, RoadTiles.RB_HEDGES do
+			local phi = 2 * math.pi * (k - 0.5) / RoadTiles.RB_HEDGES
+			local radial = Vector3.new(math.cos(phi), 0, math.sin(phi))
+			local p = centre + radial * RoadTiles.RB_HEDGE_RING
+			local at = Vector3.new(p.X, grassTop - 0.1, p.Z)
+			prop(kit.hedge, CFrame.lookAt(at, at + radial), RoadTiles.RB_HEDGE_SCALE) -- long side along the ring
+		end
+		for i, d in armDirs do
+			-- on the island's kerb, facing the arm
+			local b = centre + d * (ir - 0.5)
+			local bAt = Vector3.new(b.X, discTop + RoadTiles.RB_KERB_UP + 0.2, b.Z)
+			prop(kit.bollard, CFrame.lookAt(bAt, bAt + d), 1)
+			-- on the verge behind the paving, on the left of a driver heading in, facing them
+			local run = if armRuns then armRuns[i] else math.huge
+			local back = math.min(radius + RoadTiles.RB_SIGN_BACK, run - 5)
+			if back >= radius + RoadTiles.RB_SIGN_MIN then
+				local left = Vector3.new(-d.Z, 0, d.X)
+				local s = centre + d * back + left * (kerbBack / RoadTiles.KIT_KERB_BACK * (RoadTiles.KIT_PAVING_OUTER + 1.5))
+				local sAt = Vector3.new(s.X, RoadTiles.SURFACE_Y - 0.05, s.Z)
+				prop(kit.ahead, CFrame.lookAt(sAt, sAt + d), 1)
+			end
+		end
+	end
+
 	for _, d in armDirs do
 		-- give-way dashes across the entry lane: the left of a driver heading in
 		local left = Vector3.new(-d.Z, 0, d.X)
@@ -666,7 +714,7 @@ function RoadTiles.dressRoundabout(centre: Vector3, radius: number, armDirs: { V
 	end
 end
 
-local function emitNode(node, tiles: { Tile }, exempt: { Exempt })
+local function emitNode(node, tiles: { Tile }, exempt: { Exempt }, props: { Prop })
 	local kind = node.kind
 	local road = nodeRoad(node)
 	local yellow = inCentre(node.pos) or road.kind == "lane"
@@ -721,10 +769,12 @@ local function emitNode(node, tiles: { Tile }, exempt: { Exempt })
 			local h = RoadTiles.RB_DISC_HEIGHT
 			table.insert(exempt, { id = "E3", shape = "disc", centre = Vector3.new(node.pos.X, top + RoadTiles.RB_DISC_TOP - h / 2, node.pos.Z), radius = r, height = h, look = "asphalt" })
 			local dirs: { Vector3 } = {}
+			local runs: { number } = {}
 			for _, arm in node.arms do
 				table.insert(dirs, arm.dir)
+				table.insert(runs, arm.edge.len)
 			end
-			RoadTiles.dressRoundabout(node.pos, r, dirs, RoadTiles.KIT_KERB_BACK * node.scale, RoadTiles.KIT_CARRIAGEWAY * node.scale, exempt)
+			RoadTiles.dressRoundabout(node.pos, r, dirs, RoadTiles.KIT_KERB_BACK * node.scale, RoadTiles.KIT_CARRIAGEWAY * node.scale, exempt, props, runs)
 		else
 			table.insert(exempt, { id = "E3", shape = "disc", centre = Vector3.new(node.pos.X, top + 0.1 + 0.08, node.pos.Z), radius = ir, height = 0.16, look = "paint" })
 		end
@@ -970,8 +1020,9 @@ function RoadTiles.plan(roads: { RoadIn }, roundabouts: { RoundaboutIn }?, bridg
 
 	local tiles: { Tile } = {}
 	local exempt: { Exempt } = {}
+	local props: { Prop } = {}
 	for _, node in nodeList do
-		emitNode(node, tiles, exempt)
+		emitNode(node, tiles, exempt, props)
 	end
 	for _, run in runs do
 		emitRun(run, tiles, stats, bridges)
@@ -984,7 +1035,7 @@ function RoadTiles.plan(roads: { RoadIn }, roundabouts: { RoundaboutIn }?, bridg
 	end
 	stats.tiles = #tiles
 	stats.exempt = #exempt
-	return { tiles = tiles, exempt = exempt, stats = stats, makeshift = makeshift }
+	return { tiles = tiles, exempt = exempt, props = props, stats = stats, makeshift = makeshift }
 end
 
 -- Height of a piece's pavement above its bottom (unscaled), so the assembler can

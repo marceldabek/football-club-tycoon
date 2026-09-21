@@ -374,6 +374,20 @@ function RoadTiler.build(parent: Instance, origin: CFrame, filter: { district: s
 		counts.exempt += 1
 	end
 
+	-- kit dressing on the roundabouts: signs, bollards, the island's lamp and hedges
+	for _, prop in plan.props do
+		local district = nearestDistrict(plan.tiles, prop.home)
+		if want and district ~= want then
+			continue
+		end
+		local model = KitPlacer.place(prop.piece, origin * prop.cframe, districtModel(parent, models, district), { scale = prop.scale })
+		if model:GetAttribute("KitMissing") then
+			counts.missing += 1
+		end
+		model:SetAttribute("RoundaboutProp", true)
+		counts.props = (counts.props or 0) + 1
+	end
+
 	for _, model in models do
 		counts.models += 1
 		for _, d in model:GetDescendants() do
