@@ -47,6 +47,7 @@ local card = Theme.panel(gui, "Card", {
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Visible = false,
 })
+require(script.Parent.Focus).watch(card) -- blur the town behind the menu
 
 Theme.text(card, "RIVERMERE BUSES", "display", {
 	Name = "Title",

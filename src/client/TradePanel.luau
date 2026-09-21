@@ -29,6 +29,7 @@ local panel = Theme.panel(gui, "Panel", {
 local sizeLimit = Instance.new("UISizeConstraint")
 sizeLimit.MaxSize = Vector2.new(760, 520)
 sizeLimit.Parent = panel
+require(script.Parent.Focus).watch(panel) -- blur the world behind the menu
 
 local title = Theme.text(panel, "TRADE", "display", {
 	Name = "Title",

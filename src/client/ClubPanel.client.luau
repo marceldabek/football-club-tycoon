@@ -178,7 +178,6 @@ local function openCrestEditor()
 		return
 	end
 	CrestBuilder.open({
-		title = "EDIT CREST",
 		confirmText = "Save crest",
 		backText = "Cancel",
 		spec = ClubCrest.forFolder(state),

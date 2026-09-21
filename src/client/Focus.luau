@@ -1,7 +1,9 @@
 --!strict
 -- Depth of field only for menus, close-ups and the match intro (CLAUDE.md
 -- s27, Q13). Client-local: a DepthOfFieldEffect in Lighting that eases in
--- while any "reason" is active and eases out when the last one ends.
+-- while any "reason" is active and eases out when the last one ends. Menus
+-- also get a full-screen BlurEffect (Marcel, 2026-09-21: "blur whenever we
+-- enter menus"); a close-up passes its own settings without `blur`.
 --   Focus.watch(frame)          blur while a menu frame is visible
 --   Focus.push(reason, settings?) / Focus.pop(reason)   for scripted shots
 
@@ -10,10 +12,16 @@ local TweenService = game:GetService("TweenService")
 
 local Focus = {}
 
-export type Settings = { focusDistance: number?, inFocusRadius: number?, farIntensity: number?, nearIntensity: number? }
+export type Settings = {
+	focusDistance: number?,
+	inFocusRadius: number?,
+	farIntensity: number?,
+	nearIntensity: number?,
+	blur: number?, -- BlurEffect size; nil = none
+}
 
 -- A menu blurs everything behind it; a close-up keeps the subject sharp.
-local MENU: Settings = { focusDistance = 4, inFocusRadius = 6, farIntensity = 0.55, nearIntensity = 0 }
+local MENU: Settings = { focusDistance = 4, inFocusRadius = 6, farIntensity = 0.55, nearIntensity = 0, blur = 16 }
 local EASE = TweenInfo.new(0.35, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
 
 local active: { [string]: Settings } = {}
@@ -33,8 +41,44 @@ local function effect(): DepthOfFieldEffect
 	return dof
 end
 
+local function blurEffect(): BlurEffect
+	local existing = Lighting:FindFirstChild("FocusBlur")
+	if existing and existing:IsA("BlurEffect") then
+		return existing
+	end
+	local blur = Instance.new("BlurEffect")
+	blur.Name = "FocusBlur"
+	blur.Size = 0
+	blur.Enabled = false
+	blur.Parent = Lighting
+	return blur
+end
+
+-- The strongest blur any active reason asks for, so a close-up pushed over an
+-- open menu doesn't unblur it.
+local function blurSize(): number
+	local size = 0
+	for _, settings in active do
+		size = math.max(size, settings.blur or 0)
+	end
+	return size
+end
+
 local function refresh()
 	local dof = effect()
+	local blur = blurEffect()
+	local size = blurSize()
+	if size > 0 then
+		blur.Enabled = true
+	end
+	local blurTween = TweenService:Create(blur, EASE, { Size = size })
+	blurTween.Completed:Connect(function()
+		if blurSize() == 0 then
+			blur.Enabled = false
+		end
+	end)
+	blurTween:Play()
+
 	local top = order[#order]
 	local settings = top and active[top]
 	if not settings then
