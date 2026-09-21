@@ -12,6 +12,7 @@ local Squad = require(ReplicatedStorage.Shared.Squad)
 local Bids = require(ReplicatedStorage.Shared.Bids)
 local Format = require(ReplicatedStorage.Shared.Format) -- X342
 local Nations = require(ReplicatedStorage.Shared.Nations)
+local Pack = require(ReplicatedStorage.Shared.Pack)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local Profile = require(ReplicatedStorage.Shared.Profile)
 local Trade = require(ReplicatedStorage.Shared.Trade)
@@ -25,7 +26,10 @@ local lineup: Squad.Lineup = { xi = {}, bench = {} }
 local autoSquad = true
 local coachLevel = 0
 local scoutLevel = 0
-local shortlist: { Squad.Prospect } = {}
+-- the latest scout pack, the pinned card and the match-1 free signing (Shared/Pack)
+local pack: Pack.State = { shortlist = {}, pinned = nil, free = false, revealed = false }
+-- the match-1 trialist pack has been dealt (true for any save older than packs)
+local trialDone = false
 -- X323: the standing approach from a bigger club, if there is one. It arrives
 -- after a match and lasts until the next one is played, and it is saved, so
 -- rejoining mid-week does not quietly lose the offer.
@@ -64,20 +68,26 @@ local function dropBidIfGone()
 	ClubState.set("BidNews", "")
 end
 
--- X337: the shortlist as the player is allowed to see it. The exact ceiling
--- stays here until he signs; the client gets the band his scout will commit to
--- (recomputed for a shortlist saved before scouts had any doubt at all).
+-- X337: a prospect as the player is allowed to see him. The exact ceiling stays
+-- here until he signs; the client gets the band his scout will commit to
+-- (recomputed for a card saved before scouts had any doubt at all).
+local function publishedProspect(p: Squad.Prospect): any
+	local copy = table.clone(p) :: any
+	local low, high = p.potentialLow, p.potentialHigh
+	if type(low) ~= "number" or type(high) ~= "number" then
+		low, high = Squad.potentialBand(p.potential, Squad.scoutDoubt(scoutLevel), p.id, p.overall)
+	end
+	copy.potentialLow, copy.potentialHigh = low, high
+	copy.potential = nil
+	-- what Sign will actually cost today (0 for the free trialist)
+	copy.fee = Pack.fee(pack, p)
+	return copy
+end
+
 local function publishedShortlist(): { any }
 	local out = {}
-	for _, p in shortlist do
-		local copy = table.clone(p) :: any
-		local low, high = p.potentialLow, p.potentialHigh
-		if type(low) ~= "number" or type(high) ~= "number" then
-			low, high = Squad.potentialBand(p.potential, Squad.scoutDoubt(scoutLevel), p.id, p.overall)
-		end
-		copy.potentialLow, copy.potentialHigh = low, high
-		copy.potential = nil
-		table.insert(out, copy)
+	for _, p in pack.shortlist do
+		table.insert(out, publishedProspect(p))
 	end
 	return out
 end
@@ -91,6 +101,9 @@ local function publish()
 		coachLevel = coachLevel,
 		scoutLevel = scoutLevel,
 		shortlist = publishedShortlist(), -- X337
+		pinned = if pack.pinned then publishedProspect(pack.pinned) else nil,
+		packRevealed = pack.revealed,
+		packFree = pack.free,
 		shortlistMatchesLeft = math.max(SHORTLIST_MATCHES - shortlistAge, 0),
 		bid = bid, -- X323
 	}))
@@ -132,29 +145,31 @@ local function smallestFreeNumber(): number
 end
 
 local function refreshShortlist()
-	if scoutLevel == 0 then
-		shortlist = {}
-		return
-	end
-	-- X214: no prospect shares a name with a current player
+	-- X214: no prospect shares a name with a current player (or the pin)
 	local taken: { [string]: boolean } = {}
 	for _, p in players do
 		taken[p.name] = true
 	end
-	shortlist = Squad.prospects(rng:NextInteger(1, 1000000), Squad.average(players), scoutLevel, taken)
+	if pack.pinned then
+		taken[pack.pinned.name] = true
+	end
+	local seed = rng:NextInteger(1, 1000000)
+	if not trialDone then
+		-- the pack after match 1: keep one of the three for nothing
+		trialDone = true
+		Pack.replace(pack, Squad.trialistPack(seed, players, lineup.xi, taken), true)
+	else
+		Pack.replace(pack, Squad.prospects(seed, Squad.average(players), scoutLevel, taken), false)
+	end
 	shortlistAge = 0
 	-- the folder on the office desk glows until it has been opened
-	ClubState.set("ScoutReportNew", #shortlist > 0)
+	ClubState.set("ScoutReportNew", #pack.shortlist > 0)
 end
 
--- After a match: keep the list unless it has gone stale or is empty (every
--- prospect signed), so a player can save for someone they have seen.
+-- After every match a new report lands, scout or no scout (Marcel, 2026-09-21).
 local function ageShortlist()
-	if scoutLevel == 0 then
-		return
-	end
 	shortlistAge += 1
-	if #shortlist == 0 or shortlistAge >= SHORTLIST_MATCHES then
+	if #pack.shortlist == 0 or shortlistAge >= SHORTLIST_MATCHES then
 		refreshShortlist()
 	end
 end
@@ -229,6 +244,24 @@ local function validPlayer(p: any): boolean
 	return type(p.name) == "string" and VALID_ROLES[p.role] == true
 end
 
+-- A saved card, repaired, or nil if the save was junk. Shared by the shortlist
+-- and the pin so a pinned player cannot come back in a different shape.
+local function restoredProspect(p: any): Squad.Prospect?
+	if not (validPlayer(p) and type(p.fee) == "number") then
+		return nil
+	end
+	local copy = table.clone(p)
+	-- saves from before looks existed get a stable seed so faces stay put
+	if type(copy.look) ~= "number" then
+		copy.look = Squad.lookSeedFor(copy.id, copy.name)
+	end
+	-- and saves from before nationality get a stable home
+	if type(copy.nation) ~= "string" then
+		copy.nation = Nations.codeFor(copy.id, copy.name)
+	end
+	return copy
+end
+
 local function generateFresh()
 	-- every club gets its own 16; the fixed Config.HomeSquadSeed is for tests
 	players = Squad.generate(rng:NextInteger(1, 1000000), Config.StartingSquadOverall)
@@ -236,7 +269,8 @@ local function generateFresh()
 	autoSquad = true
 	coachLevel = 0
 	scoutLevel = 0
-	shortlist = {}
+	pack = { shortlist = {}, pinned = nil, free = false, revealed = false }
+	trialDone = false
 	academy = {} -- X289: a brand-new club has produced nobody yet
 	-- X323 (review): the folder outlives the owner, so a new club has to clear
 	-- the news as well as the offer, or it inherits a stranger's transfer story
@@ -297,8 +331,10 @@ function ClubService.restore(data: any?)
 	autoSquad = data.autoSquad ~= false
 	coachLevel = math.clamp(if type(data.coachLevel) == "number" then data.coachLevel else 0, 0, #Config.CoachLevels - 1)
 	scoutLevel = math.clamp(if type(data.scoutLevel) == "number" then data.scoutLevel else 0, 0, #Config.ScoutLevels)
-	shortlist = {}
 	shortlistAge = math.max(if type(data.shortlistAge) == "number" then data.shortlistAge else 0, 0)
+	pack = { shortlist = {}, pinned = nil, free = data.packFree == true, revealed = data.packRevealed == true }
+	-- a save from before packs has played its first match already
+	trialDone = data.trialDone == true or ((ClubState.get("MatchesPlayed") :: number?) or 0) > 0
 	-- X289 (review): the intake board and the youth session read this, so it has
 	-- to come back with the save rather than blanking until the next rollover
 	academy = {}
@@ -322,18 +358,14 @@ function ClubService.restore(data: any?)
 	end
 	if type(data.shortlist) == "table" then
 		for _, p in data.shortlist do
-			if validPlayer(p) and type(p.fee) == "number" then
-				local copy = table.clone(p)
-				if type(copy.look) ~= "number" then
-					copy.look = Squad.lookSeedFor(copy.id, copy.name)
-				end
-				-- and saves from before nationality get a stable home
-				if type(copy.nation) ~= "string" then
-					copy.nation = Nations.codeFor(copy.id, copy.name)
-				end
-				table.insert(shortlist, copy)
+			local card = restoredProspect(p)
+			if card then
+				table.insert(pack.shortlist, card)
 			end
 		end
+	end
+	if type(data.pinned) == "table" then
+		pack.pinned = restoredProspect(data.pinned)
 	end
 	local savedLineup = if type(data.lineup) == "table" then data.lineup else {}
 	lineup = {
@@ -351,7 +383,11 @@ function ClubService.serialize()
 		autoSquad = autoSquad,
 		coachLevel = coachLevel,
 		scoutLevel = scoutLevel,
-		shortlist = shortlist,
+		shortlist = pack.shortlist,
+		pinned = pack.pinned,
+		packFree = pack.free,
+		packRevealed = pack.revealed,
+		trialDone = trialDone,
 		shortlistAge = shortlistAge,
 		academy = academy,
 		bid = bid, -- X323
@@ -388,6 +424,45 @@ function ClubService.init()
 	end)
 end
 
+-- Why this player cannot leave right now, or nil. Shared by Release and by
+-- signing into a full squad, so the two can never disagree.
+local function releaseBlocker(p: Squad.Player): string?
+	-- X363: the matchday squad, not Config.SquadMin - see Squad.matchdaySquadSize
+	local floor = Squad.matchdaySquadSize()
+	if #players <= floor then
+		return ("You need %d players for an XI and a full bench"):format(floor)
+	end
+	if xiSlotOf(p.id) then
+		-- X203: with Auto Squad on, swaps are refused, so say how to get there
+		return if autoSquad then "Turn Auto Squad off, then take them out of the XI to sell" else "Take them out of the XI first"
+	end
+	-- X199: never sell the last goalkeeper (trades already require one)
+	if p.role == "GK" then
+		local keepers = 0
+		for _, q in players do
+			if q.role == "GK" then
+				keepers += 1
+			end
+		end
+		if keepers <= 1 then
+			return "Keep at least one goalkeeper"
+		end
+	end
+	return nil
+end
+
+local function removePlayer(p: Squad.Player): number
+	for i, q in players do
+		if q.id == p.id then
+			table.remove(players, i)
+			break
+		end
+	end
+	local value = Squad.value(p)
+	ClubState.addCash(value, "sales") -- X299
+	return value
+end
+
 -- Every management action. Returns ok plus a message for a toast.
 function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string?)
 	if ClubState.get("Phase") ~= "Manage" then
@@ -397,6 +472,24 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 
 	if name == "openReport" then
 		ClubState.set("ScoutReportNew", false)
+		return true, nil
+	elseif name == "packRevealed" then
+		if not pack.revealed then
+			pack.revealed = true
+			publish()
+		end
+		return true, nil
+	elseif name == "pin" then
+		local pid = tonumber(a)
+		if not pid or not Pack.pin(pack, pid) then
+			return false, "That player is no longer available"
+		end
+		publish()
+		return true, ("%s pinned. His fee is held until the season ends."):format((pack.pinned :: Squad.Prospect).name)
+	elseif name == "unpin" then
+		if Pack.unpin(pack) then
+			publish()
+		end
 		return true, nil
 	elseif name == "setAutoSquad" then
 		autoSquad = a == true
@@ -464,9 +557,14 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 		-- was rewritten (X307), and the tests never caught it because they run
 		-- against Studio's copy (known bug 4).
 		scoutLevel += 1
-		refreshShortlist()
+		-- hiring before match 1 must not burn the free trialist pack
+		if trialDone then
+			refreshShortlist()
+			publish()
+			return true, ("%s hired. %d prospects found."):format(nextLevel.name, #pack.shortlist)
+		end
 		publish()
-		return true, ("%s hired. %d prospects found."):format(nextLevel.name, #shortlist)
+		return true, ("%s hired."):format(nextLevel.name)
 	elseif name == "hireCoach" or name == "upgradeCoach" then
 		local nextLevel = Config.CoachLevels[coachLevel + 2]
 		if not nextLevel then
@@ -486,24 +584,36 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 		return true, ("%s hired"):format(nextLevel.name)
 	elseif name == "sign" then
 		local pid = tonumber(a)
-		local index: number? = nil
-		for i, p in shortlist do
-			if p.id == pid then
-				index = i
-			end
-		end
-		if not index then
+		local prospect = if pid then Pack.find(pack, pid) else nil
+		if not prospect then
 			return false, "That player is no longer available"
 		end
-		local prospect = shortlist[index :: number]
+		-- everything is checked before anything changes, so a failed signing
+		-- can never cost the player the man he released to make room
+		local leaving: Squad.Player? = nil
 		if #players >= Config.SquadMax then
-			return false, ("Squad is full (%d). Release someone first."):format(Config.SquadMax)
+			local rid = tonumber(b)
+			leaving = if rid then findPlayer(rid) else nil
+			if not leaving then
+				return false, ("Squad is full (%d). Release someone first."):format(Config.SquadMax)
+			end
+			local blocked = releaseBlocker(leaving)
+			if blocked then
+				return false, blocked
+			end
 		end
-		if cash < prospect.fee then
-			return false, ("Need %s more"):format(money(prospect.fee - cash))
+		local fee = Pack.fee(pack, prospect)
+		local funds = cash + (if leaving then Squad.value(leaving) else 0)
+		if funds < fee then
+			return false, ("Need %s more"):format(money(fee - funds))
 		end
-		ClubState.addCash(-prospect.fee, "transfers") -- X299
-		table.remove(shortlist, index :: number)
+		if leaving then
+			removePlayer(leaving)
+		end
+		if fee > 0 then
+			ClubState.addCash(-fee, "transfers") -- X299
+		end
+		Pack.take(pack, prospect.id)
 		local signed: Squad.Player = {
 			id = nextId,
 			name = prospect.name,
@@ -515,7 +625,7 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 			injured = 0,
 			apps = 0,
 			goals = 0,
-			look = prospect.look, -- X227: keep the face the shortlist showed
+			look = prospect.look, -- X227: keep the face the pack showed
 			nation = prospect.nation,
 			wonderkid = prospect.wonderkid,
 		}
@@ -568,35 +678,11 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 		if not p then
 			return false, "Unknown player"
 		end
-		-- X363: the matchday squad, not Config.SquadMin - see Squad.matchdaySquadSize
-		local floor = Squad.matchdaySquadSize()
-		if #players <= floor then
-			return false, ("You need %d players for an XI and a full bench"):format(floor)
+		local blocked = releaseBlocker(p)
+		if blocked then
+			return false, blocked
 		end
-		if xiSlotOf(p.id) then
-			-- X203: with Auto Squad on, swaps are refused, so say how to get there
-			return false, if autoSquad then "Turn Auto Squad off, then take them out of the XI to sell" else "Take them out of the XI first"
-		end
-		-- X199: never sell the last goalkeeper (trades already require one)
-		if p.role == "GK" then
-			local keepers = 0
-			for _, q in players do
-				if q.role == "GK" then
-					keepers += 1
-				end
-			end
-			if keepers <= 1 then
-				return false, "Keep at least one goalkeeper"
-			end
-		end
-		for i, q in players do
-			if q.id == p.id then
-				table.remove(players, i)
-				break
-			end
-		end
-		local value = Squad.value(p)
-		ClubState.addCash(value, "sales") -- X299
+		local value = removePlayer(p)
 		recomputeLineup()
 		publish()
 		return true, ("%s sold for %s"):format(p.name, money(value))
@@ -685,6 +771,7 @@ function ClubService.newSeason(): ({ string }, { string }, { Squad.Player })
 			if p.goals == 1 then "" else "s"
 		))
 	end
+	Pack.newSeason(pack) -- a pin only lasts the season
 	-- Review of X277: a graduate used to be able to draw a name the club was
 	-- still showing — the man retiring in the same breath, or a prospect on the
 	-- shortlist (which now survives a season, X276).
@@ -692,7 +779,7 @@ function ClubService.newSeason(): ({ string }, { string }, { Squad.Player })
 	for _, p in retired do
 		spoken[p.name] = true
 	end
-	for _, p in shortlist do
+	for _, p in pack.shortlist do
 		spoken[p.name] = true
 	end
 	local arrivals: { string } = {}

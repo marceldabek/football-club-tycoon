@@ -194,12 +194,12 @@ function Session.refreshPromptLock()
 		clubPrompt.Enabled = managing and named
 		clubPrompt.ObjectText = if managing then "Manage squad, scouting & staff" else "Locked during matchday"
 	end
-	-- the scout's report on the desk: there once a scout is hired, lit while
-	-- the latest one is unopened
+	-- the scout's report on the desk: a pack lands after every match, scout or
+	-- not, and the folder is lit while the latest one is unopened
 	local scoutPrompt = w.model:FindFirstChild("ScoutPrompt", true)
 	if scoutPrompt and scoutPrompt:IsA("ProximityPrompt") then
-		local hasScout = ((ClubState.get("ScoutLevel") :: number?) or 0) > 0
-		scoutPrompt.Enabled = managing and named and hasScout
+		local played = ((ClubState.get("MatchesPlayed") :: number?) or 0) > 0
+		scoutPrompt.Enabled = managing and named and played
 		local glow = scoutPrompt.Parent and scoutPrompt.Parent:FindFirstChild("NewGlow")
 		if glow and glow:IsA("Highlight") then
 			glow.Enabled = scoutPrompt.Enabled and ClubState.get("ScoutReportNew") == true
@@ -486,6 +486,8 @@ function Session.start(owner: Player): boolean
 	ClubState.Folder:GetAttributeChangedSignal("Phase"):Connect(Session.refreshPromptLock)
 	ClubState.Folder:GetAttributeChangedSignal("NeedsName"):Connect(Session.refreshPromptLock)
 	ClubState.Folder:GetAttributeChangedSignal("ScoutLevel"):Connect(Session.refreshPromptLock)
+	-- the desk folder opens on the first match, not on hiring a scout
+	ClubState.Folder:GetAttributeChangedSignal("MatchesPlayed"):Connect(Session.refreshPromptLock)
 	ClubState.Folder:GetAttributeChangedSignal("ScoutReportNew"):Connect(Session.refreshPromptLock)
 	ClubState.set("Phase", "Manage")
 	Session.refreshPromptLock()

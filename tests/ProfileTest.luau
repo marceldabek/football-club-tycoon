@@ -131,6 +131,24 @@ function T.jsonRoundTrip()
 	assert(#normalized.club.players == 16, "players survived")
 end
 
+-- The pack fields ride in the club section, which Profile stores whole. This
+-- pins that contract down: a pin and the three flags have to come back.
+function T.packFieldsSurviveARoundTrip()
+	local p = Profile.new("Pack FC", 1)
+	local pack = Squad.prospects(4, 45, 1)
+	p.club = {
+		shortlist = { pack[1], pack[2] },
+		pinned = pack[3],
+		packFree = true,
+		packRevealed = true,
+		trialDone = true,
+	}
+	local back = Profile.normalize(HttpService:JSONDecode(HttpService:JSONEncode(p)), 1).club
+	assert(back.pinned and back.pinned.id == pack[3].id and back.pinned.fee == pack[3].fee, "pin lost")
+	assert(back.packFree == true and back.packRevealed == true and back.trialDone == true, "flags lost")
+	assert(#back.shortlist == 2, "shortlist lost")
+end
+
 -- X190: a long accented name is trimmed by letters, never mid-character
 function T.longAccentedNameTrimsByLetters()
 	local name = string.rep("é", Config.ClubNameMaxLength + 5)
