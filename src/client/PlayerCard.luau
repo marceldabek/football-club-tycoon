@@ -24,7 +24,10 @@ local Theme = require(script.Parent.Theme)
 
 local PlayerCard = {}
 
-export type Options = { signed: boolean?, clubName: string?, faceDown: boolean? }
+-- `compact` is the card at squad-board size: the six stats would be a few pixels
+-- tall, so the lower panel carries a bigger name and the age instead.
+-- `ageInk` overrides the ink of that age line (the board warns near retirement).
+export type Options = { signed: boolean?, clubName: string?, faceDown: boolean?, compact: boolean?, ageInk: Color3? }
 export type Card = {
 	frame: Frame,
 	tier: string,
@@ -192,29 +195,36 @@ function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 		end
 	end
 
-	label(face, string.upper(Format.cardName(p.name)), Vector2.new(0.5, 0.608), Vector2.new(0.76, 0.06), ink)
-	rule(face, Vector2.new(0.5, 0.652), Vector2.new(0.78, 0.003), ink)
-	rule(face, Vector2.new(0.503, 0.758), Vector2.new(0.006, 0.19), ink)
+	if opts ~= nil and opts.compact == true then
+		label(face, string.upper(Format.surname(p.name)), Vector2.new(0.5, 0.625), Vector2.new(0.78, 0.085), ink)
+		rule(face, Vector2.new(0.5, 0.69), Vector2.new(0.78, 0.004), ink)
+		local age = label(face, ("AGE %d"):format(p.age or 0), Vector2.new(0.5, 0.765), Vector2.new(0.7, 0.085), opts.ageInk or ink)
+		age.Name = "Age"
+	else
+		label(face, string.upper(Format.cardName(p.name)), Vector2.new(0.5, 0.608), Vector2.new(0.76, 0.06), ink)
+		rule(face, Vector2.new(0.5, 0.652), Vector2.new(0.78, 0.003), ink)
+		rule(face, Vector2.new(0.503, 0.758), Vector2.new(0.006, 0.19), ink)
 
-	for i, stat in CardStats.of(p) do
-		local column = if i <= 3 then 1 else 2
-		local y = STAT_ROW_Y[((i - 1) % 3) + 1]
-		label(
-			face,
-			tostring(stat.value),
-			Vector2.new(STAT_VALUE_RIGHT[column] - 0.065, y),
-			Vector2.new(0.13, 0.048),
-			ink,
-			Enum.TextXAlignment.Right
-		)
-		label(
-			face,
-			stat.label,
-			Vector2.new(STAT_LABEL_LEFT[column] + 0.075, y + 0.002),
-			Vector2.new(0.15, 0.04),
-			ink,
-			Enum.TextXAlignment.Left
-		)
+		for i, stat in CardStats.of(p) do
+			local column = if i <= 3 then 1 else 2
+			local y = STAT_ROW_Y[((i - 1) % 3) + 1]
+			label(
+				face,
+				tostring(stat.value),
+				Vector2.new(STAT_VALUE_RIGHT[column] - 0.065, y),
+				Vector2.new(0.13, 0.048),
+				ink,
+				Enum.TextXAlignment.Right
+			)
+			label(
+				face,
+				stat.label,
+				Vector2.new(STAT_LABEL_LEFT[column] + 0.075, y + 0.002),
+				Vector2.new(0.15, 0.04),
+				ink,
+				Enum.TextXAlignment.Left
+			)
+		end
 	end
 
 	local shine: Tween? = nil

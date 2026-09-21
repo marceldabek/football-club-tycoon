@@ -18,6 +18,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local Theme = require(script.Parent.Theme)
 local Headshot = require(script.Parent.Headshot)
+local PlayerCard = require(script.Parent.PlayerCard)
 local Squad = require(ReplicatedStorage.Shared.Squad)
 local Config = require(ReplicatedStorage.Shared.Config)
 
@@ -45,13 +46,26 @@ export type Options = {
 	onSwap: (number, number) -> (),
 	onSelect: (number?) -> (),
 	onSell: (number) -> (),
+	clubName: string?, -- for the crest on the pitch cards
 }
 
 -- Optional pitch artwork (rbxassetid://...). Empty draws the pitch from frames.
 LineupBoard.BACKGROUND_IMAGE = "rbxassetid://109275890815433" -- assets/references/pitch-board.png, 1536x1024
 
+-- The pitch itself inside pitch-board.png: the art has a dark glow border all
+-- round, and cropping the whole image to the panel threw the touchlines off
+-- both sides and left bare green above and below. Only this rectangle is shown,
+-- stretched to the panel, so the markings always fill it edge to edge.
+-- In the asset's pixels: Roblox stored the 1536x1024 upload at 1024x683.
+local PITCH_ART_RECT = Rect.new(13, 44, 1011, 627)
+
 -- TEMP layout
-local CARD_W, CARD_H = 86, 108
+-- Pitch cards are sized off the pitch, not in pixels: four rows of them have to
+-- fit its height without one covering the next (the keeper used to sit under
+-- the centre-backs).
+local CARD_HEIGHT = 0.235 -- of the pitch's height; width follows the card's 2:3
+local ROW_Y = { GK = 0.865, DEF = 0.625, MID = 0.385, FWD = 0.145 }
+local WIDE_LIFT = 0.02 -- full-backs and wingers sit a touch ahead of the middle pair
 local ROW_H = 62
 local PITCH_FRACTION = 0.63
 local COLUMN_GAP = 12
@@ -108,7 +122,9 @@ local function drawPitch(parent: Frame)
 		img.BackgroundTransparency = 1
 		img.Size = UDim2.fromScale(1, 1)
 		img.Image = LineupBoard.BACKGROUND_IMAGE
-		img.ScaleType = Enum.ScaleType.Crop
+		img.ScaleType = Enum.ScaleType.Stretch
+		img.ImageRectOffset = PITCH_ART_RECT.Min
+		img.ImageRectSize = PITCH_ART_RECT.Max - PITCH_ART_RECT.Min
 		img.Parent = parent
 		return
 	end
@@ -148,8 +164,11 @@ end
 -- Where slot `i` of the formation sits on the artwork.
 local function slotPosition(slot: number): UDim2
 	local spec = Pitch.FORMATION[slot]
-	-- GK on the goal line of the artwork, FWD near the far box
-	return UDim2.fromScale(0.5 + spec.x * 0.42, 0.9 - spec.depth * 1.0)
+	-- one row per role, evenly spaced over the whole pitch: the formation's own
+	-- depths bunch the back five together, which is right for a match and wrong
+	-- for cards that are a quarter of the pitch tall
+	local y = ROW_Y[Pitch.ROLES[slot]] - (if math.abs(spec.x) > 0.5 then WIDE_LIFT else 0)
+	return UDim2.fromScale(0.5 + spec.x * 0.42, y)
 end
 
 -- ------------------------------------------------------------------- widgets
@@ -179,7 +198,7 @@ local function injuryDot(parent: Instance)
 	inj.Position = UDim2.new(1, -16, 0, 4)
 	inj.BackgroundColor3 = Theme.colors.bad
 	inj.BorderSizePixel = 0
-	inj.ZIndex = 3
+	inj.ZIndex = 8
 	inj.Parent = parent
 	Theme.corner(inj, 6)
 	Theme.stroke(inj)
@@ -193,14 +212,20 @@ local function newChip(parent: Instance)
 	local chip = Instance.new("TextLabel")
 	chip.Name = "NewChip"
 	chip.Size = UDim2.fromOffset(34, 15)
-	chip.Position = UDim2.fromOffset(4, 4)
+	if parent:GetAttribute("PitchCard") then
+		-- top centre: the card art's top corners are cut away
+		chip.AnchorPoint = Vector2.new(0.5, 0)
+		chip.Position = UDim2.new(0.5, 0, 0, -2)
+	else
+		chip.Position = UDim2.fromOffset(4, 4)
+	end
 	chip.BackgroundColor3 = Theme.colors.info
 	chip.BorderSizePixel = 0
 	chip.Font = Theme.fonts.bold
 	chip.TextSize = 11
 	chip.TextColor3 = Color3.new(1, 1, 1)
 	chip.Text = "NEW"
-	chip.ZIndex = 3
+	chip.ZIndex = 8 -- over the card art and its shine
 	chip.Parent = parent
 	Theme.corner(chip, Theme.chipRadius)
 end
@@ -262,60 +287,44 @@ local function refreshInjury(frame: Frame, p: Player, dotParent: Instance, withC
 	end
 end
 
--- Pitch card: shoulder headshot, surname, role bottom-left, OVR bottom-right.
-local function card(parent: Instance, p: Player, kit: Color3): Frame
+-- A sized, anchored slot on the pitch: the card's shape, so it is also what
+-- the drag code hit-tests and outlines.
+local function pitchSlot(parent: Instance, name: string): Frame
 	local f = Instance.new("Frame")
-	f.Name = ("Card%d"):format(p.id)
-	f.Size = UDim2.fromOffset(CARD_W, CARD_H)
+	f.Name = name
+	f.Size = UDim2.fromScale(1, CARD_HEIGHT)
 	f.AnchorPoint = Vector2.new(0.5, 0.5)
 	f.BackgroundColor3 = CARD_BG
-	f.BackgroundTransparency = 0.08
+	f.BackgroundTransparency = 1
 	f.BorderSizePixel = 0
+	local aspect = Instance.new("UIAspectRatioConstraint")
+	aspect.AspectRatio = Config.CardAspect
+	aspect.DominantAxis = Enum.DominantAxis.Height
+	aspect.Parent = f
 	f.Parent = parent
 	Theme.corner(f, Theme.cardRadius)
-	Theme.stroke(f)
+	return f
+end
 
-	local face = Instance.new("Frame")
-	face.Name = "Face"
-	face.Size = UDim2.new(1, -8, 0, 64)
-	face.Position = UDim2.fromOffset(4, 4)
-	face.BackgroundTransparency = 1
-	face.ClipsDescendants = true
-	face.Parent = f
-	Theme.corner(face, Theme.chipRadius)
-	Headshot.attach(face, p.look or p.id, kit, p.number, { shoulders = true })
-	Theme.stroke(face)
+-- What a pitch card prints. It is built once and kept, so when any of this
+-- changes (a birthday, a point of overall, a new tier) the card is rebuilt.
+local function cardSignature(p: Player): string
+	return ("%s|%d|%d"):format(p.name, p.overall, p.age)
+end
 
-	Theme.text(f, surname(p.name), "body", {
-		Name = "Name",
-		Size = UDim2.new(1, -6, 0, 16),
-		Position = UDim2.fromOffset(3, 70),
-		TextSize = 13,
-		Font = Theme.fonts.display,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		TextTruncate = Enum.TextTruncate.AtEnd,
-	})
-	Theme.text(f, p.role, "muted", {
-		Size = UDim2.fromOffset(30, 16),
-		Position = UDim2.fromOffset(6, 88),
-		TextSize = 11,
-		Font = Theme.fonts.bold,
-	})
-	Theme.text(f, ("%d"):format(p.age), "muted", {
-		Name = "Age",
-		Size = UDim2.fromOffset(24, 16),
-		Position = UDim2.fromOffset(36, 88),
-		TextSize = 11,
-		Font = Theme.fonts.bold,
-		TextColor3 = ageColour(p.age),
-	})
-	Theme.text(f, ("%d"):format(p.overall), "body", {
-		Size = UDim2.fromOffset(30, 18),
-		Position = UDim2.new(1, -36, 0, 85),
-		TextSize = 18,
-		Font = Theme.fonts.display,
-		TextColor3 = Theme.colors.accent,
-		TextXAlignment = Enum.TextXAlignment.Right,
+-- Pitch card: the player's rarity card, compact (name and age, no stat block).
+local function card(parent: Instance, p: Player, clubName: string?): (Frame, PlayerCard.Card)
+	local f = pitchSlot(parent, ("Card%d"):format(p.id))
+	f:SetAttribute("PitchCard", true)
+	f:SetAttribute("Sig", cardSignature(p))
+	Theme.stroke(f).Transparency = 1 -- only shows when selected or targeted
+	-- X287: the age is on the card, and coloured once retirement is in sight
+	local warn = p.age >= Config.RetireAge
+	local view = PlayerCard.new(f, p, {
+		signed = true,
+		clubName = clubName,
+		compact = true,
+		ageInk = if warn then ageColour(p.age) else nil,
 	})
 	if p.injured > 0 then
 		injuryDot(f)
@@ -323,7 +332,7 @@ local function card(parent: Instance, p: Player, kit: Color3): Frame
 	if (p.apps or 0) == 0 then
 		newChip(f)
 	end
-	return f
+	return f, view
 end
 
 -- Bench / reserve row: headshot left, name + role, OVR right.
@@ -336,6 +345,16 @@ local function row(parent: Instance, p: Player, kit: Color3): Frame
 	f.Parent = parent
 	Theme.corner(f, Theme.cardRadius)
 	Theme.stroke(f)
+
+	-- the row's rarity, in the tier's colour along the bottom of the headshot
+	local tier = Instance.new("Frame")
+	tier.Name = "Tier"
+	tier.Size = UDim2.fromOffset(ROW_H - 12, 4)
+	tier.Position = UDim2.fromOffset(6, ROW_H - 9)
+	tier.BackgroundColor3 = Config.CardTint[Squad.rarity(p.overall)].glow
+	tier.BorderSizePixel = 0
+	tier.ZIndex = 3
+	tier.Parent = f
 
 	local face = Instance.new("Frame")
 	face.Name = "Face"
@@ -519,6 +538,7 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 
 	-- ------------------------------------------------------------- the state
 	local cards: { [number]: Frame } = {} -- player id -> pitch card
+	local cardViews: { [number]: PlayerCard.Card } = {} -- its PlayerCard, to destroy with it
 	local rows: { [number]: Frame } = {} -- player id -> bench / reserve row
 	local headers: { [string]: Frame } = {} -- section heading rows, reused
 	local empties: { [number]: Frame } = {} -- slot -> "empty" placeholder
@@ -537,6 +557,9 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 		local s = strokeOf(frame)
 		if s then
 			Theme.setStroke(s, state)
+			if (state == nil or state == "rest") and frame:GetAttribute("PitchCard") then
+				s.Transparency = 1 -- the card art is its own edge
+			end
 		end
 	end
 
@@ -739,29 +762,26 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 			local p = if id then byId[id] else nil
 			if p then
 				wantCard[p.id] = true
-				local c = cards[p.id]
-				if not c then
-					c = card(pitch, p, opts.kit)
-					cards[p.id] = c
+				if cards[p.id] and cards[p.id]:GetAttribute("Sig") ~= cardSignature(p) then
+					cardViews[p.id]:destroy()
+					cards[p.id]:Destroy()
+					cards[p.id] = nil
 				end
+				if not cards[p.id] then
+					cards[p.id], cardViews[p.id] = card(pitch, p, opts.clubName)
+				end
+				local c = cards[p.id]
 				refreshInjury(c, p, c, false)
-				refreshAge(c, p) -- X287 (review)
+				refreshAge(c, p) -- X287 (review): here only the NEW chip; the age is in the signature
 				c.Position = slotPosition(slot)
 				if empties[slot] then
 					empties[slot]:Destroy()
 					empties[slot] = nil
 				end
 			elseif not empties[slot] then
-				local empty = Instance.new("Frame")
-				empty.Name = ("Empty%d"):format(slot)
-				empty.Size = UDim2.fromOffset(CARD_W, CARD_H)
-				empty.AnchorPoint = Vector2.new(0.5, 0.5)
+				local empty = pitchSlot(pitch, ("Empty%d"):format(slot))
 				empty.Position = slotPosition(slot)
-				empty.BackgroundColor3 = CARD_BG
 				empty.BackgroundTransparency = 0.4
-				empty.BorderSizePixel = 0
-				empty.Parent = pitch
-				Theme.corner(empty, Theme.cardRadius)
 				Theme.stroke(empty, "danger")
 				Theme.text(empty, Pitch.ROLES[slot] .. "\nempty", "body", {
 					Size = UDim2.fromScale(1, 1),
@@ -774,6 +794,8 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 		end
 		for id, frame in cards do
 			if not wantCard[id] then
+				cardViews[id]:destroy()
+				cardViews[id] = nil
 				frame:Destroy()
 				cards[id] = nil
 			end
@@ -791,6 +813,10 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 			end
 			refreshInjury(r, p, r:FindFirstChild("Face") or r, true)
 			refreshAge(r, p) -- X287 (review)
+			local tier = r:FindFirstChild("Tier")
+			if tier and tier:IsA("Frame") then
+				tier.BackgroundColor3 = Config.CardTint[Squad.rarity(p.overall)].glow -- rows are kept too
+			end
 			r.LayoutOrder = order
 			wantRow[p.id] = true
 		end
@@ -988,10 +1014,12 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 				g.ZIndex = 100
 				for _, d in g:GetDescendants() do
 					if d:IsA("GuiObject") then
-						d.ZIndex = 100
+						d.ZIndex += 100 -- lifted, not flattened: a pitch card is layered
 					end
 				end
-				g.BackgroundTransparency = 0 -- opaque, so it reads over any panel
+				if onBench then
+					g.BackgroundTransparency = 0 -- opaque, so it reads over any panel
+				end
 				g.Parent = overlay
 				ghost = g
 				-- the card is "in hand": leave an empty slot behind rather than
