@@ -310,7 +310,9 @@ def roads():
     # plot and the ring, so the club sits at the end of somebody's road.
     p4 = "Mapleford"
     out += [
-        road("Plot 4 Lane", L, [(-1350, -750), (-1350, -1210)]),   # the ground stands on its west pavement
+        # the ground stands on its west pavement; a terrace faces it from the east side
+        # (Marcel, 2026-09-21). A street now, not a lane: full pavements, walkers, a building line.
+        road("Plot 4 Lane", S, [(-1350, -750), (-1350, -1210)], district=p4, front="right"),
         road("Mapleford Lane", S, [(-2250, -600), (-1350, -600)], district=p4),
         road("Drift Close", S, [(-2250, -600), (-2250, -1060)], district=p4, head=True, use="detached house"),
         road("Tollgate Road", S, [(-1350, -1210), (-1350, -1590), (-2120, -1590)], district=p4, closed=True),
@@ -323,7 +325,8 @@ def roads():
     # ---- Millbrook: Plot 2's estate (north-east), deliberately not Mapleford's mirror
     p2 = "Millbrook"
     out += [
-        road("Plot 2 Lane", L, [(1400, -600), (1400, -1080)]),   # the ground stands on its east pavement
+        # the ground stands on its east pavement; a terrace faces it from the west side
+        road("Plot 2 Lane", S, [(1400, -600), (1400, -1080)], district=p2, front="left"),
         road("Millbrook Road", S, [(1400, -700), (2300, -700)], district=p2),
         road("Lune View", S, [(1560, -570), (2250, -570)], district=p2, head=True, use="detached house"),
         road("Fell Lane", S, [(2300, -700), (2300, -1320)], district=p2, head=True, use="semis"),

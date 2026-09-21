@@ -632,7 +632,8 @@ TownLayout.ROADS = {
 		},
 	},
 	{
-		name = "Plot 4 Lane", kind = "lane", width = 20, front = "none",
+		name = "Plot 4 Lane", kind = "residential", width = 20, front = "right", use = "terraced row",
+		district = "Mapleford",
 		points = {
 			Vector3.new(-1350, 0, -750), Vector3.new(-1350, 0, -1210),
 		},
@@ -680,7 +681,8 @@ TownLayout.ROADS = {
 		},
 	},
 	{
-		name = "Plot 2 Lane", kind = "lane", width = 20, front = "none",
+		name = "Plot 2 Lane", kind = "residential", width = 20, front = "left", use = "terraced row",
+		district = "Millbrook",
 		points = {
 			Vector3.new(1400, 0, -600), Vector3.new(1400, 0, -1080),
 		},

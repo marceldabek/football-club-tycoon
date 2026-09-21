@@ -12,11 +12,11 @@ local EPS = 1e-3
 
 -- PARITY-BEGIN (written by `python tools/town_v3_parity.py --write`; do not edit by hand)
 local PARITY = {
-	total = 892,
-	byUse = { ["corner shop"] = 47, ["detached house"] = 130, ["flats"] = 10, ["semis"] = 193, ["shops"] = 16, ["shops with flats"] = 34, ["terraced row"] = 437, ["trade counter"] = 4, ["warehouse"] = 3, ["workshop"] = 18 },
-	byDistrict = { ["Hollingford"] = 100, ["Industrial Estate"] = 25, ["Mapleford"] = 85, ["Mill Street Terraces"] = 59, ["Millbrook"] = 110, ["Northfields"] = 120, ["Riverside"] = 143, ["Station"] = 43, ["Town Centre"] = 40, ["Westdale"] = 167 },
-	positionSum = 71123,
-	idSum = 1862291,
+	total = 895,
+	byUse = { ["corner shop"] = 47, ["detached house"] = 130, ["flats"] = 10, ["semis"] = 193, ["shops"] = 16, ["shops with flats"] = 34, ["terraced row"] = 440, ["trade counter"] = 4, ["warehouse"] = 3, ["workshop"] = 18 },
+	byDistrict = { ["Hollingford"] = 100, ["Industrial Estate"] = 25, ["Mapleford"] = 87, ["Mill Street Terraces"] = 59, ["Millbrook"] = 111, ["Northfields"] = 120, ["Riverside"] = 143, ["Station"] = 43, ["Town Centre"] = 40, ["Westdale"] = 167 },
+	positionSum = 58717,
+	idSum = 1866935,
 }
 -- PARITY-END
 
