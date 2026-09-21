@@ -358,27 +358,23 @@ Always preserve an automatic option.
 
 # 8. Scouting
 
-Scouting should unlock after the initial onboarding, likely shortly after Match 1.
+A scout report arrives as a 3-card pack after **every** match, from Match 1. It opens from the folder on the office desk or from the Scouting menu.
 
-Initial flow:
+With no scout hired, the pack is still there: walk-in trialists, mostly weak.
 
-1. Player hires first scout.
-2. Scout automatically supplies a small shortlist.
-3. Manual scouting/recruitment controls become available.
-4. Player may stay automated or take control.
+The Match 1 pack is special: the player keeps one of the three free.
 
 Scout quality determines:
 
 - quality of players discovered
-- accuracy of information later
-- size of shortlist
-- chance of finding high-potential players
+- reach abroad
+- accuracy of the reported potential
 
-Example progression:
+A better scout never means a longer list — every pack is 3 cards.
 
-- Level 1 scout: 3 prospects
-- improved scout: larger/more useful list
-- elite scouting network: larger pool and better potential discovery
+There is one pin slot: pinning a card holds it (and its fee) until the season ends.
+
+Tier odds live in `Config.PackOdds`, so they can be published if packs are ever sold.
 
 Do not show hundreds of players at once.
 

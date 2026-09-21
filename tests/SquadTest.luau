@@ -1180,4 +1180,25 @@ function T.wonderkidsAreActuallyUncommon()
 	end
 end
 
+-- Measures the tier odds per scout level at a mid-table squad and checks them
+-- against Config.PackOdds (Roblox wants odds published if packs are ever sold).
+function T.packOddsAreDocumented()
+	for level = 0, #Config.ScoutLevels do
+		local counts: { [string]: number } = {}
+		local total = 0
+		for seed = 1, 400 do
+			for _, p in Squad.prospects(seed, 60, level) do
+				local tier = Squad.rarity(p.overall)
+				counts[tier] = (counts[tier] or 0) + 1
+				total += 1
+			end
+		end
+		local documented = Config.PackOdds[level + 1]
+		for tier, n in counts do
+			local measured = n / total
+			assert(math.abs(measured - (documented[tier] or 0)) < 0.03, ("level %d %s: measured %.3f"):format(level, tier, measured))
+		end
+	end
+end
+
 return T

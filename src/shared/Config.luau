@@ -318,6 +318,19 @@ Config.WalkInPack = { name = "Walk-in trialists", overallBonus = -4, potentialBo
 -- The match-1 pack holds one card this much better than the weakest starter in
 -- his position (CLAUDE.md s3: early rigging, never shown). TEMP.
 Config.TrialistBonus = { 4, 6 }
+-- Tier odds per pack card for a squad averaging 60, index = scout level + 1
+-- (first row is no scout). Measured by SquadTest.packOddsAreDocumented (400
+-- seeds x Config.PackSize cards per level), which fails if balancing moves
+-- them by more than 3 points - update both together. A tier that never
+-- occurred at a level is simply absent, not a zero row.
+Config.PackOdds = {
+	{ Bronze = 0.404, Silver = 0.596 }, -- level 0: walk-in trialists
+	{ Silver = 1.000 }, -- level 1: Local Scout
+	{ Silver = 0.919, Gold = 0.081 }, -- level 2: Regional Scout
+	{ Silver = 0.769, Gold = 0.231 }, -- level 3: Scouting Network
+	{ Silver = 0.547, Gold = 0.453 }, -- level 4: National Network
+	{ Silver = 0.323, Gold = 0.677 }, -- level 5: Continental Network
+}
 
 -- Stand chain, shared by every plot. Level 0 is an empty plot: open
 -- hardstanding behind the perimeter wall, no seats. TEMP costs.
