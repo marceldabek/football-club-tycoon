@@ -43,6 +43,7 @@ local PER_CLUB = {
 	-- PerClubModulesTest checks that; it is not obvious from reading PlotGrounds.
 	"KitPlacer",
 	"TreeKit", -- PlotGrounds' pathside oaks and bushes
+	"GroundsPlanting", -- PlotGrounds' hedges, groves and boulders
 	"Clubhouse", -- WorldBuilder builds the office and dressing rooms through it
 }
 

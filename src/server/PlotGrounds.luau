@@ -18,8 +18,9 @@
 --   vehicle gate       x = -380           60..100          40-wide gap, road behind it
 --   pedestrian gate    x = -380           -20..-4          16-wide gap, footpath behind it
 --   front pavement     -384.4..-380       -380..380        outside the wall, to the street's own paving
---   gate apron         -387.6..-381       72..88           dropped kerb from the street to the gate
---   access road        -381..-349         72..88           kit lane section; ends on the car park asphalt
+--   gate apron         -387.6..-373       72..88           dropped kerb from the street in through the gate,
+--                                                          past the street verge's reach; ramp to -369
+--   access road        -373..-349         72..88           kit lane section; ends on the car park asphalt
 --   car park           -350..-250         40..190          kerb included (TEMP: halved, X9)
 --   club shop          -313..-287         -165..-135       front (door, window) faces +X;
 --                      (-313.5..-286)     (-165.5..-134.5) with fascia and roof overhang
@@ -52,6 +53,7 @@ local HttpService = game:GetService("HttpService") -- X289: the academy intake
 local PlotContext = require(script.Parent.PlotContext)
 local KitPlacer = require(script.Parent.KitPlacer)
 local TreeKit = require(script.Parent.TreeKit)
+local GroundsPlanting = require(script.Parent.GroundsPlanting)
 local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles)
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 
@@ -101,15 +103,26 @@ local ROAD_TOP = RoadTiles.SURFACE_Y - 0.281 * LANE_SCALE
 -- So the street's kerb is at STREET_KERB_X, and between it and the wall are the
 -- kit road's own paved strip and (on a walked street) PavingStrips' widening.
 --   front pavement  the same widening, laid here for the whole entrance side so a
---                   ground on the ring road (never widened) has one too. It sits a
---                   hair under PavingStrips' top so the two are never one plane.
---   gate apron      a dropped kerb: asphalt over the pavement from the kerb to the
---                   gate line, a hair proud of the paving it crosses
+--                   ground on the ring road (never widened) has one too. It sits
+--                   between PavingStrips' top and the kit paving's, so no two are
+--                   one plane.
+--   gate apron      a dropped kerb: asphalt over the pavement from the kerb in
+--                   through the gate, a hair proud of the paving it crosses
+-- The street's grass verge is a sheet KIT_HALF_WIDTH wide, so it carries on
+-- through the wall to VERGE_REACH_X, its top RoadTiler's VERGE_TUCK under the
+-- paving's. Anything flat the ground lays inside that reach has to top it or it
+-- is grassed over: the front pavement and the footpaths do (they were 0.31 and
+-- 0.3 under a 0.311 verge), and the apron runs in past it and ramps down to the
+-- access road, which is far lower.
 local STREET_GAP = TownLayout.PLOT_STREET_GAP
 local STREET_KERB_X = -HALF - (STREET_GAP - ROAD_W / 2)
 local FRONT_PAVE_X0 = -HALF - (STREET_GAP - (RoadTiles.KIT_PAVING_OUTER * LANE_SCALE - 1.2))
-local FRONT_PAVE_TOP = RoadTiles.SURFACE_Y - 0.04
+local FRONT_PAVE_TOP = RoadTiles.SURFACE_Y - 0.01
 local APRON_TOP = RoadTiles.SURFACE_Y + 0.03
+local VERGE_REACH_X = -HALF + (RoadTiles.KIT_HALF_WIDTH * LANE_SCALE - STREET_GAP)
+local APRON_END_X = VERGE_REACH_X + 0.5
+local APRON_RAMP = 4 -- run of the ramp from the apron down to the access road
+local THRESHOLD_TOP, THRESHOLD_RAMP = 0.5, 3 -- the pedestrian gate's slab (buildFootpath)
 
 -- car park (kerb included in the rectangle)
 -- TEMP (X9): was z 40..340 (100 x 300), which ran most of the way down the
@@ -164,7 +177,7 @@ local FENCE_POST_STEP = 22
 local FENCE_GAP = 6 -- half-width of the west gate between the pitches
 
 -- footpath
-local PATH_W, PATH_TOP = 8, 0.3
+local PATH_W, PATH_TOP = 8, RoadTiles.SURFACE_Y - 0.01 -- over the street verge's reach (VERGE_REACH_X)
 local PATH_Z = (PEDESTRIAN_GATE[1] + PEDESTRIAN_GATE[2]) / 2 -- -12
 local PATH_X = -265 -- the north-running leg, past the shop front
 -- Clubhouse.luau's aprons, which the two clubhouse paths run up to
@@ -610,7 +623,7 @@ local function buildRoad(parent: Instance)
 	-- from the end of the town lane on the gate line to the car park asphalt,
 	-- through the kerb gap
 	local z0, z1 = ROAD_Z - ROAD_W / 2, ROAD_Z + ROAD_W / 2
-	extents("AccessRoad", ROAD_START_X, PARK_X0 + KERB_T, GROUND_Y, GROUND_Y + ROAD_TOP, z0, z1, ASPHALT, Enum.Material.Asphalt, parent)
+	extents("AccessRoad", APRON_END_X, PARK_X0 + KERB_T, GROUND_Y, GROUND_Y + ROAD_TOP, z0, z1, ASPHALT, Enum.Material.Asphalt, parent)
 	-- paved strips stop at the car park kerb
 	extents("AccessPavement", ROAD_START_X, PARK_X0, GROUND_Y, GROUND_Y + ROAD_PAVE_TOP, z0 - ROAD_PAVE_W, z0, KERB, Enum.Material.Concrete, parent)
 	extents("AccessPavement", ROAD_START_X, PARK_X0, GROUND_Y, GROUND_Y + ROAD_PAVE_TOP, z1, z1 + ROAD_PAVE_W, KERB, Enum.Material.Concrete, parent)
@@ -619,8 +632,19 @@ local function buildRoad(parent: Instance)
 	-- kerb the cars cross it on. Walked over, never bumped into.
 	local front = extents("FrontPavement", FRONT_PAVE_X0, -HALF, GROUND_Y, GROUND_Y + FRONT_PAVE_TOP, -HALF, HALF, CONCRETE, Enum.Material.Pavement, parent)
 	front.CastShadow = false
-	local apron = extents("GateApron", STREET_KERB_X, ROAD_START_X, GROUND_Y, GROUND_Y + APRON_TOP, z0, z1, ASPHALT, Enum.Material.Asphalt, parent)
+	local apron = extents("GateApron", STREET_KERB_X, APRON_END_X, GROUND_Y, GROUND_Y + APRON_TOP, z0, z1, ASPHALT, Enum.Material.Asphalt, parent)
 	apron.CastShadow = false
+	-- and down onto the access road: a wedge's slope falls towards its front, so it faces +X
+	local ramp = Instance.new("WedgePart")
+	ramp.Name = "GateApronRamp"
+	ramp.Anchored = true
+	ramp.Size = Vector3.new(ROAD_W, APRON_TOP - ROAD_TOP, APRON_RAMP)
+	local rampAt = Vector3.new(APRON_END_X + APRON_RAMP / 2, GROUND_Y + (APRON_TOP + ROAD_TOP) / 2, ROAD_Z)
+	ramp.CFrame = CFrame.lookAt(rampAt, rampAt + Vector3.xAxis)
+	ramp.Color = ASPHALT
+	ramp.Material = Enum.Material.Asphalt
+	ramp.CastShadow = false
+	ramp.Parent = parent
 end
 
 local function buildLamp(x: number, z: number, parent: Instance)
@@ -961,6 +985,23 @@ local function buildFootpath(parent: Instance)
 	local hw = PATH_W / 2
 	-- in from the pedestrian gate, along z = PATH_Z
 	extents("Path", -HALF + WALL_T, PATH_X + hw, y0, y1, PATH_Z - hw, PATH_Z + hw, CONCRETE, Enum.Material.Concrete, path)
+	-- the gate's threshold: a slab laid over the front pavement and the path's
+	-- first stretch, from the street's paving in past the verge's reach, then a
+	-- ramp down onto the path. Plot 1's pedestrian gate is beside a road bend,
+	-- whose verge and paving stand up to 0.48 there (a straight's are 0.31 and
+	-- 0.35), so PATH_TOP alone was still grassed over.
+	local threshold = extents("GateThreshold", FRONT_PAVE_X0, APRON_END_X, y1, GROUND_Y + THRESHOLD_TOP, PATH_Z - hw, PATH_Z + hw, CONCRETE, Enum.Material.Concrete, path)
+	threshold.CastShadow = false
+	local ramp = Instance.new("WedgePart")
+	ramp.Name = "GateThresholdRamp"
+	ramp.Anchored = true
+	ramp.Size = Vector3.new(PATH_W, THRESHOLD_TOP - PATH_TOP, THRESHOLD_RAMP)
+	local rampAt = Vector3.new(APRON_END_X + THRESHOLD_RAMP / 2, GROUND_Y + (THRESHOLD_TOP + PATH_TOP) / 2, PATH_Z)
+	ramp.CFrame = CFrame.lookAt(rampAt, rampAt + Vector3.xAxis) -- a wedge's slope falls towards its front
+	ramp.Color = CONCRETE
+	ramp.Material = Enum.Material.Concrete
+	ramp.CastShadow = false
+	ramp.Parent = path
 	-- north past the shop front (abuts the first leg, no overlap)
 	extents("Path", PATH_X - hw, PATH_X + hw, y0, y1, PATH_END_Z - hw, PATH_Z - hw, CONCRETE, Enum.Material.Concrete, path)
 	-- east onto the forecourt's west edge
@@ -1195,6 +1236,42 @@ local function bindShop()
 	task.defer(refresh) -- a rebuilt shop starts bare
 end
 
+-- Everything GroundsPlanting's scattered groves have to stay off, pitch-local.
+-- `solid` pieces get a wide berth (a crown would reach them); the rest are
+-- ground-level and only need the trunk kept off them. The stadium rectangle is
+-- the full-grown one (16-row stands to x +-175 / z +-233, masts at +-187, +-245).
+function PlotGrounds.plantingKeepOut(): { GroundsPlanting.Rect }
+	local out: { GroundsPlanting.Rect } = {}
+	local function add(name: string, x0: number, x1: number, z0: number, z1: number, solid: boolean)
+		table.insert(out, { name = name, min = Vector2.new(x0, z0), max = Vector2.new(x1, z1), solid = solid })
+	end
+	for _, fp in PlotGrounds.footprints() do
+		add(fp.name, fp.min.X, fp.max.X, fp.min.Y, fp.max.Y, string.sub(fp.name, 1, 13) ~= "TrainingPitch")
+	end
+	add("Stadium", -195, 195, -255, 255, true)
+	add("Forecourt", FORECOURT_X0 - 1, -121, -225, -150, true)
+	local fx0, fx1 = TRAIN_CX - TRAIN_W / 2 - FENCE_MARGIN, TRAIN_CX + TRAIN_W / 2 + FENCE_MARGIN
+	local fz = TRAIN_CZ[2] + TRAIN_L / 2 + FENCE_MARGIN
+	add("TrainingFence", fx0 - 1, fx1 + 1, -fz - 1, fz + 1, true)
+	add("TrainingGateWalk", 195, fx0, -FENCE_GAP - 4, FENCE_GAP + 4, false)
+	add("Academy", fx1, ACADEMY_CX + 9, ACADEMY_CZ - 8, ACADEMY_CZ + 8, true)
+	local hw = PATH_W / 2
+	add("PathGateLeg", -HALF, CLUBHOUSE_FRONT_APRON_X, PATH_Z - hw, PATH_Z + hw, false)
+	add("PathNorthLeg", PATH_X - hw, PATH_X + hw, PATH_END_Z - hw, PATH_Z, false)
+	add("PathEastLeg", PATH_X, FORECOURT_X0, PATH_END_Z - hw, PATH_END_Z + hw, false)
+	add("OfficePath", PARK_X1, CLUBHOUSE_SIDE_APRON.x, CLUBHOUSE_SIDE_APRON.z0, CLUBHOUSE_SIDE_APRON.z1, false)
+	add("ShopApron", SHOP_CX + SHOP_W / 2, PATH_X, SHOP_CZ - SHOP_D / 2 + 17, SHOP_CZ - SHOP_D / 2 + 31, false)
+	add("PatioPath", (PUB_X0 + PUB_X1) / 2 - 2, (PUB_X0 + PUB_X1) / 2 + 2, PUB_Z1, PATH_Z, false)
+	-- the pathside oaks, bushes and lamps already fill this strip
+	add("Pathside", -HALF, PATH_X, PATH_Z - PATH_TREE_SIDE - 4, PATH_Z + PATH_TREE_SIDE + 4, false)
+	add("AccessRoad", ROAD_START_X, PARK_X0, ROAD_Z - ROAD_W / 2 - ROAD_PAVE_W, ROAD_Z + ROAD_W / 2 + ROAD_PAVE_W, false)
+	add("ParkingSign", PARK_X0 - 6, PARK_X0 - 4, ROAD_Z + ROAD_W / 2 + 4, ROAD_Z + ROAD_W / 2 + 18, true)
+	for _, bed in PlotGrounds.borderBeds() do
+		add(bed.name, bed.min.X, bed.max.X, bed.min.Y, bed.max.Y, false)
+	end
+	return out
+end
+
 function PlotGrounds.build(club: Model): Model
 	local old = club:FindFirstChild("Grounds")
 	if old then
@@ -1219,6 +1296,8 @@ function PlotGrounds.build(club: Model): Model
 	buildBorders(grounds)
 	buildSupportersBar(grounds)
 	buildAcademy(grounds) -- X289
+	-- oaks, hedges, bushes and boulders everywhere else; the seed varies the groves per plot
+	GroundsPlanting.build(grounds, PlotGrounds.plantingKeepOut(), (PlotContext.index or 0) + 1)
 
 	PlotContext.place(grounds)
 	bindAcademy()

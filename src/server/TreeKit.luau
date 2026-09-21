@@ -247,4 +247,83 @@ function TreeKit.bush(parent: Instance, position: Vector3, opts: BushOpts?): Mod
 	return model
 end
 
+-- The slice's garden hedge (Kit.Vegetation.HedgeLong: alpha-card leaves over a
+-- dark core, 4.2 thick, 10.6 high, 18.8 long as stored), laid end to end from
+-- `from` to `to` on the ground. Sections are stretched to fill the run exactly
+-- and cut down to `height`; one invisible box makes the whole run solid.
+TreeKit.HEDGE = "HedgeLong"
+local HEDGE_SECTION = 17 -- target length of one section
+
+export type HedgeOpts = {
+	height: number?, -- default 5.5
+	thickness: number?, -- default 3.2
+	name: string?,
+}
+
+local function findHedge(): Model?
+	if libraryOverride then
+		local h = libraryOverride:FindFirstChild(TreeKit.HEDGE)
+		return if h and h:IsA("Model") then h else nil
+	end
+	local kit = ServerStorage:FindFirstChild("Kit")
+	local veg = kit and kit:FindFirstChild("Vegetation")
+	local h = veg and veg:FindFirstChild(TreeKit.HEDGE)
+	return if h and h:IsA("Model") and h:FindFirstChildWhichIsA("MeshPart", true) then h else nil
+end
+
+function TreeKit.hedgeRun(parent: Instance, from: Vector3, to: Vector3, opts: HedgeOpts?): Model?
+	local o: HedgeOpts = opts or {}
+	local template = findHedge()
+	local flat = Vector3.new(to.X - from.X, 0, to.Z - from.Z)
+	local length = flat.Magnitude
+	if not template or length < 1 then
+		return nil
+	end
+	local height, thickness = o.height or 5.5, o.thickness or 3.2
+	local boxCf, boxSize = template:GetBoundingBox()
+	-- the stored hedge runs along whichever horizontal axis is longer
+	local alongZ = boxSize.Z >= boxSize.X
+	local storedLen = if alongZ then boxSize.Z else boxSize.X
+	local storedThick = if alongZ then boxSize.X else boxSize.Z
+	local count = math.max(1, math.floor(length / HEDGE_SECTION + 0.5))
+	local sectionLen = length / count
+	local kLen, kThick, kY = sectionLen / storedLen, thickness / storedThick, height / boxSize.Y
+	local k = if alongZ then Vector3.new(kThick, kY, kLen) else Vector3.new(kLen, kY, kThick)
+	-- a frame on the run's start whose -Z looks along it; a stored-along-X hedge is turned onto it
+	local dir = flat.Unit
+	local runCf = CFrame.lookAt(from, from + dir) * (if alongZ then CFrame.identity else CFrame.Angles(0, math.pi / 2, 0))
+	local along = if alongZ then Vector3.new(0, 0, -1) else Vector3.new(1, 0, 0) -- the turned frame's +X is the run
+
+	local model = Instance.new("Model")
+	model.Name = o.name or "Hedge"
+	for i = 1, count do
+		local centre = runCf * CFrame.new(along * (i - 0.5) * sectionLen + Vector3.new(0, height / 2, 0))
+		for _, d in template:GetDescendants() do
+			if d:IsA("MeshPart") then
+				local part = d:Clone()
+				local rel = boxCf:ToObjectSpace(d.CFrame)
+				part.Size = d.Size * k
+				part.CFrame = centre * (rel.Rotation + rel.Position * k)
+				part.Name = "HedgeLeaves"
+				part.Parent = model
+			end
+		end
+	end
+	quiet(model)
+	local solid = Instance.new("Part")
+	solid.Name = "HedgeCollider"
+	solid.Anchored = true
+	solid.Transparency = 1
+	solid.CanTouch = false
+	solid.CanQuery = false
+	solid.CastShadow = false
+	solid.Size = Vector3.new(thickness * 0.6, height * 0.8, length)
+	solid.CFrame = CFrame.lookAt(from, from + dir) * CFrame.new(0, height * 0.4, -length / 2)
+	solid.Parent = model
+	model.PrimaryPart = solid
+	model:SetAttribute("Kit", TreeKit.HEDGE)
+	model.Parent = parent
+	return model
+end
+
 return TreeKit
