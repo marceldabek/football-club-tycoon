@@ -200,4 +200,128 @@ function T.theSameMatchIsHurtTheSameWay()
 	end
 end
 
+-- X271: ATTACK / DEFEND re-simulate the rest of the match
+
+local LOCK = MatchSim.lockMinutes(90)
+
+local function resim(seed: number, from: number, tactic: any, bias: any?): (MatchSim.Result, MatchSim.Result, number)
+	local old = MatchSim.simulate({ homeStrength = 50, awayStrength = 50, seed = seed, bias = bias })
+	local new, kept = MatchSim.resimulate({
+		homeStrength = 50,
+		awayStrength = 50,
+		seed = seed + 1000,
+		bias = bias,
+		result = old,
+		fromMinute = from,
+		tactic = tactic,
+	})
+	return old, new, kept
+end
+
+function T.resimKeepsWhatHasBeenPlayed()
+	for seed = 1, 60 do
+		for _, from in { 0, 20, 44, 60 } do
+			local old, new, kept = resim(seed, from, "Attack")
+			for i, ev in old.events do
+				if ev.minute <= from + LOCK then
+					assert(new.events[i] == ev, ("seed %d from %d: event %d (%d') was replaced"):format(seed, from, i, ev.minute))
+					assert(i <= kept, "kept count is short")
+				end
+			end
+			for i = kept + 1, #new.events do
+				assert(new.events[i].minute > from + LOCK, ("seed %d from %d: new chance at %d' is inside the lock"):format(seed, from, new.events[i].minute))
+			end
+			assert(new.injury == old.injury, "the casualty is not re-rolled")
+		end
+	end
+end
+
+function T.resimTimelineStillObeysTheRules()
+	for seed = 1, 60 do
+		for _, from in { 0, 12, 30, 38, 44, 55, 70, 79 } do
+			for _, tactic in { "Attack", "Defend", "Balanced" } do
+				local _, r = resim(seed, from, tactic)
+				local h, a = 0, 0
+				for i, ev in r.events do
+					if ev.type == "GOAL" then
+						if ev.team == "Home" then h += 1 else a += 1 end
+					end
+					assert(ev.minute >= 10 and ev.minute <= 88, "minute out of range: " .. ev.minute)
+					assert(ev.minute <= MatchSim.FIRST_HALF_LAST or ev.minute >= MatchSim.SECOND_HALF_FIRST,
+						("seed %d from %d: chance at %d' sits across half time"):format(seed, from, ev.minute))
+					if i > 1 then
+						local gap = ev.minute - r.events[i - 1].minute
+						assert(gap >= MatchSim.MIN_EVENT_GAP, ("seed %d from %d %s: gap %d"):format(seed, from, tactic, gap))
+					end
+				end
+				assert(h == r.homeGoals and a == r.awayGoals, ("seed %d from %d: events %d-%d vs score %d-%d"):format(seed, from, h, a, r.homeGoals, r.awayGoals))
+				assert(#r.events <= MatchSim.MAX_CHANCES, "too many chances")
+			end
+		end
+	end
+end
+
+function T.attackOpensTheGameAndDefendClosesIt()
+	local goals = { Attack = { 0, 0 }, Balanced = { 0, 0 }, Defend = { 0, 0 } }
+	for seed = 1, 500 do
+		for tactic, sum in goals do
+			local old, new, kept = resim(seed, 0, tactic)
+			-- only the re-simulated part: what was kept is the same in all three
+			local keptHome, keptAway = 0, 0
+			for i = 1, kept do
+				local ev = old.events[i]
+				if ev.type == "GOAL" then
+					if ev.team == "Home" then keptHome += 1 else keptAway += 1 end
+				end
+			end
+			sum[1] += new.homeGoals - keptHome
+			sum[2] += new.awayGoals - keptAway
+		end
+	end
+	local function line(): string
+		return ("A %d-%d  B %d-%d  D %d-%d"):format(goals.Attack[1], goals.Attack[2], goals.Balanced[1], goals.Balanced[2], goals.Defend[1], goals.Defend[2])
+	end
+	assert(goals.Attack[1] > goals.Balanced[1] * 1.1 and goals.Attack[2] > goals.Balanced[2] * 1.1, "attacking should mean more goals at both ends: " .. line())
+	assert(goals.Defend[1] < goals.Balanced[1] * 0.9 and goals.Defend[2] < goals.Balanced[2] * 0.9, "defending should mean fewer goals at both ends: " .. line())
+end
+
+function T.resimLeavesTheFirstMatchAlone()
+	-- Match 1 is a narrow win whatever the player presses (CLAUDE.md s3)
+	for seed = 1, 40 do
+		for _, tactic in { "Attack", "Defend" } do
+			local old, new = resim(seed, 5, tactic, "NarrowWin")
+			assert(new.homeGoals == old.homeGoals and new.awayGoals == old.awayGoals, "score moved")
+			assert(#new.events == #old.events, "timeline moved")
+		end
+	end
+end
+
+function T.resimNeverThrowsAwayTheSecondMatch()
+	for seed = 1, 200 do
+		for _, tactic in { "Attack", "Defend" } do
+			local old, new = resim(seed, 5, tactic, "LikelyWin")
+			if old.homeGoals > old.awayGoals then
+				assert(new.homeGoals > new.awayGoals, ("seed %d %s: a won match 2 became %d-%d"):format(seed, tactic, new.homeGoals, new.awayGoals))
+			end
+		end
+	end
+end
+
+function T.resimIsDeterministicAndTooLateIsANoOp()
+	local _, a = resim(9, 20, "Attack")
+	local _, b = resim(9, 20, "Attack")
+	assert(a.homeGoals == b.homeGoals and a.awayGoals == b.awayGoals and #a.events == #b.events, "same seed gave different results")
+	for seed = 1, 40 do
+		local old, new, kept = resim(seed, 86, "Attack")
+		assert(kept == #old.events and #new.events == #old.events, "nothing fits after 86'")
+	end
+end
+
+function T.lockCoversThePresentersLead()
+	-- the presenter starts a build-up 4.5 s before the chance; a chance inside
+	-- that lead may already be on the pitch
+	assert(LOCK >= 5 and LOCK <= 8, "lock at 90 s is " .. LOCK)
+	assert(MatchSim.lockMinutes(30) > LOCK, "a shorter match locks more football minutes")
+end
+
 return T

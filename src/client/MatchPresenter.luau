@@ -483,6 +483,13 @@ function Presenter.setTactic(self: Presenter, tactic: Pitch.Tactic)
 	self:refreshSlots()
 end
 
+-- X271: the server replays the rest of the match when the tactic changes. It
+-- keeps every chance already shown or in build-up (MatchSim.lockMinutes), so
+-- the director's place in the list is still right.
+function Presenter.setEvents(self: Presenter, events: { Event })
+	self.events = events
+end
+
 -- Whistle, everyone stops, teams are placed straight at the opposite ends and
 -- Away restarts. No transition: it wasn't worth the pause. Yields ~2s.
 function Presenter.halftime(self: Presenter)

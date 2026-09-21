@@ -46,6 +46,14 @@ local crowdFill: ((number) -> ())? = nil
 local matchMinute = 0 -- the scoreboard minute, stamped on substitutions (X218)
 local eventsShown = 0 -- timeline events already on the scoreboard, stamped on substitutions
 local subsMade: { Squad.Sub } = {}
+-- X271: the match being played, so a change of tactic can replay what is left
+-- of it. nil between matches.
+local live: {
+	result: MatchSim.Result,
+	sim: MatchSim.Params,
+	timeline: { [string]: any },
+	duration: number,
+}? = nil
 
 -- Set by Session: called once the result and revenue are applied, so the
 -- profile is saved at the one moment that matters most.
@@ -79,13 +87,40 @@ local function jsonToColor(c: { number }): Color3
 	return Color3.fromRGB(c[1] or 255, c[2] or 255, c[3] or 255)
 end
 
+-- X271: plays the rest of the match again under the new tactic. The result
+-- table is changed in place (playCore's clock loop reads it every tick) and
+-- the timeline is published again for the presenters; everything already
+-- shown, and anything close enough to be in build-up, is kept as it was.
+local function retune(tactic: MatchSim.Tactic)
+	local m = live
+	if not m then
+		return
+	end
+	local params = table.clone(m.sim) :: any
+	params.result = m.result
+	params.fromMinute = matchMinute
+	params.tactic = tactic
+	params.lockMinutes = MatchSim.lockMinutes(m.duration)
+	local fresh, kept = MatchSim.resimulate(params)
+	local tail = table.move(fresh.events, kept + 1, #fresh.events, 1, {})
+	Squad.assignScorers(tail :: any, homeSquad, Random.new())
+	m.result.events = fresh.events
+	m.result.homeGoals = fresh.homeGoals
+	m.result.awayGoals = fresh.awayGoals
+	m.timeline.events = fresh.events
+	ClubState.set("Timeline", HttpService:JSONEncode(m.timeline))
+end
+
 -- Attack / Defend / Balanced / Sub. Returns false plus a reason if refused.
 function MatchService.applyTactic(action: string): (boolean, string?)
 	if ClubState.get("Phase") ~= "Match" then
 		return false, "No match in progress"
 	end
 	if action == "Attack" or action == "Defend" or action == "Balanced" then
-		ClubState.set("Tactic", action)
+		if ClubState.get("Tactic") ~= action then
+			retune(action :: MatchSim.Tactic)
+			ClubState.set("Tactic", action)
+		end
 		return true
 	elseif action == "Sub" then
 		local sub = Squad.nextSub(homeSquad, subsMade)
@@ -132,14 +167,15 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	-- Simulation layer: result decided up front from squad strength vs the opponent.
 	local prepared = ClubService.prepareMatch()
 	homeSquad = prepared.matchSquad
-	local result = MatchSim.simulate({
+	local simParams: MatchSim.Params = {
 		homeStrength = prepared.strength,
 		awayStrength = opponent.strength,
-		bias = bias,
+		bias = bias :: any,
 		-- X261: an away fixture gives the venue advantage to the opponent. The
 		-- match is still watched at this club's ground (CLAUDE.md MVP scope).
 		playerIsAway = playerIsAway,
-	})
+	}
+	local result = MatchSim.simulate(simParams)
 	local scorerSlots = Squad.assignScorers(result.events :: any, homeSquad, Random.new())
 	subsMade = {}
 	matchMinute = 0
@@ -182,12 +218,14 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	ClubState.set("InjuryNews", "") -- X334: last week's casualty is not this week's
 	ClubState.set("InjuryMinute", 0) -- X344
 	ClubState.set("Evening", evening)
-	ClubState.set("Timeline", HttpService:JSONEncode({
+	local timeline = {
 		events = result.events,
 		home = { name = ClubState.get("ClubName"), kit = colorToJson(Config.HomeKit), squad = homeSquad },
 		-- X263: shift an away kit that would read as this club's own red
 		away = { name = opponent.name, kit = colorToJson(Config.pitchKit(jsonToColor(opponent.kit))), squad = opponent.squad },
-	}))
+	}
+	ClubState.set("Timeline", HttpService:JSONEncode(timeline))
+	live = { result = result, sim = simParams, timeline = timeline, duration = duration } -- X271
 	ClubState.set("Phase", "PreMatch")
 
 	-- Review of X314: filling the ground on the kick-off frame rebuilt every
@@ -281,6 +319,7 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	end
 
 	-- Authoritative final score, regardless of presentation timing.
+	live = nil -- X271: the whistle has gone; nothing more can change it
 	ClubState.set("HomeGoals", result.homeGoals)
 	ClubState.set("AwayGoals", result.awayGoals)
 	ClubState.set("TimeLeft", 0)
@@ -306,6 +345,7 @@ local function scorerLines(result: MatchSim.Result): { string }
 end
 
 local function finishCore()
+	live = nil -- X271: also on the error path
 	ClubState.set("Phase", "Manage")
 	-- X314: the ground empties while X161's leavers are walking home, rather
 	-- than staying full and then vanishing

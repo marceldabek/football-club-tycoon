@@ -132,8 +132,9 @@ end
 -- 3D sequences overlap. Rare at these expectancies. X229: goals come off both
 -- sides together so the winner and the margin never change (trimming only the
 -- leading side turned 5-4 into 3-4).
-function MatchSim.trimGoals(homeGoals: number, awayGoals: number): (number, number)
-	while homeGoals + awayGoals > MatchSim.MAX_CHANCES do
+function MatchSim.trimGoals(homeGoals: number, awayGoals: number, max: number?): (number, number)
+	local most = max or MatchSim.MAX_CHANCES
+	while homeGoals + awayGoals > most do
 		if homeGoals > 0 and awayGoals > 0 then
 			homeGoals -= 1
 			awayGoals -= 1
@@ -146,10 +147,8 @@ function MatchSim.trimGoals(homeGoals: number, awayGoals: number): (number, numb
 	return homeGoals, awayGoals
 end
 
-function MatchSim.simulate(params: Params): Result
-	-- X201: unseeded matches get their own random sequence (os.time() gave two
-	-- clubs kicking off in the same second identical games)
-	local rng = if params.seed then Random.new(params.seed) else Random.new()
+-- What each side expects to score over a whole match.
+local function expectancy(params: Params): (number, number)
 	-- `homeStrength` is the side this result is reported for (its goals come back
 	-- as homeGoals). X261: when that side is actually the visitor, the venue
 	-- advantage belongs to the opponent instead, so a player's away fixtures are
@@ -162,9 +161,17 @@ function MatchSim.simulate(params: Params): Result
 	else
 		edge = (math.max(us + HOME_ADVANTAGE, 1) / them) ^ STRENGTH_EXPONENT
 	end
+	return math.clamp(BASE_XG * edge, MIN_XG, MAX_XG), math.clamp(BASE_XG / edge, MIN_XG, MAX_XG)
+end
 
-	local homeGoals = samplePoisson(rng, math.clamp(BASE_XG * edge, MIN_XG, MAX_XG))
-	local awayGoals = samplePoisson(rng, math.clamp(BASE_XG / edge, MIN_XG, MAX_XG))
+function MatchSim.simulate(params: Params): Result
+	-- X201: unseeded matches get their own random sequence (os.time() gave two
+	-- clubs kicking off in the same second identical games)
+	local rng = if params.seed then Random.new(params.seed) else Random.new()
+	local homeXG, awayXG = expectancy(params)
+
+	local homeGoals = samplePoisson(rng, homeXG)
+	local awayGoals = samplePoisson(rng, awayXG)
 
 	if params.bias == "NarrowWin" then
 		-- Match 1: always a one-goal win, never a blowout.
@@ -232,6 +239,154 @@ function MatchSim.simulate(params: Params): Result
 		events = events,
 		injury = injury, -- X334
 	}
+end
+
+-- X271: ATTACK / DEFEND used to move the formation and nothing else, because
+-- the whole match is decided before kick-off. A change of tactic now throws
+-- away the part of the timeline nobody has seen and plays it again.
+--
+-- TEMP numbers. Both sides' chances move together, so on level terms a tactic
+-- is a bet on variance (open the game when behind, close it when ahead) and
+-- the better side gains the most from opening it.
+export type Tactic = "Balanced" | "Attack" | "Defend"
+MatchSim.TACTICS = {
+	Balanced = 1,
+	Attack = 1.3,
+	Defend = 0.7,
+} :: { [string]: number }
+
+-- The presenter starts a chance's build-up 4.5 s before its minute
+-- (SEQUENCE_LEAD in MatchPresenter), so a chance that close may already be on
+-- the pitch and cannot be taken back. TEMP: two seconds on top for the round trip.
+local RESIM_LOCK_SECONDS = 6.5
+
+-- How many football minutes ahead of the clock are already spoken for.
+function MatchSim.lockMinutes(duration: number): number
+	return math.ceil(RESIM_LOCK_SECONDS / math.max(duration, 1) * 90)
+end
+
+export type ResimParams = Params & {
+	result: Result, -- the match so far; not mutated
+	fromMinute: number, -- the clock when the tactic changed
+	tactic: Tactic,
+	lockMinutes: number?, -- default: a full-length match
+}
+
+-- Replays the match from `fromMinute` under a tactic. Every chance up to the
+-- lock is kept (the same tables, so scorers and indices survive); the rest is
+-- rolled again. Returns the new result and how many events were kept.
+function MatchSim.resimulate(params: ResimParams): (Result, number)
+	local old = params.result
+	local function unchanged(): (Result, number)
+		return {
+			homeGoals = old.homeGoals,
+			awayGoals = old.awayGoals,
+			events = table.clone(old.events),
+			injury = old.injury,
+		}, #old.events
+	end
+	-- Match 1 is a narrow win whatever gets pressed (CLAUDE.md s3).
+	if params.bias == "NarrowWin" then
+		return unchanged()
+	end
+
+	local rng = if params.seed then Random.new(params.seed) else Random.new()
+	local locked = params.fromMinute + (params.lockMinutes or MatchSim.lockMinutes(90))
+	local events: { Event } = {}
+	local homeGoals, awayGoals = 0, 0
+	local start = locked + 1
+	for _, ev in old.events do
+		if ev.minute > locked then
+			break
+		end
+		table.insert(events, ev)
+		if ev.type == "GOAL" then
+			if ev.team == "Home" then
+				homeGoals += 1
+			else
+				awayGoals += 1
+			end
+		end
+		start = math.max(start, ev.minute + MatchSim.MIN_EVENT_GAP)
+	end
+	local kept = #events
+
+	-- What is left of each half, and how many chances it can still space out.
+	local windows = {
+		{ first = math.max(start, FIRST_MINUTE), last = MatchSim.FIRST_HALF_LAST, room = 0 },
+		{ first = math.max(start, MatchSim.SECOND_HALF_FIRST), last = LAST_MINUTE, room = 0 },
+	}
+	local playable, room = 0, 0
+	for _, w in windows do
+		local span = w.last - w.first
+		if span >= 0 then
+			w.room = math.max(math.floor(span / MatchSim.MIN_EVENT_GAP), 1)
+			playable += span
+			room += w.room
+		end
+	end
+	room = math.min(room, MatchSim.MAX_CHANCES - kept)
+	if room <= 0 then
+		return unchanged()
+	end
+
+	local share = playable / ((MatchSim.FIRST_HALF_LAST - FIRST_MINUTE) + (LAST_MINUTE - MatchSim.SECOND_HALF_FIRST))
+	local openness = MatchSim.TACTICS[params.tactic] or 1
+	local homeXG, awayXG = expectancy(params)
+	local moreHome = samplePoisson(rng, homeXG * share * openness)
+	local moreAway = samplePoisson(rng, awayXG * share * openness)
+	moreHome, moreAway = MatchSim.trimGoals(moreHome, moreAway, room)
+
+	local chances: { { team: "Home" | "Away", type: EventType } } = {}
+	local function addChances(team: "Home" | "Away", goals: number)
+		for _ = 1, goals do
+			table.insert(chances, { team = team, type = "GOAL" :: EventType })
+		end
+		-- the same two or three a match, for the part of it still to play
+		local extras = math.floor(rng:NextInteger(MIN_EXTRA_CHANCES, MAX_EXTRA_CHANCES) * share * openness + rng:NextNumber())
+		for _ = 1, extras do
+			table.insert(chances, { team = team, type = (rng:NextNumber() < 0.5 and "MISS" or "SAVE") :: EventType })
+		end
+	end
+	addChances("Home", moreHome)
+	addChances("Away", moreAway)
+	for i = #chances, 2, -1 do
+		local j = rng:NextInteger(1, i)
+		chances[i], chances[j] = chances[j], chances[i]
+	end
+	for i = #chances, 1, -1 do
+		if #chances <= room then
+			break
+		end
+		if chances[i].type ~= "GOAL" then
+			table.remove(chances, i)
+		end
+	end
+
+	-- Split between the halves by the room each has left.
+	local inFirst = math.min(windows[1].room, math.floor(#chances * windows[1].room / math.max(windows[1].room + windows[2].room, 1) + rng:NextNumber()))
+	inFirst = math.max(inFirst, #chances - windows[2].room)
+	local minutes = pickMinutesIn(rng, inFirst, windows[1].first, windows[1].last)
+	for _, m in pickMinutesIn(rng, #chances - inFirst, windows[2].first, windows[2].last) do
+		table.insert(minutes, m)
+	end
+	for i, chance in chances do
+		table.insert(events, { minute = minutes[i], team = chance.team, type = chance.type })
+	end
+	homeGoals += moreHome
+	awayGoals += moreAway
+
+	-- Match 2 stays a likely win: a tactic can improve it but never lose it.
+	if params.bias == "LikelyWin" and old.homeGoals > old.awayGoals and homeGoals <= awayGoals then
+		return unchanged()
+	end
+
+	return {
+		homeGoals = homeGoals,
+		awayGoals = awayGoals,
+		events = events,
+		injury = old.injury,
+	}, kept
 end
 
 return MatchSim

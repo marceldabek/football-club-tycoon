@@ -152,6 +152,14 @@ local function follow(folder: Folder)
 			presenter:setTactic(get("Tactic") or "Balanced")
 		end
 	end))
+	-- X271: a change of tactic replays the rest of the match, so the timeline
+	-- can change while it is being shown
+	table.insert(stateConnections, folder:GetAttributeChangedSignal("Timeline"):Connect(function()
+		local timeline = if presenter and get("Phase") == "Match" then loadTimeline() else nil
+		if presenter and timeline then
+			presenter:setEvents(timeline.events)
+		end
+	end))
 	table.insert(stateConnections, folder:GetAttributeChangedSignal("Subs"):Connect(function()
 		if presenter then
 			presenter:applySubs(HttpService:JSONDecode(get("Subs") or "[]"))
