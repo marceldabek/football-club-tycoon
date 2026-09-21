@@ -158,6 +158,81 @@ function tests.semis_mirror_in_pairs()
 	assert(doorLeft < 0 and doorRight > 0, "doors sit on the outer sides of the pair")
 end
 
+-- A doorway wider than its leaf, or a leaf beside its doorway, is a hole you can see through.
+function tests.every_door_leaf_covers_its_doorway()
+	for _, r in HouseRecipes.RECIPES do
+		if r.prefab then
+			continue
+		end
+		for _, mirrored in { false, true } do
+			local wallX, opening, leaf
+			for _, p in HouseRecipes.pieces(r, mirrored) do
+				if p.role == "front" and HouseRecipes.DOOR_OPENING[p.piece] then
+					assert(not opening, r.id .. " has two door walls")
+					wallX, opening = p.offset.X, HouseRecipes.DOOR_OPENING[p.piece]
+				elseif p.role == "door" then
+					assert(not leaf, r.id .. " has two door leaves")
+					leaf = p
+				end
+			end
+			assert(opening and leaf, r.id .. " needs one door wall and one leaf")
+			local centre = wallX + opening.centre -- the wall mesh is never flipped, so neither is its doorway
+			local half = HouseRecipes.PIECE_SIZE[leaf.piece].X / 2
+			assert(leaf.offset.X - half <= centre - opening.width / 2 + 0.01 and leaf.offset.X + half >= centre + opening.width / 2 - 0.01,
+				("%s%s: %s at %.2f leaves the %.2f-wide doorway at %.2f open"):format(r.id, if mirrored then " (mirrored)" else "", leaf.piece, leaf.offset.X, opening.width, centre))
+			assert(half * 2 <= opening.width + 0.4, r.id .. ": " .. leaf.piece .. " is far wider than its doorway")
+			assert(math.abs(HouseRecipes.doorXFor(r, mirrored) - centre) < 0.01, r.id .. ": the garden gate misses the doorway")
+			for _, p in HouseRecipes.pieces(r, mirrored) do
+				if p.role == "canopy" then
+					assert(math.abs(p.offset.X - centre) < 0.01, r.id .. ": the canopy is not over the doorway")
+					assert(HouseRecipes.PIECE_SIZE[p.piece].X >= opening.width - 0.5, r.id .. ": the canopy is narrower than the doorway")
+				end
+			end
+		end
+	end
+end
+
+-- Every brick face sits on the body's grid line, so fronts, sides and the roof fascia meet.
+function tests.brick_faces_sit_on_the_grid_line()
+	local M = HouseRecipes.MODULE
+	local function check(id: string, p)
+		local plane = HouseRecipes.BRICK_PLANE[p.piece]
+		assert(plane, id .. ": no BRICK_PLANE for " .. p.piece)
+		if p.role == "front" then
+			assert(math.abs((p.offset.Z - plane) - -M) < 0.005, ("%s: %s brick face is at z %.3f"):format(id, p.piece, p.offset.Z - plane))
+		elseif p.role == "side" then
+			local face = math.abs(p.offset.X) + plane * (p.scale or 1)
+			assert(math.abs(face - M) < 0.005, ("%s: %s brick face is at x %.3f"):format(id, p.piece, face))
+		end
+	end
+	for _, r in HouseRecipes.RECIPES do
+		for _, p in r.pieces do
+			if p.role == "front" or p.role == "side" then
+				check(r.id, p)
+			end
+		end
+	end
+	for _, side in { -1, 1 } do
+		for _, windowed in { true, false } do
+			for _, p in HouseRecipes.endCap(side, windowed) do
+				if p.role == "side" then
+					check("end cap", p)
+				end
+			end
+		end
+	end
+end
+
+function tests.the_core_clears_frames_and_door_leaves()
+	-- deepest thing behind a brick face: the far side of a piece's bounding box, or a door leaf
+	local deepest = HouseRecipes.DOOR_RECESS + HouseRecipes.PIECE_SIZE.Door_A.Z / 2
+	for piece, plane in HouseRecipes.BRICK_PLANE do
+		deepest = math.max(deepest, plane + HouseRecipes.PIECE_SIZE[piece].Z / 2)
+	end
+	assert(HouseRecipes.CORE_INSET > deepest + 0.05, ("core inset %.2f, but kit geometry reaches %.2f behind the brick face"):format(HouseRecipes.CORE_INSET, deepest))
+	assert(HouseRecipes.CORE_INSET < 1.5, "the core should stay close behind the openings")
+end
+
 function tests.garden_styles_use_kit_names()
 	for _, style in HouseRecipes.GARDEN_STYLES do
 		local prefix = style.piece:sub(1, 5)

@@ -155,6 +155,55 @@ function tests.houses_stay_inside_their_lot_and_face_the_street()
 	end)
 end
 
+-- Kit walls are single-sided, so every modular body holds a dark core (register row EH1): behind
+-- every door, inside the walls, never poking out of them.
+function tests.every_modular_body_has_a_core_behind_its_doors()
+	if not kitInstalled() then
+		return
+	end
+	withBuild(nil, nil, function(holder, counts)
+		local byId = {}
+		for _, lot in fixtureLots() do
+			byId[lot.id] = lot
+		end
+		local cores = 0
+		for _, d in holder:GetDescendants() do
+			local id = d:IsA("Model") and d:GetAttribute("LotId")
+			if id then
+				local lot = byId[id]
+				local lotCF = HouseAssembler.lotFrame(lot)
+				local lotCores = {}
+				for _, part in d:GetChildren() do
+					if part:GetAttribute("Role") == "core" then
+						assert(part:IsA("Part") and part:GetAttribute("V3Exempt") == "EH1", id .. ": core is not registered as EH1")
+						assert(not part.CanCollide and not part.CastShadow, id .. ": the core must not collide or cast a shadow")
+						local c = lotCF:PointToObjectSpace(part.Position)
+						assert(c.Z - part.Size.Z / 2 > -lot.size.Z / 2 + 0.5, id .. ": the core reaches the front wall")
+						table.insert(lotCores, part)
+					end
+				end
+				cores += #lotCores
+				for _, part in d:GetChildren() do
+					local role = part:GetAttribute("Role")
+					if role == "door" then
+						local p = lotCF:PointToObjectSpace(part.Position)
+						local covered = false
+						for _, core in lotCores do
+							local c = lotCF:PointToObjectSpace(core.Position)
+							local front = c.Z - core.Size.Z / 2
+							if math.abs(p.X - c.X) <= core.Size.X / 2 - 1 and front > p.Z and front - p.Z < 1.5 then
+								covered = true
+							end
+						end
+						assert(covered, id .. ": a door has no core close behind it")
+					end
+				end
+			end
+		end
+		assert(cores == counts.cores and cores > 0, ("count says %d cores, tree has %d"):format(counts.cores, cores))
+	end)
+end
+
 function tests.district_filter_builds_only_that_district()
 	if not kitInstalled() then
 		return

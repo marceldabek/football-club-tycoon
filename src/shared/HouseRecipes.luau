@@ -32,13 +32,15 @@ export type Piece = {
 	scale: number?, -- extra uniform scale on top of the unit scale
 	stretchX: number?, -- non-uniform stretch along the piece's own X (roofs spanning 2 modules)
 	once: boolean?, -- skipped on the mirrored half of a semi pair
+	shiftX: number?, -- the part of offset.X that does NOT mirror: wall meshes are never flipped
 }
 
 export type Recipe = {
 	id: string,
 	kind: "terraced" | "semi" | "detached",
 	body: Vector3, -- X width, Y height, Z depth of the body in unscaled studs
-	doorX: number, -- where the front door is, for the garden gate gap
+	doorX: number, -- centre of the door wall's module; HouseRecipes.doorXFor gives the real doorway
+	doorShift: number?, -- how far the doorway sits off that centre (DOOR_OPENING), never mirrored
 	prefab: boolean?, -- one textured prefab mesh; the trim picks the "__ts1"/"__ts3" asset
 	ends: boolean?, -- true when the recipe already closes its own sides (detached, prefab)
 	weight: number?, -- how many tickets this recipe gets in the draw (default 1)
@@ -76,6 +78,9 @@ HouseRecipes.PIECE_SIZE = {
 	Door_A = Vector3.new(2.3, 5.3, 0.2),
 	Door_B = Vector3.new(2.3, 5.3, 0.2),
 	Door_C = Vector3.new(2.3, 5.3, 0.2),
+	Door_Double_A = Vector3.new(4.65, 5.3, 0.2),
+	Door_Double_B = Vector3.new(4.65, 5.3, 0.2),
+	Door_Double_C = Vector3.new(4.65, 5.3, 0.2),
 	Door_Canopy_A = Vector3.new(4.2, 3.6, 1.7),
 	Door_Canopy_B = Vector3.new(3.7, 3.0, 1.8),
 	Roof_A = Vector3.new(8.25, 5.5, 8.6),
@@ -85,14 +90,52 @@ HouseRecipes.PIECE_SIZE = {
 	House_02_VAR1 = Vector3.new(17.3, 22.8, 26.9),
 }
 
+-- The export re-centres every piece on its bounding box, so the BRICK FACE is not at the piece's
+-- centre: frames stand proud of it on one side and reveals run behind it on the other. This is
+-- how far the centre sits BEHIND the brick face (negative: in front of it, on bays and deep
+-- sills), measured from the GLBs 2026-09-21. Placing by it puts every brick face on the grid
+-- line, where the plain Wall_A sides and the roof fascia already are: no open notch at the
+-- corners, no step in a windowed gable, no slot under the eaves.
+HouseRecipes.BRICK_PLANE = {
+	Wall_A = 0,
+	Wall_Door_A = 0.145,
+	Wall_Door_B = 0.145,
+	Wall_Door_C = 0.145,
+	Wall_Window_A = 0.149,
+	Wall_Window_B = 0.149,
+	Wall_Window_C = 0.149,
+	Wall_Window_D = 0.149,
+	Wall_Window_E = 0.137,
+	Wall_Window_F = 0.143,
+	Wall_Window_G = 0.149,
+	Wall_Window_H = -0.147,
+	Wall_WindowDoor_A = 0.149,
+	Wall_WindowDoor_B = 0.145,
+	Wall_WindowCentre_A = -0.728,
+	Wall_WindowCentre_B = 0.149,
+} :: { [string]: number }
+
+-- The clear doorway of each door wall, in the piece's own X as Roblox sees it (+X is to the LEFT
+-- from the street), measured from the GLBs 2026-09-21. Wall_Door_B is a door beside a side light,
+-- so its doorway is off centre; Wall_Door_C is a double doorway and takes a Door_Double leaf.
+HouseRecipes.DOOR_OPENING = {
+	Wall_Door_A = { centre = 0, width = 2.26 },
+	Wall_Door_B = { centre = 1.375, width = 2.24 },
+	Wall_Door_C = { centre = 0, width = 4.6 },
+	Wall_WindowDoor_A = { centre = 0, width = 2.27 },
+	Wall_WindowDoor_B = { centre = 0, width = 2.27 },
+} :: { [string]: { centre: number, width: number } }
+
+-- How far in from the brick face the dark core inside every body starts (HouseAssembler). Frames
+-- and reveals reach 0.47 behind the face and a door leaf 0.44, so the core clears both.
+HouseRecipes.CORE_INSET = 0.7
+HouseRecipes.DOOR_RECESS = 0.345 -- centre of a door leaf behind the brick face
+
 local FRONT_Z = -M
 local BACK_Z = M
 
--- The wall plane sits behind the bounding-box centre on pieces with a bay or deep sill.
 local function frontZ(piece: string): number
-	local size = HouseRecipes.PIECE_SIZE[piece]
-	local depth = if size then size.Z else 0.5
-	return FRONT_Z - math.max(0, (depth - 0.5) / 2)
+	return FRONT_Z + (HouseRecipes.BRICK_PLANE[piece] or 0)
 end
 
 local function front(piece: string, x: number, storey: number): Piece
@@ -100,11 +143,11 @@ local function front(piece: string, x: number, storey: number): Piece
 end
 
 local function door(piece: string, x: number): Piece
-	return { piece = piece, offset = Vector3.new(x, 0, FRONT_Z + 0.2), yaw = 0, role = "door", tier = 1 }
+	return { piece = piece, offset = Vector3.new(x, 0, FRONT_Z + HouseRecipes.DOOR_RECESS), yaw = 0, role = "door", tier = 1 }
 end
 
 local function canopy(piece: string, x: number): Piece
-	return { piece = piece, offset = Vector3.new(x, 5.0, FRONT_Z - 0.85), yaw = 0, role = "canopy", tier = 2 }
+	return { piece = piece, offset = Vector3.new(x, 5.0, FRONT_Z - 0.705), yaw = 0, role = "canopy", tier = 2 }
 end
 
 local function chimney(x: number, once: boolean?): Piece
@@ -137,11 +180,16 @@ function HouseRecipes.endCap(side: number, windowed: boolean): { Piece }
 	local pieces: { Piece } = {
 		{ piece = "Roof_Wall_Full_A", offset = Vector3.new(x, 2 * M, 0), yaw = yaw, role = "gable", tier = 1 },
 	}
+	-- brick face on the grid line, like the fronts, so a windowed module meets the plain one beside it
+	local function sideWall(piece: string, y: number, z: number)
+		local wx = side * (M - (HouseRecipes.BRICK_PLANE[piece] or 0))
+		table.insert(pieces, { piece = piece, offset = Vector3.new(wx, y, z), yaw = yaw, role = "side", tier = 1 })
+	end
 	if windowed then
-		table.insert(pieces, { piece = "Wall_Window_B", offset = Vector3.new(x, 0, -H), yaw = yaw, role = "side", tier = 1 })
-		table.insert(pieces, { piece = "Wall_A", offset = Vector3.new(x, 0, H), yaw = yaw, role = "side", tier = 1 })
-		table.insert(pieces, { piece = "Wall_Window_C", offset = Vector3.new(x, M, -H), yaw = yaw, role = "side", tier = 1 })
-		table.insert(pieces, { piece = "Wall_A", offset = Vector3.new(x, M, H), yaw = yaw, role = "side", tier = 1 })
+		sideWall("Wall_Window_B", 0, -H)
+		sideWall("Wall_A", 0, H)
+		sideWall("Wall_Window_C", M, -H)
+		sideWall("Wall_A", M, H)
 	else
 		table.insert(pieces, { piece = "Wall_A", offset = Vector3.new(x, 0, 0), yaw = yaw, role = "side", tier = 1, scale = 2 })
 	end
@@ -160,10 +208,26 @@ end
 
 local function recipe(id: string, kind: any, doorX: number, fronts: { Piece }, extras: { Piece }?, ends: boolean?): Recipe
 	local pieces = concat(fronts, shell(), extras or {})
+	-- The leaf and its canopy follow the doorway of the door wall, not the module centre.
+	local doorShift = 0
+	for _, p in pieces do
+		local opening = HouseRecipes.DOOR_OPENING[p.piece]
+		if p.role == "front" and opening then
+			doorShift = opening.centre
+		end
+	end
+	if doorShift ~= 0 then
+		for _, p in pieces do
+			if p.role == "door" or p.role == "canopy" then
+				p.offset += Vector3.new(doorShift, 0, 0)
+				p.shiftX = doorShift
+			end
+		end
+	end
 	if ends then
 		pieces = concat(pieces, HouseRecipes.endCap(-1, true), HouseRecipes.endCap(1, false))
 	end
-	return { id = id, kind = kind, body = HouseRecipes.BODY, doorX = doorX, ends = ends, pieces = pieces }
+	return { id = id, kind = kind, body = HouseRecipes.BODY, doorX = doorX, doorShift = doorShift, ends = ends, pieces = pieces }
 end
 
 local RECIPES: { Recipe } = {
@@ -173,7 +237,7 @@ local RECIPES: { Recipe } = {
 	recipe("T03_door_left", "terraced", -H, { front("Wall_Door_A", -H, 0), front("Wall_Window_B", H, 0), front("Wall_Window_C", -H, 1), front("Wall_Window_C", H, 1), door("Door_C", -H) }, { chimney(7) }),
 	recipe("T04_door_right", "terraced", H, { front("Wall_Window_D", -H, 0), front("Wall_Door_B", H, 0), front("Wall_Window_D", -H, 1), front("Wall_Window_D", H, 1), door("Door_A", H) }),
 	recipe("T05_canopy", "terraced", 0, { front("Wall_WindowDoor_A", 0, 0), front("Wall_Window_E", -H, 1), front("Wall_Window_E", H, 1), door("Door_B", 0) }, { canopy("Door_Canopy_A", 0), chimney(-7) }),
-	recipe("T06_left_canopy", "terraced", -H, { front("Wall_Door_C", -H, 0), front("Wall_Window_F", H, 0), front("Wall_WindowCentre_B", 0, 1), door("Door_A", -H) }, { canopy("Door_Canopy_B", -H) }),
+	recipe("T06_double_door", "terraced", -H, { front("Wall_Door_C", -H, 0), front("Wall_Window_F", H, 0), front("Wall_WindowCentre_B", 0, 1), door("Door_Double_B", -H) }),
 	recipe("T07_mixed_upper", "terraced", 0, { front("Wall_WindowDoor_B", 0, 0), front("Wall_Window_G", -H, 1), front("Wall_Window_B", H, 1), door("Door_C", 0) }, { chimney(7) }),
 	recipe("T08_deep_sill", "terraced", H, { front("Wall_Window_H", -H, 0), front("Wall_Door_A", H, 0), front("Wall_WindowCentre_A", 0, 1), door("Door_B", H) }, { chimney(-7) }),
 	recipe("T09_tall_lights", "terraced", -H, { front("Wall_Door_B", -H, 0), front("Wall_Window_C", H, 0), front("Wall_Window_F", -H, 1), front("Wall_Window_G", H, 1), door("Door_C", -H) }),
@@ -182,14 +246,14 @@ local RECIPES: { Recipe } = {
 	------------------------------------------------------------------ semis (4): door on the OUTER side, the pair mirrors
 	recipe("S01_plain", "semi", -H, { front("Wall_Door_A", -H, 0), front("Wall_Window_D", H, 0), front("Wall_WindowCentre_B", 0, 1), door("Door_A", -H) }, { chimney(7.2, true) }),
 	recipe("S02_bay", "semi", -H, { front("Wall_Door_B", -H, 0), front("Wall_Window_H", H, 0), front("Wall_WindowCentre_A", 0, 1), door("Door_B", -H) }, { canopy("Door_Canopy_A", -H), chimney(7.2, true) }),
-	recipe("S03_four_lights", "semi", -H, { front("Wall_Door_C", -H, 0), front("Wall_Window_E", H, 0), front("Wall_Window_E", -H, 1), front("Wall_Window_E", H, 1), door("Door_C", -H) }, { canopy("Door_Canopy_B", -H), chimney(7.2, true) }),
+	recipe("S03_four_lights", "semi", -H, { front("Wall_Door_A", -H, 0), front("Wall_Window_E", H, 0), front("Wall_Window_E", -H, 1), front("Wall_Window_E", H, 1), door("Door_C", -H) }, { canopy("Door_Canopy_B", -H), chimney(7.2, true) }),
 	recipe("S04_wide_lower", "semi", -H, { front("Wall_Door_A", -H, 0), front("Wall_Window_F", H, 0), front("Wall_Window_G", -H, 1), front("Wall_Window_C", H, 1), door("Door_B", -H) }, { chimney(7.2, true) }),
 
 	------------------------------------------------------------------ detached (4 modular + 1 prefab in two trims)
 	recipe("D01_villa", "detached", 0, { front("Wall_WindowDoor_A", 0, 0), front("Wall_WindowCentre_B", 0, 1), door("Door_A", 0) }, { canopy("Door_Canopy_A", 0), chimney(-7), chimney(7) }, true),
 	recipe("D02_bay_villa", "detached", 0, { front("Wall_WindowDoor_B", 0, 0), front("Wall_WindowCentre_A", 0, 1), door("Door_B", 0) }, { canopy("Door_Canopy_B", 0), chimney(7) }, true),
 	recipe("D03_side_door", "detached", H, { front("Wall_Window_H", -H, 0), front("Wall_Door_B", H, 0), front("Wall_Window_F", -H, 1), front("Wall_Window_F", H, 1), door("Door_C", H) }, { canopy("Door_Canopy_A", H), chimney(-7) }, true),
-	recipe("D04_cottage", "detached", -H, { front("Wall_Door_C", -H, 0), front("Wall_Window_E", H, 0), front("Wall_Window_E", -H, 1), front("Wall_Window_E", H, 1), door("Door_A", -H) }, { chimney(-7), chimney(7) }, true),
+	recipe("D04_cottage", "detached", -H, { front("Wall_Door_C", -H, 0), front("Wall_Window_E", H, 0), front("Wall_Window_E", -H, 1), front("Wall_Window_E", H, 1), door("Door_Double_A", -H) }, { chimney(-7), chimney(7) }, true),
 	{
 		id = "D05_prefab_02",
 		kind = "detached",
@@ -287,12 +351,18 @@ function HouseRecipes.pieces(recipe: Recipe, mirrored: boolean): { Piece }
 	for _, p in recipe.pieces do
 		if not p.once then
 			local copy = table.clone(p)
-			copy.offset = Vector3.new(-p.offset.X, p.offset.Y, p.offset.Z)
+			local shift = p.shiftX or 0
+			copy.offset = Vector3.new(shift - (p.offset.X - shift), p.offset.Y, p.offset.Z)
 			copy.yaw = -p.yaw
 			table.insert(out, copy)
 		end
 	end
 	return out
+end
+
+-- Where the doorway really is along the unit, for the garden gate gap.
+function HouseRecipes.doorXFor(recipe: Recipe, mirrored: boolean): number
+	return recipe.doorX * (if mirrored then -1 else 1) + (recipe.doorShift or 0)
 end
 
 -- Uniform scale that fits a recipe body into a unit box of `width` x `depth`.

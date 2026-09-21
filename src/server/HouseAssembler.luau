@@ -2,7 +2,8 @@
 -- Rivermere v3, Lane H. Builds every house in town from the Modular English Housing kit, one
 -- building per TownFrontage lot, plus front garden boundaries and back-yard fences and bins.
 -- Recipes and selection are pure data in ReplicatedStorage.Shared.HouseRecipes; this module only
--- turns them into kit meshes through KitPlacer. No primitives are created here.
+-- turns them into kit meshes through KitPlacer. The only primitive created here is the dark core
+-- inside each body (putCore, register row EH1).
 --
 -- Lot frame: local -Z points at the street (Lot.front), local +X runs along it. The body's front
 -- wall sits on the lot's front edge, the garden lies between that edge and the pavement, and
@@ -189,6 +190,34 @@ local function put(ctx: Ctx, name: string, cf: CFrame, scale: number, stretchX: 
 	end
 end
 
+-- The kit walls are single-sided planes with nothing behind them: through any opening, or past a
+-- corner seen from a diagonal, you looked straight through the house at the street behind. One
+-- dark box inside the body ends that. Register row EH1; it is never seen except through a gap.
+local CORE_COLOR = Color3.fromRGB(24, 24, 28)
+local function putCore(ctx: Ctx, lotCF: CFrame, x0: number, x1: number, zFront: number, s: number)
+	local M = HouseRecipes.MODULE
+	local inset = HouseRecipes.CORE_INSET * s
+	local size = Vector3.new(x1 - x0 - 2 * inset, 2 * M * s - 0.05, 2 * M * s - 2 * inset)
+	if size.X <= 0 or size.Z <= 0 then
+		return
+	end
+	local core = Instance.new("Part")
+	core.Name = "Core"
+	core.Anchored = true
+	core.CanCollide = false
+	core.CanQuery = false
+	core.CanTouch = false
+	core.CastShadow = false
+	core.Material = Enum.Material.SmoothPlastic
+	core.Color = CORE_COLOR
+	core.Size = size
+	core.CFrame = lotCF * CFrame.new((x0 + x1) / 2, size.Y / 2, zFront + M * s)
+	core:SetAttribute("V3Exempt", "EH1")
+	core:SetAttribute("Role", "core")
+	core.Parent = ctx.house
+	ctx.counts.cores += 1
+end
+
 local function putPiece(ctx: Ctx, unitCF: CFrame, s: number, p: HouseRecipes.Piece, trim: string, prefab: boolean?)
 	local cf = unitCF * CFrame.new(p.offset * s) * CFrame.Angles(0, math.rad(p.yaw), 0)
 	if prefab then
@@ -241,6 +270,15 @@ local function buildLot(ctx: Ctx, lot: Lot, origin: CFrame)
 	-- Windowed gables only where a terrace meets a junction; a semi's side faces its neighbour.
 	local windowedEnds = lot.corner and detail.cornerEnds and isTerrace
 
+	-- One core per run of bodies that touch: a whole terrace or semi pair, or one detached house.
+	local coreFrom: number?, coreTo: number?, coreScale = nil, nil, 1
+	local function flushCore()
+		if coreFrom and coreTo then
+			putCore(ctx, lotCF, coreFrom, coreTo, -depth / 2, coreScale)
+		end
+		coreFrom, coreTo = nil, nil
+	end
+
 	local rowScale = 1
 	for i, plan in plans do
 		local recipe = plan.recipe
@@ -249,6 +287,14 @@ local function buildLot(ctx: Ctx, lot: Lot, origin: CFrame)
 		local x = -lot.size.X / 2 + width * (i - 0.5)
 		local z = -depth / 2 + recipe.body.Z * s / 2
 		local unitCF = lotCF * CFrame.new(x, 0, z)
+
+		if not recipe.prefab then -- the prefab house is one closed mesh
+			local half = HouseRecipes.MODULE * s
+			if coreTo and (x - half - coreTo > 0.05 or math.abs(s - coreScale) > 1e-3) then
+				flushCore()
+			end
+			coreFrom, coreTo, coreScale = coreFrom or x - half, x + half, s
+		end
 
 		for _, p in HouseRecipes.pieces(recipe, plan.mirrored) do
 			local skip = p.tier > detail.tier
@@ -279,7 +325,7 @@ local function buildLot(ctx: Ctx, lot: Lot, origin: CFrame)
 			local style = HouseRecipes.gardenStyleFor(lot.id, styleIndex, detail.gardenStyles == "light")
 			local gardenType = TownFrontage.TYPES[lot.use]
 			local gz = -depth / 2 - (if gardenType then gardenType.garden else 6) + 0.6
-			local gate = x + recipe.doorX * s * (if plan.mirrored then -1 else 1)
+			local gate = x + HouseRecipes.doorXFor(recipe, plan.mirrored) * s
 			local half = HouseRecipes.GATE_GAP / 2
 			boundaryRun(ctx, lotCF, x - width / 2, gate - half, gz, style, trim, "garden")
 			boundaryRun(ctx, lotCF, gate + half, x + width / 2, gz, style, trim, "garden")
@@ -336,6 +382,8 @@ local function buildLot(ctx: Ctx, lot: Lot, origin: CFrame)
 		end
 	end
 
+	flushCore()
+
 	-- Row-spanning back wall and roof, stretched along the whole row.
 	if isRow then
 		local s = rowScale
@@ -363,7 +411,7 @@ end
 
 -- Builds the given lots. `detail` overrides the per-tier presets (tests, reviews, Lane P trials).
 function HouseAssembler.buildLots(parent: Instance, origin: CFrame, lots: { Lot }, filter: { district: string? }?, detail: Detail?): { [string]: number }
-	local counts = { lots = 0, units = 0, houseParts = 0, boundaryParts = 0, meshParts = 0, missing = 0, districts = 0, tierA = 0, yards = 0, yardParts = 0 }
+	local counts = { lots = 0, units = 0, houseParts = 0, boundaryParts = 0, meshParts = 0, missing = 0, districts = 0, tierA = 0, yards = 0, yardParts = 0, cores = 0 }
 	local districtModels: { [string]: Model } = {}
 	local boundaryModels: { [string]: Model } = {}
 	local wantDistrict = filter and filter.district
@@ -412,9 +460,9 @@ function HouseAssembler.buildLots(parent: Instance, origin: CFrame, lots: { Lot 
 
 	local perUnit = if counts.units > 0 then counts.houseParts / counts.units else 0
 	local boundaryPerUnit = if counts.units > 0 then counts.boundaryParts / counts.units else 0
-	print(("[FCT] Housing: %d lots (%d tier A), %d units, houses %d MeshParts (%.1f/unit, town budget %d), boundaries %d (%.1f/unit, town budget %d), %d KitMissing"):format(
+	print(("[FCT] Housing: %d lots (%d tier A), %d units, houses %d MeshParts (%.1f/unit, town budget %d), boundaries %d (%.1f/unit, town budget %d), %d cores, %d KitMissing"):format(
 		counts.lots, counts.tierA, counts.units, counts.houseParts, perUnit, HouseAssembler.PART_BUDGET,
-		counts.boundaryParts, boundaryPerUnit, HouseAssembler.BOUNDARY_BUDGET, counts.missing))
+		counts.boundaryParts, boundaryPerUnit, HouseAssembler.BOUNDARY_BUDGET, counts.cores, counts.missing))
 	for _, districtModel in districtModels do
 		print(("[FCT] Housing %s: %s"):format(districtModel.Name, V3Perf.format(V3Perf.count(districtModel))))
 	end
