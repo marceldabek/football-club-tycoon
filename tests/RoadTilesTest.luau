@@ -180,10 +180,28 @@ function tests.bigRoundaboutTrimsArmsAndLeavesAStandIn()
 		road("N", { v(0, 0), v(0, -400) }, { kind = "main" }),
 	}, { { name = "RB", centre = v(0, 0), radius = 40 } })
 	assert(count(plan, "tee") == 0, "no T under a roundabout")
-	assert(#plan.exempt == 2, "disc + island")
+	local looks: { [string]: number } = {}
 	for _, ex in plan.exempt do
 		assert(ex.id == "E3", "registered as E3")
+		looks[ex.look] = (looks[ex.look] or 0) + 1
+		if ex.look == "paving" then
+			-- the pavement ring leaves every arm's carriageway clear
+			for _, d in { v(1, 0), v(-1, 0), v(0, -1) } do
+				local rel = ex.centre - v(0, 0)
+				local along = rel:Dot(d)
+				local off = (Vector3.new(rel.X, 0, rel.Z) - d * along).Magnitude
+				assert(along < 0 or off > RoadTiles.KIT_CARRIAGEWAY / 2, "paving in an arm's mouth")
+			end
+			local reach = Vector3.new(ex.centre.X, 0, ex.centre.Z).Magnitude
+			assert(reach > 40 and reach < 40 + RoadTiles.RB_PAVEMENT, "ring sits outside the rim")
+		end
 	end
+	assert(looks.asphalt == 1 and looks.kerb == 1 and looks.island == 1, "disc, island kerb, island grass")
+	assert(looks.chevron == 3, "a chevron board facing each arm")
+	-- three give-way dashes per arm, the lane line's dashes, the island's edge line
+	local laneDashes = math.floor(2 * math.pi * RoadTiles.laneLineRadius(40) / (RoadTiles.RB_LANE_DASH + RoadTiles.RB_LANE_GAP))
+	assert(looks.paint == 9 + laneDashes + 1, "paint: " .. tostring(looks.paint))
+	assert((looks.paving or 0) >= 12, "a pavement ring between the arms")
 	for _, t in plan.tiles do
 		for _, m in RoadTiles.mouths(t) do
 			assert(m.Magnitude >= 31.9, "no tile reaches inside the trimmed circle")

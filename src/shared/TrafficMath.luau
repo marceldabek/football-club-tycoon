@@ -187,34 +187,127 @@ function TrafficMath.connections(roads: { RoadLike }, roadIndex: number, atEnd: 
 	return out
 end
 
--- X79: roundabout islands. RoadTiles raises each big island at ISLAND_SHARE of
--- the roundabout's radius (mirrors RoadTiles.ISLAND_SHARE; a test keeps the two
--- equal, since this module stays free of other requires); a car closer than island + clearance to a centre is
--- pushed out onto that ring, heading along it (blended with its road heading
--- by how deep it was), so it drives round the island instead of over it.
-TrafficMath.ISLAND_SHARE = 0.45
+-- Roundabouts. A car does not follow its road through a roundabout's centre: it
+-- leaves the road where the road crosses the roundabout's ring (an "arm"), drives
+-- the ring the UK way round (island on its right) and rejoins a road at another
+-- arm. Driving the arc itself keeps its speed steady; the old approach projected
+-- the straight-through position onto the ring, which swept a car passing 4 studs
+-- from the centre round the ring at about 7 times its road speed.
+--
+-- Angles are atan2(z, x) about the centre; circulation is towards larger angles.
 
 export type RoundaboutLike = { centre: Vector3, radius: number }
 
-function TrafficMath.aroundIslands(pos: Vector3, direction: Vector3, roundabouts: { RoundaboutLike }, clearance: number): (Vector3, Vector3)
-	for _, r in roundabouts do
-		local ring = r.radius * TrafficMath.ISLAND_SHARE + clearance
-		local offset = Vector3.new(pos.X - r.centre.X, 0, pos.Z - r.centre.Z)
-		local d = offset.Magnitude
-		if d < ring then
-			-- dead centre: go round on the left, the way the lane offset already points
-			local radial = if d > 1e-3 then offset / d else Vector3.new(direction.Z, 0, -direction.X)
-			local tangent = Vector3.new(-radial.Z, 0, radial.X)
-			if tangent:Dot(direction) < 0 then
-				tangent = -tangent
+export type RingArm = {
+	roadIndex: number,
+	distance: number, -- along the road, where its centreline crosses the ring
+	outward: number, -- travel direction along the polyline (1 / -1) that leaves the roundabout
+	entryAngle: number, -- where an inbound car's lane meets the ring
+	exitAngle: number, -- where an outbound car's lane leaves it
+	heading: Vector3, -- unit, outward along the road
+}
+
+-- Every place a road's centreline crosses the circle of `ringRadius` round `centre`.
+-- `laneOffset(roadIndex)` is how far left of the centreline that road's traffic drives.
+function TrafficMath.ringArms(roads: { RoadLike }, centre: Vector3, ringRadius: number, laneOffset: (number) -> number): { RingArm }
+	local out: { RingArm } = {}
+	local c = flat(centre)
+	for roadIndex, road in roads do
+		local cumulative = 0
+		for i = 1, #road.points - 1 do
+			local a, b = flat(road.points[i]), flat(road.points[i + 1])
+			local seg = b - a
+			local len = seg.Magnitude
+			if len > 1e-6 then
+				local dir = seg / len
+				-- |a + dir * t - c| = ringRadius
+				local rel = a - c
+				local half = rel:Dot(dir)
+				local disc = half * half - (rel:Dot(rel) - ringRadius * ringRadius)
+				if disc > 0 then
+					local root = math.sqrt(disc)
+					for _, t in { -half - root, -half + root } do
+						-- half-open, so a crossing on a shared vertex is counted once
+						if t >= 0 and t < len then
+							local p = a + dir * t
+							local outward = if (p - c):Dot(dir) > 0 then 1 else -1
+							local heading = dir * outward
+							local right = Vector3.new(-heading.Z, 0, heading.X)
+							local lane = laneOffset(roadIndex)
+							local entry = p + right * lane - c -- inbound: heading -heading, its left is +right
+							local exit = p - right * lane - c
+							table.insert(out, {
+								roadIndex = roadIndex,
+								distance = cumulative + t,
+								outward = outward,
+								entryAngle = math.atan2(entry.Z, entry.X),
+								exitAngle = math.atan2(exit.Z, exit.X),
+								heading = heading,
+							})
+						end
+					end
+				end
 			end
-			local depth = 1 - d / ring
-			local blended = direction * (1 - depth) + tangent * depth
-			local heading = if blended.Magnitude > 1e-6 then blended.Unit else tangent
-			return Vector3.new(r.centre.X, pos.Y, r.centre.Z) + radial * ring, heading
+			cumulative += len
 		end
 	end
-	return pos, direction
+	return out
+end
+
+-- The inbound arm a car reaches moving from `from` to `to` along road `roadIndex`
+-- (travel direction `direction`), or nil. `length` is given for a closed road, so
+-- a step across its seam still finds an arm on the other side.
+function TrafficMath.armReached(arms: { RingArm }, roadIndex: number, from: number, to: number, direction: number, length: number?): RingArm?
+	local lo, hi = math.min(from, to), math.max(from, to)
+	for _, arm in arms do
+		if arm.roadIndex == roadIndex and arm.outward == -direction then
+			for _, shift in { 0, length or 0, -(length or 0) } do
+				local d = arm.distance + shift
+				if d >= lo and d <= hi then
+					return arm
+				end
+			end
+		end
+	end
+	return nil
+end
+
+-- Radians a car drives round the ring from `entry` to `leave`. Leaving by the arm
+-- it came in on is a full lap less the width of the road, not a reverse.
+function TrafficMath.ringSweep(entry: RingArm, leave: RingArm): number
+	local sweep = (leave.exitAngle - entry.entryAngle) % (2 * math.pi)
+	return sweep
+end
+
+-- Position and unit tangent (the way traffic circulates) at `angle` on the ring.
+function TrafficMath.ringPose(centre: Vector3, ringRadius: number, angle: number): (Vector3, Vector3)
+	local c, s = math.cos(angle), math.sin(angle)
+	return Vector3.new(centre.X + c * ringRadius, centre.Y, centre.Z + s * ringRadius), Vector3.new(-s, 0, c)
+end
+
+-- A car's heading `travelled` studs into an arc of `arcLength`: it swings from the
+-- road it came in on (`inbound`, unit, its heading as it arrived) onto the ring's
+-- tangent over `blend` studs, and out to `outbound` over the last `blend` studs.
+function TrafficMath.ringHeading(tangent: Vector3, inbound: Vector3, outbound: Vector3, travelled: number, arcLength: number, blend: number): Vector3
+	local reach = math.min(blend, arcLength / 2)
+	local mixed = tangent
+	if reach > 1e-6 and travelled < reach then
+		mixed = inbound:Lerp(tangent, travelled / reach)
+	elseif reach > 1e-6 and arcLength - travelled < reach then
+		mixed = outbound:Lerp(tangent, math.max(arcLength - travelled, 0) / reach)
+	end
+	return if mixed.Magnitude > 1e-6 then mixed.Unit else tangent
+end
+
+-- Free speed eased down to `slowSpeed` over the last `zone` studs before (and the
+-- first `zone` studs after) a roundabout, so a car neither arrives at full speed
+-- nor leaves at it. `gap` is the distance along the road to the nearest arm.
+function TrafficMath.easeNear(freeSpeed: number, slowSpeed: number, gap: number, zone: number): number
+	if zone <= 0 or gap >= zone or slowSpeed >= freeSpeed then
+		return freeSpeed
+	end
+	local t = math.clamp(gap / zone, 0, 1)
+	return slowSpeed + (freeSpeed - slowSpeed) * (t * t * (3 - 2 * t))
 end
 
 -- X88: true if any of `positions` is within `clear` studs (XZ) of `point`.

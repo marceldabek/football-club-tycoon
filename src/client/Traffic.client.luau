@@ -79,8 +79,12 @@ local BUS_STOP_REACH = 40 -- a stop this close to the road centreline serves it 
 local BIKE_EVERY = 8 -- TEMP: 1 in 8 spawns on a quiet street is a bike
 local BIKE_SPEED = 11 -- TEMP studs/s
 local BIKE_KERB_INSET = 1.6 -- rider (1.3 wide) clears a car in the lane on a 20-wide residential street
-local ISLAND_CLEAR = 4.5 -- X79: vehicle centre from a roundabout island's edge (cars ~6 wide)
-local ISLAND_CLEAR_BUS = 5.5
+-- Roundabouts: a car leaves its road for the ring (TrafficMath.ringArms) and drives the arc.
+local RING_SPEED = 16 -- TEMP studs/s on the ring
+local RING_SLOW_ZONE = 50 -- eases down to RING_SPEED over this much road before an arm, and back up after
+local RING_BLEND = 8 -- studs of arc to swing from the road's heading onto the ring's, and off again
+local RING_GIVE_WAY = 24 -- a car on the ring this many studs of arc upstream makes an entering car wait
+local RING_WAIT = 0.3 -- seconds between looks while it waits
 local BIKE_COLOURS = { Color3.fromRGB(40, 90, 170), Color3.fromRGB(190, 40, 40), Color3.fromRGB(30, 30, 34), Color3.fromRGB(220, 200, 60) }
 local SPAWN_MIN_DIST = 150
 local SPAWN_MAX_DIST = 700
@@ -172,7 +176,18 @@ local BUS_DESTINATIONS = { "21  TOWN CENTRE", "7  STATION", "12  RIVERSIDE", "23
 
 -- ------------------------------------------------------------------ types
 
+type Ring = { centre: Vector3, radius: number, top: number?, arms: { TrafficMath.RingArm } }
+type RingRun = {
+	ring: Ring,
+	from: number, -- angle it joined at
+	arc: number, -- studs of ring to drive
+	travelled: number,
+	inbound: Vector3, -- its heading as it arrived
+	leave: TrafficMath.RingArm,
+}
+
 type Car = {
+	ring: RingRun?, -- on a roundabout's ring, off its road
 	model: Model,
 	parts: { BasePart },
 	meshOffsets: { Vector3 }?, -- X128: a kit mesh car's single offset (replaces CAR_OFFSETS)
@@ -204,6 +219,46 @@ root.Parent = workspace
 
 -- ROADS with the corners rounded to the kit bends; same indices
 local ROADS = RoadPaths.townRoads()
+
+-- One ring per roundabout, with the arms where roads cross it; and per road, its
+-- rings (to find an arm reached) and its arms' distances (to slow on the approach).
+local ringsByRoad: { [number]: { Ring } } = {}
+local armDistancesByRoad: { [number]: { number } } = {}
+for _, rb in TownLayout.ROUNDABOUTS do
+	local radius = RoadTiles.ringRadius(rb.radius)
+	local arms = TrafficMath.ringArms(ROADS, rb.centre, radius, function(roadIndex: number): number
+		return RoadTiles.carriagewayWidth(ROADS[roadIndex].kind) / 4
+	end)
+	local ring: Ring = { centre = rb.centre, radius = radius, top = RoadTiles.ringTop(rb.radius), arms = arms }
+	for _, arm in arms do
+		local rings = ringsByRoad[arm.roadIndex] or {}
+		ringsByRoad[arm.roadIndex] = rings
+		if not table.find(rings, ring) then
+			table.insert(rings, ring)
+		end
+		local distances = armDistancesByRoad[arm.roadIndex] or {}
+		armDistancesByRoad[arm.roadIndex] = distances
+		table.insert(distances, arm.distance)
+	end
+end
+
+-- Road distance from a car to the nearest roundabout arm on its road.
+local function gapToArm(roadIndex: number, distance: number): number
+	local best = math.huge
+	for _, d in armDistancesByRoad[roadIndex] or {} do
+		best = math.min(best, math.abs(d - distance))
+	end
+	return best
+end
+
+local function insideRoundabout(point: Vector3): boolean
+	for _, rb in TownLayout.ROUNDABOUTS do
+		if Vector3.new(point.X - rb.centre.X, 0, point.Z - rb.centre.Z).Magnitude <= rb.radius then
+			return true
+		end
+	end
+	return false
+end
 
 local cars: { Car } = {}
 local recheckTimer = 0
@@ -474,6 +529,7 @@ local function spawnCar(roadIndex: number, distance: number, direction: number)
 		else BODY_SIZE.Z / 2
 
 	local car: Car = {
+		ring = nil,
 		model = model,
 		parts = parts,
 		meshOffsets = meshOffsets,
@@ -580,7 +636,7 @@ local function randomSpawnCandidate(focus: Vector3): (number?, number?, number?)
 		local distance = math.random() * TrafficMath.polylineLength(road.points)
 		local point = TrafficMath.pointAt(road.points, distance)
 		local dist = flatDistance(point, focus)
-		if dist < SPAWN_MIN_DIST or dist > SPAWN_MAX_DIST then
+		if dist < SPAWN_MIN_DIST or dist > SPAWN_MAX_DIST or insideRoundabout(point) then
 			continue
 		end
 		-- room for it, and a road really streamed in under it
@@ -628,9 +684,16 @@ end
 -- too narrow to pass one. On a closed road the front vehicle follows the back
 -- one across the seam. Assumes `car.speed` already holds each car's free-flow
 -- speed for this frame.
+local function ringAngle(run: RingRun): number
+	return run.from + run.travelled / run.ring.radius
+end
+
 local function applyLeaderGaps()
 	local groups: { [string]: { Car } } = {}
 	for _, car in cars do
+		if car.ring then
+			continue
+		end
 		local key = car.roadIndex .. "|" .. car.direction
 		local list = groups[key]
 		if not list then
@@ -663,6 +726,27 @@ local function applyLeaderGaps()
 		local front, back = list[#list], list[1]
 		if #list > 1 and TrafficMath.isClosed(ROADS[front.roadIndex].points, 1e-3) then
 			follow(front, back, front.length - math.abs(front.distance - back.distance))
+		end
+	end
+
+	-- on a ring: behind the nearest car ahead (the way traffic circulates) on the same ring
+	for _, car in cars do
+		local run = car.ring
+		if run then
+			local leader: Car? = nil
+			local leaderGap = math.huge
+			for _, other in cars do
+				local otherRun = other.ring
+				if other ~= car and otherRun and otherRun.ring == run.ring then
+					local gap = ((ringAngle(otherRun) - ringAngle(run)) % (2 * math.pi)) * run.ring.radius
+					if gap < leaderGap then
+						leader, leaderGap = other, gap
+					end
+				end
+			end
+			if leader then
+				follow(car, leader, leaderGap)
+			end
 		end
 	end
 end
@@ -725,6 +809,87 @@ local function junctionBusy(car: Car, road: TownLayout.Road): boolean
 	return TrafficMath.junctionBusy(endPoint, others, GIVE_WAY_CLEAR)
 end
 
+-- Queues the car's parts at `rootCFrame` for this frame's BulkMoveTo.
+local function draw(car: Car, rootCFrame: CFrame)
+	car.shown = rootCFrame
+	local offsets = if car.meshOffsets then car.meshOffsets elseif car.isBike then BIKE_OFFSETS elseif car.isBus then BUS_OFFSETS else CAR_OFFSETS
+	local parts = car.parts
+	for i = 1, #parts do
+		table.insert(moveParts, parts[i])
+		local cf = rootCFrame * CFrame.new(offsets[i])
+		table.insert(moveCFrames, if car.meshYaw ~= 0 then cf * CFrame.Angles(0, car.meshYaw, 0) else cf)
+	end
+end
+
+-- Give way to the ring: is a car on it coming up to this arm's entry, or sitting just past it?
+local function ringBusy(car: Car, ring: Ring, arm: TrafficMath.RingArm): boolean
+	for _, other in cars do
+		local run = other.ring
+		if other ~= car and run and run.ring == ring then
+			local upstream = ((arm.entryAngle - ringAngle(run)) % (2 * math.pi)) * ring.radius
+			local downstream = 2 * math.pi * ring.radius - upstream
+			if upstream < RING_GIVE_WAY or downstream < TrafficMath.followGap(other.halfLength, car.halfLength, FOLLOW_CLEAR) then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+-- Leaves the road at `arm` for the ring, bound for a random other arm (any but a
+-- parked street or an alley; its own arm only if there is no other).
+local function joinRing(car: Car, ring: Ring, arm: TrafficMath.RingArm, leftover: number): RingRun
+	local parked = parkedStreets()
+	local exits: { TrafficMath.RingArm } = {}
+	for _, other in ring.arms do
+		local road = ROADS[other.roadIndex]
+		if other ~= arm and not parked[road.name] and road.kind ~= "alley" then
+			table.insert(exits, other)
+		end
+	end
+	local leave = if #exits > 0 then exits[math.random(1, #exits)] else arm
+	local run: RingRun = {
+		ring = ring,
+		from = arm.entryAngle,
+		arc = TrafficMath.ringSweep(arm, leave) * ring.radius,
+		travelled = leftover,
+		inbound = -arm.heading,
+		leave = leave,
+	}
+	car.ring = run
+	car.distance = arm.distance
+	return run
+end
+
+-- One frame on the ring; at the end of its arc the car is back on a road.
+local function driveRing(car: Car, run: RingRun, dt: number)
+	run.travelled += car.speed * dt
+	if run.travelled >= run.arc then
+		local leave = run.leave
+		local road = ROADS[leave.roadIndex]
+		car.ring = nil
+		car.roadIndex = leave.roadIndex
+		car.direction = leave.outward
+		car.kind = road.kind
+		car.length = TrafficMath.polylineLength(road.points)
+		car.distance = math.clamp(leave.distance + leave.outward * (run.travelled - run.arc), 0, car.length)
+		car.lastStop = nil
+		car.gaveWay = false
+	end
+	local travelled = math.min(run.travelled, run.arc)
+	local pos, tangent = TrafficMath.ringPose(run.ring.centre, run.ring.radius, run.from + travelled / run.ring.radius)
+	local heading = TrafficMath.ringHeading(tangent, run.inbound, run.leave.heading, travelled, run.arc, RING_BLEND)
+	car.lastPos = pos
+	-- a big roundabout's disc lies over the arms: climb onto it over the swing in, and back down
+	local y = roadTopFor(car.kind)
+	local ringTop = run.ring.top
+	if ringTop then
+		local reach = math.max(math.min(RING_BLEND, run.arc / 2), 1e-6)
+		y += (ringTop - y) * math.clamp(math.min(travelled, run.arc - travelled) / reach, 0, 1)
+	end
+	draw(car, CFrame.new(pos.X, y, pos.Z) * CFrame.Angles(0, math.atan2(-heading.X, -heading.Z), 0))
+end
+
 local function moveCar(car: Car, dt: number)
 	local road = ROADS[car.roadIndex]
 	if not road then
@@ -735,6 +900,10 @@ local function moveCar(car: Car, dt: number)
 		car.dwell -= dt
 		car.speed = 0
 	end
+	if car.ring then
+		driveRing(car, car.ring, dt)
+		return
+	end
 	local newDistance = car.distance + car.direction * car.speed * dt
 	if car.isBus and car.speed > 0 then
 		local stop = TrafficMath.passedStop(car.distance, newDistance, stopsOn(car.roadIndex))
@@ -744,7 +913,25 @@ local function moveCar(car: Car, dt: number)
 			car.lastStop = stop
 		end
 	end
-	if TrafficMath.isClosed(road.points, 1e-3) then
+	local closed = TrafficMath.isClosed(road.points, 1e-3)
+	local reached: TrafficMath.RingArm? = nil
+	local reachedRing: Ring? = nil
+	for _, ring in ringsByRoad[car.roadIndex] or {} do
+		reached = TrafficMath.armReached(ring.arms, car.roadIndex, car.distance, newDistance, car.direction, if closed then car.length else nil)
+		if reached then
+			reachedRing = ring
+			break
+		end
+	end
+	if reached and reachedRing then
+		if ringBusy(car, reachedRing, reached) then
+			-- give way to the ring: hold at the line and look again shortly
+			car.dwell = RING_WAIT
+		else
+			driveRing(car, joinRing(car, reachedRing, reached, math.abs(newDistance - reached.distance) % math.max(car.length, 1e-6)), 0)
+			return
+		end
+	elseif closed then
 		local length = math.max(car.length, 1e-6)
 		car.distance = newDistance % length
 	elseif (newDistance > car.length or newDistance < 0) and not car.gaveWay and junctionBusy(car, road) then
@@ -797,8 +984,6 @@ local function moveCar(car: Car, dt: number)
 		+ (if car.isBike
 			then TrafficMath.kerbOffset(direction, carriageway, BIKE_KERB_INSET)
 			else TrafficMath.laneOffset(direction, carriageway, -1))
-	-- X79: round roundabout islands, not over them
-	flatPos, direction = TrafficMath.aroundIslands(flatPos, direction, TownLayout.ROUNDABOUTS, if car.isBus then ISLAND_CLEAR_BUS else ISLAND_CLEAR)
 	car.lastPos = flatPos
 
 	local y = bridgeDeckY(flatPos, car.kind) or roadTopFor(car.kind)
@@ -816,15 +1001,7 @@ local function moveCar(car: Car, dt: number)
 			rootCFrame = turnFrom:Lerp(rootCFrame, t * t * (3 - 2 * t))
 		end
 	end
-	car.shown = rootCFrame
-
-	local offsets = if car.meshOffsets then car.meshOffsets elseif car.isBike then BIKE_OFFSETS elseif car.isBus then BUS_OFFSETS else CAR_OFFSETS
-	local parts = car.parts
-	for i = 1, #parts do
-		table.insert(moveParts, parts[i])
-		local cf = rootCFrame * CFrame.new(offsets[i])
-		table.insert(moveCFrames, if car.meshYaw ~= 0 then cf * CFrame.Angles(0, car.meshYaw, 0) else cf)
-	end
+	draw(car, rootCFrame)
 end
 
 -- ------------------------------------------------------------------ headlights
@@ -929,9 +1106,11 @@ RunService.RenderStepped:Connect(function(dt: number)
 	for _, car in cars do
 		-- a bus dwelling at a stop counts as stopped before the leader-gap pass,
 		-- so the cars behind it queue instead of driving through it
+		local free = if car.isBike then BIKE_SPEED * car.jitter else (SPEED_BY_KIND[car.kind] or SPEED_BY_KIND.lane) * car.jitter
+		local ringSpeed = math.min(free, RING_SPEED * car.jitter)
 		car.speed = if car.dwell > 0 then 0
-			elseif car.isBike then BIKE_SPEED * car.jitter
-			else (SPEED_BY_KIND[car.kind] or SPEED_BY_KIND.lane) * car.jitter
+			elseif car.ring then ringSpeed
+			else TrafficMath.easeNear(free, ringSpeed, gapToArm(car.roadIndex, car.distance), RING_SLOW_ZONE)
 	end
 	applyLeaderGaps()
 

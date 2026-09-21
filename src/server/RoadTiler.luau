@@ -24,7 +24,29 @@ local LOOKS: { [string]: { color: Color3, material: Enum.Material } } = {
 	asphalt = { color = Color3.fromRGB(62, 63, 66), material = Enum.Material.Asphalt },
 	island = { color = Color3.fromRGB(86, 122, 68), material = Enum.Material.Grass },
 	paint = { color = Color3.fromRGB(235, 235, 230), material = Enum.Material.SmoothPlastic },
+	kerb = { color = Color3.fromRGB(196, 192, 184), material = Enum.Material.Concrete },
+	paving = { color = Color3.fromRGB(150, 148, 142), material = Enum.Material.Pavement }, -- PAVED_VERGE's look
+	chevron = { color = Color3.fromRGB(16, 16, 18), material = Enum.Material.SmoothPlastic },
 }
+
+-- White chevrons on a roundabout's black board, pointing the way round (a driver's left).
+local function chevrons(board: BasePart)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 40
+	gui.LightInfluence = 1
+	gui.MaxDistance = 300
+	gui.Parent = board
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.GothamBlack
+	label.TextScaled = true
+	label.TextColor3 = Color3.fromRGB(240, 240, 236)
+	label.Text = "< < < <"
+	label.Parent = gui
+end
 
 -- The kit's grass verge texture is a bright lime, and tinting its SurfaceAppearance
 -- toward the terrain never matched (the tint is not linear; Lane I stages 1-3 went
@@ -322,17 +344,27 @@ function RoadTiler.build(parent: Instance, origin: CFrame, filter: { district: s
 	end
 
 	for _, ex in plan.exempt do
-		local district = nearestDistrict(plan.tiles, ex.centre)
+		local district = nearestDistrict(plan.tiles, ex.home or ex.centre)
 		if want and district ~= want then
 			continue
 		end
 		local look = LOOKS[ex.look] or LOOKS.asphalt
 		local part = Instance.new("Part")
 		part.Name = "Roundabout_" .. ex.look
-		part.Shape = Enum.PartType.Cylinder
 		part.Anchored = true
-		part.Size = Vector3.new(ex.height, ex.radius * 2, ex.radius * 2)
-		part.CFrame = origin * CFrame.new(ex.centre) * CFrame.Angles(0, 0, math.pi / 2)
+		if ex.shape == "box" and ex.cframe and ex.size then
+			part.Size = ex.size
+			part.CFrame = origin * ex.cframe
+			part.CastShadow = ex.look == "chevron"
+			part.CanCollide = ex.look ~= "paint"
+			if ex.look == "chevron" then
+				chevrons(part)
+			end
+		else
+			part.Shape = Enum.PartType.Cylinder
+			part.Size = Vector3.new(ex.height, ex.radius * 2, ex.radius * 2)
+			part.CFrame = origin * CFrame.new(ex.centre) * CFrame.Angles(0, 0, math.pi / 2)
+		end
 		part.Color = look.color
 		part.Material = look.material
 		part.TopSurface = Enum.SurfaceType.Smooth

@@ -54,7 +54,8 @@ end
 
 -- `points` with every corner rounded. A closed polyline (first point == last
 -- point) has its seam rounded too and stays closed.
-function RoadPaths.fillet(points: { Vector3 }, radius90: number, radius45: number): { Vector3 }
+-- `keep(p)` true leaves the corner at `p` sharp.
+function RoadPaths.fillet(points: { Vector3 }, radius90: number, radius45: number, keep: ((Vector3) -> boolean)?): { Vector3 }
 	local n = #points
 	if n < 3 then
 		return table.clone(points)
@@ -63,7 +64,7 @@ function RoadPaths.fillet(points: { Vector3 }, radius90: number, radius45: numbe
 
 	local function corner(prev: Vector3, p: Vector3, nxt: Vector3): { Vector3 }?
 		local inSeg, outSeg = flat(p - prev), flat(nxt - p)
-		if inSeg.Magnitude < 1e-3 or outSeg.Magnitude < 1e-3 then
+		if inSeg.Magnitude < 1e-3 or outSeg.Magnitude < 1e-3 or (keep and keep(p)) then
 			return nil
 		end
 		local room = math.min(inSeg.Magnitude, outSeg.Magnitude) * RoadPaths.MAX_SHARE
@@ -101,10 +102,20 @@ function RoadPaths.townRoads(): { TownLayout.Road }
 		return cached
 	end
 	local out: { TownLayout.Road } = {}
+	-- a road that turns on a roundabout has no bend piece there: its arms run
+	-- straight to the centre, and traffic leaves the road for the ring before it
+	local function onRoundabout(p: Vector3): boolean
+		for _, rb in TownLayout.ROUNDABOUTS do
+			if (flat(p) - flat(rb.centre)).Magnitude < 1 then
+				return true
+			end
+		end
+		return false
+	end
 	for i, road in TownLayout.ROADS do
 		local scale = RoadTiles.SCALE[road.kind] or RoadTiles.STREET_SCALE
 		local copy = table.clone(road)
-		copy.points = RoadPaths.fillet(road.points, RoadTiles.KIT_BEND90_RADIUS * scale, RoadTiles.KIT_BEND45_RADIUS * scale)
+		copy.points = RoadPaths.fillet(road.points, RoadTiles.KIT_BEND90_RADIUS * scale, RoadTiles.KIT_BEND45_RADIUS * scale, onRoundabout)
 		out[i] = copy
 	end
 	cached = out

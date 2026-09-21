@@ -71,7 +71,9 @@ export type Tile = {
 	tucked: boolean,
 }
 export type BridgeIn = { from: Vector3, to: Vector3, kind: string? }
-export type Exempt = { id: string, shape: string, centre: Vector3, radius: number, height: number, look: string }
+-- shape "disc": centre / radius / height. shape "box": cframe / size (centre is its position).
+-- `home` is the roundabout a dressing part belongs to: it is built in that roundabout's district.
+export type Exempt = { id: string, shape: string, centre: Vector3, radius: number, height: number, look: string, cframe: CFrame?, size: Vector3?, home: Vector3? }
 -- A junction that got no proper kit piece: a side road tucks under the through road.
 -- TownLayout is spaced so that there are none (docs/TOWN_V3_JUNCTION_MOVES.md); a test holds it there.
 export type Makeshift = { pos: Vector3, kind: string, downgraded: boolean, arms: { { road: string, dir: Vector3, run: number, how: string, nextAt: number, nextKind: string, nextTrim: number, nextPos: Vector3 } } }
@@ -134,6 +136,38 @@ RoadTiles.KIT_BEND45_RADIUS = 40
 -- A big roundabout's raised island, as a share of its radius. Traffic steers
 -- round the same number (TrafficMath.aroundIslands), so keep it in one place.
 RoadTiles.ISLAND_SHARE = 0.45
+RoadTiles.MINI_ISLAND = 5 -- a mini roundabout's painted dome
+function RoadTiles.islandRadius(radius: number): number
+	return if radius >= RoadTiles.BIG_ROUNDABOUT then radius * RoadTiles.ISLAND_SHARE else RoadTiles.MINI_ISLAND
+end
+-- The dashed line between a big roundabout's two circulating lanes: the middle of
+-- the asphalt between the island and the rim.
+function RoadTiles.laneLineRadius(radius: number): number
+	return (radius + RoadTiles.islandRadius(radius)) / 2
+end
+-- The line traffic circulates on: the outer lane of a big roundabout, the middle
+-- of the asphalt on a mini (one lane).
+function RoadTiles.ringRadius(radius: number): number
+	local line = RoadTiles.laneLineRadius(radius)
+	return if radius >= RoadTiles.BIG_ROUNDABOUT then (line + radius) / 2 else line
+end
+-- Top of the asphalt traffic circulates on: a big roundabout's disc; nil on a mini (the road's own top).
+function RoadTiles.ringTop(radius: number): number?
+	return if radius >= RoadTiles.BIG_ROUNDABOUT then RoadTiles.SURFACE_Y + RoadTiles.RB_DISC_TOP else nil
+end
+-- A big roundabout's dressing (register row E3, all primitives). TEMP sizes.
+-- Pavement ring outside the rim: the width of the kit paving on the arms it joins
+-- (KIT_PAVING_OUTER - KIT_KERB_BACK). At 7 it stood proud of them as a pointed corner.
+RoadTiles.RB_PAVEMENT = 3.7
+RoadTiles.RB_SEGMENT = math.rad(15) -- the ring is straight boxes no wider than this
+RoadTiles.RB_END_SEGMENT = math.rad(3) -- ...and this narrow next to an arm, so a box's square corner stays out of the mouth
+-- Above SURFACE_Y. The disc lies over the arms' trimmed ends, and over a 45 bend
+-- next door: that piece is tilted (mouthBDrop) and tops out 0.15 above SURFACE_Y.
+RoadTiles.RB_DISC_TOP = 0.2
+RoadTiles.RB_DISC_HEIGHT = 0.3
+RoadTiles.RB_KERB_UP = 0.1 -- pavement ring and island kerb above the disc
+RoadTiles.RB_LANE_DASH = 4 -- circulating lane line: studs of paint, then RB_LANE_GAP of gap
+RoadTiles.RB_LANE_GAP = 5
 -- One size for every kit hatchback on the streets, moving or parked, and for the
 -- double-decker (TEMP). The hatchback mesh is 9.8 x 8.4 x 19.4 and the bus
 -- 8.3 x 12.1 x 27.4 as stored. A lane is 7.9 wide: 0.7 gives a 6.9 x 5.9 x 13.6 car
@@ -546,6 +580,92 @@ local function nodeRoad(node)
 	return bestArm.road
 end
 
+-- Everything on a big roundabout except the asphalt disc, laid out from the arms'
+-- directions so it fits whatever angles the layout gives: a pavement ring round
+-- the rim with a gap at each arm's carriageway, a kerbed grass island, dashed
+-- give-way lines across each entry lane and a chevron board facing each arm.
+-- `armDirs` point out of the centre; `kerbBack` and `carriageway` are the arms' section.
+function RoadTiles.dressRoundabout(centre: Vector3, radius: number, armDirs: { Vector3 }, kerbBack: number, carriageway: number, exempt: { Exempt })
+	local discTop = RoadTiles.SURFACE_Y + RoadTiles.RB_DISC_TOP
+	local function box(look: string, cf: CFrame, size: Vector3)
+		table.insert(exempt, { id = "E3", shape = "box", centre = cf.Position, radius = 0, height = size.Y, look = look, cframe = cf, size = size, home = centre })
+	end
+	local function disc(look: string, r: number, bottom: number, height: number)
+		table.insert(exempt, { id = "E3", shape = "disc", centre = Vector3.new(centre.X, bottom + height / 2, centre.Z), radius = r, height = height, look = look, home = centre })
+	end
+
+	-- island: a kerb rim with a grass mound inside it
+	local ir = RoadTiles.islandRadius(radius)
+	disc("kerb", ir, discTop - 0.1, 0.1 + RoadTiles.RB_KERB_UP + 0.2)
+	disc("island", ir - 1, discTop, 0.9)
+
+	-- pavement ring, between the arms
+	local angles: { number } = {}
+	for _, d in armDirs do
+		table.insert(angles, math.atan2(d.Z, d.X))
+	end
+	table.sort(angles)
+	local gap = math.asin(math.min(1, kerbBack / radius))
+	local inner, outer = radius - 0.3, radius + RoadTiles.RB_PAVEMENT
+	local height = RoadTiles.RB_KERB_UP + 0.15
+	local count = 0
+	for i, a in angles do
+		local from = a + gap
+		local to = (if i < #angles then angles[i + 1] else angles[1] + 2 * math.pi) - gap
+		if to - from < math.rad(2) then
+			continue
+		end
+		-- a narrow box at each end, the rest in equal boxes no wider than RB_SEGMENT
+		local spans: { { number } } = {}
+		local e = math.min(RoadTiles.RB_END_SEGMENT, (to - from) / 3)
+		table.insert(spans, { from, from + e })
+		local n = math.ceil((to - from - 2 * e) / RoadTiles.RB_SEGMENT)
+		for k = 1, n do
+			table.insert(spans, { from + e + (to - from - 2 * e) * (k - 1) / n, from + e + (to - from - 2 * e) * k / n })
+		end
+		table.insert(spans, { to - e, to })
+		for _, span in spans do
+			local w = span[2] - span[1]
+			local near = inner * math.cos(w / 2)
+			local phi = (span[1] + span[2]) / 2
+			local radial = Vector3.new(math.cos(phi), 0, math.sin(phi))
+			count += 1
+			-- neighbours overlap at their outer corners: alternate tops keep them off one plane
+			local top = discTop + RoadTiles.RB_KERB_UP + (if count % 2 == 0 then 0.006 else 0)
+			local mid = centre + radial * ((near + outer) / 2)
+			local at = Vector3.new(mid.X, top - height / 2, mid.Z)
+			box("paving", CFrame.lookAt(at, at + radial), Vector3.new(2 * outer * math.tan(w / 2), height, outer - near))
+		end
+	end
+
+	-- dashed line between the two circulating lanes
+	local lineRadius = RoadTiles.laneLineRadius(radius)
+	local dashes = math.floor(2 * math.pi * lineRadius / (RoadTiles.RB_LANE_DASH + RoadTiles.RB_LANE_GAP))
+	for k = 1, dashes do
+		local phi = 2 * math.pi * k / dashes
+		local radial = Vector3.new(math.cos(phi), 0, math.sin(phi))
+		local p = centre + radial * lineRadius
+		local at = Vector3.new(p.X, discTop + 0.005, p.Z)
+		box("paint", CFrame.lookAt(at, at + radial), Vector3.new(RoadTiles.RB_LANE_DASH, 0.02, 0.5))
+	end
+	-- solid edge line round the island
+	disc("paint", ir + 1.2, discTop - 0.02, 0.025)
+
+	for _, d in armDirs do
+		-- give-way dashes across the entry lane: the left of a driver heading in
+		local left = Vector3.new(-d.Z, 0, d.X)
+		for k = 1, 3 do
+			local p = centre + d * (radius - 1.5) + left * (carriageway / 2 * (k - 0.5) / 3)
+			local at = Vector3.new(p.X, discTop + 0.005, p.Z)
+			box("paint", CFrame.lookAt(at, at + d), Vector3.new(carriageway / 6 * 0.6, 0.02, 0.6))
+		end
+		-- chevron board on the island, facing the arm
+		local p = centre + d * (ir - 3)
+		local at = Vector3.new(p.X, discTop + 0.9 + 0.9, p.Z)
+		box("chevron", CFrame.lookAt(at, at + d), Vector3.new(8, 1.6, 0.25))
+	end
+end
+
 local function emitNode(node, tiles: { Tile }, exempt: { Exempt })
 	local kind = node.kind
 	local road = nodeRoad(node)
@@ -596,12 +716,18 @@ local function emitNode(node, tiles: { Tile }, exempt: { Exempt })
 		local r = node.rb.radius
 		local big = r >= RoadTiles.BIG_ROUNDABOUT
 		local top = RoadTiles.SURFACE_Y
+		local ir = RoadTiles.islandRadius(r)
 		if big then
-			table.insert(exempt, { id = "E3", shape = "disc", centre = Vector3.new(node.pos.X, top + 0.04, node.pos.Z), radius = r, height = 0.12, look = "asphalt" })
+			local h = RoadTiles.RB_DISC_HEIGHT
+			table.insert(exempt, { id = "E3", shape = "disc", centre = Vector3.new(node.pos.X, top + RoadTiles.RB_DISC_TOP - h / 2, node.pos.Z), radius = r, height = h, look = "asphalt" })
+			local dirs: { Vector3 } = {}
+			for _, arm in node.arms do
+				table.insert(dirs, arm.dir)
+			end
+			RoadTiles.dressRoundabout(node.pos, r, dirs, RoadTiles.KIT_KERB_BACK * node.scale, RoadTiles.KIT_CARRIAGEWAY * node.scale, exempt)
+		else
+			table.insert(exempt, { id = "E3", shape = "disc", centre = Vector3.new(node.pos.X, top + 0.1 + 0.08, node.pos.Z), radius = ir, height = 0.16, look = "paint" })
 		end
-		local ir = if big then r * RoadTiles.ISLAND_SHARE else 5
-		local ih = if big then 1.2 else 0.16
-		table.insert(exempt, { id = "E3", shape = "disc", centre = Vector3.new(node.pos.X, top + 0.1 + ih / 2, node.pos.Z), radius = ir, height = ih, look = big and "island" or "paint" })
 	end
 end
 

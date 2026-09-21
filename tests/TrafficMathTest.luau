@@ -224,33 +224,87 @@ function T.junctionBusyChecksFlatDistance()
 	assert(not TrafficMath.junctionBusy(j, {}, 22), "no vehicles")
 end
 
-function T.aroundIslandsPushesCarsOntoARingRoundTheIsland()
-	local rbs = { { centre = Vector3.new(100, 0, 100), radius = 40 } }
-	local ring = 40 * TrafficMath.ISLAND_SHARE + 4
-	-- well outside: untouched
-	local p, d = TrafficMath.aroundIslands(Vector3.new(100, 0, 150), Vector3.new(0, 0, -1), rbs, 4)
-	assert(p == Vector3.new(100, 0, 150) and d == Vector3.new(0, 0, -1), "outside the ring is unchanged")
-	-- inside: on the ring, same side, heading tangent-ish and forward
-	local inside = Vector3.new(95, 2, 100)
-	local q, h = TrafficMath.aroundIslands(inside, Vector3.new(0, 0, -1), rbs, 4)
-	assert(math.abs((Vector3.new(q.X, 0, q.Z) - Vector3.new(100, 0, 100)).Magnitude - ring) < EPS, "pushed onto the ring")
-	assert(q.X < 100, "stays on its own side")
-	assert(math.abs(q.Y - 2) < EPS, "height kept")
-	assert(math.abs(h.Magnitude - 1) < EPS and h:Dot(Vector3.new(0, 0, -1)) > 0, "heading unit and still forward")
-	-- dead centre still ends up on the ring
-	local c = TrafficMath.aroundIslands(Vector3.new(100, 0, 100), Vector3.new(0, 0, -1), rbs, 4)
-	assert(math.abs((c - Vector3.new(100, 0, 100)).Magnitude - ring) < EPS, "centre case on the ring")
+-- A crossroads of two 400-stud roads on a roundabout at (100, 0, 100).
+local function ringFixture()
+	local roads = {
+		{ points = { Vector3.new(100, 0, 300), Vector3.new(100, 0, -100) }, width = 26 }, -- south to north
+		{ points = { Vector3.new(-100, 0, 100), Vector3.new(100, 0, 100) }, width = 26 }, -- from the west, ends at the centre
+	}
+	local centre = Vector3.new(100, 0, 100)
+	local arms = TrafficMath.ringArms(roads, centre, 29, function()
+		return 4
+	end)
+	return roads, centre, arms
 end
 
--- The island RoadTiles raises and the ring traffic steers round it are one number;
--- at 0.35 against a 0.45 island, cars drove 2 studs through the island's edge.
+function T.ringArmsAreWhereRoadsCrossTheRing()
+	local _, _, arms = ringFixture()
+	assert(#arms == 3, "a through road gives two arms, a road ending at the centre one; got " .. #arms)
+	local south = TrafficMath.armReached(arms, 1, 150, 180, 1)
+	assert(south and math.abs(south.distance - 171) < EPS and south.outward == -1, "south arm at 200 - 29, leaving is backwards along the road")
+	assert(TrafficMath.armReached(arms, 1, 150, 180, -1) == nil, "only a car heading in reaches it")
+	assert(TrafficMath.armReached(arms, 1, 100, 120, 1) == nil, "not there yet")
+	-- inbound from the south (heading -Z) keeps left: west of the centreline
+	local p = TrafficMath.ringPose(Vector3.new(100, 0, 100), 29, south.entryAngle)
+	assert(p.X < 100 and p.Z > 100, "enters on the left of its road")
+end
+
+function T.ringIsDrivenTheUkWayRound()
+	local _, _, arms = ringFixture()
+	local south = TrafficMath.armReached(arms, 1, 150, 180, 1) :: TrafficMath.RingArm
+	local west = TrafficMath.armReached(arms, 2, 150, 180, 1) :: TrafficMath.RingArm
+	local north = TrafficMath.armReached(arms, 1, 250, 220, -1) :: TrafficMath.RingArm
+	local left = TrafficMath.ringSweep(south, west)
+	local straight = TrafficMath.ringSweep(south, north)
+	local back = TrafficMath.ringSweep(south, south)
+	assert(left > math.rad(60) and left < math.rad(90), "first exit on the left is under a quarter turn: " .. math.deg(left))
+	assert(straight > math.rad(150) and straight < math.rad(180), "straight on is under a half turn: " .. math.deg(straight))
+	assert(back > math.rad(330), "back the way it came is nearly a full lap")
+	-- the island stays on the car's right
+	local pos, tangent = TrafficMath.ringPose(Vector3.new(100, 0, 100), 29, south.entryAngle)
+	local toCentre = Vector3.new(100, 0, 100) - pos
+	local right = Vector3.new(-tangent.Z, 0, tangent.X)
+	assert(right:Dot(toCentre) > 0, "island on the right")
+end
+
+-- The bug this replaced: a car's apparent speed round the island was up to 7x its
+-- road speed. Driving the arc, equal steps of distance are equal steps of ground.
+function T.ringSpeedIsSteady()
+	local centre = Vector3.new(100, 0, 100)
+	local last = TrafficMath.ringPose(centre, 29, 0)
+	for k = 1, 40 do
+		local p = TrafficMath.ringPose(centre, 29, (k * 2) / 29) -- 2 studs of arc per step
+		local step = (p - last).Magnitude
+		assert(step > 1.95 and step <= 2.0001, "2 studs of arc moved " .. step)
+		last = p
+	end
+end
+
+function T.ringHeadingSwingsInAndOut()
+	local tangent, inbound, outbound = Vector3.new(1, 0, 0), Vector3.new(0, 0, -1), Vector3.new(0, 0, 1)
+	assert((TrafficMath.ringHeading(tangent, inbound, outbound, 0, 40, 8) - inbound).Magnitude < EPS, "arrives on its road's heading")
+	assert((TrafficMath.ringHeading(tangent, inbound, outbound, 20, 40, 8) - tangent).Magnitude < EPS, "tangent in the middle")
+	assert((TrafficMath.ringHeading(tangent, inbound, outbound, 40, 40, 8) - outbound).Magnitude < EPS, "leaves on the exit's heading")
+	assert(math.abs(TrafficMath.ringHeading(tangent, inbound, outbound, 3, 40, 8).Magnitude - 1) < EPS, "unit")
+end
+
+function T.easeNearSlowsForARoundabout()
+	assert(TrafficMath.easeNear(40, 16, 80, 50) == 40, "far away: free speed")
+	assert(math.abs(TrafficMath.easeNear(40, 16, 0, 50) - 16) < EPS, "at the arm: ring speed")
+	local mid = TrafficMath.easeNear(40, 16, 25, 50)
+	assert(mid > 16 and mid < 40, "eased between")
+	assert(TrafficMath.easeNear(14, 16, 0, 50) == 14, "a slow lane is not sped up")
+end
+
+-- Cars circulate on RoadTiles.ringRadius; their inner side must clear the island
+-- RoadTiles builds (at a 0.35 ring share against a 0.45 island they drove through its edge).
 function T.carsClearTheIslandRoadTilesBuilds()
 	local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles)
-	assert(TrafficMath.ISLAND_SHARE == RoadTiles.ISLAND_SHARE, "one island share")
-	local radius, clearance = 40, 4.5
-	local carHalfWidth = 9.8 * RoadTiles.CAR_SCALE / 2
-	local ring = radius * TrafficMath.ISLAND_SHARE + clearance
-	assert(ring - carHalfWidth > radius * RoadTiles.ISLAND_SHARE, "car's inner side is outside the island")
+	for _, radius in { 40, 16 } do
+		local carHalfWidth = 9.8 * RoadTiles.CAR_SCALE / 2
+		assert(RoadTiles.ringRadius(radius) - carHalfWidth > RoadTiles.islandRadius(radius), "car's inner side is outside the island")
+		assert(RoadTiles.ringRadius(radius) + carHalfWidth < radius, "and its outer side inside the rim")
+	end
 end
 
 function T.vehiclesFitTheirLane()
