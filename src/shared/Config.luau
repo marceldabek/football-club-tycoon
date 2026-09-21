@@ -467,4 +467,35 @@ Config.Music = {
 Config.MusicVolume = 0.16
 Config.MusicMatchVolume = 0.05
 
+-- Player card art, keyed by Config.Rarity name. Sources are in
+-- assets/ui/cards/keyed/ (tools/key_cards.py); 683x1024, one shared outline.
+Config.CardArt = {
+	Bronze = "rbxassetid://81502558155007",
+	Silver = "rbxassetid://106662608867026",
+	Gold = "rbxassetid://129688585969020",
+	Rare = "rbxassetid://125371905323922",
+	Epic = "rbxassetid://138957017665116",
+	Legend = "rbxassetid://95222178381866",
+	Back = "rbxassetid://111886688815403",
+}
+Config.CardAspect = 683 / 1024
+-- the glow behind a card as it turns, and the ink that reads on its art
+Config.CardTint = {
+	Bronze = { glow = Color3.fromRGB(176, 110, 60), ink = Color3.fromRGB(34, 22, 14) },
+	Silver = { glow = Color3.fromRGB(200, 208, 220), ink = Color3.fromRGB(24, 28, 36) },
+	Gold = { glow = Color3.fromRGB(255, 204, 72), ink = Color3.fromRGB(36, 26, 8) },
+	Rare = { glow = Color3.fromRGB(70, 150, 255), ink = Color3.fromRGB(240, 246, 255) },
+	Epic = { glow = Color3.fromRGB(176, 90, 255), ink = Color3.fromRGB(248, 240, 255) },
+	Legend = { glow = Color3.fromRGB(255, 240, 200), ink = Color3.fromRGB(30, 24, 12) },
+}
+-- a prospect is nobody's player yet: a plain grey training top on his card
+Config.ProspectKit = Color3.fromRGB(120, 126, 136)
+-- Pack-opening SFX. slide/flip are free Roblox Creator Store sound effects;
+-- sting is a free APM Music riser (same catalog as Config.Music above).
+Config.PackAudio = {
+	slide = "rbxassetid://9117209855", -- "Paper Cup Lift Out Of A Stack 18": paper drawn from a stack
+	flip = "rbxassetid://4839809962", -- "cardPlace2": short card-on-card flip
+	sting = "rbxassetid://1843084040", -- "Speed Rise": pitched up for the better tiers
+}
+
 return Config
