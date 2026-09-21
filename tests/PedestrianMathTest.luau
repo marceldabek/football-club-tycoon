@@ -46,16 +46,18 @@ function T.pavementOffsetLandsMidPavement()
 	assert(math.abs(offset.Magnitude - (10 + PAVE / 2)) < EPS, "offset is half the carriageway plus half a pavement")
 end
 
--- v3: the kit road's paved strip is narrow and close to the kerb; the rest of the
--- corridor is grass verge, so walkers must not use the v2 width-based distance.
+-- v3: the pavement is the kit's paving plus the PavingStrips behind it, from the
+-- back of the kerb to RoadTiles.pavementOuter; beyond that is grass verge, so
+-- walkers must not use the v2 width-based distance. A figure is 4 across the arms.
 function T.kitPavementLineStaysOnThePavedStrip()
 	for _, kind in { "main", "residential" } do
 		local scale = RoadTiles.SCALE[kind]
 		local d = PedestrianMath.kitPavementDistance(kind)
 		local j = PedestrianMath.kitPavementJitter(kind)
 		assert(j >= 0, "jitter is not negative")
-		assert(d - j - 1 >= 8.6 * scale - EPS, kind .. ": walker clears the kerb")
-		assert(d + j + 1 <= 12.26 * scale + EPS, kind .. ": walker stays off the verge")
+		assert(d - j - 2 >= RoadTiles.KIT_KERB_BACK * scale - EPS, kind .. ": walker's arm clears the kerb")
+		assert(d + j + 2 <= RoadTiles.pavementOuter(kind) + EPS, kind .. ": walker's arm stays off the verge")
+		assert(j > 1, kind .. ": room to pass on the pavement")
 	end
 	local line = PedestrianMath.offsetPolyline({ Vector3.new(0, 0, 0), Vector3.new(100, 0, 0) }, 20, 1, 8)
 	assert(math.abs(math.abs(line[1].Z) - 8) < EPS, "offsetPolyline honours an explicit distance")

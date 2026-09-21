@@ -9,7 +9,7 @@
 -- workspace:BulkMoveTo per frame.
 --
 -- Walkers follow RoadPaths.townRoads() (corners rounded to the kit bends) and
--- hold the middle of the kit's paved strip, which is only 3 studs wide. They
+-- keep to the pavement (the kit paving plus the PavingStrips behind it, 6.9 wide). They
 -- turn round at junction mouths (PedestrianMath.junctionZones) rather than
 -- stroll across open asphalt, step aside for a walker coming the other way, and
 -- fall in behind a slower one. They spawn round the streaming focus, spaced
@@ -52,7 +52,7 @@ local RIVER_BRIDGE_SLACK = 12 -- deck ends count as bridge this far out, see Ped
 local SPAWN_CLEAR = 12 -- TEMP: no walker spawns this close to another
 local PAVEMENT_PER_WALKER = 45 -- TEMP: studs of nearby pavement (both sides counted) per walker; caps the budget where few streets are in range
 local MOUTH_EXTRA = 3 -- a side road's mouth is its kerb-to-kerb width plus this much corner each side
-local SIDESTEP = 0.9 -- TEMP studs a walker moves over for one coming the other way
+local SIDESTEP = 1.3 -- TEMP studs a walker moves over for one coming the other way
 local SIDESTEP_AHEAD = 7 -- ...when they are this close
 local SIDESTEP_RATE = 2 -- studs/s
 local FOLLOW_AHEAD = 8 -- a walker this close behind another going the same way drops below its pace, so the gap opens to this
@@ -99,7 +99,8 @@ type Pedestrian = {
 	direction: number, -- 1 or -1 along the path
 	speed: number,
 	pace: number, -- this frame's speed (its own, or a slower walker's just ahead)
-	lateral: number,
+	home: number, -- the line it keeps across the pavement
+	lateral: number, -- where it is now (home, or stepped aside)
 	phase: number, -- walk-cycle time offset so walkers aren't in step
 	lastPos: Vector3,
 }
@@ -176,7 +177,8 @@ local function pathFor(roadIndex: number, side: number): Path
 	local road = ROADS[roadIndex]
 	local points = PedestrianMath.offsetPolyline(road.points, road.width, side, PedestrianMath.kitPavementDistance(road.kind))
 	local cumulative = PedestrianMath.cumulativeLengths(points)
-	local path: Path = {
+	local path: Path
+	path = {
 		points = points,
 		cumulative = cumulative,
 		length = cumulative[#cumulative] or 0,
@@ -188,6 +190,11 @@ local function pathFor(roadIndex: number, side: number): Path
 			return PedestrianMath.kitPavementDistance(kind)
 		end),
 	}
+	if road.head then
+		-- the last point is the middle of a turning head's bulb, not pavement
+		local scale = RoadTiles.SCALE[road.kind] or RoadTiles.STREET_SCALE
+		table.insert(path.zones, { from = path.length - RoadTiles.PIECES.head.legA * scale, to = path.length + 1 })
+	end
 	bySide[side] = path
 	return path
 end
@@ -282,6 +289,7 @@ local function spawnPedestrian(path: Path, kind: string, distance: number, later
 		direction = if math.random() < 0.5 then 1 else -1,
 		speed = SPEED_MIN + math.random() * (SPEED_MAX - SPEED_MIN),
 		pace = 0,
+		home = lateral,
 		lateral = lateral,
 		phase = math.random() * 10,
 		lastPos = pos,
@@ -355,8 +363,7 @@ local function recheckSpawns(focus: Vector3)
 			continue
 		end
 		local distance = segStart + math.random() * (segEnd - segStart)
-		-- the paved strip is 3 studs wide and a figure 4 across the arms: hold its middle
-		local lateral = 0
+		local lateral = (math.random() * 2 - 1) * PedestrianMath.kitPavementJitter(road.kind)
 		local pos = positionOn(path, distance, lateral)
 		local d = flatDistance(pos, focus)
 		if d < minDist or d > SPAWN_MAX_DIST or blocked(pos) or PedestrianMath.inZones(path.zones, distance) then
@@ -382,7 +389,7 @@ end
 -- holds this walker back until there is a gap. Writes ped.pace and returns the lateral it wants.
 local function mindOthers(ped: Pedestrian): number
 	ped.pace = ped.speed
-	local want = 0
+	local want = ped.home
 	for _, other in pedestrians do
 		if other == ped or other.path ~= ped.path then
 			continue
@@ -393,7 +400,9 @@ local function mindOthers(ped: Pedestrian): number
 		end
 		if other.direction ~= ped.direction then
 			if ahead < SIDESTEP_AHEAD then
-				want = ped.direction * SIDESTEP
+				-- each to its own side, but never off the pavement
+				local reach = PedestrianMath.kitPavementJitter(ped.kind) + 0.5
+				want = math.clamp(ped.home + ped.direction * SIDESTEP, -reach, reach)
 			end
 		elseif ahead < FOLLOW_AHEAD then
 			ped.pace = math.min(ped.pace, other.speed * 0.85)

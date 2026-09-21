@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles)
+local PavingStrips = require(ReplicatedStorage.Shared.PavingStrips)
 local RoadCarve = require(ReplicatedStorage.Shared.RoadCarve)
 local KitPlacer = require(script.Parent.KitPlacer)
 
@@ -131,6 +132,39 @@ local function surfaceAsphalt(model: Instance, paved: boolean)
 	end
 end
 
+-- The kit's kerb-and-paving MeshPart: the layer at pavement level that is neither
+-- the verge nor the carriageway (nor the thin yellow-lines layer down on it).
+function RoadTiler.pavingOf(model: Instance): MeshPart?
+	local verge, asphalt = RoadTiler.vergeOf(model), RoadTiler.asphaltOf(model)
+	if not asphalt then
+		return nil
+	end
+	local asphaltTop = asphalt.Position.Y + asphalt.Size.Y / 2
+	for _, d in model:GetDescendants() do
+		if d:IsA("MeshPart") and d ~= verge and d ~= asphalt and d.Position.Y + d.Size.Y / 2 > asphaltTop + 0.1 then
+			return d
+		end
+	end
+	return nil
+end
+
+-- The pavement is widened with plain paving Parts (buildPavements), and beside the
+-- kit's slab texture they read as a second, paler pavement. So the kit paving takes
+-- the same plain look: one pavement from kerb to back edge (and one with the paved
+-- verge in the Town Centre and the alleys).
+local function surfacePaving(model: Instance)
+	local paving = RoadTiler.pavingOf(model)
+	if not paving then
+		return
+	end
+	local sa = paving:FindFirstChildOfClass("SurfaceAppearance")
+	if sa then
+		sa:Destroy()
+	end
+	paving.Color = RoadTiler.PAVED_VERGE.color
+	paving.Material = RoadTiler.PAVED_VERGE.material
+end
+
 local function tintVerge(model: Instance, paved: boolean)
 	local verge = RoadTiler.vergeOf(model)
 	if not verge then
@@ -195,12 +229,18 @@ end
 -- A street-scale kit piece is 44 across; a residential corridor is 36, and the
 -- front gardens start at its edge. On a straight the verge MeshPart is two grass
 -- strips, so it is narrowed across the road until its outer edges sit on the
--- corridor's. Its inner edges slide in under the paving, so it also drops
--- VERGE_TUCK to keep the two tops off one plane. (Bends and junction pieces keep
--- their full verge: their grass is not two parallel strips.)
-local VERGE_TUCK = 0.02
+-- corridor's. (Bends and junction pieces keep their full verge: their grass is
+-- not two parallel strips.) Every street piece's verge also drops VERGE_TUCK: a
+-- cropped verge's inner edges slide in under the paving, and the PavingStrips
+-- laid over the verge (buildPavements) sit between the two heights.
+local VERGE_TUCK = 0.04
 local roadWidths: { [string]: number }? = nil
 local function cropVerge(model: Model, tile: RoadTiles.Tile)
+	local verge = RoadTiler.vergeOf(model)
+	if not verge or tile.roadKind == "alley" then
+		return
+	end
+	verge.CFrame -= Vector3.new(0, VERGE_TUCK, 0)
 	if tile.kind ~= "straight" then
 		return
 	end
@@ -214,12 +254,10 @@ local function cropVerge(model: Model, tile: RoadTiles.Tile)
 	local width = (roadWidths :: { [string]: number })[tile.road]
 	local corridor = width and RoadTiles.corridorHalf(tile.roadKind, width)
 	local pieceHalf = RoadTiles.KIT_HALF_WIDTH * tile.scale
-	local verge = RoadTiler.vergeOf(model)
-	if not (corridor and verge) or pieceHalf <= corridor + 0.05 then
+	if not corridor or pieceHalf <= corridor + 0.05 then
 		return
 	end
 	verge.Size = Vector3.new(verge.Size.X * corridor / pieceHalf, verge.Size.Y, verge.Size.Z)
-	verge.CFrame -= Vector3.new(0, VERGE_TUCK, 0)
 end
 
 local function districtModel(parent: Instance, cache: { [string]: Model }, district: string): Model
@@ -268,6 +306,7 @@ function RoadTiler.build(parent: Instance, origin: CFrame, filter: { district: s
 			-- an alley is paved wall to wall: no asphalt, no grass verge
 			local alley = tile.roadKind == "alley"
 			surfaceAsphalt(model, alley)
+			surfacePaving(model)
 			stretchZ(model, tile.stretch)
 			local paved = alley or RoadTiler.isPavedVerge(tile.cframe.Position)
 			tintVerge(model, paved)
@@ -321,6 +360,44 @@ function RoadTiler.build(parent: Instance, origin: CFrame, filter: { district: s
 		if want then " [district " .. want .. "]" else ""
 	))
 	return counts
+end
+
+-- Wider pavements (register row E4): Shared/PavingStrips' boxes as plain paving
+-- Parts behind the kit's own 3.7-stud paving, in the Town Centre stand-in's look.
+-- Kept out of the V3Roads holder: they are primitives, tagged V3Exempt = "E4".
+function RoadTiler.buildPavements(parent: Instance, origin: CFrame): number
+	local strips = PavingStrips.town()
+	local models: { [string]: Model } = {}
+	local districtOf: { [string]: string } = {}
+	for _, road in TownLayout.ROADS do
+		districtOf[road.name] = RoadTiles.districtOf(road :: any)
+	end
+	for _, strip in strips do
+		local part = Instance.new("Part")
+		part.Name = "Pavement"
+		part.Anchored = true
+		part.Size = strip.size
+		part.CFrame = origin * strip.cframe
+		part.Color = RoadTiler.PAVED_VERGE.color
+		part.Material = RoadTiler.PAVED_VERGE.material
+		part.TopSurface = Enum.SurfaceType.Smooth
+		part.BottomSurface = Enum.SurfaceType.Smooth
+		part.CastShadow = false
+		part.CanTouch = false
+		part:SetAttribute("V3Exempt", "E4")
+		local district = districtOf[strip.road] or RoadTiles.ARTERIAL
+		local holder = models[district]
+		if not holder then
+			holder = Instance.new("Model")
+			holder.Name = "Pavements_" .. district
+			holder.ModelStreamingMode = Enum.ModelStreamingMode.Default
+			holder.Parent = parent
+			models[district] = holder
+		end
+		part.Parent = holder
+	end
+	print(("[FCT] Pavements: %d paving strips (E4) behind the kit paving, out to %.1f studs from the centreline"):format(#strips, RoadTiles.pavementOuter("residential")))
+	return #strips
 end
 
 return RoadTiler

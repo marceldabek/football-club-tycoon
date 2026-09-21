@@ -58,13 +58,34 @@ What made it possible without moving any street or house:
 Suite 764 passed. Checked in play: street view, a 45 bend into a T, and an
 overlapped pair of T's on Hollingford Road show no seam.
 
+### Wider pavements (done 2026-09-20, after the road scale)
+
+- `Shared/PavingStrips` plans plain paving boxes behind the kit paving on main and
+  residential streets, out to `RoadTiles.KIT_PAVEMENT_OUTER` (15.5): the pavement
+  is 6.9 studs (was 3.7), with 2.5 of grass left before a residential street's
+  fences. Strips follow the rounded bends, stop at junction mouths and short of
+  turning heads, and skip roundabouts, bridges, the river and the Town Centre
+  (already paved). `RoadTiler.buildPavements` builds about 920 Parts into
+  `Town.V3Pavements`, registered under E4 in `docs/TOWN_V3_BUILD.md`.
+- The kit's own paving drops its slab texture for the same plain `Pavement` look,
+  so it reads as one pavement. Every street verge drops 0.04 so the strips show.
+- Walkers use the whole width again (line at 12.05, up to 1.45 either side, 1.3
+  sidestep) and turn back before a turning head's bulb.
+- Checked for breakage after the rescale: 0 housing or trade parts inside any
+  street's pavement line, furniture 2875/2875 placed with 0 clipped, parked cars
+  372/372, no script errors. Live: walkers 10.7 to 13.4 from the centreline.
+  Suite 770 passed.
+
 ### Still open
 
-- **Pavement width.** 3.7 studs; a figure is 4 across the arms.
 - **Walkers do not cross roads.** They pace between junctions.
+- **Bridges** are built from `TownLayout.BRIDGES` widths (26 / 32), so a bridge's
+  carriageway is wider than the 15.85 kit road that runs onto it. This was already
+  so at 0.816 (it is closer now).
+- The widened pavement has square ends where a side street meets a through road;
+  the kit junction piece's rounded corner sits inside it.
 - Bends and junction pieces still carry their full 22-stud verge, 4 past a
-  residential corridor. Nothing was seen clipping, but lots beside a T are the
-  place to look.
+  residential corridor. No housing part is inside it.
 - Car park bays were laid out for 0.85 cars; 0.7 cars sit a little small in a 9-wide bay.
 
 ---

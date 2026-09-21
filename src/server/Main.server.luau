@@ -196,6 +196,8 @@ do
 	-- task.wait() between steps starts a fresh timeout window for each.
 	require(script.Parent.RoadTiler).build(holder("V3Roads"), origin, nil, { carve = true })
 	task.wait()
+	require(script.Parent.RoadTiler).buildPavements(holder("V3Pavements"), origin)
+	task.wait()
 	require(script.Parent.HouseAssembler).build(holder("V3Housing"), origin, nil)
 	task.wait()
 	require(script.Parent.TradeAssembler).build(holder("V3Trade"), origin, nil)

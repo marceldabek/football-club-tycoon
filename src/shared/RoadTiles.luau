@@ -116,6 +116,14 @@ function RoadTiles.corridorHalf(kind: string, width: number): number?
 	end
 	return width / 2 + RoadTiles.LAYOUT_PAVEMENT
 end
+-- The kit paving (8.6 to 12.26) is 3.7 wide and a townsperson 4 across the arms.
+-- On the streets people walk (main, residential) Shared/PavingStrips lays plain
+-- paving behind it out to here: a 6.9-stud pavement, with 2.5 of grass left
+-- before a residential street's garden fences (corridorHalf 18). Unscaled.
+RoadTiles.KIT_PAVEMENT_OUTER = 15.5
+function RoadTiles.pavementOuter(kind: string): number
+	return RoadTiles.KIT_PAVEMENT_OUTER * (RoadTiles.SCALE[kind] or RoadTiles.STREET_SCALE)
+end
 -- Centreline radius of the kit's bend pieces, unscaled (measured in Studio
 -- 2026-09-20 from top-down captures: where the kerbs leave the straight, over
 -- the carriageway width as the ruler. The meshes' collision hulls cut the
