@@ -193,11 +193,11 @@ function tests.bigRoundaboutTrimsArmsAndLeavesAStandIn()
 				assert(along < 0 or off > RoadTiles.KIT_CARRIAGEWAY / 2, "paving in an arm's mouth")
 			end
 			local reach = Vector3.new(ex.centre.X, 0, ex.centre.Z).Magnitude
-			assert(reach > 40 and reach < 40 + RoadTiles.RB_PAVEMENT, "ring sits outside the rim")
+			assert(reach > 39 and reach < 40 + RoadTiles.RB_PAVEMENT + RoadTiles.RB_PAVING_RAMP, "ring sits outside the rim: " .. reach)
 		end
 	end
-	assert(looks.asphalt == 1 and looks.kerb == 1 and looks.island == 1, "disc, island kerb, island grass")
-	assert(looks.chevron == 3, "a chevron board facing each arm")
+	assert(looks.asphalt == 1 + 3, "the disc, and a ramp up to it from each arm")
+	assert(looks.kerb == 1 + 3 and looks.island == 1, "island kerb and grass, and a splitter island in each arm's mouth")
 	-- three give-way dashes per arm, the lane line's dashes, the island's edge line
 	local laneDashes = math.floor(2 * math.pi * RoadTiles.laneLineRadius(40) / (RoadTiles.RB_LANE_DASH + RoadTiles.RB_LANE_GAP))
 	assert(looks.paint == 9 + laneDashes + 1, "paint: " .. tostring(looks.paint))
@@ -211,11 +211,14 @@ function tests.bigRoundaboutTrimsArmsAndLeavesAStandIn()
 			assert(reach > 40 + RoadTiles.RB_PAVEMENT, "the sign stands up the arm, outside the ring")
 			local lateral = math.min(math.abs(prop.cframe.X), math.abs(prop.cframe.Z))
 			assert(lateral > RoadTiles.KIT_PAVING_OUTER, "on the verge, not the paving or the road")
+		elseif prop.piece == RoadTiles.RB_KIT.bollard then
+			assert(reach > 40 and reach < 40 + RoadTiles.RB_RAMP, "on the splitter island in the arm's mouth")
+			assert(math.min(math.abs(prop.cframe.X), math.abs(prop.cframe.Z)) < 0.01, "on the arm's centreline")
 		else
 			assert(reach < RoadTiles.islandRadius(40), "on the island")
 		end
 	end
-	assert(pieces[RoadTiles.RB_KIT.lamp] == 1 and pieces[RoadTiles.RB_KIT.hedge] == RoadTiles.RB_HEDGES, "lamp in a hedge ring")
+	assert(pieces[RoadTiles.RB_KIT.hedge] == RoadTiles.RB_HEDGES, "a hedge ring on the island")
 	assert(pieces[RoadTiles.RB_KIT.bollard] == 3 and pieces[RoadTiles.RB_KIT.ahead] == 3, "a bollard and a sign per arm")
 	for _, t in plan.tiles do
 		for _, m in RoadTiles.mouths(t) do

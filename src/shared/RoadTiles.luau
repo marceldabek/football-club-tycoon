@@ -175,11 +175,23 @@ RoadTiles.RB_KIT = {
 	ahead = "UKSP__Signs__SignNew31", -- "roundabout ahead" warning triangle
 	bollard = "UKSP__TrafficProps__BollardStayLeftA",
 	hedge = "HedgeLong", -- 18.8 long, 10.6 tall as stored
-	lamp = "UKSP__StreetLights__StreetLight01",
 }
 RoadTiles.RB_SIGN_BACK = 40 -- the warning sign stands this far up the arm from the rim...
 RoadTiles.RB_SIGN_MIN = 12 -- ...or nearer on a short arm, but not nearer than this
-RoadTiles.RB_HEDGE_RING = 7 -- radius of the island's hedge ring
+RoadTiles.RB_HEDGE_RING = 6.3 -- the hedge ring's radius to each hedge's middle: six 7.5-long hedges just meet at the corners
+-- Where an arm meets the raised disc. The asphalt ramps up to it from RB_RAMP_INSIDE
+-- inside the rim, over RB_RAMP studs; the pavement ring ends square across the arm's
+-- own paving and ramps down to it over RB_PAVING_RAMP; a keep-left bollard stands on
+-- a splitter island on the arm's centreline (narrow: a car's inner side is 0.5 from it).
+RoadTiles.RB_RAMP_INSIDE = 1
+RoadTiles.RB_RAMP = 6
+RoadTiles.RB_PAVING_RAMP = 4
+RoadTiles.RB_SPLITTER = Vector3.new(1, 0, 5) -- width, -, length
+-- An arm that bends within this far of the rim is already curving at its mouth, and a
+-- long straight ramp drifts off its kerbs: its ramps are RB_SHORT_RAMP of the length.
+RoadTiles.RB_SHORT_ARM = 45
+RoadTiles.RB_SHORT_RAMP = 0.5
+RoadTiles.RB_BOLLARD_SCALE = 0.8
 RoadTiles.RB_HEDGES = 6
 RoadTiles.RB_HEDGE_SCALE = 0.4
 -- One size for every kit hatchback on the streets, moving or parked, and for the
@@ -600,8 +612,8 @@ end
 -- give-way lines across each entry lane and a chevron board facing each arm.
 -- `armDirs` point out of the centre; `kerbBack` and `carriageway` are the arms' section.
 -- `armRuns` (optional, one per arm) is how far each arm runs straight from the centre;
--- `props` (optional) collects the kit pieces: a lamp in a hedge ring on the island, a
--- keep-left bollard in front of each chevron board, a "roundabout ahead" sign up each arm.
+-- `props` (optional) collects the kit pieces: a hedge ring on the island, a keep-left
+-- bollard on each arm's splitter island, a "roundabout ahead" sign up each arm.
 function RoadTiles.dressRoundabout(centre: Vector3, radius: number, armDirs: { Vector3 }, kerbBack: number, carriageway: number, exempt: { Exempt }, props: { Prop }?, armRuns: { number }?)
 	local discTop = RoadTiles.SURFACE_Y + RoadTiles.RB_DISC_TOP
 	local function box(look: string, cf: CFrame, size: Vector3)
@@ -674,7 +686,6 @@ function RoadTiles.dressRoundabout(centre: Vector3, radius: number, armDirs: { V
 			table.insert(props, { piece = piece, cframe = cf, scale = scale, home = centre })
 		end
 		local kit = RoadTiles.RB_KIT
-		prop(kit.lamp, CFrame.new(centre.X, grassTop, centre.Z), 1)
 		for k = 1, RoadTiles.RB_HEDGES do
 			local phi = 2 * math.pi * (k - 0.5) / RoadTiles.RB_HEDGES
 			local radial = Vector3.new(math.cos(phi), 0, math.sin(phi))
@@ -683,10 +694,10 @@ function RoadTiles.dressRoundabout(centre: Vector3, radius: number, armDirs: { V
 			prop(kit.hedge, CFrame.lookAt(at, at + radial), RoadTiles.RB_HEDGE_SCALE) -- long side along the ring
 		end
 		for i, d in armDirs do
-			-- on the island's kerb, facing the arm
-			local b = centre + d * (ir - 0.5)
-			local bAt = Vector3.new(b.X, discTop + RoadTiles.RB_KERB_UP + 0.2, b.Z)
-			prop(kit.bollard, CFrame.lookAt(bAt, bAt + d), 1)
+			-- on the splitter island in the arm's mouth, facing the driver coming in
+			local b = centre + d * (radius + 0.5 + RoadTiles.RB_SPLITTER.Z / 2)
+			local bAt = Vector3.new(b.X, discTop + RoadTiles.RB_KERB_UP, b.Z)
+			prop(kit.bollard, CFrame.lookAt(bAt, bAt + d), RoadTiles.RB_BOLLARD_SCALE)
 			-- on the verge behind the paving, on the left of a driver heading in, facing them
 			local run = if armRuns then armRuns[i] else math.huge
 			local back = math.min(radius + RoadTiles.RB_SIGN_BACK, run - 5)
@@ -699,7 +710,8 @@ function RoadTiles.dressRoundabout(centre: Vector3, radius: number, armDirs: { V
 		end
 	end
 
-	for _, d in armDirs do
+	for i, d in armDirs do
+		local reach = if armRuns and armRuns[i] < radius + RoadTiles.RB_SHORT_ARM then RoadTiles.RB_SHORT_RAMP else 1
 		-- give-way dashes across the entry lane: the left of a driver heading in
 		local left = Vector3.new(-d.Z, 0, d.X)
 		for k = 1, 3 do
@@ -707,10 +719,39 @@ function RoadTiles.dressRoundabout(centre: Vector3, radius: number, armDirs: { V
 			local at = Vector3.new(p.X, discTop + 0.005, p.Z)
 			box("paint", CFrame.lookAt(at, at + d), Vector3.new(carriageway / 6 * 0.6, 0.02, 0.6))
 		end
-		-- chevron board on the island, facing the arm
-		local p = centre + d * (ir - 3)
-		local at = Vector3.new(p.X, discTop + 0.9 + 0.9, p.Z)
-		box("chevron", CFrame.lookAt(at, at + d), Vector3.new(8, 1.6, 0.25))
+
+		-- asphalt ramp from the arm's carriageway up onto the disc
+		local roadTop = RoadTiles.SURFACE_Y - RoadTiles.KIT_ASPHALT_BELOW * (kerbBack / RoadTiles.KIT_KERB_BACK)
+		local function ramp(look: string, lateral: number, from: number, to: number, high: number, low: number, width: number)
+			local a = centre + d * from + left * lateral
+			local b = centre + d * to + left * lateral
+			local slope = Vector3.new(b.X, low, b.Z) - Vector3.new(a.X, high, a.Z)
+			local cf = CFrame.lookAt(Vector3.new(a.X, high, a.Z), Vector3.new(b.X, low, b.Z))
+			-- the box's top face runs from `high` to `low`
+			box(look, cf * CFrame.new(0, -0.125, -slope.Magnitude / 2), Vector3.new(width, 0.25, slope.Magnitude))
+		end
+		local start = radius - RoadTiles.RB_RAMP_INSIDE
+		ramp("asphalt", 0, start, start + RoadTiles.RB_RAMP * reach, discTop - 0.01, roadTop + 0.01, carriageway)
+
+		-- splitter island on the centreline, its top level with the pavement ring
+		local sp = RoadTiles.RB_SPLITTER
+		local sTop = discTop + RoadTiles.RB_KERB_UP
+		local sMid = centre + d * (radius + 0.5 + sp.Z / 2)
+		local sAt = Vector3.new(sMid.X, sTop / 2, sMid.Z)
+		box("kerb", CFrame.lookAt(sAt, sAt + d), Vector3.new(sp.X, sTop, sp.Z))
+
+		-- the pavement ring's two ends at this arm: square across the arm's own paving
+		-- and in line with its kerb, then a ramp down to it
+		local ringTop = discTop + RoadTiles.RB_KERB_UP + 0.003
+		local a0 = math.sqrt(math.max(radius * radius - kerbBack * kerbBack, 0)) - 0.3
+		local a1 = outer * math.cos(gap)
+		for _, side in { 1, -1 } do
+			local lateral = side * (kerbBack + RoadTiles.RB_PAVEMENT / 2)
+			local mid = centre + d * ((a0 + a1) / 2) + left * lateral
+			local at = Vector3.new(mid.X, ringTop - height / 2, mid.Z)
+			box("paving", CFrame.lookAt(at, at + d), Vector3.new(RoadTiles.RB_PAVEMENT, height, a1 - a0))
+			ramp("paving", lateral, a1, a1 + RoadTiles.RB_PAVING_RAMP * reach, ringTop, RoadTiles.SURFACE_Y + 0.01, RoadTiles.RB_PAVEMENT)
+		end
 	end
 end
 

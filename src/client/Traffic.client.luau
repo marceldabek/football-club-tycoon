@@ -235,6 +235,9 @@ local ROADS = RoadPaths.townRoads()
 -- rings (to find an arm reached) and its arms' distances (to slow on the approach).
 local ringsByRoad: { [number]: { Ring } } = {}
 local armDistancesByRoad: { [number]: { number } } = {}
+-- per road, where each big roundabout's asphalt ramp is: { arm distance, gap from the
+-- arm to the ramp's top, gap to its foot, the disc's top }
+local rampsByRoad: { [number]: { { number } } } = {}
 for _, rb in TownLayout.ROUNDABOUTS do
 	local radius = RoadTiles.ringRadius(rb.radius)
 	local arms = TrafficMath.ringArms(ROADS, rb.centre, radius, function(roadIndex: number): number
@@ -250,7 +253,25 @@ for _, rb in TownLayout.ROUNDABOUTS do
 		local distances = armDistancesByRoad[arm.roadIndex] or {}
 		armDistancesByRoad[arm.roadIndex] = distances
 		table.insert(distances, arm.distance)
+		if ring.top then
+			local ramps = rampsByRoad[arm.roadIndex] or {}
+			rampsByRoad[arm.roadIndex] = ramps
+			local topGap = rb.radius - RoadTiles.RB_RAMP_INSIDE - radius
+			table.insert(ramps, { arm.distance, topGap, topGap + RoadTiles.RB_RAMP, ring.top })
+		end
 	end
+end
+
+-- How far above its road's top a car rides at `distance`: up the asphalt ramp and
+-- onto the disc of a big roundabout it is coming to, or has just left.
+local function rampLift(roadIndex: number, distance: number, roadTop: number): number
+	for _, ramp in rampsByRoad[roadIndex] or {} do
+		local gap = math.abs(distance - ramp[1])
+		if gap < ramp[3] then
+			return (ramp[4] - roadTop) * math.clamp((ramp[3] - gap) / (ramp[3] - ramp[2]), 0, 1)
+		end
+	end
+	return 0
 end
 
 -- Road distance from a car to the nearest roundabout arm on its road.
@@ -953,13 +974,8 @@ local function driveRing(car: Car, run: RingRun, dt: number)
 	local pos, tangent = TrafficMath.ringPose(run.ring.centre, run.ring.radius, run.from + travelled / run.ring.radius)
 	local heading = TrafficMath.ringHeading(tangent, run.inbound, run.leave.heading, travelled, run.arc, RING_BLEND)
 	car.lastPos = pos
-	-- a big roundabout's disc lies over the arms: climb onto it over the swing in, and back down
-	local y = roadTopFor(car.kind)
-	local ringTop = run.ring.top
-	if ringTop then
-		local reach = math.max(math.min(RING_BLEND, run.arc / 2), 1e-6)
-		y += (ringTop - y) * math.clamp(math.min(travelled, run.arc - travelled) / reach, 0, 1)
-	end
+	-- a big roundabout's disc lies over the arms (the ramp up to it is out on the road: rampLift)
+	local y = run.ring.top or roadTopFor(car.kind)
 	draw(car, CFrame.new(pos.X, y, pos.Z) * CFrame.Angles(0, math.atan2(-heading.X, -heading.Z), 0))
 end
 
@@ -1059,7 +1075,8 @@ local function moveCar(car: Car, dt: number)
 			else TrafficMath.laneOffset(direction, carriageway, -1))
 	car.lastPos = flatPos
 
-	local y = bridgeDeckY(flatPos, car.kind) or roadTopFor(car.kind)
+	local roadTop = roadTopFor(car.kind)
+	local y = bridgeDeckY(flatPos, car.kind) or (roadTop + rampLift(car.roadIndex, car.distance, roadTop))
 	local yaw = math.atan2(-direction.X, -direction.Z)
 	local rootCFrame = CFrame.new(flatPos.X, y, flatPos.Z) * CFrame.Angles(0, yaw, 0)
 	-- at a junction or a dead end the car's line jumps (new road, other lane,
