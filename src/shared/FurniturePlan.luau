@@ -7,7 +7,7 @@
 -- Conventions copied from tools/kit/place_slice_C_street.luau (the density and
 -- look reference). All distances are measured from the KERB (carriageway edge):
 --   lamp 6.5 (back of pavement, arm towards the road), telegraph pole 6.8,
---   sign 6.8, shelter 5, bench 5.5, phone box 5.8, bin 3.4, manhole 4, guard rail 1.2.
+--   sign 6.8, shelter 5, bench 5.5, phone box 5.8, bin 3.4, manhole 1.83, guard rail 1.2.
 -- Kit pivots are bottom centre, so a placement's position is the prop's foot.
 -- Facing, per asset (checked in Studio):
 --   lamp        RightVector points at the road (the arm overhangs that way)
@@ -74,6 +74,7 @@ export type Stats = {
 }
 
 FurniturePlan.PAVEMENT_WIDTH = 8
+FurniturePlan.MANHOLE_KERB = (RoadTiles.KIT_PAVING_OUTER - RoadTiles.KIT_KERB_BACK) / 2 -- 1.83
 FurniturePlan.PAVEMENT_Y = RoadTiles.SURFACE_Y
 FurniturePlan.ROAD_Y = RoadTiles.roadTop("residential")
 -- Parked hatchbacks at the size client Traffic drives them (RoadTiles.CAR_SCALE):
@@ -680,7 +681,9 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 			local s, i = rule(road, 0, "manhole") * rng:NextNumber(), 0
 			while s < length do
 				local side = if rng:NextNumber() < 0.5 then 1 else -1
-				local pos, t, n = onPavement(road, s, side, 4)
+				-- the middle of the kit paving: a cover is 1.9 across, and at 4 it straddled
+				-- the paving's back edge, half on the grass verge wherever nothing widens it
+				local pos, t, n = onPavement(road, s, side, FurniturePlan.MANHOLE_KERB)
 				try(road, "manhole", A.manhole, facing(pos, t), 1, 1.2, nil)
 				if i % 4 == 3 then
 					local boxPos = onPavement(road, s + 14, side, 5.9)
