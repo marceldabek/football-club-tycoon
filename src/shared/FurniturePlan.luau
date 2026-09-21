@@ -28,9 +28,15 @@
 -- head, a plot, the market square or on a bridge. The ONE exception is category
 -- "car": parked cars sit on their own residential carriageway against the kerb
 -- (placement.onCarriageway = true), and still obey every other rule.
+--
+-- Everything is measured along the road's CURVED centreline (RoadPaths.fillet, the
+-- same line traffic drives), not the layout's sharp polyline: the kit's bend pieces
+-- are arcs, and on the inside of a bend the asphalt cuts up to 8 studs inside the
+-- sharp corner, which left a lamp standing in the Ring Road by Plot 1.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles) -- pure too: the kit road section
+local RoadPaths = require(ReplicatedStorage.Shared.RoadPaths) -- only its pure fillet()
 
 local FurniturePlan = {}
 
@@ -262,6 +268,7 @@ local CELL = 120
 
 type Context = {
 	input: Input,
+	curves: { [RoadIn]: RoadIn }, -- each road with its corners rounded like the kit's bend pieces
 	lotGrid: { [string]: { LotIn } },
 	placed: { [string]: { { p: Vector3, r: number } } },
 	plotHalf: number,
@@ -289,7 +296,23 @@ local function makeContext(input: Input): Context
 			end
 		end
 	end
-	return { input = input, lotGrid = grid, placed = {}, plotHalf = (input.plotSize or 760) / 2 }
+	-- as RoadPaths.townRoads: a road that turns on a roundabout has no bend piece there
+	local function onRoundabout(p: Vector3): boolean
+		for _, rb in input.roundabouts or {} do
+			if flat(p - rb.centre).Magnitude < 1 then
+				return true
+			end
+		end
+		return false
+	end
+	local curves: { [RoadIn]: RoadIn } = {}
+	for _, road in input.roads do
+		local scale = RoadTiles.SCALE[road.kind] or RoadTiles.STREET_SCALE
+		local copy = table.clone(road)
+		copy.points = RoadPaths.fillet(road.points, RoadTiles.KIT_BEND90_RADIUS * scale, RoadTiles.KIT_BEND45_RADIUS * scale, onRoundabout)
+		curves[road] = copy
+	end
+	return { input = input, curves = curves, lotGrid = grid, placed = {}, plotHalf = (input.plotSize or 760) / 2 }
 end
 
 -- Why `p` (a prop of half-depth `r`) may not stand here, or nil when it may.
@@ -297,7 +320,7 @@ end
 local function blockedBy(ctx: Context, p: Vector3, r: number, own: RoadIn?, onCarriageway: boolean?): string?
 	local input = ctx.input
 	for _, road in input.roads do
-		local d = FurniturePlan.polylineDistance(p, road.points)
+		local d = FurniturePlan.polylineDistance(p, ctx.curves[road].points)
 		if road == own then
 			if not onCarriageway then
 				if d < FurniturePlan.kerbOf(road) + r - 0.01 then
@@ -438,7 +461,7 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 
 	-- The rule `key` for `road` at arc length `s` (the tier can change along a road).
 	local function rule(road: RoadIn, s: number, key: string): number
-		local tier = FurniturePlan.RULES[tierAt((FurniturePlan.pointAt(road, s)))]
+		local tier = FurniturePlan.RULES[tierAt((FurniturePlan.pointAt(ctx.curves[road], s)))]
 		return (tier[road.kind] or tier.residential)[key]
 	end
 
@@ -473,7 +496,7 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 
 	-- Position on the pavement: `kerb` studs behind the kerb, on `side` (+1 left, -1 right).
 	local function onPavement(road: RoadIn, s: number, side: number, kerb: number): (Vector3, Vector3, Vector3)
-		local p, t = FurniturePlan.pointAt(road, s)
+		local p, t = FurniturePlan.pointAt(ctx.curves[road], s)
 		local n = FurniturePlan.leftOf(t) * side
 		local pos = p + n * (FurniturePlan.kerbOf(road) + kerb)
 		return Vector3.new(pos.X, pavY, pos.Z), t, n
@@ -485,7 +508,7 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 		local bestS, bestD = 0, math.huge
 		for _, road in input.roads do
 			if road.kind ~= "lane" then
-				local s, d = FurniturePlan.project(road, stop.position)
+				local s, d = FurniturePlan.project(ctx.curves[road], stop.position)
 				if d < bestD then
 					bestRoad, bestS, bestD = road, s, d
 				end
@@ -499,9 +522,9 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 		if not wanted(road) then
 			continue
 		end
-		local p0, t0 = FurniturePlan.pointAt(road, bestS)
+		local p0, t0 = FurniturePlan.pointAt(ctx.curves[road], bestS)
 		local side = if flat(stop.position - p0):Dot(FurniturePlan.leftOf(t0)) >= 0 then 1 else -1
-		local length = FurniturePlan.roadLength(road)
+		local length = FurniturePlan.roadLength(ctx.curves[road])
 		local done = false
 		for step = 0, 20 do
 			for _, sign in { 1, -1 } do
@@ -534,7 +557,7 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 		local bestRoad: RoadIn? = nil
 		local bestS, bestD = 0, math.huge
 		for _, road in input.roads do
-			local s, d = FurniturePlan.project(road, box.centre)
+			local s, d = FurniturePlan.project(ctx.curves[road], box.centre)
 			if d < bestD then
 				bestRoad, bestS, bestD = road, s, d
 			end
@@ -543,7 +566,7 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 		if not road or bestD > 200 or not wanted(road) then
 			continue
 		end
-		local p0, t0 = FurniturePlan.pointAt(road, bestS)
+		local p0, t0 = FurniturePlan.pointAt(ctx.curves[road], bestS)
 		local side = if flat(box.centre - p0):Dot(FurniturePlan.leftOf(t0)) >= 0 then 1 else -1
 		for i = -2, 2 do
 			if i ~= 0 then -- the gap in the middle is the school gate
@@ -564,7 +587,7 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 			continue
 		end
 		local rng = Random.new(FurniturePlan.seedFor(road.name))
-		local length = FurniturePlan.roadLength(road)
+		local length = FurniturePlan.roadLength(ctx.curves[road])
 		local mid = length / 2
 		local closed = flat(road.points[1] - road.points[#road.points]).Magnitude < 1
 
@@ -725,11 +748,11 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 		if not road or not wanted(road) then
 			continue
 		end
-		local s, d = FurniturePlan.project(road, lot.centre)
+		local s, d = FurniturePlan.project(ctx.curves[road], lot.centre)
 		if d > road.width / 2 + 80 then
 			continue
 		end
-		local p0, t0 = FurniturePlan.pointAt(road, s)
+		local p0, t0 = FurniturePlan.pointAt(ctx.curves[road], s)
 		local side = if flat(lot.centre - p0):Dot(FurniturePlan.leftOf(t0)) >= 0 then 1 else -1
 		local shift = math.min(lot.size.X / 2 - 3, 8)
 		local pos, t, n = onPavement(road, s - shift, side, 3.4)
@@ -745,7 +768,7 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 		if not wanted(road) then
 			continue
 		end
-		local length = FurniturePlan.roadLength(road)
+		local length = FurniturePlan.roadLength(ctx.curves[road])
 		if rule(road, length / 2, "car") <= 0 then
 			continue
 		end
@@ -767,7 +790,7 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 				local keep = rng:NextNumber() < FurniturePlan.CAR_KEEP
 				local pick = rng:NextInteger(1, #A.cars)
 				local flip = rng:NextNumber() < 0.2
-				local p, t = FurniturePlan.pointAt(road, s + jitter)
+				local p, t = FurniturePlan.pointAt(ctx.curves[road], s + jitter)
 				local n = FurniturePlan.leftOf(t) * side
 				-- the pavement point abreast of the car must be in front of a housing lot's frontage
 				local abreast = p + n * (road.width / 2 + 40)

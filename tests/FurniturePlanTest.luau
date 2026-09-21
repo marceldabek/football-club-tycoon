@@ -329,4 +329,27 @@ T["the kerb in front of a plot's vehicle gate is kept clear"] = function()
 	assert(beside > 0, "nothing at all on the pavement along the entrance wall")
 end
 
+-- The kit's bend pieces are curved (RoadPaths.fillet), so the asphalt cuts inside the
+-- layout's sharp corner: a lamp measured off the sharp polyline stood in the street on
+-- the inside of the Ring Road's 45 bend by Plot 1.
+T["furniture follows the curve of a bend, not the layout's sharp corner"] = function()
+	local RoadPaths = require(ReplicatedStorage.Shared.RoadPaths)
+	for _, turn in { 45, 90 } do
+		local r = math.rad(turn)
+		local points = { v(-400, 0), v(0, 0), v(400 * math.cos(r), 400 * math.sin(r)) }
+		local input: FurniturePlan.Input = {
+			roads = { { name = "Bent Road " .. turn, kind = "ring", width = 32, points = points, district = nil, head = false } },
+			lots = {},
+		}
+		local curve = RoadPaths.fillet(points, RoadTiles.KIT_BEND90_RADIUS, RoadTiles.KIT_BEND45_RADIUS)
+		local kerb = FurniturePlan.kerbOf(input.roads[1])
+		local list = plan(input)
+		assert(#ofCategory(list, "lamp") > 10, "no lamps on the bent road")
+		for _, pl in list do
+			local d = FurniturePlan.polylineDistance(pl.cframe.Position, curve)
+			assert(d >= kerb - 0.05 and d <= kerb + FurniturePlan.PAVEMENT_WIDTH + 0.05, ("%s on the %d bend is %.1f from the curved centreline"):format(pl.category, turn, d))
+		end
+	end
+end
+
 return T
