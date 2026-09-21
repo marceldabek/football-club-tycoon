@@ -12,12 +12,15 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local Iris = require(script.Parent.Iris)
 local Presenter = require(script.Parent.MatchPresenter)
 local MatchAudio = require(script.Parent.MatchAudio)
 local Sky = require(script.Parent.Sky)
 local ClubRef = require(script.Parent.ClubRef)
 local Focus = require(script.Parent.Focus)
+local Theme = require(script.Parent.Theme)
+local PlayerCard = require(script.Parent.PlayerCard)
 
 local PlotVisit = require(ReplicatedStorage.Shared.PlotVisit)
 
@@ -62,6 +65,116 @@ local function cameraWalkout(seconds: number)
 	camera.CameraType = Enum.CameraType.Custom
 end
 
+-- Card size for `count` cards abreast: whichever of the strip's width and
+-- height runs out first (PackOpening.slotSize solves the same problem for
+-- the pack reveal row). A UIAspectRatioConstraint inside a UIListLayout does
+-- not reliably keep 2:3 here, so the slot is sized in pixels up front.
+local MEET_STRIP_W = 0.96
+local MEET_STRIP_H = 0.26
+local MEET_PAD = 4
+local function meetSlotSize(count: number): UDim2
+	local vp = camera.ViewportSize
+	local room = (vp.X * MEET_STRIP_W - MEET_PAD * (count - 1)) / math.max(count, 1)
+	local height = math.min(vp.Y * MEET_STRIP_H, room / Config.CardAspect)
+	return UDim2.fromOffset(math.floor(height * Config.CardAspect), math.floor(height))
+end
+
+-- The very first walkout introduces the eleven as cards (the squad is never
+-- "unpacked": the player meets them here, then opens their first pack after
+-- the whistle). Presentation only, gone before kick-off.
+-- Reads `own` directly, not the mutable `state`/`get()`: `state` can be
+-- reassigned to a spectated club mid-walkout (repick() polls every second),
+-- and this must only ever act on the owner's own match.
+local function meetTheEleven(seconds: number)
+	if ((own:GetAttribute("MatchesPlayed") :: number?) or 0) > 0 then
+		return
+	end
+	local ok, club = pcall(function()
+		return HttpService:JSONDecode(own:GetAttribute("Club") :: string)
+	end)
+	if not ok or type(club) ~= "table" or type(club.players) ~= "table" or type(club.lineup) ~= "table" then
+		return
+	end
+	local byId = {}
+	for _, p in club.players do
+		byId[p.id] = p
+	end
+	-- a sparse XI decodes as a JSON object, not an array (X317): walk the
+	-- fixed slot count in order rather than iterating the table directly
+	local slots = club.lineup.xi :: any
+	local starters = {}
+	for slotIndex = 1, #Pitch.ROLES do
+		local id = slots[slotIndex] or slots[tostring(slotIndex)]
+		local p = if id then byId[id] else nil
+		if p then
+			table.insert(starters, p)
+		end
+	end
+	if #starters == 0 then
+		return
+	end
+	local clubName = own:GetAttribute("ClubName") :: string?
+
+	local screen = Theme.screenGui("MeetTheEleven", 20)
+	screen.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+	local strip = Instance.new("Frame")
+	strip.BackgroundTransparency = 1
+	strip.AnchorPoint = Vector2.new(0.5, 1)
+	strip.Position = UDim2.fromScale(0.5, 0.97)
+	strip.Size = UDim2.fromScale(MEET_STRIP_W, MEET_STRIP_H)
+	strip.Parent = screen
+	local layout = Instance.new("UIListLayout")
+	layout.FillDirection = Enum.FillDirection.Horizontal
+	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+	layout.Padding = UDim.new(0, MEET_PAD)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = strip
+
+	local size = meetSlotSize(#starters)
+	local cards: { PlayerCard.Card } = {}
+	for i, p in starters do
+		local holder = Instance.new("Frame")
+		holder.Name = "Slot"
+		holder.BackgroundTransparency = 1
+		holder.LayoutOrder = i
+		holder.Size = size
+		holder.Parent = strip
+		local card = PlayerCard.new(holder, p, { signed = true, clubName = clubName, faceDown = true })
+		table.insert(cards, card)
+		task.delay(0.4 + i * 0.18, function()
+			if card.frame.Parent then
+				card:flip()
+			end
+		end)
+	end
+
+	local cleaned = false
+	local phaseConn: RBXScriptConnection? = nil
+	local function cleanup()
+		if cleaned then
+			return
+		end
+		cleaned = true
+		if phaseConn then
+			phaseConn:Disconnect()
+		end
+		for _, card in cards do
+			card:destroy() -- a wonderkid's shine tween outlives a plain Destroy
+		end
+		screen:Destroy()
+	end
+	-- a cut-short walkout (phase moves on before the timer below fires, or
+	-- the match is abandoned) still has to clear the strip and its tweens
+	phaseConn = own:GetAttributeChangedSignal("Phase"):Connect(function()
+		if own:GetAttribute("Phase") ~= "PreMatch" then
+			cleanup()
+		end
+	end)
+	task.delay(seconds, cleanup)
+end
+
 local function beginPreMatch()
 	if presenter then
 		presenter:destroy()
@@ -77,6 +190,7 @@ local function beginPreMatch()
 	Iris.close(0.6)
 	local walkout = Config.WalkoutSeconds - 1.4
 	task.spawn(cameraWalkout, walkout)
+	task.spawn(meetTheEleven, walkout)
 	task.spawn(function()
 		task.wait(0.25)
 		Iris.open(0.8)
