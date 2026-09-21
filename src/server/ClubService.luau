@@ -16,6 +16,7 @@ local Pack = require(ReplicatedStorage.Shared.Pack)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local Profile = require(ReplicatedStorage.Shared.Profile)
 local Trade = require(ReplicatedStorage.Shared.Trade)
+local Telemetry = require(ReplicatedStorage.Shared.Telemetry)
 local ClubState = require(script.Parent.ClubState)
 local PlotContext = require(script.Parent.PlotContext)
 
@@ -477,6 +478,7 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 		if not pack.revealed then
 			pack.revealed = true
 			publish()
+			Telemetry.event(ClubState.owner(), "PackRevealed") -- SL23
 		end
 		return true, nil
 	elseif name == "pin" then
@@ -633,6 +635,7 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 		table.insert(players, signed)
 		recomputeLineup()
 		publish()
+		Telemetry.event(ClubState.owner(), "PlayerSigned") -- SL23
 		return true, ("%s signed! Shirt number %d."):format(signed.name, signed.number)
 	elseif name == "acceptBid" or name == "declineBid" then
 		-- X323

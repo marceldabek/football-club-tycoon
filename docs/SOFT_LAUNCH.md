@@ -1,0 +1,111 @@
+# Soft Launch Readiness
+
+Goal: publish a public **beta**, buy a small amount of ad traffic, and read retention and the first-session funnel to find out whether the loop works. Not a full launch. No monetization.
+
+Written 2026-09-21 from a read-only audit of the repo. File references were correct on that date. Items reference `docs/BACKLOG.md` X-numbers where one exists.
+
+Status key: `[ ]` open, `[x]` done, `[M]` needs Marcel (Studio setting, device, account or decision).
+
+---
+
+## What is already in good shape
+
+- Saves: session lock, 3-try retry, versioned migrations, save refused before a successful load, owner kicked rather than given a blank club on load failure (`SaveService.luau`, `SaveLock.luau`, `Profile.luau`, `Session.luau`). No memory fallback outside Studio.
+- Every remote validates on the server; the client never sends prices (`ClubService.luau:410-636`, `TradeService.luau:108-213`).
+- Debug commands are only connected in Studio (`Main.server.luau:30-176`).
+- Match 1 and 2 rigging, the rigged first pack and scout-hire guard are all in (`MatchSim.luau:86-93`, `ClubService.luau:157-161, 547-549`).
+- World interactions are ProximityPrompts, UI scales to the viewport, quality defaults to Low on touch.
+- A mid-match error returns the club to Manage instead of sticking (`MatchService.luau:554-573`).
+
+---
+
+## Gate 1 — Know what we are shipping
+
+- [ ] **SL1. Disk and place file agree.** 43 of 194 scripts differ (X347, X345); tests run against the Studio copies. Reconnect Rojo (X34, X4), push disk over Studio, run `tools/parity_digest.py` to zero diffs, then RunAll. Nothing below can be trusted until this is done.
+- [ ] **SL2. Commit the dirty working tree** (card work, Clubhouse, WorldBuilder) once stable, so the published build maps to a commit.
+- [ ] **SL3. Build label.** Small "BETA · <short commit or date>" text in a HUD corner, so a bug report names a build.
+
+## Gate 2 — Saves are final
+
+- [x] **SL4. Final DataStore name.** DECIDED 2026-09-21: `ClubProfiles` stays and is now final. The "bump to reset" comment in `Config.luau` is replaced with a never-rename note; save-shape changes go through `Profile.MIGRATIONS`.
+- [x] **SL5. Beta save policy.** DECIDED 2026-09-21: beta saves carry over to the full game. Say so in the game description (SL27).
+- [ ] **SL6. Trade save is not atomic (X365).** Check both sessions can save before anything moves; surface a failed `saveNow` to both owners (`TradeService.luau:209-210`). Alternative for the beta: switch trades off (see SL10).
+- [ ] **SL7. LastRound lost on rejoin (X366).** Republish from `season.fixtures` on restore.
+- [ ] **SL8. Published-place save test.** On the live place, not Studio: found a club, play, leave, rejoin; rejoin on a second device while the first is still in (lock handover); leave mid-match (180 s settle, `PlotService.luau:404-419`).
+- [ ] **SL9. Crest edit write spam.** `Session.luau:396` saves on every crest change with no throttle. Add a short cooldown. General remote rate limiting is a nice-to-have.
+
+## Gate 3 — Multiplayer is decided
+
+- [M] **SL10. Pick the beta server shape.** No multiplayer path has been run with two real clients (B2.1d, I3.1d, I4.1d, X39; X206–X211 and X237 all "needs a two-player check").
+  - Option A (recommended): **MaxPlayers = 4**, keep plots, and switch off trades and friendlies for the beta behind a Config flag. Removes X365 and the untested paths from the launch. Still needs one two-client test of claim, leave, re-claim and save lock.
+  - Option B: MaxPlayers = 1. Safest, loses the shared town.
+  - Option C: everything on. Needs the full two-player test list first.
+- [M] **SL11. Set `MaxPlayers` on the place.** DECIDED 2026-09-21: **4**. Still has to be set by hand in the place's settings; it is unset in the repo. With 4 plots, anyone past the fourth player is a spectator with no club, which wastes ad clicks.
+- [ ] **SL12. Two-client test** of whatever SL10 keeps (Studio local server with 2 players, then the live place with two accounts).
+
+## Gate 4 — The first five minutes survive cold traffic
+
+- [ ] **SL13. Cold-server join window.** `Main.server.luau:193-268` builds the whole town (10+ s) before `PlotService.start()`; until then there is no spawn, no picker and no UI, and there is no `ReplicatedFirst` loading screen. Add a ReplicatedFirst cover that holds until the picker is ready, and start PlotService as early as is safe.
+- [ ] **SL14. Founding card escape hatch.** No cancel, non-ASCII names refused (`Session.luau:332`), filter outage loops the player. Add "Use suggested name" that always succeeds, and show the refusal reason.
+- [ ] **SL15. Round 1 at home.** About half of new players get an away first fixture and see roughly £120 instead of ~£1,230 at the first payout (`League.luau:64-72`, `Economy.luau:160-188`). Force the player's round 1 (ideally 1 and 2) to be home.
+- [ ] **SL16. Silent re-claim.** Toast when a claim is already in flight (`PlotService.luau:529-531`) and show progress during a slow club load.
+- [M] **SL17. First stand is free on three of four plots** (OVERNIGHT_LOG question 18). Recommended: leave it for the beta; a free first upgrade is a fast visible win. Revisit with funnel data.
+- [ ] **SL18. Fresh-account run-through** on the published place, timed against CLAUDE.md section 12.
+
+## Gate 5 — It runs on a phone
+
+- [M] **SL19. Set the six Workspace streaming properties by hand** (`docs/TOWN_V3_PERF.md:124-127`) and save the place. Not script-accessible; the perf doc records them as unset when measured.
+- [M] **SL20. Real-phone frame rate** at the Market Square, at a plot in Manage, and during a match with a full crowd. Frame time has never been measured (`TOWN_V3_PERF.md:7-9`). Target 30 fps on Low. If the town fails, thin the Low budgets before launch.
+- [ ] **SL21. Touch sprint button.** `Sprint.client.luau` is Shift only; the town is a 2–3 minute walk.
+- [M] **SL22. Touch pass** on the founding card, lineup drag and pack opening (X241, X252).
+
+## Gate 6 — We can see what happens
+
+- [x] **SL23. Onboarding funnel** (DONE 2026-09-21: `Shared.Telemetry`; the funnel is the linear steps only - Joined, GroundClaimed, ClubFounded, Match1Started, Match1Finished, Match2Finished, Match5Finished, Season1Finished - and first upgrade / pack / signing are custom events `UpgradeBought`, `PackRevealed`, `PlayerSigned`, since a player can do them in any order. Studio sends nothing; verify on the live place's dashboard.) Original plan: via `AnalyticsService:LogOnboardingFunnelStepEvent`, one small server module. There is no analytics of any kind today. Steps and hook points:
+  1. joined — `PlotService.luau:613-620`
+  2. ground claimed — `PlotService.luau:376-383`
+  3. club founded — `Session.luau:367-372` (count refusal reasons at `:329, :334, :341, :355, :364` as custom events)
+  4. match 1 started — `MatchService.luau:416-419`
+  5. match 1 finished — `MatchService.luau:509`
+  6. first upgrade bought — `UpgradeService.luau:134-138, 151-155`
+  7. first pack opened — `ClubService.luau:473-481`
+  8. match 2 finished — `MatchService.luau:509`
+  9. first signing — `ClubService.luau:636`
+  10. season finished — `SeasonService.luau:234`
+- [x] **SL24. Economy events** (DONE 2026-09-21) from the one choke point `ClubState.addCash` (`ClubState.luau:81`), which already carries a category.
+- [x] **SL25. Save health.** (DONE 2026-09-21: `SaveFailing`, `ClubLoadFailed`, `JoinedServerFull`, plus the five `NameRefused*` / `NameFilterOutage` events.) Custom event on failed flush (`Session.luau:270-278`) and on "server full, joined as visitor".
+- [ ] **SL26. Feedback channel.** A Roblox group or Discord link plus a small in-game feedback button. [M] to create the group/server.
+
+## Gate 7 — Store page and ads
+
+- [M] **SL27.** Experience questionnaire (maturity and content), icon, thumbnails, description with BETA and the save policy, title with "[BETA]".
+- [M] **SL28.** Confirm every Creator Store asset in the place is script-free and licence-clean.
+- [M] **SL29. Ad test.** Check current formats and minimums in Ads Manager (not verified here). Small daily budget for 3–5 days, mobile-weighted, aiming for a few hundred to a few thousand plays.
+- [M] **SL30. Read a week of data before building anything new.** Decision numbers (temporary, adjust after the first read): D1 retention 15–20 %+, average session 10 min+, joined → match 1 finished 60 %+, match 1 finished → first upgrade 70 %+.
+
+---
+
+## Not blocking the beta
+
+- Injuries never heal at season rollover (X367).
+- Leaving mid-match and rejoining elsewhere can dodge a loss (OVERNIGHT_LOG question 17).
+- A club that has never signed anybody cannot release or sell (X363).
+- X360 "tactics are decoration" looks superseded by X271 (`MatchService.luau:97-122`); verify and close the entry.
+- `ScoutReportNew` glow not persisted.
+- General remote rate limiting and DataStore request-budget checks.
+- Stale one-club-per-server comments (`ClubState.luau:3`, `WORLD_ROADMAP.md:17`); Phase B not marked done in the roadmap.
+- Dead debug surface in live builds (`PlotService.debugModules`, `TradeService.debugRoundTrip`).
+- Roundabout car overlap, streets without turning heads.
+
+---
+
+## Suggested order
+
+1. SL1, SL2 (know the build)
+2. SL4, SL5, SL10, SL11 decisions
+3. SL23–SL25 analytics, SL3 build label
+4. SL13–SL16 first-five-minutes fixes, SL21 sprint
+5. SL6 or trades off, SL7, SL9
+6. SL19, SL20, SL22 phone pass
+7. Publish privately: SL8, SL12, SL18
+8. SL26–SL29, go public, SL30

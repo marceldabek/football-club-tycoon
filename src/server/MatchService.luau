@@ -17,6 +17,7 @@ local TeamGen = require(ReplicatedStorage.Shared.TeamGen)
 local Squad = require(ReplicatedStorage.Shared.Squad)
 local DayCycle = require(ReplicatedStorage.Shared.DayCycle)
 local Friendly = require(ReplicatedStorage.Shared.Friendly)
+local Telemetry = require(ReplicatedStorage.Shared.Telemetry)
 local ClubState = require(script.Parent.ClubState)
 local PlotContext = require(script.Parent.PlotContext)
 local WorldBuilder = require(script.Parent.WorldBuilder)
@@ -416,6 +417,9 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 	running = true
 
 	local matchIndex = (ClubState.get("MatchesPlayed") :: number) + 1
+	if matchIndex == 1 then
+		Telemetry.step(ClubState.owner(), "Match1Started") -- SL23
+	end
 	local played = playCore({
 		name = fixture.opponent,
 		kit = fixture.kit,
@@ -507,6 +511,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 	end
 
 	finishCore()
+	Telemetry.matchFinished(ClubState.owner(), ClubState.get("MatchesPlayed") :: number) -- SL23
 
 	-- only the owner sees their club's summary
 	local owner = ClubState.owner()

@@ -13,6 +13,7 @@ local TextService = game:GetService("TextService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Profile = require(ReplicatedStorage.Shared.Profile)
 local ClubCrest = require(ReplicatedStorage.Shared.ClubCrest)
+local Telemetry = require(ReplicatedStorage.Shared.Telemetry)
 local ClubState = require(script.Parent.ClubState)
 local WorldBuilder = require(script.Parent.WorldBuilder)
 local MatchService = require(script.Parent.MatchService)
@@ -275,6 +276,7 @@ local function flush(force: boolean): boolean
 				toast(owner, "Your club isn't saving right now. Recent progress may be lost.")
 			end
 			warn(("[FCT] %d saves in a row failed for %d"):format(failedSaves, ownerId))
+			Telemetry.event(owner, "SaveFailing") -- SL25
 		end
 	end
 	return ok
@@ -327,10 +329,12 @@ local function applyName(player: Player, requested: unknown)
 	local length = utf8.len(name) or #name -- X190: letters, not bytes
 	if length < Config.ClubNameMinLength or length > Config.ClubNameMaxLength then
 		toast(player, ("Name must be %d to %d characters"):format(Config.ClubNameMinLength, Config.ClubNameMaxLength))
+		Telemetry.event(player, "NameRefusedLength")
 		return
 	end
 	if not name:match("^[%w%s'%-%.]+$") then
 		toast(player, "Letters, numbers, spaces, ' - . only")
+		Telemetry.event(player, "NameRefusedCharset") -- SL14: how many hit the ASCII rule
 		return
 	end
 	-- X213: not the name of a league club (duplicate table rows and crests)
@@ -339,6 +343,7 @@ local function applyName(player: Player, requested: unknown)
 		for _, club in division do
 			if string.lower(club.name) == lower then
 				toast(player, "There's already a club called that in the league. Try another name.")
+				Telemetry.event(player, "NameRefusedTaken")
 				return
 			end
 		end
@@ -352,6 +357,7 @@ local function applyName(player: Player, requested: unknown)
 		-- X198: a name the filter changed (hashes) is refused, not kept for good
 		if filtered ~= name then
 			toast(player, "That name isn't allowed. Try another one.")
+			Telemetry.event(player, "NameRefusedFilter")
 			return
 		end
 		final = filtered
@@ -362,6 +368,7 @@ local function applyName(player: Player, requested: unknown)
 		-- X197: a filter outage must not use up the only naming chance
 		warn("[FCT] text filter failed: " .. tostring(filtered))
 		toast(player, "Couldn't check that name right now. Try again in a moment.")
+		Telemetry.event(player, "NameFilterOutage")
 		return
 	end
 	ClubState.set("ClubName", final)
@@ -369,6 +376,7 @@ local function applyName(player: Player, requested: unknown)
 	SeasonService.renameClub(final)
 	WorldBuilder.setClubName(final)
 	Session.saveNow()
+	Telemetry.step(player, "ClubFounded") -- SL23
 	toast(player, ("Welcome to %s!"):format(final), true)
 end
 

@@ -11,6 +11,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local League = require(ReplicatedStorage.Shared.League)
 local Economy = require(ReplicatedStorage.Shared.Economy)
 local DayCycle = require(ReplicatedStorage.Shared.DayCycle) -- X301: evening kickoffs on the notice
+local Telemetry = require(ReplicatedStorage.Shared.Telemetry)
 local ClubState = require(script.Parent.ClubState)
 local WorldBuilder = require(script.Parent.WorldBuilder)
 local ClubService = require(script.Parent.ClubService)
@@ -263,6 +264,11 @@ function SeasonService.endSeason(): SeasonSummary
 	})
 
 	ClubState.addCash(prize, "prize") -- X299
+	-- SL23/SL30: the funnel's last step, and how every season ended
+	if oldSeason == 1 then
+		Telemetry.step(ClubState.owner(), "Season1Finished")
+	end
+	Telemetry.event(ClubState.owner(), "Season" .. outcome, oldSeason)
 	if outcome == "Promoted" then
 		tier += 1
 		popularity = Economy.popularityAfter(popularity, "Promoted")

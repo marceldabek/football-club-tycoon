@@ -5,6 +5,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
+local Telemetry = require(ReplicatedStorage.Shared.Telemetry)
 local ClubState = require(script.Parent.ClubState)
 local Format = require(game:GetService("ReplicatedStorage").Shared.Format) -- X342
 local WorldBuilder = require(script.Parent.WorldBuilder)
@@ -105,6 +106,8 @@ local function pay(cost: number, category: string): (boolean, string?)
 		return false, ("Need %s more"):format(money(cost - cash))
 	end
 	ClubState.addCash(-cost, category) -- X299: which upgrade the money went on
+	-- SL23: the value is how many matches in, so "bought before match 2" can be read
+	Telemetry.event(ClubState.owner(), "UpgradeBought", (ClubState.get("MatchesPlayed") :: number?) or 0)
 	return true
 end
 

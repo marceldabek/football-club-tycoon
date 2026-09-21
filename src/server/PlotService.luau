@@ -12,6 +12,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local HttpService = game:GetService("HttpService")
 
 local PlotRegistry = require(ReplicatedStorage.Shared.PlotRegistry)
+local Telemetry = require(ReplicatedStorage.Shared.Telemetry)
 local RemoteRouter = require(script.Parent.RemoteRouter)
 local TreeKit = require(script.Parent.TreeKit)
 
@@ -363,6 +364,7 @@ function PlotService.claim(player: Player, plot: number): (boolean, string?)
 	end)
 	if not loaded or not result then
 		warn(("[FCT] plot %d failed to start for %s: %s"):format(plot, player.Name, tostring(result)))
+		Telemetry.event(player, "ClubLoadFailed") -- SL25
 		if not runtimes[plot] then
 			folder:Destroy()
 			player:SetAttribute("ClubPlot", nil)
@@ -379,6 +381,7 @@ function PlotService.claim(player: Player, plot: number): (boolean, string?)
 	if spawn then
 		spawn.Enabled = false
 	end
+	Telemetry.step(player, "GroundClaimed") -- SL23
 	PlotService.sendHome(player)
 	return true
 end
@@ -611,6 +614,10 @@ function PlotService.start()
 	remote("PickerView").OnServerEvent:Connect(onPickerView)
 
 	local function onJoin(player: Player)
+		Telemetry.step(player, "Joined") -- SL23
+		if registry:isFull() then
+			Telemetry.event(player, "JoinedServerFull") -- SL25
+		end
 		-- owners respawn in their office; everyone else spawns at TownSpawn
 		-- and picks a ground through the client's PlotPicker (backlog B2.2)
 		player.CharacterAdded:Connect(function()

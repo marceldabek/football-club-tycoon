@@ -460,7 +460,10 @@ Config.MaxSubs = 3
 
 -- Persistence (Milestone 5). TEMP values.
 Config.Save = {
-	storeName = "ClubProfiles", -- DataStore name; bump to reset every save during prototyping
+	-- DataStore name. FINAL (decided 2026-09-21, docs/SOFT_LAUNCH.md SL4): beta saves
+	-- carry over to the full game, so never rename this once the place is public.
+	-- Change the save shape through Profile.MIGRATIONS instead.
+	storeName = "ClubProfiles",
 	-- TEMP (overnight 2026-09-17, question 1 in docs/OVERNIGHT_LOG.md): Studio
 	-- playtests use their own DataStore so agent tests never touch the live club.
 	-- Set to "" to load your real club in Studio again.

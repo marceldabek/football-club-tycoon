@@ -10,6 +10,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Profile = require(ReplicatedStorage.Shared.Profile)
 local Finance = require(ReplicatedStorage.Shared.Finance) -- X299
 local ClubCrest = require(ReplicatedStorage.Shared.ClubCrest)
+local Telemetry = require(ReplicatedStorage.Shared.Telemetry)
 local PlotContext = require(script.Parent.PlotContext)
 
 local ClubState = {}
@@ -86,6 +87,7 @@ function ClubState.addCash(amount: number, category: string?): number
 	if category then
 		Finance.record(finance, category, moved)
 		publishFinance()
+		Telemetry.cash(ClubState.owner(), moved, after, category) -- SL24
 	end
 	return moved
 end
