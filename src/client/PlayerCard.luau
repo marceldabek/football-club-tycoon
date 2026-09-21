@@ -216,26 +216,50 @@ function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 		)
 	end
 
+	local shine: Tween? = nil
 	if p.wonderkid then
-		-- the shiny: a band of light that keeps sweeping across the face
-		local shine = Instance.new("UIGradient")
-		shine.Name = "Shine"
-		shine.Rotation = 20
-		shine.Color = ColorSequence.new(Color3.new(1, 1, 1))
-		shine.Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 0),
-			NumberSequenceKeypoint.new(0.45, 0),
-			NumberSequenceKeypoint.new(0.5, 0.35),
-			NumberSequenceKeypoint.new(0.55, 0),
-			NumberSequenceKeypoint.new(1, 0),
+		-- The shiny: a real band of light sweeping across the face. A UIGradient
+		-- can only multiply, so it can darken but never brighten -- this is a
+		-- white bar over the art instead. The layer is inset to the shield's
+		-- inner rectangle so the bar never shows over the art's transparent
+		-- corners or its bottom point.
+		-- a CanvasGroup, not a Frame: ClipsDescendants does not clip a *rotated*
+		-- child, and the bar would stream out across the whole screen
+		local layer = Instance.new("CanvasGroup")
+		layer.Name = "Shine"
+		layer.BackgroundTransparency = 1
+		layer.ClipsDescendants = true
+		layer.AnchorPoint = Vector2.new(0.5, 0.5)
+		layer.Position = UDim2.fromScale(0.5, 0.48)
+		layer.Size = UDim2.fromScale(0.82, 0.78)
+		layer.ZIndex = 6 -- over the text as well as the art
+		layer.Parent = face
+
+		local band = Instance.new("Frame")
+		band.Name = "Band"
+		band.BackgroundColor3 = Color3.new(1, 1, 1)
+		band.BackgroundTransparency = 0.4
+		band.BorderSizePixel = 0
+		band.AnchorPoint = Vector2.new(0.5, 0.5)
+		band.Position = UDim2.fromScale(-0.2, 0.5)
+		band.Size = UDim2.fromScale(0.22, 2.05) -- ~0.18 x 1.6 of the whole card
+		band.Rotation = 20
+		band.ZIndex = 6
+		band.Parent = layer
+		local soft = Instance.new("UIGradient")
+		soft.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.5, 0),
+			NumberSequenceKeypoint.new(1, 1),
 		})
-		shine.Offset = Vector2.new(-1, 0)
-		shine.Parent = face
-		TweenService:Create(
-			shine,
+		soft.Parent = band
+
+		shine = TweenService:Create(
+			band,
 			TweenInfo.new(1.6, Enum.EasingStyle.Linear, Enum.EasingDirection.In, -1, false, 1.2),
-			{ Offset = Vector2.new(1, 0) }
-		):Play()
+			{ Position = UDim2.fromScale(1.2, 0.5) }
+		)
+		;(shine :: Tween):Play()
 	end
 
 	local card = { frame = frame, tier = tier, faceUp = true } :: any
@@ -247,8 +271,15 @@ function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 	end
 
 	-- 2D spin: the back is left-right symmetrical so the swap at zero width
-	-- does not jump (docs/CARD_BACKGROUND_PROMPTS.md s7)
+	-- does not jump (docs/CARD_BACKGROUND_PROMPTS.md s7). A tap while it is
+	-- already turning is ignored, or the second flip would read `full` off a
+	-- half-squashed card and leave it that shape.
+	local flipping = false
 	function card.flip(self: Card)
+		if flipping then
+			return
+		end
+		flipping = true
 		local full = frame.Size
 		aspect.Parent = nil -- or the constraint fights the squash
 		local shut = TweenService:Create(frame, HALF_FLIP, { Size = UDim2.new(0, 0, full.Y.Scale, full.Y.Offset) })
@@ -259,9 +290,13 @@ function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 		open:Play()
 		open.Completed:Wait()
 		aspect.Parent = frame
+		flipping = false
 	end
 
 	function card.destroy(self: Card)
+		if shine then
+			shine:Cancel() -- the sweep tween outlives the instance otherwise
+		end
 		frame:Destroy()
 	end
 
