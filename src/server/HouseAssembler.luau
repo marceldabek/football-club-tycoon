@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local HouseRecipes = require(ReplicatedStorage.Shared.HouseRecipes)
+local HouseUnits = require(ReplicatedStorage.Shared.HouseUnits)
 local TownFrontage = require(ReplicatedStorage.Shared.TownFrontage)
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local BackYards = require(ReplicatedStorage.Shared.BackYards)
@@ -28,7 +29,9 @@ local V3Perf = require(ServerScriptService.Server.V3Perf)
 local HouseAssembler = {}
 
 -- Section 9, published by Lane P 2026-09-20. Houses and plot boundaries are budgeted apart.
-HouseAssembler.PART_BUDGET = 24000
+-- Houses were 24,000 while every kit module was its own MeshPart; merged units (3 a house,
+-- 2 a gable end) halve that.
+HouseAssembler.PART_BUDGET = 12000
 HouseAssembler.BOUNDARY_BUDGET = 13500
 
 export type Detail = {
@@ -42,18 +45,22 @@ export type Detail = {
 	yards: "all" | "corner" | "none", -- back fences
 	bins: boolean, -- wheelie bin in one yard in three
 	flatten: boolean, -- drop KitPlacer's wrapper Models, keep only the MeshParts
+	-- true: one merged masonry / roof / trim mesh per unit (Shared/HouseUnits) wherever the kit
+	-- has them; tier, roofSpan, backSpan and cornerEnds' part costs then do not apply. false, or
+	-- a place without the HOUSE__ meshes: the unit is assembled module by module as before.
+	merged: boolean,
 }
 
 -- EVERY budget lever is one field here; the [FCT] line reports the result. Measured per-unit
 -- costs for each preset are in docs/TOWN_V3_HANDOFFS.md (Lane H).
 HouseAssembler.PRESETS = {
 	-- Tier A: within TIER_A_RADIUS of a plot, the Market Square or the station. Slice density.
-	tierA = { tier = 2, roofSpan = "unit", backSpan = "row", cornerEnds = true, gardens = "all", gardenStyles = "all", boundaryStretch = 1.8, yards = "all", bins = true, flatten = true },
+	tierA = { tier = 2, roofSpan = "unit", backSpan = "row", cornerEnds = true, gardens = "all", gardenStyles = "all", boundaryStretch = 1.8, yards = "all", bins = true, flatten = true, merged = true },
 	-- Tier B: the same houses under one continuous roof per row (a terrace shares its roof in
 	-- real life too; saves 1.6 MeshParts a unit), boundaries held to 4 MeshParts a unit.
-	tierB = { tier = 2, roofSpan = "row", backSpan = "row", cornerEnds = true, gardens = "all", gardenStyles = "light", boundaryStretch = 2.6, yards = "none", bins = false, flatten = true },
+	tierB = { tier = 2, roofSpan = "row", backSpan = "row", cornerEnds = true, gardens = "all", gardenStyles = "light", boundaryStretch = 2.6, yards = "none", bins = false, flatten = true, merged = true },
 	-- Emergency brake if Lane P cuts again: 6 MeshParts a unit, no boundaries.
-	lean = { tier = 1, roofSpan = "row", backSpan = "row", cornerEnds = false, gardens = "none", gardenStyles = "light", boundaryStretch = 2.6, yards = "none", bins = false, flatten = true },
+	lean = { tier = 1, roofSpan = "row", backSpan = "row", cornerEnds = false, gardens = "none", gardenStyles = "light", boundaryStretch = 2.6, yards = "none", bins = false, flatten = true, merged = true },
 } :: { [string]: Detail }
 HouseAssembler.DETAIL_BY_TIER = { A = HouseAssembler.PRESETS.tierA, B = HouseAssembler.PRESETS.tierB }
 
@@ -114,7 +121,9 @@ local function trimAppearance(trim: string): SurfaceAppearance?
 end
 
 -- Places one kit asset with its bounding-box bottom centre at `cf`.
-local function put(ctx: Ctx, name: string, cf: CFrame, scale: number, stretchX: number?, trim: string?, role: string)
+-- `look` overrides the trim sheet: the merged units' masonry and roof meshes carry their own
+-- tileable brick / slate SurfaceAppearance.
+local function put(ctx: Ctx, name: string, cf: CFrame, scale: number, stretchX: number?, trim: string?, role: string, look: SurfaceAppearance?)
 	local isBoundary = BOUNDARY_ROLE[role] == true
 	local parent = if isBoundary then ctx.boundary else ctx.house
 	local model = KitPlacer.place(name, cf, parent, { scale = scale })
@@ -157,11 +166,11 @@ local function put(ctx: Ctx, name: string, cf: CFrame, scale: number, stretchX: 
 	-- The MEH modular pieces were uploaded without textures (Question P3); they share the prefab
 	-- houses' trim sheet. ts1 leaves an existing SurfaceAppearance alone, so a fixed export wins;
 	-- ts3 always swaps, because the second trim only exists as the prefab's SurfaceAppearance.
-	local sa = if trim then trimAppearance(trim) else nil
+	local sa = look or (if trim then trimAppearance(trim) else nil)
 	for _, part in parts do
 		if sa then
 			local old = part:FindFirstChildOfClass("SurfaceAppearance")
-			if old and trim ~= "ts1" then
+			if old and (look or trim ~= "ts1") then
 				old:Destroy()
 				old = nil
 			end
@@ -218,6 +227,48 @@ local function putCore(ctx: Ctx, lotCF: CFrame, x0: number, x1: number, zFront: 
 	ctx.counts.cores += 1
 end
 
+-- Merged units (Shared/HouseUnits, tools/kit/make_house_units.py): brick and slates sit on their
+-- own tileable textures, because on the shared trim sheet every module edge bled the quadrant
+-- beside it and showed as a line from across the street.
+local LAYER_LOOK = { masonry = "HouseBrick_", roof = "HouseSlate_" }
+
+local function layerLook(layer: string, trim: string): SurfaceAppearance?
+	local prefix = LAYER_LOOK[layer]
+	if not prefix then
+		return nil
+	end
+	local found = KitPlacer.find(prefix .. trim)
+	return if found and found:IsA("SurfaceAppearance") then found else nil
+end
+
+-- True when the kit holds every mesh and texture this unit needs in this trim.
+local function unitReady(key: string, trim: string): boolean
+	local unit = HouseUnits.UNITS[key]
+	if not unit or not trimAppearance(trim) then
+		return false
+	end
+	for _, mesh in unit.meshes do
+		if not KitPlacer.find(mesh.name) or (LAYER_LOOK[mesh.layer] and not layerLook(mesh.layer, trim)) then
+			return false
+		end
+	end
+	return true
+end
+
+local function putUnit(ctx: Ctx, unitCF: CFrame, s: number, key: string, trim: string)
+	for _, mesh in HouseUnits.UNITS[key].meshes do
+		put(ctx, mesh.name, unitCF * CFrame.new(mesh.offset * s), s, nil, trim, mesh.layer, layerLook(mesh.layer, trim))
+	end
+end
+
+local function unitKey(plan: HouseRecipes.UnitPlan): string
+	return plan.recipe.id .. (if plan.mirrored then "_m" else "")
+end
+
+local function capKey(side: number, windowed: boolean): string
+	return ("cap_%s_%s"):format(if windowed then "win" else "plain", if side < 0 then "left" else "right")
+end
+
 local function putPiece(ctx: Ctx, unitCF: CFrame, s: number, p: HouseRecipes.Piece, trim: string, prefab: boolean?)
 	local cf = unitCF * CFrame.new(p.offset * s) * CFrame.Angles(0, math.rad(p.yaw), 0)
 	if prefab then
@@ -270,6 +321,19 @@ local function buildLot(ctx: Ctx, lot: Lot, origin: CFrame)
 	-- Windowed gables only where a terrace meets a junction; a semi's side faces its neighbour.
 	local windowedEnds = lot.corner and detail.cornerEnds and isTerrace
 
+	-- Merged unit meshes for the whole lot or for none of it: a row's roof and back wall are
+	-- either inside every unit or stretched along the row.
+	local merged = detail.merged
+	if merged then
+		for i, plan in plans do
+			local ready = plan.recipe.prefab or unitReady(unitKey(plan), trim)
+			if ready and not plan.recipe.ends then
+				ready = (i > 1 or unitReady(capKey(-1, windowedEnds), trim)) and (i < #plans or unitReady(capKey(1, windowedEnds), trim))
+			end
+			merged = merged and ready
+		end
+	end
+
 	-- One core per run of bodies that touch: a whole terrace or semi pair, or one detached house.
 	local coreFrom: number?, coreTo: number?, coreScale = nil, nil, 1
 	local function flushCore()
@@ -296,25 +360,30 @@ local function buildLot(ctx: Ctx, lot: Lot, origin: CFrame)
 			coreFrom, coreTo, coreScale = coreFrom or x - half, x + half, s
 		end
 
-		for _, p in HouseRecipes.pieces(recipe, plan.mirrored) do
-			local skip = p.tier > detail.tier
-				or (isRow and p.role == "roof" and detail.roofSpan == "row")
-				or (isRow and p.role == "back" and detail.backSpan == "row")
-			if not skip then
-				putPiece(ctx, unitCF, s, p, trim, recipe.prefab)
+		if merged and not recipe.prefab then
+			putUnit(ctx, unitCF, s, unitKey(plan), trim)
+		else
+			for _, p in HouseRecipes.pieces(recipe, plan.mirrored) do
+				local skip = p.tier > detail.tier
+					or (isRow and p.role == "roof" and detail.roofSpan == "row")
+					or (isRow and p.role == "back" and detail.backSpan == "row")
+				if not skip then
+					putPiece(ctx, unitCF, s, p, trim, recipe.prefab)
+				end
 			end
 		end
 
 		-- Gable ends only at the two ends of a row; party walls between units are never built.
 		if not recipe.ends then
-			if i == 1 then
-				for _, p in HouseRecipes.endCap(-1, windowedEnds) do
-					putPiece(ctx, unitCF, s, p, trim)
-				end
-			end
-			if i == #plans then
-				for _, p in HouseRecipes.endCap(1, windowedEnds) do
-					putPiece(ctx, unitCF, s, p, trim)
+			for _, side in { -1, 1 } do
+				if (side < 0 and i == 1) or (side > 0 and i == #plans) then
+					if merged then
+						putUnit(ctx, unitCF, s, capKey(side, windowedEnds), trim)
+					else
+						for _, p in HouseRecipes.endCap(side, windowedEnds) do
+							putPiece(ctx, unitCF, s, p, trim)
+						end
+					end
 				end
 			end
 		end
@@ -384,8 +453,8 @@ local function buildLot(ctx: Ctx, lot: Lot, origin: CFrame)
 
 	flushCore()
 
-	-- Row-spanning back wall and roof, stretched along the whole row.
-	if isRow then
+	-- Row-spanning back wall and roof, stretched along the whole row (module-by-module builds only).
+	if isRow and not merged then
 		local s = rowScale
 		local M = HouseRecipes.MODULE
 		local rowCF = lotCF * CFrame.new(0, 0, -depth / 2 + M * s)

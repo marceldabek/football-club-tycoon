@@ -133,7 +133,7 @@ function tests.houses_stay_inside_their_lot_and_face_the_street()
 			if id then
 				local lot = byId[id]
 				local lotCF = HouseAssembler.lotFrame(lot)
-				local doors = 0
+				local doors = 0 -- one per body: a door leaf, or a merged unit's masonry mesh
 				for _, part in d:GetDescendants() do
 					if part:IsA("MeshPart") then
 						local role = part:GetAttribute("Role")
@@ -141,6 +141,8 @@ function tests.houses_stay_inside_their_lot_and_face_the_street()
 						if role == "door" then
 							doors += 1
 							assert(p.Z < -lot.size.Z / 2 + 1.5, id .. ": a door is not on the street side")
+						elseif role == "masonry" and not part.Name:find("__cap_", 1, true) then
+							doors += 1
 						end
 						if role ~= "garden" and role ~= "yard" then
 							assert(math.abs(p.X) <= lot.size.X / 2 + 1.5, id .. ": " .. part.Name .. " is outside the lot along the street")
@@ -201,6 +203,51 @@ function tests.every_modular_body_has_a_core_behind_its_doors()
 			end
 		end
 		assert(cores == counts.cores and cores > 0, ("count says %d cores, tree has %d"):format(counts.cores, cores))
+	end)
+end
+
+local function mergedInstalled(): boolean
+	local kit = ServerStorage:FindFirstChild("Kit")
+	local meshes = kit and kit:FindFirstChild("Meshes")
+	return meshes ~= nil and meshes:FindFirstChild("HOUSE__T01_plain__masonry") ~= nil
+end
+
+-- With the merged unit meshes installed a house is three MeshParts and a gable end two, each
+-- layer wearing its own look; without them (or with merged = false) it is built module by module.
+function tests.merged_units_replace_the_modules()
+	if not kitInstalled() or not mergedInstalled() then
+		return
+	end
+	withBuild(nil, nil, function(holder, counts)
+		assert(counts.missing == 0, counts.missing .. " KitMissing")
+		local perUnit = counts.houseParts / counts.units
+		assert(perUnit <= 4.2, ("merged houses cost %.1f MeshParts a unit"):format(perUnit))
+		for _, d in holder:GetDescendants() do
+			if d:IsA("MeshPart") then
+				local role = d:GetAttribute("Role")
+				assert(role ~= "front" and role ~= "back" and role ~= "side", d.Name .. ": a loose module in a merged build")
+				if role == "masonry" or role == "roof" or role == "trim" then
+					local sa = d:FindFirstChildOfClass("SurfaceAppearance")
+					assert(sa, d.Name .. " has no SurfaceAppearance")
+					local want = if role == "masonry" then "HouseBrick_" elseif role == "roof" then "HouseSlate_" else nil
+					assert(want == nil or sa.Name:sub(1, #want) == want, ("%s wears %s"):format(d.Name, sa.Name))
+				end
+			end
+		end
+	end)
+	local legacy = table.clone(HouseAssembler.PRESETS.tierA)
+	legacy.merged = false
+	withBuild({ district = "Mapleford" }, legacy, function(holder, _counts)
+		local fronts = 0
+		for _, d in holder:GetDescendants() do
+			if d:IsA("MeshPart") then
+				assert(d:GetAttribute("Role") ~= "masonry", "merged = false still placed a unit mesh")
+				if d:GetAttribute("Role") == "front" then
+					fronts += 1
+				end
+			end
+		end
+		assert(fronts > 0, "the module-by-module build placed no fronts")
 	end)
 end
 

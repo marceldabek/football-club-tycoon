@@ -1,0 +1,50 @@
+{
+ "house_brick_ts1_D.png": {
+  "assetId": "115218689314837",
+  "name": "house_brick_ts1_D"
+ },
+ "house_slate_ts1_D.png": {
+  "assetId": "81153759768929",
+  "name": "house_slate_ts1_D"
+ },
+ "house_brick_ts1_N.png": {
+  "assetId": "139424326327868",
+  "name": "house_brick_ts1_N"
+ },
+ "house_slate_ts1_N.png": {
+  "assetId": "119725059392399",
+  "name": "house_slate_ts1_N"
+ },
+ "house_brick_ts1_R.png": {
+  "assetId": "131615447093114",
+  "name": "house_brick_ts1_R"
+ },
+ "house_slate_ts1_R.png": {
+  "assetId": "83475289275837",
+  "name": "house_slate_ts1_R"
+ },
+ "house_brick_ts3_D.png": {
+  "assetId": "127690439033210",
+  "name": "house_brick_ts3_D"
+ },
+ "house_slate_ts3_D.png": {
+  "assetId": "133825393192468",
+  "name": "house_slate_ts3_D"
+ },
+ "house_brick_ts3_N.png": {
+  "assetId": "105014319545317",
+  "name": "house_brick_ts3_N"
+ },
+ "house_slate_ts3_N.png": {
+  "assetId": "104816570858573",
+  "name": "house_slate_ts3_N"
+ },
+ "house_brick_ts3_R.png": {
+  "assetId": "118864023212165",
+  "name": "house_brick_ts3_R"
+ },
+ "house_slate_ts3_R.png": {
+  "assetId": "71742552246048",
+  "name": "house_slate_ts3_R"
+ }
+}
