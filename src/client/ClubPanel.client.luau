@@ -15,6 +15,7 @@ local Squad = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Squ
 local Finance = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Finance")) -- X299
 local Theme = require(script.Parent.Theme)
 local LineupBoard = require(script.Parent.LineupBoard)
+local PackOpening = require(script.Parent.PackOpening)
 local Headshot = require(script.Parent.Headshot)
 local Crest = require(script.Parent.Crest)
 
@@ -47,7 +48,9 @@ type Club = {
 	coachLevel: number,
 	scoutLevel: number,
 	shortlist: { Player },
-	shortlistMatchesLeft: number?, -- X276: matches before it is re-scouted
+	pinned: Player?,
+	packRevealed: boolean?,
+	packFree: boolean?,
 }
 
 local money = Theme.money
@@ -208,6 +211,7 @@ local selectedId: number? = nil
 local tabButtons: { [string]: TextButton } = {}
 
 local render: () -> ()
+local setOpen: (open: boolean) -> () -- defined below; the Scouting tab closes the panel to open a pack
 
 -- Five tabs share the row: each takes a fifth of the width minus its share of the gaps.
 -- X299 added FINANCE; the row divides itself by #TAB_NAMES
@@ -638,9 +642,21 @@ local function renderScouting(club: Club)
 			cell(head, ("Next: %s  ·  %s"):format(nextLevel.name, money(nextLevel.cost)), 0, 280, { Position = UDim2.new(1, -12, 0, 0), AnchorPoint = Vector2.new(1, 0), Size = UDim2.fromOffset(280, 64), TextColor3 = GREY, TextXAlignment = Enum.TextXAlignment.Right, TextYAlignment = Enum.TextYAlignment.Center })
 		end
 	end
-	if not level then
-		infoFooter("Better scouts find better players with higher ceilings, look further abroad, and can tell you more precisely how high.")
-		return
+	-- A pack lands after every match at every scout level, so the report opens
+	-- from here with no scout hired too: the hire-a-scout pitch above stays.
+	if canManage() and club.packRevealed ~= true and #club.shortlist > 0 then
+		local open = button(content, "OPEN SCOUT REPORT", Theme.colors.info, {
+			Size = UDim2.fromOffset(280, 46),
+			TextSize = 17,
+			Font = Theme.fonts.display,
+			LayoutOrder = nextOrder(),
+		})
+		open.Activated:Connect(function()
+			setOpen(false)
+			PackOpening.open(loadClub, actionEvent, { fromDesk = false })
+		end)
+		note("Three new cards are face down on your desk.", GREY)
+		return -- the names stay secret until the cards are turned
 	end
 
 	-- shortlist panel: title, column headers, one row per prospect
@@ -674,14 +690,15 @@ local function renderScouting(club: Club)
 	if n == 0 then
 		cell(list, "Nobody left on the list. New prospects arrive after the next match.", 18, 700, { Position = UDim2.fromOffset(18, 92), Size = UDim2.new(1, -36, 0, 40), TextColor3 = GREY })
 	end
-	for i, p in club.shortlist do
+	-- one prospect row: face, name, OVR, ceiling and the action on the right
+	local function prospectRow(panel: Frame, p: Player, top: number, pinned: boolean)
 		local r = Instance.new("Frame")
 		r.Name = ("Prospect%d"):format(p.id)
 		r.BackgroundColor3 = ROW_CARD
 		r.BorderSizePixel = 0
-		r.Position = UDim2.new(0, 12, 0, 92 + (i - 1) * (ROW_H + ROW_GAP))
+		r.Position = UDim2.new(0, 12, 0, top)
 		r.Size = UDim2.new(1, -24, 0, ROW_H)
-		r.Parent = list
+		r.Parent = panel
 		Theme.corner(r, Theme.cardRadius)
 		Theme.stroke(r)
 		local face = Instance.new("Frame")
@@ -706,31 +723,71 @@ local function renderScouting(club: Club)
 		cell(r, potText, 0, 110, { Position = UDim2.new(COL_POT, -12, 0, 0), Size = UDim2.fromOffset(110, ROW_H), Font = Theme.fonts.display, TextSize = if band then 24 else 32, TextColor3 = CYAN, TextXAlignment = Enum.TextXAlignment.Center, TextYAlignment = Enum.TextYAlignment.Center })
 		if canManage() then
 			local sign = Theme.button(r, ("Sign %s"):format(money(p.fee or 0)), "primary", {
-				Size = UDim2.new(1 - COL_FEE, -36, 0, 48),
-				Position = UDim2.new(1, -12, 0.5, 0),
+				Size = UDim2.new(1 - COL_FEE, -36, 0, if pinned then 32 else 48),
+				Position = UDim2.new(1, -12, if pinned then 0.3 else 0.5, 0),
 				AnchorPoint = Vector2.new(1, 0.5),
-				TextSize = 18,
+				TextSize = if pinned then 16 else 18,
 				Font = Theme.fonts.display,
 			})
 			markAffordable(sign, p.fee or 0, money(p.fee or 0))
 			sign.Activated:Connect(function()
 				actionEvent:FireServer("sign", p.id)
 			end)
+			if pinned then
+				-- unpinning throws the card away for good, so it asks twice
+				local drop = Theme.button(r, "UNPIN", "ghost", {
+					Size = UDim2.new(1 - COL_FEE, -36, 0, 28),
+					Position = UDim2.new(1, -12, 0.78, 0),
+					AnchorPoint = Vector2.new(1, 0.5),
+					TextSize = 14,
+				})
+				local armed = false
+				drop.Activated:Connect(function()
+					if armed then
+						actionEvent:FireServer("unpin")
+						return
+					end
+					armed = true
+					drop.Text = "SURE?"
+					task.delay(2, function()
+						if drop.Parent then
+							armed = false
+							drop.Text = "UNPIN"
+						end
+					end)
+				end)
+			end
 		else
 			cell(r, money(p.fee or 0), 0, 200, { Position = UDim2.new(COL_FEE, 0, 0, 0), Size = UDim2.new(1 - COL_FEE, -12, 0, ROW_H), TextColor3 = GREY, Font = Theme.fonts.bold, TextXAlignment = Enum.TextXAlignment.Center, TextYAlignment = Enum.TextYAlignment.Center })
 		end
 	end
 
-	-- X276: the list keeps for a few matches now, so say how long it has left
-	local left = club.shortlistMatchesLeft
-	local keeps = if type(left) == "number" and left > 1
-		then ("This list keeps for %d more match%s, so you can save up for someone."):format(left, if left == 1 then "" else "es")
-		else "A new report lands on your desk after every match."
+	for i, p in club.shortlist do
+		prospectRow(list, p, 92 + (i - 1) * (ROW_H + ROW_GAP), false)
+	end
+
+	-- the pinned card: his fee was locked when he was pinned, and he keeps his
+	-- place while new reports come and go
+	if club.pinned then
+		local pin = scoutPanel(92 + ROW_H + 16)
+		Theme.text(pin, "PINNED", "display", {
+			Size = UDim2.fromOffset(300, 40),
+			Position = UDim2.fromOffset(18, 10),
+			TextSize = 26,
+			TextYAlignment = Enum.TextYAlignment.Center,
+		})
+		cell(pin, "Fee held until the season ends", 0, 300, { Position = UDim2.new(1, -20, 0, 10), AnchorPoint = Vector2.new(1, 0), Size = UDim2.fromOffset(300, 40), TextColor3 = GREY, TextXAlignment = Enum.TextXAlignment.Right, TextYAlignment = Enum.TextYAlignment.Center })
+		prospectRow(pin, club.pinned :: Player, 92, true)
+	end
+
 	-- X337: the band is the scout's opinion, so say whose opinion it is
-	local trust = if doubt == 0
-		then "Your scouting network reports a ceiling exactly. "
+	local trust = if not level
+		then "A walk-in trialist's ceiling is anyone's guess. "
+		elseif doubt == 0 then "Your scouting network reports a ceiling exactly. "
 		else ("Potential is your scout's estimate, and a better scout narrows it (within %d today). "):format(doubt)
-	infoFooter("Potential shows how far a player can develop. Young players improve faster with a coach. " .. trust .. keeps)
+	infoFooter("Potential shows how far a player can develop. Young players improve faster with a coach. "
+		.. trust
+		.. "A new report lands on your desk after every match.")
 end
 
 -- ----------------------------------------------------------------- League tab
@@ -1149,17 +1206,13 @@ render = function()
 	elseif currentTab == "History" then
 		renderHistory()
 	elseif currentTab == "Scouting" then
-		renderScouting(club)
-		-- reading the report, from the desk or from this menu, clears its glow
-		if get("ScoutReportNew") == true then
-			actionEvent:FireServer("openReport")
-		end
+		renderScouting(club) -- opening the pack is what clears the desk glow now
 	else
 		renderStaff(club)
 	end
 end
 
-local function setOpen(open: boolean)
+setOpen = function(open: boolean)
 	-- X339: squad, transfers, scouting and finance are not the first thing a
 	-- new player should meet. The naming card is up while `NeedsName` is true
 	-- and `Phase` is already "Manage", so gating on the phase alone let the
@@ -1187,10 +1240,12 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt,
 	if prompt.Name == "ClubPrompt" then
 		setOpen(true)
 	elseif prompt.Name == "ScoutPrompt" then
-		-- TEMP: until the pack-opening screen exists, the report opens the
-		-- Scouting tab (render clears the glow on the desk).
-		currentTab = "Scouting"
-		setOpen(true)
+		local folder = prompt.Parent
+		setOpen(false)
+		PackOpening.open(loadClub, actionEvent, {
+			fromDesk = true,
+			folder = if folder and folder:IsA("BasePart") then folder else nil,
+		})
 	end
 end)
 
@@ -1218,6 +1273,14 @@ end)
 
 for _, key in { "Club", "Cash", "MatchesPlayed", "LeagueTable", "LastRound", "Demand", "History", "Finance", "ClubName", "OwnerUserId" } do
 	state:GetAttributeChangedSignal(key):Connect(render)
+end
+-- a signing, a pin or an unpin rewrites the club JSON: the open pack redraws
+for _, key in { "Club", "Cash" } do
+	state:GetAttributeChangedSignal(key):Connect(function()
+		if PackOpening.isOpen() then
+			PackOpening.refresh()
+		end
+	end)
 end
 -- X339: the button hides while the naming card is up as well as during a match
 local function refreshOpenButton()
