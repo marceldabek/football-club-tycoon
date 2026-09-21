@@ -172,16 +172,64 @@ function T.afterMatchCountsGoals()
 	assert(Squad.byId(players)[striker].goals == 2, "goals not recorded")
 end
 
-function T.prospectsRespectScoutLevel()
-	assert(#Squad.prospects(1, 45, 0) == 0, "no scout should mean no prospects")
-	for level, spec in Config.ScoutLevels do
-		local list = Squad.prospects(level * 10, 45, level)
-		assert(#list == spec.prospects, ("level %d should give %d prospects"):format(level, spec.prospects))
+function T.everyPackIsThreeCards()
+	for level = 0, #Config.ScoutLevels do
+		local list = Squad.prospects(level * 10 + 1, 45, level)
+		assert(#list == Config.PackSize, ("level %d gave %d cards"):format(level, #list))
 		for _, p in list do
 			assert(p.fee >= 100, "fee too small")
 			assert(p.id < 0, "prospect ids must be negative")
+		end
+	end
+end
+
+function T.walkInPackIsMostlyBronze()
+	local bronze, total = 0, 0
+	for seed = 1, 300 do
+		for _, p in Squad.prospects(seed, 45, 0) do
+			total += 1
+			if Squad.rarity(p.overall) == "Bronze" then
+				bronze += 1
+			end
+		end
+	end
+	assert(bronze / total >= 0.9, ("only %d%% bronze"):format(bronze / total * 100))
+end
+
+function T.walkInsAreWorseThanAScouts()
+	local walk, local_ = 0, 0
+	for seed = 1, 200 do
+		for _, p in Squad.prospects(seed, 50, 0) do
+			walk += p.overall
+		end
+		for _, p in Squad.prospects(seed, 50, 1) do
+			local_ += p.overall
+		end
+	end
+	assert(walk < local_, "hiring a scout should improve the pack")
+end
+
+function T.trialistPackBeatsTheWeakestStarter()
+	for seed = 1, 100 do
+		local players = Squad.generate(seed, 45)
+		local lineup = Squad.autoLineup(players)
+		local byId = Squad.byId(players)
+		local weakest = byId[lineup.xi[1]]
+		for _, id in lineup.xi do
+			if byId[id].overall < weakest.overall then
+				weakest = byId[id]
+			end
+		end
+		local pack = Squad.trialistPack(seed, players, lineup.xi)
+		assert(#pack == Config.PackSize, "trialist pack is three cards")
+		local found = false
+		for _, p in pack do
+			if p.role == weakest.role and p.overall >= weakest.overall + Config.TrialistBonus[1] then
+				found = true
+			end
 			assert(p.potential >= p.overall, "potential below overall")
 		end
+		assert(found, "nobody in the pack improves the weakest position")
 	end
 end
 

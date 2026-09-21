@@ -618,8 +618,8 @@ local function renderScouting(club: Club)
 		then "He names a ceiling exactly."
 		else ("He puts a ceiling within %d."):format(doubt)
 	local desc = if level
-		then ("Finds %d prospects after every match. %s"):format(level.prospects, precision)
-		else "A scout brings you a short list of players you can sign, refreshed after every match."
+		then ("A pack of %d after every match. %s"):format(Config.PackSize, precision)
+		else ("%d walk-in trialists after every match. Hire a scout for better players, from further afield."):format(Config.PackSize)
 	cell(head, desc, 58 + textW + 32, 520, { TextColor3 = Color3.fromRGB(210, 215, 225), Size = UDim2.new(1, -(58 + textW + 32) - 300, 0, 64), TextYAlignment = Enum.TextYAlignment.Center, TextTruncate = Enum.TextTruncate.AtEnd })
 	if nextLevel then
 		if canManage() then
@@ -639,7 +639,7 @@ local function renderScouting(club: Club)
 		end
 	end
 	if not level then
-		infoFooter("Hire a scout to start receiving prospects. Better scouts find more players, with higher ceilings, and can tell you more precisely how high.")
+		infoFooter("Better scouts find better players with higher ceilings, look further abroad, and can tell you more precisely how high.")
 		return
 	end
 

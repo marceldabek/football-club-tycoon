@@ -925,22 +925,23 @@ function Squad.rarity(overall: number): string
 	return name
 end
 
--- Scout shortlist. Better scouts find more and higher-ceiling players.
+-- A scout pack: Config.PackSize prospects. Level 0 is the walk-in pack. Better
+-- scouts find higher-ceiling players further afield.
 -- Ids are negative and unique per seed so they never clash with squad ids.
 function Squad.prospects(seed: number, avgOverall: number, scoutLevel: number, avoidNames: { [string]: boolean }?): { Prospect }
-	local level = Config.ScoutLevels[scoutLevel]
+	local level = if scoutLevel == 0 then Config.WalkInPack else Config.ScoutLevels[scoutLevel]
 	if not level then
 		return {}
 	end
 	local rng = Random.new(seed)
-	local people = TeamGen.generatePeople(rng, level.prospects, avoidNames, Squad.scoutReach(scoutLevel))
+	local people = TeamGen.generatePeople(rng, Config.PackSize, avoidNames, Squad.scoutReach(scoutLevel))
 	local list: { Prospect } = {}
-	for i = 1, level.prospects do
+	for i = 1, Config.PackSize do
 		local role: Pitch.Role = GENERATE_ROLES[rng:NextInteger(3, #GENERATE_ROLES)]
 		if rng:NextNumber() < 0.12 then
 			role = "GK"
 		end
-		-- scouts look for players with a future: nobody over 27 on a shortlist
+		-- scouts look for players with a future: nobody over 27 in a pack
 		local p = makePlayer(rng, -(seed * 100 + i), people[i], 0, role, avgOverall + level.overallBonus, level.potentialBoost, 27)
 		local prospect = p :: any
 		prospect.fee = Squad.fee(p)
@@ -949,6 +950,31 @@ function Squad.prospects(seed: number, avgOverall: number, scoutLevel: number, a
 		table.insert(list, prospect)
 	end
 	return list
+end
+
+-- The pack after match 1: a walk-in pack with the last card re-cut to be a
+-- clear upgrade on the weakest man in the XI, in his position. The player keeps
+-- one of the three for nothing (ClubService), so his first pack always helps.
+function Squad.trialistPack(seed: number, players: { Player }, xi: { number }, avoidNames: { [string]: boolean }?): { Prospect }
+	local pack = Squad.prospects(seed, Squad.average(players), 0, avoidNames)
+	local lookup = byId(players)
+	local weakest: Player? = nil
+	for _, id in xi do
+		local p = lookup[id]
+		if p and (weakest == nil or p.overall < (weakest :: Player).overall) then
+			weakest = p
+		end
+	end
+	local star = pack[#pack]
+	if weakest and star then
+		local rng = Random.new(seed + 1)
+		star.role = weakest.role
+		star.overall = clampOverall(weakest.overall + rng:NextInteger(Config.TrialistBonus[1], Config.TrialistBonus[2]))
+		star.potential = math.max(star.potential, star.overall)
+		star.fee = Squad.fee(star)
+		star.potentialLow, star.potentialHigh = Squad.potentialBand(star.potential, Config.WalkInPack.potentialDoubt, star.id, star.overall)
+	end
+	return pack
 end
 
 -- X356: how the squad measures up to the division it is in. `Config.Divisions`
