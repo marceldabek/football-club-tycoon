@@ -122,6 +122,22 @@ function T.pathsideTreesAndLampsKeepOffThePathAndBuildings()
 	end
 end
 
+function T.pathsideBushesFillTheTreeLineClearOfBuildings()
+	local trees, _, bushes = PlotGrounds.pathsideSpots()
+	assert(#bushes >= 4, "bushes " .. #bushes)
+	for _, b in bushes do
+		assert(math.abs(b.Z - -12) >= 5, "clear of the 8-wide footpath at z " .. b.Z)
+		assert(b.X > -370 and b.X < -265, "along the gate leg, inside the wall")
+		for _, t in trees do
+			assert((t - b).Magnitude >= 10, "not under a tree")
+		end
+		for _, fp in PlotGrounds.footprints() do
+			local inside = b.X >= fp.min.X - 6 and b.X <= fp.max.X + 6 and b.Z >= fp.min.Y - 6 and b.Z <= fp.max.Y + 6
+			assert(not inside, ("bush at (%g, %g) crowds %s"):format(b.X, b.Z, fp.name))
+		end
+	end
+end
+
 function T.kioskStandsBesideTheFootpathClearOfTrees()
 	local kiosk
 	for _, fp in PlotGrounds.footprints() do

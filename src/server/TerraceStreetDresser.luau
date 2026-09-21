@@ -36,6 +36,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local KitPlacer = require(script.Parent.KitPlacer)
+local TreeKit = require(script.Parent.TreeKit)
 local StreetDresser = require(script.Parent.StreetDresser)
 local TerraceBuilder = require(script.Parent.TerraceBuilder)
 
@@ -505,6 +506,18 @@ local function tree(parent: Instance, spot: Spot, full: boolean, rng: Random): M
 	local base = CFrame.new(spot.position.X, 0, spot.position.Z) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
 	-- pit 0.31..0.51: pokes 0.06 above the pavement top
 	part(m, "TreePit", Vector3.new(2.4, 0.2, 2.4), base * CFrame.new(0, 0.41, 0), PIT, Enum.Material.Ground, false).CastShadow = false
+	-- the slice's oaks, upright ones kept small enough for a kerb; the trunk and
+	-- ball crown below only when the place has no oak pack
+	local oak = TreeKit.tree(m, Vector3.new(spot.position.X, 0.35, spot.position.Z), {
+		height = if full then rng:NextNumber(18, 22) else rng:NextNumber(15, 18),
+		slim = true,
+		rng = rng,
+		name = "Oak",
+	})
+	if oak then
+		m.PrimaryPart = oak:FindFirstChild("TrunkCollider") :: BasePart?
+		return m
+	end
 	local h = rng:NextNumber(10, 12)
 	local trunk = part(m, "Trunk", Vector3.new(0.7, h - 0.35, 0.7), base * CFrame.new(0, 0.35 + (h - 0.35) / 2, 0), TRUNK, Enum.Material.Wood, true)
 	m.PrimaryPart = trunk

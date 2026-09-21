@@ -8,13 +8,16 @@
 -- is kept only if it is well off every road and pavement, the buildings, the
 -- river, the railway, bus stops, roundabouts and the club plots (all pure,
 -- tested). At build time a spot is also skipped if anything already stands
--- there. Most spots get a tree (trunk and one or two crown balls), the rest a
--- pair of shrubs. All of it is Decor (hidden on Low).
+-- there. Most spots get a tree, the rest a clump of bushes: the vertical slice's
+-- oaks through TreeKit (2026-09-21, register row EI1), or a trunk with crown
+-- balls and ball shrubs when the place has no oak pack. All of it is Decor
+-- (hidden on Low).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local TownFrontage = require(ReplicatedStorage.Shared.TownFrontage)
 local StreetDresser = require(script.Parent.StreetDresser)
+local TreeKit = require(script.Parent.TreeKit)
 
 local GreeneryDresser = {}
 
@@ -24,7 +27,7 @@ GreeneryDresser.KEEP = 0.55 -- share of clear grid spots that get something (TEM
 GreeneryDresser.MAX_PER_DISTRICT = 120 -- TEMP part-budget cap, thinned evenly across the district
 -- v3 Lane I stage 2: halved. With lots as the district area all 7 housing districts
 -- fill their share, and 520 spots came to 1,188 primitive parts (it was 448 in v1).
--- These stay primitives only until the town has a tree asset (register row EI1).
+-- EI1 is closed (TreeKit oaks, 3-4 parts a tree); the cap stays for the mesh cost.
 GreeneryDresser.MAX = 260 -- TEMP overall cap
 GreeneryDresser.ROAD_CLEAR = 5 -- past the pavement's outer edge
 GreeneryDresser.BLOCK_CLEAR = 10
@@ -226,6 +229,31 @@ function GreeneryDresser.build(): string
 			continue
 		end
 		local leaves = LEAVES[rng:NextInteger(1, #LEAVES)]
+		-- the slice's oaks and bushes cut from them (TreeKit); the primitives below
+		-- only when the place has no oak pack
+		if TreeKit.available() then
+			if rng:NextNumber() < 0.7 then
+				-- spots are only checked 4 studs round, so keep to the upright oaks
+				local oak = TreeKit.tree(root, p, { height = rng:NextNumber(18, 24), slim = true, rng = rng, name = "GreenTree" })
+				if oak then
+					trees += 1
+					parts += #oak:GetChildren()
+				end
+			else
+				local clump = Instance.new("Model")
+				clump.Name = "Shrubs"
+				for k = 1, rng:NextInteger(2, 3) do
+					local a = rng:NextNumber(0, math.pi * 2)
+					local off = Vector3.new(math.cos(a), 0, math.sin(a)) * (k - 1) * rng:NextNumber(2.4, 3.2)
+					if TreeKit.bush(clump, p + off, { width = rng:NextNumber(4, 6.5), rng = rng, name = "Shrub" }) then
+						parts += 2
+					end
+				end
+				clump.Parent = root
+				shrubs += 1
+			end
+			continue
+		end
 		local m = Instance.new("Model")
 		if rng:NextNumber() < 0.7 then
 			m.Name = "GreenTree"

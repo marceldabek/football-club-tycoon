@@ -13,6 +13,7 @@ local HttpService = game:GetService("HttpService")
 
 local PlotRegistry = require(ReplicatedStorage.Shared.PlotRegistry)
 local RemoteRouter = require(script.Parent.RemoteRouter)
+local TreeKit = require(script.Parent.TreeKit)
 
 local PlotService = {}
 
@@ -41,6 +42,7 @@ local PER_CLUB = {
 	-- per-plot folder, so anything a cloned module requires must be cloned too.
 	-- PerClubModulesTest checks that; it is not obvious from reading PlotGrounds.
 	"KitPlacer",
+	"TreeKit", -- PlotGrounds' pathside oaks and bushes
 	"Clubhouse", -- WorldBuilder builds the office and dressing rooms through it
 }
 
@@ -248,10 +250,15 @@ local function buildLot(plot: number)
 		local x = rng:NextNumber(-half + 80, half - 60)
 		local z = rng:NextNumber(-half + 60, half - 60)
 		local h = rng:NextNumber(14, 24)
-		lotPart(lot, "Trunk", Vector3.new(2, h, 2), frame * CFrame.new(x, h / 2, z), Color3.fromRGB(95, 70, 50), Enum.Material.Wood)
-		local crown = lotPart(lot, "Crown", Vector3.new(1, 1, 1) * rng:NextNumber(14, 22), frame * CFrame.new(x, h + 4, z),
-			Color3.fromRGB(70, 110, 55), Enum.Material.Grass)
-		crown.Shape = Enum.PartType.Ball
+		local crownSize = rng:NextNumber(14, 22)
+		-- the slice's oaks, full size; the trunk and ball crown only when the place
+		-- has no oak pack. Its own stream, so the rocks stay where they were.
+		if not TreeKit.tree(lot, (frame * CFrame.new(x, 0, z)).Position, { height = h + 14, rng = Random.new(plot * 977 + i) }) then
+			lotPart(lot, "Trunk", Vector3.new(2, h, 2), frame * CFrame.new(x, h / 2, z), Color3.fromRGB(95, 70, 50), Enum.Material.Wood)
+			local crown = lotPart(lot, "Crown", Vector3.new(1, 1, 1) * crownSize, frame * CFrame.new(x, h + 4, z),
+				Color3.fromRGB(70, 110, 55), Enum.Material.Grass)
+			crown.Shape = Enum.PartType.Ball
+		end
 		if i % 2 == 0 then
 			local r = rng:NextNumber(3, 7)
 			lotPart(lot, "Rock", Vector3.new(r * 1.4, r, r), frame * CFrame.new(x + 20, r / 2 - 0.5, z + 12) * CFrame.Angles(0, rng:NextNumber(0, 3), 0.2),
@@ -283,8 +290,11 @@ local function buildLot(plot: number)
 	end
 	for _ = 1, 12 do
 		local r = rough:NextNumber(9, 16)
-		local bramble = lotPart(lot, "Bramble", Vector3.one * r,
-			frame * CFrame.new(rough:NextNumber(-half + 50, half - 30), r * 0.25, rough:NextNumber(-half + 30, half - 30)),
+		local bx, bz = rough:NextNumber(-half + 50, half - 30), rough:NextNumber(-half + 30, half - 30)
+		if TreeKit.bush(lot, (frame * CFrame.new(bx, 0, bz)).Position, { width = r, rng = Random.new(plot * 613 + math.floor(bx)), name = "Bramble" }) then
+			continue
+		end
+		local bramble = lotPart(lot, "Bramble", Vector3.one * r, frame * CFrame.new(bx, r * 0.25, bz),
 			Color3.fromRGB(58, 80, 42), Enum.Material.LeafyGrass)
 		bramble.Shape = Enum.PartType.Ball
 		bramble.CastShadow = false

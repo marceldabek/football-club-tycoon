@@ -39,6 +39,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local RiverDresser = require(script.Parent.RiverDresser)
 local KitPlacer = require(script.Parent.KitPlacer)
+local TreeKit = require(script.Parent.TreeKit)
 local V3Perf = require(script.Parent.V3Perf)
 
 -- v3 Lane I stage 2: the kit street light replaces TerraceBuilder's 6-part primitive
@@ -411,6 +412,12 @@ end
 
 -- Cheap tree: trunk + one crown, sometimes a second (hidden on Low quality).
 local function tree(parent: Instance, p: Vector3, rng: Random): number
+	-- the slice's oaks, upright and small (gardenClear only keeps TREE_RADIUS
+	-- clear); the primitives below only when the place has no oak pack
+	local oak = TreeKit.tree(parent, Vector3.new(p.X, 0, p.Z), { height = rng:NextNumber(15, 19), slim = true, rng = rng })
+	if oak then
+		return #oak:GetChildren()
+	end
 	local scale = rng:NextNumber(0.75, 1.1)
 	local trunkH = 7 * scale
 	part({

@@ -38,6 +38,7 @@ local ShopBuilder = require(script.Parent.ShopBuilder)
 local EstateDresser = require(script.Parent.EstateDresser)
 local EstateBuilder = require(script.Parent.EstateBuilder)
 local Planting = require(script.Parent.Planting)
+local TreeKit = require(script.Parent.TreeKit)
 
 local ForecourtDresser = {}
 
@@ -788,6 +789,14 @@ local function planterTree(parent: Instance, p: Vector3, flowers: Color3)
 	local before = #m:GetChildren()
 	Planting.bloom(m, base * CFrame.new(0, 2.8, 0), 4.2, 4.2, flowers, Random.new(math.floor(math.abs(p.X) * 3 + math.abs(p.Z))))
 	partCount += #m:GetChildren() - before
+	-- the slice's oaks, a small upright one rooted in the soil; the trunk and ball
+	-- crowns below only when the place has no oak pack
+	local oak = TreeKit.tree(m, Vector3.new(p.X, 2.2, p.Z), { height = 16, slim = true, collide = false, name = "Oak",
+		rng = Random.new(math.floor(math.abs(p.X) * 7 + math.abs(p.Z))) })
+	if oak then
+		partCount += #oak:GetChildren()
+		return
+	end
 	part(m, "Trunk", Vector3.new(0.9, 9, 0.9), base * CFrame.new(0, 2.2 + 4.5, 0), TRUNK, Enum.Material.Wood, true)
 	local crown = part(m, "Crown", Vector3.new(9, 8, 9), base * CFrame.new(0, 14, 0), LEAVES, Enum.Material.Grass, false);
 	(crown :: any).Shape = Enum.PartType.Ball

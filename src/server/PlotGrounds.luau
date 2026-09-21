@@ -51,6 +51,7 @@ local CrestBadge = require(ReplicatedStorage.Shared.CrestBadge)
 local HttpService = game:GetService("HttpService") -- X289: the academy intake
 local PlotContext = require(script.Parent.PlotContext)
 local KitPlacer = require(script.Parent.KitPlacer)
+local TreeKit = require(script.Parent.TreeKit)
 local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles)
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 
@@ -275,14 +276,29 @@ end
 -- north side between them. Kept clear of the gate opening.
 local PATH_TREE_SIDE = 10
 local PATH_LAMP_SIDE = 6
-function PlotGrounds.pathsideSpots(): ({ Vector3 }, { Vector3 })
-	local trees, lamps = {}, {}
+-- Bushes stand in the tree line midway between the trees, except where that
+-- would crowd a building (the kiosk serves across this strip).
+local PATH_BUSH_CLEAR = 8
+function PlotGrounds.pathsideSpots(): ({ Vector3 }, { Vector3 }, { Vector3 })
+	local trees, lamps, bushes = {}, {}, {}
+	local footprints = PlotGrounds.footprints()
 	local x0, x1 = -HALF + 30, PATH_X - 18
 	local x = x0
 	local k = 0
 	while x <= x1 do
 		for _, side in { -1, 1 } do
 			table.insert(trees, Vector3.new(x, GROUND_Y, PATH_Z + side * PATH_TREE_SIDE))
+			local b = Vector3.new(x + 12, GROUND_Y, PATH_Z + side * PATH_TREE_SIDE)
+			local crowded = b.X > x1
+			for _, fp in footprints do
+				if b.X >= fp.min.X - PATH_BUSH_CLEAR and b.X <= fp.max.X + PATH_BUSH_CLEAR
+					and b.Z >= fp.min.Y - PATH_BUSH_CLEAR and b.Z <= fp.max.Y + PATH_BUSH_CLEAR then
+					crowded = true
+				end
+			end
+			if not crowded then
+				table.insert(bushes, b)
+			end
 		end
 		if k % 2 == 0 and x + 12 <= x1 then
 			table.insert(lamps, Vector3.new(x + 12, GROUND_Y, PATH_Z - PATH_LAMP_SIDE))
@@ -290,7 +306,7 @@ function PlotGrounds.pathsideSpots(): ({ Vector3 }, { Vector3 })
 		x += 24
 		k += 1
 	end
-	return trees, lamps
+	return trees, lamps, bushes
 end
 
 -- X95: planted borders inside the entrance (-X) wall, either side of the two
@@ -333,6 +349,9 @@ local function buildBorders(parent: Instance)
 		local step = (z1 - z0) / count
 		for k = 1, count do
 			local d = 2.6 + (k % 2) * 0.4
+			if TreeKit.bush(m, Vector3.new(x0 + 1.7, GROUND_Y + BORDER_H, z0 + (k - 0.5) * step), { width = d + 0.4, name = "Shrub" }) then
+				continue
+			end
 			local shrub = box("Shrub", Vector3.one * d, CFrame.new(x0 + 1.7, GROUND_Y + BORDER_H + d * 0.3, z0 + (k - 0.5) * step),
 				shrubColours[k % 2 + 1], Enum.Material.LeafyGrass, m)
 			shrub.Shape = Enum.PartType.Ball
@@ -343,8 +362,16 @@ end
 
 local function buildPathside(parent: Instance)
 	local m = model("Pathside", parent)
-	local trees, lamps = PlotGrounds.pathsideSpots()
+	local trees, lamps, bushes = PlotGrounds.pathsideSpots()
+	local rng = Random.new(94)
+	for _, p in bushes do
+		TreeKit.bush(m, p, { width = rng:NextNumber(4.5, 6), rng = rng })
+	end
 	for i, p in trees do
+		-- the slice's oaks; the old trunk and ball only when the place has no oak pack
+		if TreeKit.tree(m, p, { height = rng:NextNumber(20, 25), slim = true, rng = rng }) then
+			continue
+		end
 		local h = 9 + (i % 3)
 		extents("Trunk", p.X - 0.45, p.X + 0.45, p.Y, p.Y + h, p.Z - 0.45, p.Z + 0.45, Color3.fromRGB(92, 72, 54), Enum.Material.Wood, m)
 		local crown = box("Crown", Vector3.one * (7 + (i % 2)), CFrame.new(p.X, p.Y + h + 2.5, p.Z), Color3.fromRGB(80, 124, 56), Enum.Material.Grass, m)

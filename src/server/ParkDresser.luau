@@ -33,6 +33,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local KitPlacer = require(script.Parent.KitPlacer)
+local TreeKit = require(script.Parent.TreeKit)
 local V3Perf = require(script.Parent.V3Perf)
 
 -- v3 Lane I stage 2: the kit street light replaces TerraceBuilder's 6-part primitive
@@ -850,6 +851,16 @@ local function buildBandstand(parent: Instance, stand: Circle, entranceDir: Vect
 end
 
 local function buildTree(parent: Instance, pos: Vector3, rng: Random)
+	-- the slice's oaks: mostly the upright ones, one in five a big spreading oak.
+	-- The trunk and ball crowns below only when the place has no oak pack.
+	local big = rng:NextNumber() < 0.2
+	if TreeKit.tree(parent, Vector3.new(pos.X, Y.LAWN, pos.Z), {
+		height = if big then rng:NextNumber(26, 32) else rng:NextNumber(20, 27),
+		slim = not big,
+		rng = rng,
+	}) then
+		return
+	end
 	local tree = Instance.new("Model")
 	tree.Name = "Tree"
 	tree.Parent = parent
