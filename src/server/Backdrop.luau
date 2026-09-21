@@ -4,7 +4,7 @@
 -- grass block (half-extents 2800 x 2200) and TownBuilder carves the River
 -- Lune and roads into it; this module extends the grass out to a wider ring,
 -- scatters rolling hills and tree belts round that ring, continues the river
--- channel out to the ring edge, lays a patchwork of fields with hedgerows in
+-- channel out to the ring edge, lays a patchwork of dry-stone-walled fields in
 -- the band just past the town extent, and drops five distant wind turbines.
 --
 -- Nothing here is read by gameplay: it's pure dressing built once alongside
@@ -41,7 +41,7 @@ local RIVER_CLEARANCE = 80
 local EXTENT_EDGE_BAND = 150 -- fields/trees may sit this close inside the town extent
 
 local FIELD_BAND = 600 -- how far past the extent the field patchwork reaches
--- X16: fields + hedges together (5 parts a field: slab + four hedges). The
+-- X16: fields + walls together (5 parts a field: slab + four walls). The
 -- old cap was 180 at 2 parts a field; this cap plus HEDGEROW_TREE_BUDGET keeps
 -- the increase at or under 400 parts.
 local FIELD_PART_BUDGET = 360
@@ -269,9 +269,14 @@ Backdrop.FIELD_STYLES = {
 	{ colour = Color3.fromRGB(176, 164, 100), material = Enum.Material.Ground },
 	{ colour = Color3.fromRGB(128, 104, 74), material = Enum.Material.Ground },
 } :: { FieldStyle }
-local HEDGE_COLOUR = Color3.fromRGB(42, 82, 40)
-local HEDGE_THICKNESS = 4
-local HEDGE_MIN_H, HEDGE_MAX_H = 5.5, 7
+-- Field boundaries are dry stone walls (Marcel, 2026-09-21), not hedges. The
+-- stones come from the "DryStoneWall" MaterialVariant in MaterialService (it
+-- lives in the place file); without it the part shows plain Cobblestone.
+-- The variant's texture is dark, so the tint stays near white (StudsPerTile 7).
+local WALL_COLOUR = Color3.fromRGB(240, 236, 224)
+local WALL_VARIANT = "DryStoneWall"
+local HEDGE_THICKNESS = 2.4
+local HEDGE_MIN_H, HEDGE_MAX_H = 4.2, 5.2
 
 export type HedgeBox = { centre: Vector3, size: Vector3, side: string }
 
@@ -415,11 +420,12 @@ local function buildFields(parent: Instance): number
 					local bottom = if eastWest then -0.6 else -0.5
 					local top = if eastWest then baseH + 0.3 else baseH
 					part({
-						Name = "Hedge",
+						Name = "FieldWall",
 						Size = Vector3.new(hedge.size.X, top - bottom, hedge.size.Z),
 						CFrame = CFrame.new(hedge.centre.X, (top + bottom) / 2, hedge.centre.Z),
-						Color = HEDGE_COLOUR:Lerp(Color3.fromRGB(70, 104, 52), styleRng:NextNumber(0, 0.5)),
-						Material = Enum.Material.Grass,
+						Color = WALL_COLOUR:Lerp(Color3.fromRGB(212, 204, 186), styleRng:NextNumber(0, 0.5)),
+						Material = Enum.Material.Cobblestone,
+						MaterialVariant = WALL_VARIANT,
 						CastShadow = false,
 						Parent = fieldsModel,
 					})
