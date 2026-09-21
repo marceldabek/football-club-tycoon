@@ -14,7 +14,6 @@ local TownLifeMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChi
 
 local player = Players.LocalPlayer
 local NEAR = 600
-local LENGTH = 20
 
 local folder = Instance.new("Folder")
 folder.Name = "Cruiser"
@@ -55,6 +54,7 @@ for _, d in boat:GetDescendants() do
 	end
 end
 boat.Parent = folder
+local LENGTH = boat:GetExtentsSize().Z
 -- a short white wash trailing the stern, flat on the water
 local wake = Color3.fromRGB(235, 242, 245)
 piece("Wake", Vector3.new(4, 0.05, 9), CFrame.new(0, -0.9, LENGTH / 2 + 4), wake)

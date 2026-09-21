@@ -72,10 +72,10 @@ local GANGWAY_HALF_GAP = 2.2 -- railing gap half-width at each gangway
 local POST_STEP = 8
 local WALKWAY_T0, WALKWAY_T1 = -8, -4 -- lateral (negative = out over the water)
 local WALKWAY_TOP = -1.2
-local FINGER_OUT = -26
+local FINGER_OUT = -38 -- long enough to step aboard a 38-stud yacht
 local FINGER_SPACING = 16
 local FINGER_W = 2.4
-local BOAT_T = -21 -- hull centre: stern clears the walkway for the longest (24) hull
+local BOAT_T = -21 -- a 24-long hull's centre; buildBoat's sternTo moves longer boats further out
 local BERTH_FILL = 0.75
 
 local GARDEN_CELL = 30
@@ -394,8 +394,9 @@ local function buildPontoons(parent: Instance, boats: Instance, f: Frame, rng: R
 		count += 2
 		local nextFinger = fingers[i + 1]
 		if nextFinger ~= nil and rng:NextNumber() < BERTH_FILL then
-			local c = at(f, (fs + nextFinger) / 2, BOAT_T, -2.2)
-			local boat = RiverDresser.buildBoat(boats, CFrame.lookAt(c, c - f.inward), rng)
+			-- 0.6 off the berth's middle: the pile stands on one side of the gap
+			local c = at(f, (fs + nextFinger) / 2 + 0.6, BOAT_T, -2.2)
+			local boat = RiverDresser.buildBoat(boats, CFrame.lookAt(c, c - f.inward), rng, { sternTo = f.inward, maxBeam = 12 })
 			for _, d in boat:GetDescendants() do
 				if d:IsA("BasePart") then
 					count += 1 -- kit boats are one or two MeshParts

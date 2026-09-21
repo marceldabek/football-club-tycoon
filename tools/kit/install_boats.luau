@@ -7,16 +7,19 @@
 -- centre on the waterline (`draft` studs above the lowest point). That is what
 -- RiverDresser.buildBoat and ClientKit's Cruiser expect.
 
+-- Sizes were felt out against a standard R15 character (5.2 tall but 4 wide):
+-- at true 2.75 studs a metre the cockpits were narrower than the character, so
+-- every boat is about 1.35x that, big enough for a character to sit in.
 -- name, asset id, yaw (deg) that turns the bow to -Z, length, scale, draft
 local BOATS = {
-	{ "BoatSailYacht", 13217041580, 0, 24, nil, 4.4 }, -- deep keel
-	{ "BoatLaunch", 15676599201, -90, 20, nil, 0.9 },
-	{ "BoatCruiser", 4959431139, 0, 20, nil, 1.4 }, -- 7.3 wide: clears the mooring posts
-	{ "BoatRowing", 116487004496295, 0, 11, nil, 0.9 },
-	{ "BoatDayBoat", 6954360328, 0, 18, nil, 1.0 },
+	{ "BoatSailYacht", 13217041580, 0, 38, nil, 7.0 }, -- deep keel; 11.4 wide, the widest a marina berth takes
+	{ "BoatLaunch", 15676599201, -90, 32, nil, 1.4 },
+	{ "BoatCruiser", 4959431139, 0, 40, nil, 2.8 }, -- 14.7 wide: river moorings only
+	{ "BoatRowing", 116487004496295, 0, 16, nil, 1.3 },
+	{ "BoatDayBoat", 6954360328, 0, 27, nil, 1.5 },
 	-- the kayak mesh lies 33 degrees askew inside its own box, so its bounding
-	-- box can't give a length: scale found by eye, about 9 studs long
-	{ "BoatKayak", 14477799492, -33, nil, 0.47, 0.3 },
+	-- box can't give a length: scale found by eye, about 16 studs long
+	{ "BoatKayak", 14477799492, -33, nil, 0.8, 0.5 },
 }
 
 local kit = game:GetService("ServerStorage"):FindFirstChild("Kit")
