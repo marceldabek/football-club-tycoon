@@ -305,4 +305,28 @@ T["nothing stands on the railway"] = function()
 	end
 end
 
+-- A ground stands on its street's pavement (TownLayout.PLOT_STREET_GAP = 15.5) and
+-- its vehicle gate opens off the street: the kerb in front of the gate stays clear,
+-- and the rest of that pavement is still furnished.
+T["the kerb in front of a plot's vehicle gate is kept clear"] = function()
+	local input = fixture()
+	-- south of High Road, west of Side Street; yaw 270 turns plot-local -X to face north
+	local centre = v(-450, 15.5 + 100)
+	input.plotSize = 200
+	input.plots = { { centre = centre, yaw = 270 } }
+	input.lots = {}
+	local frame = CFrame.new(centre) * CFrame.Angles(0, math.rad(270), 0)
+	local gate = FurniturePlan.PLOT_GATE
+	local beside = 0
+	for _, pl in plan(input) do
+		local l = frame:PointToObjectSpace(pl.cframe.Position)
+		local alongWall = l.X < -100 and l.X > -100 - gate.reach
+		assert(not (alongWall and l.Z > gate.z0 and l.Z < gate.z1), ("%s stands in front of the vehicle gate (local z %.0f)"):format(pl.category, l.Z))
+		if alongWall and math.abs(l.Z) < 100 then
+			beside += 1
+		end
+	end
+	assert(beside > 0, "nothing at all on the pavement along the entrance wall")
+end
+
 return T

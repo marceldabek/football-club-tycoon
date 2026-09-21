@@ -56,7 +56,7 @@ function StreetFurniture.townInput(): FurniturePlan.Input
 	end
 	local plots = {}
 	for i in layout.PLOTS or {} do
-		table.insert(plots, { centre = layout.plotCFrame(i).Position })
+		table.insert(plots, { centre = layout.plotCFrame(i).Position, yaw = layout.PLOTS[i].yaw })
 	end
 	-- Tier A (section 9): the plots, the market square and the station.
 	local tierA = { Vector3.new(0, 0, 0), Vector3.new(-900, 0, -350) }

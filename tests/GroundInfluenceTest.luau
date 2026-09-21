@@ -36,9 +36,11 @@ function T.hoardingStandsOutsideTheWallClearOfRoadsAndStopsAtEveryPlot()
 		local cf = TownLayout.plotCFrame(i)
 		for _, z in { h.z0, (h.z0 + h.z1) / 2, h.z1 } do
 			local p = cf * Vector3.new(h.x, 0, z)
+			-- the ground stands on its street's pavement, so the board is on the back edge of
+			-- that pavement, against the wall: never nearer the street than the wall line is
+			assert(h.x > -380 - 2, "hoarding stands out into the pavement")
 			for _, road in TownLayout.ROADS do
-				local reach = road.width / 2 + (if road.kind == "lane" then 0 else TownLayout.PAVEMENT_WIDTH) + 1
-				assert(TownLayout.distanceToPolyline(p, road.points) > reach, ("plot %d: hoarding on %s"):format(i, road.name))
+				assert(TownLayout.distanceToPolyline(p, road.points) > TownLayout.PLOT_STREET_GAP - 2, ("plot %d: hoarding on %s"):format(i, road.name))
 			end
 			for _, stop in TownLayout.BUS_STOPS do
 				local flat = Vector3.new(stop.position.X, p.Y, stop.position.Z)

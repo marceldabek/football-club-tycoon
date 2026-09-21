@@ -32,9 +32,10 @@
 --                        (semis / detached closes and flats only)
 --               closed = the last point is a blunt end with a terrace across it
 --                        (a terraced street that joins nothing: no turning circle)
---               "Plot N Lane" starts on the ring road / a roundabout and ends at
---               plotCFrame(N) * PLOT_LANE_END, on the vehicle gate line
---               (PlotGrounds: gate at plot-local x = -380, z 60..100).
+--               No road runs to a plot: each ground stands on its street's
+--               pavement (PLOT_STREET_GAP) and its vehicle gate opens off the
+--               street. "Plot 2 Lane" / "Plot 4 Lane" are the streets those two
+--               grounds front (PlotGrounds: gate at plot-local x = -380, z 60..100).
 --   RIVER       the River Lune centreline, flowing west -> east, with its width
 --   BRIDGES     from/to are the deck ends (both on dry land); kind "road" | "rail" | "foot"
 --   RAIL        track centreline plus the station building box
@@ -87,7 +88,11 @@ TownLayout.EXTENT = { minX = -2400, maxX = 2400, minZ = -1700, maxZ = 1700 }
 TownLayout.PLOT_SIZE = 760 -- TEMP: fits a ~30k stadium (~480 x 560) + car park, shop, two training pitches
 TownLayout.PAVEMENT_WIDTH = 8
 TownLayout.HEAD_RADIUS = 34 -- cul-de-sac turning head (kit CulDeSac is 96 x 69 at town scale)
-TownLayout.PLOT_LANE_END = Vector3.new(-381, 0, 80) -- plot-local, on the vehicle gate line (1 outside the plot); PlotGrounds' access road starts here
+TownLayout.PLOT_LANE_END = Vector3.new(-381, 0, 80) -- plot-local, the middle of the vehicle gate (1 outside the plot); PlotGrounds' access road runs in from here
+-- Marcel, 2026-09-20: a ground stands hard against its street, no driveway. Its
+-- entrance wall is this far from the street's centreline: the back of a widened
+-- pavement (RoadTiles.pavementOuter). tools/town_plan_v3.py places PLOTS by it.
+TownLayout.PLOT_STREET_GAP = 15.5
 
 TownLayout.SQUARE = { name = "Market Square", centre = Vector3.new(0, 0, 0), radius = 60 }
 
@@ -110,39 +115,39 @@ TownLayout.ROUNDABOUTS = {
 } :: { Roundabout }
 
 TownLayout.PLOTS = {
-	{ -- south-east, entrance faces north
+	{ -- south-east, on the ring road, entrance faces north
 		index = 1,
 		name = "Plot 1",
-		centre = Vector3.new(1050, 0, 1250),
+		centre = Vector3.new(1050, 0, 1195.5),
 		yaw = 270,
-		busStop = Vector3.new(992, 0, 840),
+		busStop = Vector3.new(1010, 0, 778),
 	},
 	{ -- north-east (Millbrook), entrance faces west
 		index = 2,
 		name = "Plot 2",
-		centre = Vector3.new(1830, 0, -1160),
+		centre = Vector3.new(1795.5, 0, -1160),
 		yaw = 0,
-		busStop = Vector3.new(1420, 0, -1058),
+		busStop = Vector3.new(1378, 0, -1030),
 	},
-	{ -- south-west (Westdale), entrance faces north
+	{ -- south-west (Westdale), on Greenbridge Road, entrance faces north
 		index = 3,
 		name = "Plot 3",
-		centre = Vector3.new(-1780, 0, 1020),
+		centre = Vector3.new(-1780, 0, 955.5),
 		yaw = 270,
-		busStop = Vector3.new(-1838, 0, 610),
+		busStop = Vector3.new(-1820, 0, 538),
 	},
 	{ -- north-west (Mapleford), entrance faces east
 		index = 4,
 		name = "Plot 4",
-		centre = Vector3.new(-1790, 0, -1130),
+		centre = Vector3.new(-1745.5, 0, -1130),
 		yaw = 180,
-		busStop = Vector3.new(-1380, 0, -1232),
+		busStop = Vector3.new(-1328, 0, -1160),
 	},
 } :: { Plot }
 
 TownLayout.ROADS = {
 	{
-		name = "Ring Road", kind = "ring", width = 32, front = "none",
+		name = "Ring Road", kind = "ring", width = 32, front = "right", useAt = "ring road",
 		points = {
 			Vector3.new(-1100, 0, -1000), Vector3.new(-500, 0, -1000), Vector3.new(-420, 0, -1080),
 			Vector3.new(420, 0, -1080), Vector3.new(500, 0, -1000), Vector3.new(1000, 0, -1000),
@@ -552,12 +557,6 @@ TownLayout.ROADS = {
 		},
 	},
 	{
-		name = "Plot 1 Lane", kind = "lane", width = 20, front = "none",
-		points = {
-			Vector3.new(970, 0, 800), Vector3.new(970, 0, 869),
-		},
-	},
-	{
 		name = "Moss Lane", kind = "residential", width = 20, front = "both", use = "semis", district = "Westdale",
 		points = {
 			Vector3.new(-2240, 0, 430), Vector3.new(-1250, 0, 430),
@@ -633,15 +632,9 @@ TownLayout.ROADS = {
 		},
 	},
 	{
-		name = "Plot 3 Lane", kind = "lane", width = 20, front = "none",
-		points = {
-			Vector3.new(-1860, 0, 560), Vector3.new(-1860, 0, 639),
-		},
-	},
-	{
 		name = "Plot 4 Lane", kind = "lane", width = 20, front = "none",
 		points = {
-			Vector3.new(-1350, 0, -750), Vector3.new(-1350, 0, -1210), Vector3.new(-1409, 0, -1210),
+			Vector3.new(-1350, 0, -750), Vector3.new(-1350, 0, -1210),
 		},
 	},
 	{
@@ -689,7 +682,7 @@ TownLayout.ROADS = {
 	{
 		name = "Plot 2 Lane", kind = "lane", width = 20, front = "none",
 		points = {
-			Vector3.new(1400, 0, -600), Vector3.new(1400, 0, -1080), Vector3.new(1449, 0, -1080),
+			Vector3.new(1400, 0, -600), Vector3.new(1400, 0, -1080),
 		},
 	},
 	{
@@ -731,7 +724,7 @@ TownLayout.ROADS = {
 		name = "Millbrook Rise", kind = "residential", width = 20, front = "both", use = "terraced row",
 		district = "Millbrook", closed = true,
 		points = {
-			Vector3.new(1400, 0, -1080), Vector3.new(1400, 0, -1330),
+			Vector3.new(1400, 0, -1080), Vector3.new(1400, 0, -1330), Vector3.new(1300, 0, -1330),
 		},
 	},
 	{
@@ -1023,10 +1016,10 @@ TownLayout.BUS_STOPS = {
 	{ name = "Industrial Estate", position = Vector3.new(-1600, 0, -130), yaw = 180 },
 	{ name = "Westdale", position = Vector3.new(-1075, 0, 964), yaw = 0 },
 	{ name = "Sports Centre", position = Vector3.new(40, 0, 1180), yaw = 180 },
-	{ name = "Plot 1", position = Vector3.new(992, 0, 840), yaw = 90 },
-	{ name = "Plot 2", position = Vector3.new(1420, 0, -1058), yaw = 0 },
-	{ name = "Plot 3", position = Vector3.new(-1838, 0, 610), yaw = 90 },
-	{ name = "Plot 4", position = Vector3.new(-1380, 0, -1232), yaw = 180 },
+	{ name = "Plot 1", position = Vector3.new(1010, 0, 778), yaw = 180 },
+	{ name = "Plot 2", position = Vector3.new(1378, 0, -1030), yaw = 270 },
+	{ name = "Plot 3", position = Vector3.new(-1820, 0, 538), yaw = 180 },
+	{ name = "Plot 4", position = Vector3.new(-1328, 0, -1160), yaw = 90 },
 } :: { BusStop }
 
 -- Helpers --------------------------------------------------------------------

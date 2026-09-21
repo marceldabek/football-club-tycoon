@@ -167,6 +167,8 @@ RULES = {
     "high street": lambda x, z: ("shops with flats", "Town Centre") if x > -520 else
     (("shops", "Station") if x > -700 else ("terraced row", "Station")),
     "bridge street": lambda x, z: ("shops with flats", "Town Centre") if z < 300 else None,
+    # Marcel, 2026-09-20: a terrace across the ring road from Plot 1, facing the ground
+    "ring road": lambda x, z: ("terraced row", "Riverside") if 640 < x < 1110 and z > 700 else None,
 }
 
 
@@ -174,7 +176,9 @@ def roads():
     # front="none" on a residential street means a CONNECTING street: the streets it joins have
     # already taken its corners and nothing is left to front it (or the river is too close).
     # TownFrontageTest.everyFrontedStreetGotSomething fails if a fronted street ends up empty.
-    out = [road("Ring Road", R, RING)]
+    # the ring is a bare arterial except opposite Plot 1's entrance, where a row faces the ground
+    # ("right" of its clockwise travel is the inside of the loop)
+    out = [road("Ring Road", R, RING, front="right", use_at="ring road")]
 
     # ---- through roads, each as near its v1 line as axis/45 allows
     out += [
@@ -281,7 +285,6 @@ def roads():
         road("Cedar Road", S, [(-470, 800), (-470, 1500)], district=rv, closed=True),
         road("Paddock Road", S, [(400, 800), (400, 1500)], district=rv, head=True, use="semis"),           # NEW
         road("Hollins Road", S, [(600, 800), (600, 1500)], district=rv, closed=True),           # was x=520
-        road("Plot 1 Lane", L, [(970, 800), (970, 869)]),
     ]
 
     # ---- Westdale, rebuilt round Plot 3
@@ -299,7 +302,6 @@ def roads():
         road("Westdale Crescent", S, [(-1310, 1250), (-730, 1250)], district=wd, closed=True),
         road("Coronation Street", S, [(-1310, 1365), (-730, 1365)], district=wd, closed=True),   # NEW
         road("Westdale Road", S, [(-850, 800), (-850, 1480)], district=wd),
-        road("Plot 3 Lane", L, [(-1860, 560), (-1860, 639)]),
     ]
 
     # ---- Mapleford: Plot 4's estate (north-west). Not a box round the plot:
@@ -307,7 +309,7 @@ def roads():
     # plot and the ring, so the club sits at the end of somebody's road.
     p4 = "Mapleford"
     out += [
-        road("Plot 4 Lane", L, [(-1350, -750), (-1350, -1210), (-1409, -1210)]),
+        road("Plot 4 Lane", L, [(-1350, -750), (-1350, -1210)]),   # the ground stands on its west pavement
         road("Mapleford Lane", S, [(-2250, -600), (-1350, -600)], district=p4),
         road("Drift Close", S, [(-2250, -600), (-2250, -1060)], district=p4, head=True, use="detached house"),
         road("Tollgate Road", S, [(-1350, -1210), (-1350, -1590), (-2120, -1590)], district=p4, closed=True),
@@ -320,13 +322,15 @@ def roads():
     # ---- Millbrook: Plot 2's estate (north-east), deliberately not Mapleford's mirror
     p2 = "Millbrook"
     out += [
-        road("Plot 2 Lane", L, [(1400, -600), (1400, -1080), (1449, -1080)]),
+        road("Plot 2 Lane", L, [(1400, -600), (1400, -1080)]),   # the ground stands on its east pavement
         road("Millbrook Road", S, [(1400, -700), (2300, -700)], district=p2),
         road("Lune View", S, [(1560, -570), (2250, -570)], district=p2, head=True, use="detached house"),
         road("Fell Lane", S, [(2300, -700), (2300, -1320)], district=p2, head=True, use="semis"),
         road("Quarry Road", S, [(1400, -1080), (900, -1080), (780, -1200)], district=p2, closed=True),
         road("Kiln Close", S, [(1180, -1080), (1180, -1400)], district=p2, use="semis", head=True),
-        road("Millbrook Rise", S, [(1400, -1080), (1400, -1330)], district=p2, closed=True),
+        # runs down Plot 2's entrance wall, then turns away west: a terrace across an end on the
+        # plot's own line would stand in its wall
+        road("Millbrook Rise", S, [(1400, -1080), (1400, -1330), (1300, -1330)], district=p2, closed=True),
     ]
 
     # ---- Hollingford: the 45-degree estate, in the ground Plot 3 left. Every
@@ -357,17 +361,24 @@ def roads():
     return out
 
 
-# yaw: plot-local -X faces the access road (TownLayout.plotCFrame). bus: the plot's bus stop,
-# 20 short of the lane end and 22 off its centreline, with the way the shelter opens.
+# Marcel, 2026-09-20: every ground stands hard against its street, the entrance wall along the
+# back of the pavement (PLOT_STREET_GAP from the street's centreline, TownLayout has the same
+# number) with no driveway: the vehicle gate opens off the street over a dropped kerb. Plots 1
+# and 3 front the ring / Greenbridge Road; 2 and 4 front their own lane, opposite the street
+# that meets it (Quarry Road, Drovers Road).
+# yaw: plot-local -X faces the street (TownLayout.plotCFrame). bus: the plot's bus stop, across
+# the street from the gate and 22 off the centreline, with the way the shelter opens.
+PLOT_STREET_GAP = 15.5
+_EDGE = 760 / 2 + PLOT_STREET_GAP
 PLOTS = [
-    {"name": "Plot 1", "centre": (1050.0, 1250.0), "was": (1050, 1250), "faces": "north", "yaw": 270,
-     "note": "south-east, entrance faces north", "bus": (992, 840), "bus_yaw": 90},
-    {"name": "Plot 2", "centre": (1830.0, -1160.0), "was": (1900, -1200), "faces": "west", "yaw": 0,
-     "note": "north-east (Millbrook), entrance faces west", "bus": (1420, -1058), "bus_yaw": 0},
-    {"name": "Plot 3", "centre": (-1780.0, 1020.0), "was": (1950, 420), "faces": "north", "yaw": 270,
-     "note": "south-west (Westdale), entrance faces north", "bus": (-1838, 610), "bus_yaw": 90},
-    {"name": "Plot 4", "centre": (-1790.0, -1130.0), "was": (-1900, -1200), "faces": "east", "yaw": 180,
-     "note": "north-west (Mapleford), entrance faces east", "bus": (-1380, -1232), "bus_yaw": 180},
+    {"name": "Plot 1", "centre": (1050.0, 800 + _EDGE), "was": (1050, 1250), "faces": "north", "yaw": 270,
+     "note": "south-east, on the ring road, entrance faces north", "bus": (1010, 778), "bus_yaw": 180},
+    {"name": "Plot 2", "centre": (1400 + _EDGE, -1160.0), "was": (1900, -1200), "faces": "west", "yaw": 0,
+     "note": "north-east (Millbrook), entrance faces west", "bus": (1378, -1030), "bus_yaw": 270},
+    {"name": "Plot 3", "centre": (-1780.0, 560 + _EDGE), "was": (1950, 420), "faces": "north", "yaw": 270,
+     "note": "south-west (Westdale), on Greenbridge Road, entrance faces north", "bus": (-1820, 538), "bus_yaw": 180},
+    {"name": "Plot 4", "centre": (-1350 - _EDGE, -1130.0), "was": (-1900, -1200), "faces": "east", "yaw": 180,
+     "note": "north-west (Mapleford), entrance faces east", "bus": (-1328, -1160), "bus_yaw": 90},
 ]
 
 ROUNDABOUTS = [

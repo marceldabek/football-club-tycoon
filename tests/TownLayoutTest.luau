@@ -144,15 +144,21 @@ function T.plotBusStopsAreOnARoadOutsideThePlot()
 	end
 end
 
--- X6: the access lane no longer meets the middle of the entrance side; it ends
--- at the vehicle gate (PlotGrounds: plot-local x = -380, z 60..100), so check
--- the gate point 10 outside the wall instead of the side centre.
-function T.plotEntranceFacesAnAccessRoad()
+-- Marcel, 2026-09-20: no driveway. The ground stands on its street's pavement,
+-- so the vehicle gate (PlotGrounds: plot-local x = -380, z 60..100) is
+-- PLOT_STREET_GAP from a street's centreline and opens straight onto it.
+function T.plotEntranceStandsOnItsStreetsPavement()
 	for i in TownLayout.PLOTS do
 		local gate = TownLayout.plotCFrame(i) * TownLayout.PLOT_LANE_END
 		local d = nearestRoadDistance(gate)
-		assert(d <= 1, ("plot %d vehicle gate is %.0f from a road"):format(i, d))
-		assert(not TownLayout.pointInPlot(gate, i), ("plot %d lane end is inside the plot"):format(i))
+		local want = TownLayout.PLOT_STREET_GAP - 1 -- PLOT_LANE_END is 1 outside the wall
+		assert(math.abs(d - want) <= 0.5, ("plot %d vehicle gate is %.1f from a street, want %.1f"):format(i, d, want))
+		assert(not TownLayout.pointInPlot(gate, i), ("plot %d gate point is inside the plot"):format(i))
+		-- the whole entrance side keeps that distance: no road cuts closer anywhere along the wall
+		for z = -380, 380, 20 do
+			local p = TownLayout.plotCFrame(i) * Vector3.new(-380, 0, z)
+			assert(nearestRoadDistance(p) >= TownLayout.PLOT_STREET_GAP - 0.5, ("a road runs into plot %d's entrance wall at local z %d"):format(i, z))
+		end
 	end
 end
 
@@ -165,36 +171,25 @@ local function roadNamed(name: string): TownLayout.Road?
 	return nil
 end
 
-function T.plotLanesRunFromTheRingToTheVehicleGate()
-	local ring = roadNamed("Ring Road")
-	assert(ring, "no Ring Road")
-	for i, plot in TownLayout.PLOTS do
-		local lane = roadNamed(plot.name .. " Lane")
-		assert(lane, "no lane for " .. plot.name)
-		local gate = TownLayout.plotCFrame(i) * TownLayout.PLOT_LANE_END
-		local last = lane.points[#lane.points]
-		assert(
-			math.abs(last.X - gate.X) < EPS and math.abs(last.Z - gate.Z) < EPS,
-			("%s ends at %s, gate is %s"):format(lane.name, tostring(last), tostring(gate))
-		)
-		local first = lane.points[1]
-		local joined = TownLayout.distanceToPolyline(first, ring.points) <= ring.width / 2
-		-- v3: Plot 3 sits outside the ring in Westdale, so its lane leaves a main road instead
+function T.noRoadRunsUpToAPlot()
+	-- a driveway would be a road ending within a few studs of the wall
+	for i in TownLayout.PLOTS do
 		for _, road in TownLayout.ROADS do
-			if road.kind == "main" and TownLayout.distanceToPolyline(first, road.points) <= road.width / 2 then
-				joined = true
+			for _, p in { road.points[1], road.points[#road.points] } do
+				local l = TownLayout.plotCFrame(i):PointToObjectSpace(p)
+				local outside = math.max(math.abs(l.X), math.abs(l.Z)) - TownLayout.PLOT_SIZE / 2
+				assert(outside < 0 or outside > 5, ("%s ends at plot %d's wall"):format(road.name, i))
 			end
 		end
-		for _, r in TownLayout.ROUNDABOUTS do
-			local offset = first - r.centre
-			if Vector3.new(offset.X, 0, offset.Z).Magnitude <= r.radius then
-				joined = true
-			end
-		end
-		assert(joined, lane.name .. " does not start on the ring road, a roundabout or a main road")
+	end
+end
+
+function T.plotBusStopsAreAcrossTheStreetFromTheGate()
+	for i, plot in TownLayout.PLOTS do
+		local gate = TownLayout.plotCFrame(i) * TownLayout.PLOT_LANE_END
 		local stop = plot.busStop
-		assert(TownLayout.distanceToPolyline(stop, lane.points) <= 30, plot.name .. " bus stop is not beside its lane")
-		assert(Vector3.new(stop.X - gate.X, 0, stop.Z - gate.Z).Magnitude <= 60, plot.name .. " bus stop is far from the gate")
+		assert(nearestRoadDistance(stop) <= 30, plot.name .. " bus stop is not beside a street")
+		assert(Vector3.new(stop.X - gate.X, 0, stop.Z - gate.Z).Magnitude <= 90, plot.name .. " bus stop is far from the gate")
 		local listed = false
 		for _, busStop in TownLayout.BUS_STOPS do
 			if busStop.name == plot.name then
@@ -431,8 +426,12 @@ function T.roadFieldsAreValid()
 		if road.district then
 			assert(districts[road.district], ("%s is in %s, which is not a district"):format(road.name, road.district))
 		end
-		if road.kind == "ring" or road.kind == "lane" then
+		if road.kind == "lane" then
 			assert(road.front == "none", road.name .. " must not be fronted")
+		end
+		if road.kind == "ring" then
+			-- a bare arterial, except the one terrace facing Plot 1 (TownFrontage.RULES["ring road"])
+			assert(road.front == "none" or road.useAt == "ring road", road.name .. " must not be fronted")
 		end
 	end
 	assert(#TownLayout.ROADS >= 90, "v3 has 94 roads; got " .. #TownLayout.ROADS)

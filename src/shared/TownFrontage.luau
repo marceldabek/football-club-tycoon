@@ -121,6 +121,14 @@ TownFrontage.RULES = {
 		end
 		return nil, nil
 	end,
+	-- Marcel, 2026-09-20: the ring is a bare arterial except across the road from
+	-- Plot 1's entrance, where a terrace faces the ground
+	["ring road"] = function(x: number, z: number): (string?, string?)
+		if x > 640 and x < 1110 and z > 700 then
+			return "terraced row", "Riverside"
+		end
+		return nil, nil
+	end,
 } :: { [string]: (number, number) -> (string?, string?) }
 
 -- Internal working shape: XZ only. `yaw` here is the MATHS angle of the street,

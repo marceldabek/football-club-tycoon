@@ -52,7 +52,7 @@ export type Input = {
 	busStops: { { name: string, position: Vector3 } }?,
 	bridges: { { from: Vector3, to: Vector3, width: number } }?,
 	rail: { width: number, points: { Vector3 } }?, -- nothing stands on the track (Lane I stage 3)
-	plots: { { centre: Vector3 } }?,
+	plots: { { centre: Vector3, yaw: number? } }?, -- yaw: the plot's entrance faces plot-local -X
 	plotSize: number?,
 	square: { centre: Vector3, radius: number }?,
 	tierACentres: { Vector3 }?, -- nil or empty: the whole town is Tier B
@@ -91,6 +91,9 @@ function FurniturePlan.parkingOffset(road: { kind: string }): number
 end
 FurniturePlan.HEAD_RADIUS = 34
 FurniturePlan.MOUTH_MARGIN = 6 -- kept clear beyond the crossing road's own pavement
+-- the kerb kept clear in front of a plot's vehicle gate: plot-local z range (the 40-wide
+-- gate and a car's length either side) and how far out from the wall (to the street's centreline)
+FurniturePlan.PLOT_GATE = { z0 = 45, z1 = 115, reach = 16 }
 FurniturePlan.NO_DISTRICT = "Through Roads" -- ring, mains and lanes carry no district
 FurniturePlan.BUS_STOP_SNAP = 150 -- a stop further than this from any road is skipped and reported
 
@@ -334,6 +337,15 @@ local function blockedBy(ctx: Context, p: Vector3, r: number, own: RoadIn?, onCa
 	for _, plot in input.plots or {} do
 		if math.abs(p.X - plot.centre.X) < ctx.plotHalf + r and math.abs(p.Z - plot.centre.Z) < ctx.plotHalf + r then
 			return "plot"
+		end
+		-- the ground stands on the street's pavement and its vehicle gate opens off it
+		-- (PlotGrounds: plot-local x = -380, z 60..100): keep the kerb in front clear
+		if plot.yaw then
+			local l = (CFrame.new(plot.centre) * CFrame.Angles(0, math.rad(plot.yaw), 0)):PointToObjectSpace(p)
+			local gate = FurniturePlan.PLOT_GATE
+			if l.X > -ctx.plotHalf - gate.reach - r and l.X < 0 and l.Z > gate.z0 - r and l.Z < gate.z1 + r then
+				return "plotGate"
+			end
 		end
 	end
 	local square = input.square

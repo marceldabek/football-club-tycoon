@@ -17,7 +17,9 @@
 --   boundary wall      edge of -380..380  edge of -380..380 1 thick, 3 high
 --   vehicle gate       x = -380           60..100          40-wide gap, road behind it
 --   pedestrian gate    x = -380           -20..-4          16-wide gap, footpath behind it
---   access road        -381..-349         70..90           kit lane section; ends on the car park asphalt
+--   front pavement     -384.4..-380       -380..380        outside the wall, to the street's own paving
+--   gate apron         -387.6..-381       72..88           dropped kerb from the street to the gate
+--   access road        -381..-349         72..88           kit lane section; ends on the car park asphalt
 --   car park           -350..-250         40..190          kerb included (TEMP: halved, X9)
 --   club shop          -313..-287         -165..-135       front (door, window) faces +X;
 --                      (-313.5..-286)     (-165.5..-134.5) with fascia and roof overhang
@@ -50,6 +52,7 @@ local HttpService = game:GetService("HttpService") -- X289: the academy intake
 local PlotContext = require(script.Parent.PlotContext)
 local KitPlacer = require(script.Parent.KitPlacer)
 local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles)
+local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 
 local PlotGrounds = {}
 
@@ -91,6 +94,21 @@ local ROAD_PAVE_TOP = RoadTiles.SURFACE_Y
 local ROAD_START_X = -HALF - 1 -- TownLayout.PLOT_LANE_END.X
 local ROAD_Z = (VEHICLE_GATE[1] + VEHICLE_GATE[2]) / 2 -- 80
 local ROAD_TOP = RoadTiles.SURFACE_Y - 0.281 * LANE_SCALE
+
+-- the street. Marcel, 2026-09-20: no driveway; the entrance wall stands along the
+-- back of the street's pavement, TownLayout.PLOT_STREET_GAP from its centreline.
+-- So the street's kerb is at STREET_KERB_X, and between it and the wall are the
+-- kit road's own paved strip and (on a walked street) PavingStrips' widening.
+--   front pavement  the same widening, laid here for the whole entrance side so a
+--                   ground on the ring road (never widened) has one too. It sits a
+--                   hair under PavingStrips' top so the two are never one plane.
+--   gate apron      a dropped kerb: asphalt over the pavement from the kerb to the
+--                   gate line, a hair proud of the paving it crosses
+local STREET_GAP = TownLayout.PLOT_STREET_GAP
+local STREET_KERB_X = -HALF - (STREET_GAP - ROAD_W / 2)
+local FRONT_PAVE_X0 = -HALF - (STREET_GAP - (RoadTiles.KIT_PAVING_OUTER * LANE_SCALE - 1.2))
+local FRONT_PAVE_TOP = RoadTiles.SURFACE_Y - 0.04
+local APRON_TOP = RoadTiles.SURFACE_Y + 0.03
 
 -- car park (kerb included in the rectangle)
 -- TEMP (X9): was z 40..340 (100 x 300), which ran most of the way down the
@@ -569,6 +587,13 @@ local function buildRoad(parent: Instance)
 	-- paved strips stop at the car park kerb
 	extents("AccessPavement", ROAD_START_X, PARK_X0, GROUND_Y, GROUND_Y + ROAD_PAVE_TOP, z0 - ROAD_PAVE_W, z0, KERB, Enum.Material.Concrete, parent)
 	extents("AccessPavement", ROAD_START_X, PARK_X0, GROUND_Y, GROUND_Y + ROAD_PAVE_TOP, z1, z1 + ROAD_PAVE_W, KERB, Enum.Material.Concrete, parent)
+
+	-- outside the wall: pavement along the whole entrance side, and the dropped
+	-- kerb the cars cross it on. Walked over, never bumped into.
+	local front = extents("FrontPavement", FRONT_PAVE_X0, -HALF, GROUND_Y, GROUND_Y + FRONT_PAVE_TOP, -HALF, HALF, CONCRETE, Enum.Material.Pavement, parent)
+	front.CastShadow = false
+	local apron = extents("GateApron", STREET_KERB_X, ROAD_START_X, GROUND_Y, GROUND_Y + APRON_TOP, z0, z1, ASPHALT, Enum.Material.Asphalt, parent)
+	apron.CastShadow = false
 end
 
 local function buildLamp(x: number, z: number, parent: Instance)
