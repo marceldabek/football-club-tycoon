@@ -75,12 +75,30 @@ local function fadeTo(volume: number, seconds: number)
 	end
 end
 
+-- Night music while this player's sky is dark. Sky owns the flag (its
+-- DARK_ATTRIBUTE on the local player); read by name so audio never needs Sky.
+local DARK_ATTRIBUTE = "SkyDark"
+local localPlayer = game:GetService("Players").LocalPlayer
+local playingNight = false
+
+local function isDark(): boolean
+	return localPlayer ~= nil and localPlayer:GetAttribute(DARK_ATTRIBUTE) == true
+end
+
+local function playlist(): { string }
+	if playingNight and #Config.MusicNight > 0 then
+		return Config.MusicNight
+	end
+	return Config.Music
+end
+
 local function nextTrack(token: number, lastId: string?)
-	if token ~= playlistToken or #Config.Music == 0 or not enabled then
+	local list = playlist()
+	if token ~= playlistToken or #list == 0 or not enabled then
 		return
 	end
-	local id = Config.Music[math.random(1, #Config.Music)]
-	if #Config.Music > 1 and id == lastId then
+	local id = list[math.random(1, #list)]
+	if #list > 1 and id == lastId then
 		return nextTrack(token, lastId) -- pick a different one
 	end
 	local sound = make(id, false, 0)
@@ -117,7 +135,39 @@ function MatchAudio.startMusic()
 		return
 	end
 	playlistToken += 1
+	playingNight = isDark()
 	nextTrack(playlistToken, nil)
+end
+
+-- Day/night swap. A fast-forward sweeps the clock through the night in a
+-- couple of seconds, so only a sky that stays dark (or light) for a few
+-- seconds changes the music; then the old track fades out and the other
+-- playlist starts.
+local SWAP_SETTLE = 4
+local SWAP_FADE = 2.5
+if localPlayer then
+	local swapCheck = 0
+	localPlayer:GetAttributeChangedSignal(DARK_ATTRIBUTE):Connect(function()
+		swapCheck += 1
+		local mine = swapCheck
+		task.delay(SWAP_SETTLE, function()
+			local old = music
+			-- only swaps a playlist that is running; startMusic picks by the sky itself
+			if mine ~= swapCheck or not enabled or not old or isDark() == playingNight then
+				return
+			end
+			playlistToken += 1 -- the old track's Ended no longer chains on
+			music = nil
+			if old then
+				TweenService:Create(old, TweenInfo.new(SWAP_FADE, Enum.EasingStyle.Sine), { Volume = 0 }):Play()
+				task.delay(SWAP_FADE, function()
+					old:Destroy()
+				end)
+			end
+			playingNight = isDark()
+			nextTrack(playlistToken, nil)
+		end)
+	end)
 end
 
 function MatchAudio.stopMusic()

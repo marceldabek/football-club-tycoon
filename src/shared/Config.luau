@@ -496,12 +496,19 @@ Config.Sounds = {
 }
 Config.CrowdVolume = 0.35
 
--- Background music while managing the club (APM Music, free on the Creator
--- Store). Shuffled; ducked during matches so the crowd carries the atmosphere.
+-- Background music while managing the club: piano/melodic house, all free
+-- licensed Creator Store tracks (APM and DistroKid catalogs). Shuffled; ducked
+-- during matches so the crowd carries the atmosphere. Marcel's picks 2026-09-21.
 Config.Music = {
-	"rbxassetid://1839272911", -- Easy Friends
-	"rbxassetid://1846700210", -- Spirits High B
-	"rbxassetid://1846690930", -- High Above B
+	"rbxassetid://111278862247359", -- Warm Emotional Deep House Melodic Drift (DistroKid)
+	"rbxassetid://84232634449169", -- 9:04 (Melodic Deep House) (DistroKid)
+	"rbxassetid://1837844566", -- Piano In My House (APM)
+	"rbxassetid://1836049199", -- Deep House Piano (APM)
+}
+-- Played instead of Config.Music while the player's sky is dark (Sky's
+-- SkyDark attribute), e.g. after a floodlit evening fixture.
+Config.MusicNight = {
+	"rbxassetid://95834013772321", -- Warm Keys at Midnight (DistroKid)
 }
 Config.MusicVolume = 0.16
 Config.MusicMatchVolume = 0.05
