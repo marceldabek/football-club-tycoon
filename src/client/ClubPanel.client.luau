@@ -723,9 +723,9 @@ local function renderScouting(club: Club)
 
 	-- X276: the list keeps for a few matches now, so say how long it has left
 	local left = club.shortlistMatchesLeft
-	local keeps = if type(left) == "number" and left > 0
+	local keeps = if type(left) == "number" and left > 1
 		then ("This list keeps for %d more match%s, so you can save up for someone."):format(left, if left == 1 then "" else "es")
-		else "A new list is scouted after your next match."
+		else "A new report lands on your desk after every match."
 	-- X337: the band is the scout's opinion, so say whose opinion it is
 	local trust = if doubt == 0
 		then "Your scouting network reports a ceiling exactly. "
@@ -1150,6 +1150,10 @@ render = function()
 		renderHistory()
 	elseif currentTab == "Scouting" then
 		renderScouting(club)
+		-- reading the report, from the desk or from this menu, clears its glow
+		if get("ScoutReportNew") == true then
+			actionEvent:FireServer("openReport")
+		end
 	else
 		renderStaff(club)
 	end
@@ -1177,7 +1181,15 @@ end)
 
 -- Office computer prompt (client side; the prompt is also visible to the server but unused there)
 ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt, who: Player)
-	if who == player and prompt.Name == "ClubPrompt" then
+	if who ~= player then
+		return
+	end
+	if prompt.Name == "ClubPrompt" then
+		setOpen(true)
+	elseif prompt.Name == "ScoutPrompt" then
+		-- TEMP: until the pack-opening screen exists, the report opens the
+		-- Scouting tab (render clears the glow on the desk).
+		currentTab = "Scouting"
 		setOpen(true)
 	end
 end)

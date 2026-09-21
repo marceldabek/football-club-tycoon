@@ -799,7 +799,25 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 	-- after X373 and both looked for "Computer" in vain).
 	local computer = prop("classic_laptop", Vector3.new(deskX, DESK_TOP, deskZ), -math.pi / 2, Vector3.new(1.8, 1.3, 1.3)) :: BasePart
 	computer.Name = "Computer"
-	prop("office_notepads", Vector3.new(deskX - 0.2, DESK_TOP, deskZ - 1.6), 0.4, Vector3.new(0.6, 0.1, 0.8))
+	-- the pad on the desk IS the scout's report: a new one lands after every
+	-- match once a scout is hired. Session shows and lights it; the client opens
+	-- the report when the prompt fires.
+	local report = prop("office_notepads", Vector3.new(deskX - 0.2, DESK_TOP, deskZ - 1.6), 0.4, Vector3.new(0.6, 0.1, 0.8))
+	if report then
+		report.Name = "ScoutReport"
+		local scoutPrompt = addPrompt(report, "Scout Report", "Open")
+		scoutPrompt.Name = "ScoutPrompt"
+		scoutPrompt.HoldDuration = 0
+		scoutPrompt.Enabled = false
+		local glow = Instance.new("Highlight")
+		glow.Name = "NewGlow"
+		glow.FillColor = Color3.fromRGB(255, 214, 90)
+		glow.FillTransparency = 0.55
+		glow.OutlineColor = Color3.fromRGB(255, 236, 160)
+		glow.DepthMode = Enum.HighlightDepthMode.Occluded
+		glow.Enabled = false
+		glow.Parent = report
+	end
 	prop("stationery_supplies", Vector3.new(deskX + 0.3, DESK_TOP, deskZ + 1.5), -0.2, Vector3.new(0.5, 0.2, 0.2))
 
 	-- along the west wall either side of the window

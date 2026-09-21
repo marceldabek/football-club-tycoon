@@ -194,6 +194,17 @@ function Session.refreshPromptLock()
 		clubPrompt.Enabled = managing and named
 		clubPrompt.ObjectText = if managing then "Manage squad, scouting & staff" else "Locked during matchday"
 	end
+	-- the scout's report on the desk: there once a scout is hired, lit while
+	-- the latest one is unopened
+	local scoutPrompt = w.model:FindFirstChild("ScoutPrompt", true)
+	if scoutPrompt and scoutPrompt:IsA("ProximityPrompt") then
+		local hasScout = ((ClubState.get("ScoutLevel") :: number?) or 0) > 0
+		scoutPrompt.Enabled = managing and named and hasScout
+		local glow = scoutPrompt.Parent and scoutPrompt.Parent:FindFirstChild("NewGlow")
+		if glow and glow:IsA("Highlight") then
+			glow.Enabled = scoutPrompt.Enabled and ClubState.get("ScoutReportNew") == true
+		end
+	end
 	UpgradeService.refreshPrompt()
 	Scenery.setMatchday(phase == "PreMatch" or phase == "Match", ClubState.get("Evening") == true)
 end
@@ -474,6 +485,8 @@ function Session.start(owner: Player): boolean
 	-- matchday board and upgrade signs come on at boot, not at the next change
 	ClubState.Folder:GetAttributeChangedSignal("Phase"):Connect(Session.refreshPromptLock)
 	ClubState.Folder:GetAttributeChangedSignal("NeedsName"):Connect(Session.refreshPromptLock)
+	ClubState.Folder:GetAttributeChangedSignal("ScoutLevel"):Connect(Session.refreshPromptLock)
+	ClubState.Folder:GetAttributeChangedSignal("ScoutReportNew"):Connect(Session.refreshPromptLock)
 	ClubState.set("Phase", "Manage")
 	Session.refreshPromptLock()
 	print(("[FCT] %s %s profile for %s (%s): %s, %d matches played"):format(

@@ -38,7 +38,9 @@ local academy: { string } = {}
 -- X276: the list used to be re-rolled after every match, so a prospect the
 -- player was saving up for vanished and the fee they were quoted never applied.
 -- It now survives and is only re-scouted every few matches. TEMP number.
-local SHORTLIST_MATCHES = 4
+-- Marcel, 2026-09-21: a new scout report after every match (it kept for 4
+-- under X276). It can be a poor one.
+local SHORTLIST_MATCHES = 1
 local shortlistAge = 0 -- matches played since it was last scouted
 local nextId = 1
 local rng = Random.new()
@@ -141,6 +143,8 @@ local function refreshShortlist()
 	end
 	shortlist = Squad.prospects(rng:NextInteger(1, 1000000), Squad.average(players), scoutLevel, taken)
 	shortlistAge = 0
+	-- the folder on the office desk glows until it has been opened
+	ClubState.set("ScoutReportNew", #shortlist > 0)
 end
 
 -- After a match: keep the list unless it has gone stale or is empty (every
@@ -391,7 +395,10 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 	end
 	local cash = ClubState.get("Cash") :: number
 
-	if name == "setAutoSquad" then
+	if name == "openReport" then
+		ClubState.set("ScoutReportNew", false)
+		return true, nil
+	elseif name == "setAutoSquad" then
 		autoSquad = a == true
 		recomputeLineup()
 		publish()
