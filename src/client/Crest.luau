@@ -14,6 +14,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
+local ClubCrest = require(ReplicatedStorage.Shared.ClubCrest)
 local Theme = require(script.Parent.Theme)
 
 local Crest = {}
@@ -50,11 +51,11 @@ function Crest.initials(name: string?): string
 	return out
 end
 
--- League crest art (docs/CRESTS.md). Kept in this one function so the player's
--- crest (the crest builder) can change around it: it adds or updates an `Art`
--- image inside `shield` and, while art shows, hides the shield's own fill, ring
--- and every other child. Returns true when art is shown. The player's club and
--- unknown clubs have no art and get their shield back.
+-- League crest art (docs/CRESTS.md), and the player club's crest-builder
+-- crest (ClubCrest), in this one function: it adds or updates an `Art` image
+-- (league) or a `Builder` crest (player) inside `shield` and, while either
+-- shows, hides the shield's own fill, ring and every other child. Returns true
+-- when art or a builder crest is shown. An unknown club keeps the drawn shield.
 function Crest.applyArt(shield: Frame, name: string?, isPlayer: boolean?): boolean
 	local image = Config.clubCrestImage(name, isPlayer)
 	local art = shield:FindFirstChild("Art") :: ImageLabel?
@@ -72,12 +73,29 @@ function Crest.applyArt(shield: Frame, name: string?, isPlayer: boolean?): boole
 		art.Visible = image ~= nil
 		art.Image = image or ""
 	end
-	local showArt = image ~= nil
+	local builder = shield:FindFirstChild("Builder") :: Frame?
+	if isPlayer then
+		local spec = ClubCrest.forClub(name)
+		if builder then
+			ClubCrest.update(builder, spec)
+		else
+			builder = ClubCrest.draw(shield, spec, UDim2.fromScale(1, 1), {
+				name = "Builder",
+				position = UDim2.fromScale(0.5, 0.5),
+				anchorPoint = Vector2.new(0.5, 0.5),
+				zIndex = shield.ZIndex + 1,
+			})
+		end
+	end
+	if builder then
+		builder.Visible = isPlayer == true
+	end
+	local showArt = image ~= nil or isPlayer == true
 	shield.BackgroundTransparency = if showArt then 1 else 0
 	for _, child in shield:GetChildren() do
 		if child:IsA("UIStroke") then
 			child.Enabled = not showArt
-		elseif child:IsA("GuiObject") and child ~= art then
+		elseif child:IsA("GuiObject") and child ~= art and child ~= builder then
 			child.Visible = not showArt
 		end
 	end

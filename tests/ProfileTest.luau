@@ -170,6 +170,26 @@ function T.settingsDefaultAndValidate()
 	assert(out.settings.quality == "", "unknown quality dropped")
 end
 
+-- Crest builder: the crest is optional like settings. An old save gets the
+-- default without counting as a repair; a bad field falls back on its own.
+function T.crestDefaultAndValidate()
+	local p = Profile.new("Crest FC", 1)
+	assert(p.crest.shape == "classic" and p.crest.main == "red" and p.crest.second == "white", "default crest")
+	local raw: any = Profile.new("Crest FC", 1)
+	raw.crest = nil
+	local out, changed = Profile.normalize(raw, 1)
+	assert(out.crest.main == "red" and out.crest.emblem == "castle", "missing crest gets the default")
+	assert(not changed, "an older save without a crest is not a repair")
+	raw.crest = { shape = "round", pattern = "sash", emblem = "dragon", main = "navy", second = "gold" }
+	out, changed = Profile.normalize(raw, 1)
+	assert(out.crest.shape == "round" and out.crest.pattern == "sash", "good fields kept")
+	assert(out.crest.main == "navy" and out.crest.second == "gold", "colours kept")
+	assert(out.crest.emblem == "castle", "unknown emblem falls back")
+	assert(changed, "a bad field is a repair")
+	local again = Profile.normalize(HttpService:JSONDecode(HttpService:JSONEncode(out)), 1)
+	assert(again.crest.main == "navy" and again.crest.shape == "round", "crest survives a JSON round trip")
+end
+
 -- Review of X288: normalize used to rebuild `history` from the seasons alone,
 -- so the club servants were thrown away by every save.
 function T.normalizeKeepsClubServants()

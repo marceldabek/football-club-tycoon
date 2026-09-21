@@ -1,19 +1,24 @@
 --!strict
--- First-visit onboarding: the owner names the club. Shown while
--- ClubState.NeedsName is true and the local player owns this club. The
--- server filters and applies the name (ClubName remote) and clears the flag.
+-- First-visit onboarding: the owner names the club (step 1), then designs its
+-- crest (step 2, CrestBuilder). Shown while ClubState.NeedsName is true and the
+-- local player owns this club. "Found the club" sends the crest (ClubCrest
+-- remote) and then the name; the server filters and applies the name and
+-- clears the flag. A refused name comes back to step 1 with the crest kept.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local ClubCrest = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ClubCrest"))
 local Theme = require(script.Parent.Theme)
+local CrestBuilder = require(script.Parent.CrestBuilder)
 
 local player = Players.LocalPlayer
 local state = require(script.Parent.ClubRef).waitState()
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local nameEvent = remotes:WaitForChild("ClubName") :: RemoteEvent
+local crestEvent = remotes:WaitForChild("ClubCrest") :: RemoteEvent
 
 local function get(key: string): any
 	return state:GetAttribute(key)
@@ -81,8 +86,12 @@ local hint = Theme.text(card.frame, hintText, "muted", {
 	TextSize = 14,
 })
 
-local found = card.addButton("Found the club", "primary")
+local found = card.addButton("Next", "primary")
 found.Name = "Found"
+
+-- step 2's crest, kept across a trip back to step 1
+local draft: ClubCrest.Spec? = nil
+local pendingName = ""
 
 box:GetPropertyChangedSignal("Text"):Connect(function()
 	-- X190: count letters, not bytes (an accented letter is two bytes)
@@ -105,11 +114,35 @@ local function submit()
 		hint.TextColor3 = Theme.colors.bad
 		return
 	end
-	found.Text = "Founding…"
-	nameEvent:FireServer(name)
-	task.delay(3, function()
-		found.Text = "Found the club"
-	end)
+	pendingName = name
+	card.frame.Visible = false
+	CrestBuilder.open({
+		title = "DESIGN YOUR CREST",
+		confirmText = "Found the club",
+		backText = "Back",
+		spec = draft or ClubCrest.forFolder(state),
+		onBack = function()
+			CrestBuilder.close()
+			card.frame.Visible = true
+		end,
+		onConfirm = function(spec: ClubCrest.Spec)
+			draft = spec
+			CrestBuilder.setBusy("Founding…")
+			crestEvent:FireServer(spec)
+			nameEvent:FireServer(pendingName)
+			-- the server toasts why a name was refused; the naming step comes
+			-- back so the player can try another, with the crest kept
+			task.delay(3, function()
+				if get("NeedsName") == true and CrestBuilder.isOpen() then
+					CrestBuilder.close()
+					card.frame.Visible = true
+					hint.Text = "Try another name."
+					hint.TextColor3 = Theme.colors.bad
+				end
+				CrestBuilder.setBusy(nil)
+			end)
+		end,
+	})
 end
 found.Activated:Connect(submit)
 box.FocusLost:Connect(function(enterPressed)
@@ -121,12 +154,19 @@ end)
 local function refresh()
 	local isOwner = get("OwnerUserId") == player.UserId
 	local show = get("NeedsName") == true and get("Phase") == "Manage" and isOwner
-	if show and not card.frame.Visible then
+	if show and not card.frame.Visible and not CrestBuilder.isOpen() then
 		box.Text = get("ClubName") or ""
 		hint.Text = hintText
 		hint.TextColor3 = Theme.colors.muted
 	end
-	card.frame.Visible = show
+	if not show then
+		if CrestBuilder.isOpen() and get("NeedsName") ~= true then
+			CrestBuilder.close() -- founded
+		end
+		card.frame.Visible = false
+	elseif not CrestBuilder.isOpen() then
+		card.frame.Visible = true
+	end
 end
 
 for _, key in { "NeedsName", "Phase", "OwnerUserId" } do

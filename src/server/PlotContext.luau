@@ -47,6 +47,17 @@ function PlotContext.stateFolder(): Folder
 	return folder
 end
 
+-- The state folder if it exists, without creating it: builders read the
+-- club's crest from it, and the Edit-mode tests must not leave a stray
+-- ReplicatedStorage.ClubState behind (ClubRef treats one as a live club).
+function PlotContext.findStateFolder(): Instance?
+	if not index then
+		return ReplicatedStorage:FindFirstChild("ClubState")
+	end
+	local clubs = ReplicatedStorage:FindFirstChild("Clubs")
+	return clubs and clubs:FindFirstChild("Plot" .. index)
+end
+
 -- Where this plot's `Club` model lives.
 function PlotContext.worldParent(): Instance
 	if not index then

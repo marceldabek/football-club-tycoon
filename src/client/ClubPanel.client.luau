@@ -11,6 +11,8 @@ local ProximityPromptService = game:GetService("ProximityPromptService")
 local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local CrestBuilder = require(script.Parent.CrestBuilder)
+local ClubCrest = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ClubCrest"))
 local Squad = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Squad")) -- X331: what a bid is actually for
 local Finance = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Finance")) -- X299
 local Theme = require(script.Parent.Theme)
@@ -167,6 +169,44 @@ local cashLine = Theme.pill(panel, "CashLine", {
 	BackgroundTransparency = 0,
 });
 (cashLine:FindFirstChildOfClass("UICorner") :: UICorner).CornerRadius = UDim.new(0, 10)
+
+-- Crest builder: the owner re-edits the crest (and so the club colours) here,
+-- free for now. The panel only opens between matches, which is when the
+-- server accepts a change. The crest itself is a button too.
+local function openCrestEditor()
+	if get("OwnerUserId") ~= player.UserId or get("Phase") ~= "Manage" then
+		return
+	end
+	CrestBuilder.open({
+		title = "EDIT CREST",
+		confirmText = "Save crest",
+		backText = "Cancel",
+		spec = ClubCrest.forFolder(state),
+		onBack = CrestBuilder.close,
+		onConfirm = function(spec: ClubCrest.Spec)
+			remotes:WaitForChild("ClubCrest"):FireServer(spec)
+			CrestBuilder.close()
+		end,
+	})
+end
+local editCrest = Theme.button(panel, "Edit crest", "secondary", {
+	Name = "EditCrest",
+	Position = UDim2.new(1, -262, 0, 10),
+	AnchorPoint = Vector2.new(1, 0),
+	Size = UDim2.fromOffset(130, 44),
+	TextSize = 16,
+	BackgroundColor3 = Color3.fromRGB(23, 30, 44),
+})
+editCrest.Activated:Connect(openCrestEditor)
+local crestButton = Instance.new("TextButton")
+crestButton.Name = "CrestButton"
+crestButton.Text = ""
+crestButton.BackgroundTransparency = 1
+crestButton.Size = UDim2.fromOffset(44, 44)
+crestButton.Position = UDim2.fromOffset(18, 10)
+crestButton.ZIndex = 20
+crestButton.Parent = panel
+crestButton.Activated:Connect(openCrestEditor)
 
 -- tabs
 local tabs = Instance.new("Frame")
@@ -454,7 +494,7 @@ local board: LineupBoard.Board? = nil
 local function renderSquad(club: Club)
 	if not board then
 		board = LineupBoard.new(boardHolder, {
-			kit = Config.HomeKit,
+			kit = (ClubCrest.localColours()),
 			onSwap = function(a: number, b: number)
 				selectedId = nil
 				actionEvent:FireServer("swap", a, b)
@@ -710,7 +750,7 @@ local function renderScouting(club: Club)
 		face.Parent = r
 		Theme.corner(face, Theme.chipRadius)
 		Theme.stroke(face)
-		Headshot.attach(face, p.look or p.id, Config.HomeKit, 0, { shoulders = true })
+		Headshot.attach(face, p.look or p.id, (ClubCrest.localColours()), 0, { shoulders = true })
 		cell(r, p.name, 96, 320, { Font = Theme.fonts.display, TextSize = 19, Size = UDim2.fromOffset(320, 30), Position = UDim2.fromOffset(96, 16), TextTruncate = Enum.TextTruncate.AtEnd })
 		cell(r, ("%s  ·  Age %d"):format(p.role, p.age), 96, 320, { TextColor3 = BLUE_LINE, TextSize = 14, Size = UDim2.fromOffset(320, 22), Position = UDim2.fromOffset(96, 46) })
 		cell(r, tostring(p.overall), 0, 90, { Position = UDim2.new(COL_OVR, -12, 0, 0), Size = UDim2.fromOffset(90, ROW_H), Font = Theme.fonts.display, TextSize = 32, TextColor3 = ACCENT, TextXAlignment = Enum.TextXAlignment.Center, TextYAlignment = Enum.TextYAlignment.Center })
@@ -1176,6 +1216,8 @@ render = function()
 	end
 	cashLine.Text = money(get("Cash") or 0)
 	Crest.update(crest, get("ClubName") or Config.ClubName, true)
+	editCrest.Visible = canManage()
+	crestButton.Visible = canManage()
 	for name, b in tabButtons do
 		b.BackgroundColor3 = if name == currentTab then ACCENT else Theme.colors.bg3
 		b.TextColor3 = if name == currentTab then Theme.colors.bg else Theme.colors.text
@@ -1271,7 +1313,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
 	end
 end)
 
-for _, key in { "Club", "Cash", "MatchesPlayed", "LeagueTable", "LastRound", "Demand", "History", "Finance", "ClubName", "OwnerUserId" } do
+for _, key in { "Club", "Cash", "MatchesPlayed", "LeagueTable", "LastRound", "Demand", "History", "Finance", "ClubName", "OwnerUserId", "Crest" } do
 	state:GetAttributeChangedSignal(key):Connect(render)
 end
 -- a signing, a pin or an unpin rewrites the club JSON: the open pack redraws

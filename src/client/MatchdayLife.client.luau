@@ -21,6 +21,7 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer -- X318: for the Quality attribute
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local ClubCrest = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ClubCrest"))
 local MatchdayRoutes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MatchdayRoutes"))
 local RoadTiles = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoadTiles"))
 local CarWheels = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("CarWheels"))
@@ -135,8 +136,13 @@ end
 
 -- Returns nil when the shared rig could not be built; the caller must skip
 -- this fan rather than falling back to blocks.
-local function makeFan(parent: Instance, route: MatchdayRoutes.Route, startDistance: number, loopsInMatch: boolean): Fan?
-	local kit = if math.random() < 0.4 then Config.HomeKit else NEUTRAL_KITS[math.random(1, #NEUTRAL_KITS)]
+-- Crest builder: the colours of the club whose matchday this is.
+local function homeKit(crowd: PlotCrowd): Color3
+	return (ClubCrest.colours(ClubCrest.forFolder(crowd.folder)))
+end
+
+local function makeFan(parent: Instance, route: MatchdayRoutes.Route, startDistance: number, loopsInMatch: boolean, home: Color3): Fan?
+	local kit = if math.random() < 0.4 then home else NEUTRAL_KITS[math.random(1, #NEUTRAL_KITS)]
 	local fig = Townsfolk.build(parent, {
 		shirt = kit,
 		trousers = DARK_TROUSERS,
@@ -149,7 +155,7 @@ local function makeFan(parent: Instance, route: MatchdayRoutes.Route, startDista
 
 	local scarf: BasePart? = nil
 	if math.random() < 0.5 then
-		scarf = part("Scarf", SCARF, Config.HomeKit, fig.model)
+		scarf = part("Scarf", SCARF, home, fig.model)
 	end
 
 	return {
@@ -170,7 +176,7 @@ local function addFan(crowd: PlotCrowd, index: number, total: number)
 	local route = ROUTE_LIST[(index % 2) + 1]
 	local length = MatchdayRoutes.length(route)
 	local startDistance = (index / math.max(total, 1)) * length
-	local fan = makeFan(crowd.model, route, startDistance, math.random() < 0.5)
+	local fan = makeFan(crowd.model, route, startDistance, math.random() < 0.5, homeKit(crowd))
 	if fan then
 		table.insert(crowd.fans, fan)
 	end
@@ -277,7 +283,7 @@ local function rebuildQueue(crowd: PlotCrowd)
 	table.clear(crowd.queue)
 	local want = MatchdayRoutes.queueCount(numberAttribute(crowd.folder, "Attendance"), numberAttribute(crowd.folder, "Capacity"), crowd.folder:GetAttribute("Phase"))
 	for i, spot in MatchdayRoutes.queueSpots(want) do
-		local kit = if math.random() < 0.5 then Config.HomeKit else NEUTRAL_KITS[math.random(1, #NEUTRAL_KITS)]
+		local kit = if math.random() < 0.5 then homeKit(crowd) else NEUTRAL_KITS[math.random(1, #NEUTRAL_KITS)]
 		local fig = Townsfolk.build(crowd.model, {
 			shirt = kit,
 			trousers = DARK_TROUSERS,
@@ -291,7 +297,7 @@ local function rebuildQueue(crowd: PlotCrowd)
 				* CFrame.Angles(0, math.rad(math.random(-20, 20)), 0)
 			Townsfolk.pose(fig, base)
 			if math.random() < 0.5 then
-				local scarf = part("Scarf", SCARF, Config.HomeKit, fig.model)
+				local scarf = part("Scarf", SCARF, homeKit(crowd), fig.model)
 				scarf.CFrame = base * CFrame.new(0, CHEST_Y, 0.1)
 			end
 			table.insert(crowd.queue, fig.model)
@@ -382,7 +388,7 @@ end
 local BAR_DRINKERS = 4
 local function buildBarDrinkers(crowd: PlotCrowd)
 	for i, spot in MatchdayRoutes.barDrinkerSpots(BAR_DRINKERS) do
-		local kit = if i % 2 == 1 then Config.HomeKit else NEUTRAL_KITS[(i % #NEUTRAL_KITS) + 1]
+		local kit = if i % 2 == 1 then homeKit(crowd) else NEUTRAL_KITS[(i % #NEUTRAL_KITS) + 1]
 		local fig = Townsfolk.build(crowd.model, {
 			shirt = kit,
 			trousers = DARK_TROUSERS,
@@ -405,7 +411,7 @@ end
 local KIOSK_QUEUE = 3
 local function buildKioskQueue(crowd: PlotCrowd)
 	for i, spot in MatchdayRoutes.kioskQueueSpots(KIOSK_QUEUE) do
-		local kit = if i == 2 then Config.HomeKit else NEUTRAL_KITS[(i % #NEUTRAL_KITS) + 1]
+		local kit = if i == 2 then homeKit(crowd) else NEUTRAL_KITS[(i % #NEUTRAL_KITS) + 1]
 		local fig = Townsfolk.build(crowd.model, {
 			shirt = kit,
 			trousers = DARK_TROUSERS,
@@ -416,7 +422,7 @@ local function buildKioskQueue(crowd: PlotCrowd)
 			local base = crowd.plotCFrame * spot
 			Townsfolk.pose(fig, base)
 			if i ~= 2 then
-				local scarf = part("Scarf", SCARF, Config.HomeKit, fig.model)
+				local scarf = part("Scarf", SCARF, homeKit(crowd), fig.model)
 				scarf.CFrame = base * CFrame.new(0, CHEST_Y, 0.1)
 			end
 			table.insert(crowd.stewards, fig.model)
@@ -445,7 +451,7 @@ local function buildConcourse(crowd: PlotCrowd)
 	local seed = if type(plot) == "number" then plot * 977 + math.floor(attendance) else 977
 
 	local function person(name: string, base: CFrame, i: number, scarf: boolean)
-		local kit = if i % 3 == 0 then Config.HomeKit else NEUTRAL_KITS[(i % #NEUTRAL_KITS) + 1]
+		local kit = if i % 3 == 0 then homeKit(crowd) else NEUTRAL_KITS[(i % #NEUTRAL_KITS) + 1]
 		local fig = Townsfolk.build(crowd.model, {
 			shirt = kit,
 			trousers = DARK_TROUSERS,
@@ -457,7 +463,7 @@ local function buildConcourse(crowd: PlotCrowd)
 		fig.model.Name = name
 		Townsfolk.pose(fig, base)
 		if scarf then
-			local s = part("Scarf", SCARF, Config.HomeKit, fig.model)
+			local s = part("Scarf", SCARF, homeKit(crowd), fig.model)
 			s.CFrame = base * CFrame.new(0, CHEST_Y, 0.1)
 		end
 		table.insert(crowd.concourse, fig.model)
@@ -524,7 +530,7 @@ local function startLeaving(crowd: PlotCrowd)
 	local total = math.min(targetFanCount(crowd.folder), MAX_FANS_PER_PLOT)
 	for i = 1, total do
 		local route = ROUTE_LIST[(i % 2) + 1]
-		local fan = makeFan(crowd.model, route, MatchdayRoutes.leavingStart(MatchdayRoutes.length(route), i, total), false)
+		local fan = makeFan(crowd.model, route, MatchdayRoutes.leavingStart(MatchdayRoutes.length(route), i, total), false, homeKit(crowd))
 		if fan then
 			fan.leaving = true
 			table.insert(crowd.fans, fan)

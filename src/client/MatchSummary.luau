@@ -7,6 +7,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local ClubCrest = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ClubCrest"))
 local Theme = require(script.Parent.Theme)
 local Headshot = require(script.Parent.Headshot)
 local Crest = require(script.Parent.Crest)
@@ -524,7 +525,7 @@ function MatchSummary.new(gui: ScreenGui): Summary
 		face.ClipsDescendants = true
 		face.Parent = card
 		Theme.corner(face, Theme.chipRadius)
-		Headshot.attach(face, c.look or c.id, Config.HomeKit, c.number, { shoulders = true })
+		Headshot.attach(face, c.look or c.id, (ClubCrest.localColours()), c.number, { shoulders = true })
 		Theme.stroke(face)
 		Theme.text(card, (c.name :: string):match("(%S+)$") or c.name, "body", {
 			Size = UDim2.new(1, -8, 0, 18),

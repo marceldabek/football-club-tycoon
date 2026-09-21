@@ -122,7 +122,8 @@ local function refresh(folder: Folder)
 	local plot = if typeof(cf) == "CFrame" then cf else nil
 	local t = if type(tier) == "number" then tier else 1
 	local n = if type(name) == "string" and name ~= "" then name else Config.ClubName
-	local key = if plot then ("%d|%s|%s"):format(t, n, tostring(plot)) else "none"
+	local crest = folder:GetAttribute("Crest") -- crest builder: the club's colours
+	local key = if plot then ("%d|%s|%s|%s"):format(t, n, tostring(plot), tostring(crest)) else "none"
 	local old = built[folder]
 	if old and old.key == key then
 		return
@@ -135,7 +136,7 @@ end
 
 local function track(folder: Folder)
 	refresh(folder)
-	for _, attr in { "PlotCFrame", "Tier", "ClubName" } do
+	for _, attr in { "PlotCFrame", "Tier", "ClubName", "Crest" } do
 		folder:GetAttributeChangedSignal(attr):Connect(function()
 			refresh(folder)
 		end)

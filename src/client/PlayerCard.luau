@@ -13,6 +13,7 @@ local TweenService = game:GetService("TweenService")
 
 local CardStats = require(ReplicatedStorage.Shared.CardStats)
 local Config = require(ReplicatedStorage.Shared.Config)
+local ClubCrest = require(ReplicatedStorage.Shared.ClubCrest)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Nations = require(ReplicatedStorage.Shared.Nations)
 local Squad = require(ReplicatedStorage.Shared.Squad)
@@ -136,7 +137,7 @@ function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 	portrait.Size = UDim2.fromScale(0.49, 0.549) -- bottom lands on the art's divider
 	portrait.ZIndex = 3
 	portrait.Parent = face
-	local kit = if signed then Config.HomeKit else Config.ProspectKit
+	local kit = if signed then (ClubCrest.localColours()) else Config.ProspectKit
 	local shot = Headshot.attach(portrait, p.look or p.id, kit, p.number or 0, { shoulders = true })
 	shot.ZIndex = 3
 	shot.BackgroundTransparency = 1

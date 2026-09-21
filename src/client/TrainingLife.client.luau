@@ -13,7 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService") -- X289: the academy intake
 
-local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local ClubCrest = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ClubCrest"))
 local Townsfolk = require(script.Parent.Townsfolk)
 
 local player = Players.LocalPlayer
@@ -93,7 +93,7 @@ end
 -- X289: pitch 2 is the academy's — the same session with smaller figures, and
 -- only as many of them as this season's intake, so the youth setup the academy
 -- hut advertises is actually out there training.
-local function build(grass: BasePart, youth: boolean, count: number): Session
+local function build(grass: BasePart, youth: boolean, count: number, kit: Color3): Session
 	local folder = Instance.new("Folder")
 	folder.Name = "TrainingLife"
 	folder.Parent = workspace
@@ -109,7 +109,7 @@ local function build(grass: BasePart, youth: boolean, count: number): Session
 	local runners: { Townsfolk.Figure } = {}
 	for i = 1, math.max(count, 1) do
 		local fig = Townsfolk.build(folder, {
-			shirt = Config.HomeKit,
+			shirt = kit,
 			trousers = Color3.fromRGB(245, 245, 245),
 			skin = SKIN[(i % #SKIN) + 1],
 		})
@@ -193,8 +193,11 @@ RunService.RenderStepped:Connect(function(dt: number)
 			if not sessions[grass] then
 				local pitch = pitches[grass]
 				local youth = pitch ~= nil and pitch.youth
-				local count = if youth then intakeCount(clubs:FindFirstChild((pitch :: Pitch).plot)) else PLAYERS
-				sessions[grass] = build(grass, youth, math.clamp(count, 1, PLAYERS))
+				local state = clubs:FindFirstChild((pitch :: Pitch).plot)
+				local count = if youth then intakeCount(state) else PLAYERS
+				-- crest builder: the plot's own club colours
+				local kit = ClubCrest.colours(ClubCrest.forFolder(state))
+				sessions[grass] = build(grass, youth, math.clamp(count, 1, PLAYERS), kit)
 			end
 		end
 	end

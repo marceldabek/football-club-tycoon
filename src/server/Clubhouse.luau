@@ -34,8 +34,18 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
-local CrestBadge = require(ReplicatedStorage.Shared.CrestBadge)
+local ClubCrest = require(ReplicatedStorage.Shared.ClubCrest)
 local KitPlacer = require(script.Parent.KitPlacer)
+local PlotContext = require(script.Parent.PlotContext)
+
+-- Crest builder: club-coloured pieces are tagged so WorldBuilder.applyCrest
+-- can repaint them when the crest changes (ClubCrest.paint).
+local function crest(): ClubCrest.Spec
+	return ClubCrest.forFolder(PlotContext.findStateFolder())
+end
+local function clubPaint<T>(inst: T, darken: number?, property: string?): T
+	return ClubCrest.paint(inst, crest(), "kit", darken, property)
+end
 
 local Clubhouse = {}
 
@@ -268,7 +278,7 @@ local DOOR_TRIM = "MEH__House_02_VAR1__ts1" -- the kit doors are untextured; the
 -- one). A leaf turns about the outer corner of its jamb, where three hinge pins
 -- sit on the frame's face against the leaf's end. The kit door is only a front
 -- face, so the leaf is a solid core with that face laid on the side you see.
-local function hangDoor(parent: Instance, o: Opening, d: Door, paint: Color3)
+local function hangDoor(parent: Instance, o: Opening, d: Door, paint: Color3, darken: number)
 	-- the wall the opening is in: brick + lining on the shell, two linings elsewhere
 	local c0, c1 = o.at - LINING, o.at + LINING
 	if o.axis == "x" then
@@ -317,7 +327,7 @@ local function hangDoor(parent: Instance, o: Opening, d: Door, paint: Color3)
 		local centre = pivot + reach * (width / 2) + Vector3.yAxis * ((y0 + y1) / 2)
 
 		local leaf = model(o.name .. "Leaf", parent)
-		part({
+		local core = part({
 			Name = "Core",
 			Size = Vector3.new(width, y1 - y0, LEAF_T),
 			CFrame = CFrame.fromMatrix(centre + front * (LEAF_T / 2), reach, Vector3.yAxis),
@@ -325,6 +335,10 @@ local function hangDoor(parent: Instance, o: Opening, d: Door, paint: Color3)
 			CanCollide = false,
 			Parent = leaf,
 		})
+
+		if d.painted then
+			clubPaint(core, darken)
+		end
 
 		local m = KitPlacer.place("MEH__" .. d.kit .. "__ts1", CFrame.new(centre), leaf)
 		local face = m:FindFirstChildWhichIsA("MeshPart", true)
@@ -343,6 +357,7 @@ local function hangDoor(parent: Instance, o: Opening, d: Door, paint: Color3)
 				local skin = sa:Clone()
 				if d.painted then
 					skin.Color = paint
+					clubPaint(skin, darken, "Color")
 				end
 				skin.Parent = face
 			end
@@ -486,13 +501,13 @@ local function buildShell(parent: Instance, addSign: (BasePart, string, { Enum.N
 		byName[o.name] = o
 	end
 	for _, d in DOORS do
-		hangDoor(shell, byName[d.opening], d, Config.HomeKit:Lerp(Color3.new(0, 0, 0), 0.25))
+		hangDoor(shell, byName[d.opening], d, Config.HomeKit:Lerp(Color3.new(0, 0, 0), 0.25), 0.25)
 	end
 
 	-- canopy over the front doors on two steel posts, club colour along its edge
 	local canopyY = FLOOR_Y + DOOR_H + 0.1
 	slab(shell, "Canopy", SHELL.x0 - 5, SHELL.x0, canopyY, canopyY + 0.4, -6.5, 6.5, STEEL, Enum.Material.Metal)
-	slab(shell, "CanopyEdge", SHELL.x0 - 5.2, SHELL.x0 - 5, canopyY - 0.2, canopyY + 0.6, -6.5, 6.5, Config.HomeKit)
+	clubPaint(slab(shell, "CanopyEdge", SHELL.x0 - 5.2, SHELL.x0 - 5, canopyY - 0.2, canopyY + 0.6, -6.5, 6.5, Config.HomeKit))
 	for _, zSign in { -1, 1 } do
 		slab(shell, "CanopyPost", SHELL.x0 - 4.8, SHELL.x0 - 4.5, DECK_Y, canopyY, zSign * 6.2 - 0.15, zSign * 6.2 + 0.15, STEEL, Enum.Material.Metal)
 	end
@@ -520,9 +535,9 @@ local function buildShell(parent: Instance, addSign: (BasePart, string, { Enum.N
 	-- Signs. The fascia over the front doors, like the navy board over the gates
 	-- in RivermereTurnstileEntrance.png: crest, the club's name, crest.
 	-- WorldBuilder.setClubName fills every label called "ClubName".
-	local fascia = slab(shell, "Fascia", SHELL.x0 - 0.3, SHELL.x0, canopyY + 0.7, canopyY + 3.5, -13, 13, doorColour)
+	local fascia = clubPaint(slab(shell, "Fascia", SHELL.x0 - 0.3, SHELL.x0, canopyY + 0.7, canopyY + 3.5, -13, 13, doorColour), 0.45)
 	slab(shell, "FasciaTrim", SHELL.x0 - 0.4, SHELL.x0, canopyY + 3.5, canopyY + 3.7, -13.2, 13.2, STONE, Enum.Material.Concrete)
-	local header = slab(shell, "PlayersHeader", SHELL.x1, SHELL.x1 + 0.4, FLOOR_Y + DOOR_H, FLOOR_Y + DOOR_H + 3, -7, 7, Config.HomeKit)
+	local header = clubPaint(slab(shell, "PlayersHeader", SHELL.x1, SHELL.x1 + 0.4, FLOOR_Y + DOOR_H, FLOOR_Y + DOOR_H + 3, -7, 7, Config.HomeKit))
 	for _, sign in { { header, Enum.NormalId.Right, false }, { fascia, Enum.NormalId.Left, true } } do
 		local gui = Instance.new("SurfaceGui")
 		gui.Name = "NameGui"
@@ -545,7 +560,7 @@ local function buildShell(parent: Instance, addSign: (BasePart, string, { Enum.N
 		label.Parent = gui
 		if crests then
 			for _, x in { 0.07, 0.93 } do
-				CrestBadge.draw(gui, Config.HomeKit, UDim2.fromOffset(44, 54), UDim2.fromScale(x, 0.5), Vector2.new(0.5, 0.5))
+				ClubCrest.badge(gui, crest(), UDim2.fromOffset(54, 54), UDim2.fromScale(x, 0.5), Vector2.new(0.5, 0.5))
 			end
 		end
 	end
@@ -697,6 +712,9 @@ local function buildDressingRooms(parent: Instance, addSign: (BasePart, string, 
 					local sx = run[1] + step * (i - 0.5)
 					local s0, s1 = span(0.4, 0.8)
 					local shirt = piece("Shirt", sx - 1.2, sx + 1.2, 3.4, 6.4, s0, s1, kit, Enum.Material.Fabric)
+					if home then
+						clubPaint(shirt)
+					end
 					shirt.CanCollide = false
 				end
 			end
@@ -799,10 +817,15 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 	-- after X373 and both looked for "Computer" in vain).
 	local computer = prop("classic_laptop", Vector3.new(deskX, DESK_TOP, deskZ), -math.pi / 2, Vector3.new(1.8, 1.3, 1.3)) :: BasePart
 	computer.Name = "Computer"
-	-- the pad on the desk IS the scout's report: a new one lands after every
-	-- match once a scout is hired. Session shows and lights it; the client opens
-	-- the report when the prompt fires.
-	local report = prop("office_notepads", Vector3.new(deskX - 0.2, DESK_TOP, deskZ - 1.6), 0.4, Vector3.new(0.6, 0.1, 0.8))
+	-- the manila folder on the desk IS the scout's report: a new one lands after
+	-- every match once a scout is hired. Session shows and lights it; the client
+	-- opens the report when the prompt fires. Not a PH__ mesh: a Creator Store
+	-- union (212927712, no scripts) kept at ServerStorage.Kit.manila_folder.
+	local reportModel = KitPlacer.place("manila_folder", CFrame.new(deskX - 0.2, DESK_TOP, deskZ - 1.8) * CFrame.Angles(0, 0.3, 0), office, {
+		fallbackSize = Vector3.new(0.95, 0.06, 1.37),
+		fallbackColor = Color3.fromRGB(222, 188, 124),
+	})
+	local report = reportModel:FindFirstChildWhichIsA("BasePart", true)
 	if report then
 		report.Name = "ScoutReport"
 		local scoutPrompt = addPrompt(report, "Scout Report", "Open")

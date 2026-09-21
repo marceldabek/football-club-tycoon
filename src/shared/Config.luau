@@ -3,6 +3,8 @@
 -- TEMP: every number in this file is a placeholder chosen to make the first
 -- two matches feel good. Real economy tuning is an open question (CLAUDE.md §25).
 
+local ClubCrest = require(script.Parent.ClubCrest)
+
 local Config = {}
 
 Config.MatchDurationSeconds = 90
@@ -158,12 +160,27 @@ local CREST_HUE_CLEARANCE = 0.09
 local CREST_VALUE_TOLERANCE = 0.35
 local CREST_MIN_SATURATION = 0.45
 
-function Config.pitchKit(kit: Color3): Color3
+-- Crest builder: the player's club picks its own colours now, so the kit an
+-- opponent is kept clear of is `home` -- the club it is playing. Callers that
+-- know the club pass it; with none, a client uses its own club (the one the
+-- player is looking at) and anything else falls back to the default red.
+local function contextHome(): Color3
+	local folder = ClubCrest.localFolder()
+	if folder then
+		return (ClubCrest.colours(ClubCrest.forFolder(folder)))
+	end
+	return Config.HomeKit
+end
+
+function Config.pitchKit(kit: Color3, home: Color3?): Color3
 	local hue, sat, val = Color3.toHSV(kit)
 	if sat < CREST_MIN_SATURATION or val < 0.2 then
 		return kit -- greyscale or very dark: never confusable, and a hue shift is a no-op
 	end
-	local homeHue, _, homeVal = Color3.toHSV(Config.HomeKit)
+	local homeHue, homeSat, homeVal = Color3.toHSV(home or contextHome())
+	if homeSat < CREST_MIN_SATURATION or homeVal < 0.2 then
+		return kit -- a black or white home side clashes with no hue
+	end
 	local gap = math.abs(hue - homeHue)
 	gap = math.min(gap, 1 - gap)
 	if gap >= CREST_HUE_CLEARANCE or math.abs(val - homeVal) > CREST_VALUE_TOLERANCE then
@@ -172,20 +189,22 @@ function Config.pitchKit(kit: Color3): Color3
 	return Color3.fromHSV((hue + 0.5) % 1, sat, val)
 end
 
-function Config.clubCrest(name: string?, isPlayer: boolean?): (Color3, Color3)
+-- `isPlayer`: `name` is a player club, whose colours come from its crest
+-- (ClubCrest.forClub). `home`: see pitchKit.
+function Config.clubCrest(name: string?, isPlayer: boolean?, home: Color3?): (Color3, Color3)
 	if isPlayer or name == nil or name == "" then
-		return Config.HomeKit, Color3.fromRGB(245, 245, 245)
+		return ClubCrest.colours(ClubCrest.forClub(name))
 	end
 	local known = crestByName[name]
 	if known then
-		-- X263: the designed colour, moved only if it would read as our own red
-		return Config.pitchKit(known.kit), known.accent
+		-- X263: the designed colour, moved only if it would read as the home side
+		return Config.pitchKit(known.kit, home), known.accent
 	end
 	local hash = 0
 	for i = 1, #name do
 		hash = (hash * 31 + name:byte(i)) % 360
 	end
-	return Config.pitchKit(Color3.fromHSV(hash / 360, 0.55, 0.55)), Color3.fromRGB(240, 240, 240)
+	return Config.pitchKit(Color3.fromHSV(hash / 360, 0.55, 0.55), home), Color3.fromRGB(240, 240, 240)
 end
 
 -- League crest art by club name. The player's club never has league art (its
@@ -346,7 +365,9 @@ Config.AmenityLevels = {
 }
 
 Config.ClubName = "Your Club" -- TEMP: club naming flow is undecided
-Config.HomeKit = Color3.fromRGB(200, 40, 50) -- TEMP: kit customisation later
+-- The default club colour: ClubCrest's "red", worn by a club that has not
+-- picked a crest. A club's real kit is ClubCrest.colours(its crest).
+Config.HomeKit = ClubCrest.colour("red")
 Config.SeatColor = Color3.fromRGB(200, 40, 50) -- TEMP: seat colour customisation later (M4 §4)
 -- Fictional pitch-side sponsors for the ad boards. Purely decorative for now.
 -- X156: half are TEMP Rivermere businesses already seen round town (the

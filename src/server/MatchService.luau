@@ -201,7 +201,8 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	-- X297: the visiting club's colours fill one end
 	-- X310: away from home the stands wear the hosts' colour and our following
 	-- takes the away end
-	local theirKit = Config.pitchKit(jsonToColor(opponent.kit))
+	local ourKit = ClubState.kit() -- crest builder: the club's own colours
+	local theirKit = Config.pitchKit(jsonToColor(opponent.kit), ourKit)
 	-- X314: the stands used to snap from empty to a full house one frame before
 	-- the walkout, while X104's fans were still queueing outside, and stayed
 	-- full through the 45s X161 spends walking them home. The ground fills in
@@ -209,7 +210,7 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	-- the whistle, and a thin crowd left while the leavers walk out.
 	local function fill(share: number)
 		if playerIsAway then
-			WorldBuilder.buildCrowd(ClubState.plotLevels(), attendance, capacity, Config.HomeKit, theirKit, share)
+			WorldBuilder.buildCrowd(ClubState.plotLevels(), attendance, capacity, ourKit, theirKit, share)
 		else
 			WorldBuilder.buildCrowd(ClubState.plotLevels(), attendance, capacity, theirKit, nil, share)
 		end
@@ -235,9 +236,9 @@ local function playCore(opponent: Opponent, bias: number, evening: boolean, dura
 	ClubState.set("Evening", evening)
 	local timeline = {
 		events = result.events,
-		home = { name = ClubState.get("ClubName"), kit = colorToJson(Config.HomeKit), squad = homeSquad },
-		-- X263: shift an away kit that would read as this club's own red
-		away = { name = opponent.name, kit = colorToJson(Config.pitchKit(jsonToColor(opponent.kit))), squad = opponent.squad },
+		home = { name = ClubState.get("ClubName"), kit = colorToJson(ourKit), squad = homeSquad },
+		-- X263: shift an away kit that would read as this club's own colour
+		away = { name = opponent.name, kit = colorToJson(theirKit), squad = opponent.squad },
 	}
 	ClubState.set("Timeline", HttpService:JSONEncode(timeline))
 	live = { result = result, sim = simParams, timeline = timeline, duration = duration } -- X271
@@ -514,7 +515,7 @@ local function playMatchInner(durationOverride: number?, walkoutOverride: number
 	end
 	remote("MatchSummary"):FireClient(owner, {
 		opponent = fixture.opponent,
-		awayKit = colorToJson(Config.pitchKit(jsonToColor(fixture.kit))),
+		awayKit = colorToJson(Config.pitchKit(jsonToColor(fixture.kit), ClubState.kit())),
 		homeGoals = result.homeGoals,
 		awayGoals = result.awayGoals,
 		outcome = settlement.outcome,
@@ -576,10 +577,9 @@ end
 function MatchService.awayTeam(): Opponent
 	local prepared = ClubService.prepareMatch()
 	local name = ClubState.get("ClubName") :: string
-	local kit = Config.clubCrest(name)
 	return {
 		name = name,
-		kit = colorToJson(kit),
+		kit = colorToJson(ClubState.kit()), -- a player club: its crest colours
 		strength = prepared.strength,
 		squad = prepared.matchSquad,
 	}
@@ -619,7 +619,7 @@ local function playFriendlyInner(opponent: Opponent, durationOverride: number?, 
 		remote("MatchSummary"):FireClient(owner, {
 			friendly = true,
 			opponent = opponent.name,
-			awayKit = colorToJson(Config.pitchKit(jsonToColor(opponent.kit))),
+			awayKit = colorToJson(Config.pitchKit(jsonToColor(opponent.kit), ClubState.kit())),
 			homeGoals = result.homeGoals,
 			awayGoals = result.awayGoals,
 			outcome = outcome,

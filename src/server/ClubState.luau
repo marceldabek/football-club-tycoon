@@ -9,6 +9,7 @@ local HttpService = game:GetService("HttpService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Profile = require(ReplicatedStorage.Shared.Profile)
 local Finance = require(ReplicatedStorage.Shared.Finance) -- X299
+local ClubCrest = require(ReplicatedStorage.Shared.ClubCrest)
 local PlotContext = require(script.Parent.PlotContext)
 
 local ClubState = {}
@@ -28,6 +29,7 @@ local PERSISTED: { [string]: boolean } = {
 	Draws = true,
 	Losses = true,
 	ClubName = true,
+	Crest = true, -- JSON ClubCrest.Spec
 	SettingMusic = true,
 	SettingQuality = true,
 }
@@ -194,10 +196,20 @@ function ClubState.init()
 	publishFinance()
 end
 
+-- The club's crest; its colours are the club's kit (ClubCrest.colours).
+function ClubState.crest(): ClubCrest.Spec
+	return ClubCrest.forFolder(folder)
+end
+
+function ClubState.kit(): Color3
+	return (ClubCrest.colours(ClubState.crest()))
+end
+
 -- The scalar half of the profile.
 function ClubState.restore(p: Profile.Profile)
 	ClubState.set("ClubName", p.clubName)
 	ClubState.set("NeedsName", not p.named)
+	ClubState.set("Crest", ClubCrest.encode(p.crest))
 	ClubState.set("Cash", p.cash)
 	for _, plot in Config.StandPlots do
 		ClubState.set("Stand_" .. plot.key, p.stands[plot.key] or plot.start)
@@ -225,6 +237,7 @@ export type Scalars = {
 	wins: number,
 	draws: number,
 	losses: number,
+	crest: ClubCrest.Spec,
 }
 
 function ClubState.serialize(): Scalars
@@ -238,6 +251,7 @@ function ClubState.serialize(): Scalars
 		wins = ClubState.get("Wins") :: number,
 		draws = ClubState.get("Draws") :: number,
 		losses = ClubState.get("Losses") :: number,
+		crest = ClubState.crest(),
 	}
 end
 

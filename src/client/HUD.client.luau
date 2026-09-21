@@ -1002,7 +1002,7 @@ local function refreshPhasePanels()
 end
 
 state:GetAttributeChangedSignal("Cash"):Connect(refreshCash)
-for _, key in { "Phase", "HomeGoals", "AwayGoals", "TimeLeft", "Opponent" } do
+for _, key in { "Phase", "HomeGoals", "AwayGoals", "TimeLeft", "Opponent", "Crest" } do
 	state:GetAttributeChangedSignal(key):Connect(refreshScoreboard)
 end
 -- X336: TimeLeft ticks four times a second, and the feed is rebuilt from

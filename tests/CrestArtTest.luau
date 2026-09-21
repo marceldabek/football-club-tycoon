@@ -48,9 +48,16 @@ function T.updateSwapsArtAndShield()
 	local holder = Instance.new("Frame")
 	local name = Config.Clubs[5][2].name
 	local shield = Crest.draw(holder, name, 34)
+	-- the player's club: its crest-builder crest, not league art
 	Crest.update(shield, "Rivermere Nobodies", true)
 	local art = shield:FindFirstChild("Art") :: ImageLabel?
 	assert(art == nil or not art.Visible, "art hidden for the player")
+	local builder = shield:FindFirstChild("Builder") :: Frame?
+	assert(builder and builder.Visible, "builder crest shown for the player")
+	assert(shield.BackgroundTransparency == 1, "fill hidden under the builder crest")
+	-- an unknown club with no art gets the drawn shield back
+	Crest.update(shield, "Nowhere Athletic", false)
+	assert(not (shield:FindFirstChild("Builder") :: Frame).Visible, "builder crest hidden")
 	assert(shield.BackgroundTransparency == 0, "fill back")
 	assert((shield:FindFirstChild("Initials") :: TextLabel).Visible, "initials back")
 	assert((shield:FindFirstChildOfClass("UIStroke") :: UIStroke).Enabled, "ring back")

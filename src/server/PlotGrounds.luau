@@ -48,12 +48,21 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
-local CrestBadge = require(ReplicatedStorage.Shared.CrestBadge)
+local ClubCrest = require(ReplicatedStorage.Shared.ClubCrest)
 local HttpService = game:GetService("HttpService") -- X289: the academy intake
 local PlotContext = require(script.Parent.PlotContext)
 local KitPlacer = require(script.Parent.KitPlacer)
 local TreeKit = require(script.Parent.TreeKit)
 local GroundsPlanting = require(script.Parent.GroundsPlanting)
+
+-- Crest builder: club-coloured pieces are tagged so WorldBuilder.applyCrest
+-- can repaint them when the crest changes (ClubCrest.paint).
+local function crest(): ClubCrest.Spec
+	return ClubCrest.forFolder(PlotContext.findStateFolder())
+end
+local function clubPaint<T>(inst: T, role: string?, darken: number?): T
+	return ClubCrest.paint(inst, crest(), role or "kit", darken)
+end
 local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles)
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 
@@ -443,7 +452,7 @@ local function buildSupportersBar(parent: Instance)
 	-- walking up to it - the single clearest reason the pub read as a doll's
 	-- house. A real door is 0.9 x 2.0 m, which at 2.75 studs/m is 2.5 x 5.5.
 	extents("Door", xc - 1.3, xc + 1.3, GROUND_Y, GROUND_Y + 5.8, z1 + 0.3, z1 + 0.5, Color3.fromRGB(60, 36, 24), Enum.Material.Wood, m)
-	local fascia = extents("Fascia", x0 + 0.5, x1 - 0.5, GROUND_Y + 6.2, GROUND_Y + 8.2, z1, z1 + 0.5, Config.HomeKit, Enum.Material.SmoothPlastic, m)
+	local fascia = clubPaint(extents("Fascia", x0 + 0.5, x1 - 0.5, GROUND_Y + 6.2, GROUND_Y + 8.2, z1, z1 + 0.5, Config.HomeKit, Enum.Material.SmoothPlastic, m))
 	addSign(fascia, "SUPPORTERS' BAR", { Enum.NormalId.Back })
 	for _, wx in { x0 + 6, xc, x1 - 6 } do
 		extents("UpperWindow", wx - 1.6, wx + 1.6, GROUND_Y + 9.2, GROUND_Y + 12.4, z1, z1 + 0.15, cream, Enum.Material.SmoothPlastic, m)
@@ -497,7 +506,7 @@ local function buildSupportersBar(parent: Instance)
 	local iron = Color3.fromRGB(24, 24, 26)
 	local signX = x1 - 1.5
 	extents("SignBracket", signX - 0.1, signX + 0.1, GROUND_Y + 9.5, GROUND_Y + 9.7, z1, z1 + 3.4, iron, Enum.Material.Metal, m)
-	local sign = extents("HangingSign", signX - 0.08, signX + 0.08, GROUND_Y + 6.2, GROUND_Y + 9.3, z1 + 0.8, z1 + 3.2, Config.HomeKit, Enum.Material.Wood, m)
+	local sign = clubPaint(extents("HangingSign", signX - 0.08, signX + 0.08, GROUND_Y + 6.2, GROUND_Y + 9.3, z1 + 0.8, z1 + 3.2, Config.HomeKit, Enum.Material.Wood, m))
 	addSign(sign, "SUPPORTERS' BAR", { Enum.NormalId.Left, Enum.NormalId.Right })
 	for _, px in { xc - 3.2, xc + 3.2 } do
 		extents("Planter", px - 0.8, px + 0.8, py1, py1 + 1.3, z1 + 0.7, z1 + 1.9, Color3.fromRGB(58, 60, 64), Enum.Material.Concrete, m)
@@ -832,9 +841,9 @@ local function buildShop(parent: Instance)
 	extents("DisplayRail", rx0, rx1, winTop - 1, winTop - 0.8, winZ0 + 1, winZ1 - 1, IRON, Enum.Material.Metal, shop)
 	for k = 1, 3 do
 		local zc = winZ0 + k * (winZ1 - winZ0) / 4
-		extents("Shirt", rx0 - 0.1, rx1 + 0.1, sillTop + 1.2, winTop - 1.4, zc - 1.1, zc + 1.1, Config.HomeKit, Enum.Material.Fabric, shop)
+		clubPaint(extents("Shirt", rx0 - 0.1, rx1 + 0.1, sillTop + 1.2, winTop - 1.4, zc - 1.1, zc + 1.1, Config.HomeKit, Enum.Material.Fabric, shop))
 		-- sleeves sit inside the body's depth and top (no shared planes) and stop short of the next shirt
-		extents("ShirtSleeves", rx0 - 0.05, rx1 + 0.05, winTop - 2.6, winTop - 1.45, zc - 1.6, zc + 1.6, Config.HomeKit, Enum.Material.Fabric, shop)
+		clubPaint(extents("ShirtSleeves", rx0 - 0.05, rx1 + 0.05, winTop - 2.6, winTop - 1.45, zc - 1.6, zc + 1.6, Config.HomeKit, Enum.Material.Fabric, shop))
 	end
 	local lamp = Instance.new("PointLight")
 	lamp.Color = Color3.fromRGB(255, 230, 190)
@@ -852,7 +861,7 @@ local function buildShop(parent: Instance)
 	extents("WallFront", fx0, fx1, GROUND_Y, frontTop, doorZ1, z1, BRICK, brick, shop)
 
 	-- club-coloured fascia across the front, standing proud of the brick
-	local fascia = extents("Fascia", fx0, x1 + FASCIA_PROUD, frontTop, top, z0, z1, Config.HomeKit, Enum.Material.SmoothPlastic, shop)
+	local fascia = clubPaint(extents("Fascia", fx0, x1 + FASCIA_PROUD, frontTop, top, z0, z1, Config.HomeKit, Enum.Material.SmoothPlastic, shop))
 	-- X122 (RivermereTurnstileEntrance.png: "<CLUB> CLUB SHOP"): the club's name
 	-- on the left of the fascia, in a label named ClubName so
 	-- WorldBuilder.setClubName repaints it after a rename, "CLUB SHOP" on the right
@@ -870,7 +879,7 @@ local function buildShop(parent: Instance)
 	nameText.Text = string.upper(if type(stateName) == "string" and stateName ~= "" then stateName else Config.ClubName)
 	nameText.Parent = shopGui
 	-- X244: a crest after "CLUB SHOP", as on the reference fascia
-	CrestBadge.draw(shopGui, Config.HomeKit:Lerp(Color3.new(0, 0, 0), 0.45), UDim2.fromScale(0.08, 0.72), UDim2.fromScale(0.95, 0.5))
+	ClubCrest.badge(shopGui, crest(), UDim2.fromScale(0.08, 0.72), UDim2.fromScale(0.95, 0.5))
 	extents("RoofCap", x0 - 0.5, x1 + FASCIA_PROUD + 0.5, top, top + 1, z0 - 0.5, z1 + 0.5,
 		Color3.fromRGB(70, 70, 74), Enum.Material.Concrete, shop)
 
@@ -891,11 +900,14 @@ local function buildShop(parent: Instance)
 	extents("Shelf", shelfX0, shelfX1, shelfY - 0.3, shelfY, z0 + t + 6, z1 - t - 6, wood, Enum.Material.Wood, shop)
 	for k, colour in { Config.HomeKit, white, Config.HomeKit } do
 		local zc = z0 + t + 6 + k * (SHOP_D - 2 * t - 12) / 4
-		extents("FoldedShirts", shelfX0 + 0.1, shelfX1 - 0.1, shelfY, shelfY + 0.9, zc - 1.2, zc + 1.2, colour, Enum.Material.Fabric, shop)
+		local folded = extents("FoldedShirts", shelfX0 + 0.1, shelfX1 - 0.1, shelfY, shelfY + 0.9, zc - 1.2, zc + 1.2, colour, Enum.Material.Fabric, shop)
+		if k ~= 2 then
+			clubPaint(folded)
+		end
 	end
 	local railZ0 = z0 + t
 	extents("ScarfRail", x0 + t + 12, x0 + t + 20, floorTop + 6.4, floorTop + 6.6, railZ0 + 0.3, railZ0 + 0.5, IRON, Enum.Material.Metal, shop)
-	local scarves = extents("Scarves", x0 + t + 12.3, x0 + t + 19.7, floorTop + 3.4, floorTop + 6.4, railZ0 + 0.35, railZ0 + 0.45, Config.HomeKit, Enum.Material.Fabric, shop)
+	local scarves = clubPaint(extents("Scarves", x0 + t + 12.3, x0 + t + 19.7, floorTop + 3.4, floorTop + 6.4, railZ0 + 0.35, railZ0 + 0.45, Config.HomeKit, Enum.Material.Fabric, shop))
 	-- white bars on the room side so the block reads as a row of striped scarves
 	local scarfGui = Instance.new("SurfaceGui")
 	scarfGui.Face = Enum.NormalId.Back -- +Z, into the shop
@@ -1240,8 +1252,11 @@ function PlotGrounds.dressShop(amenityLevel: number)
 		local zc = z0 + 6 + (i - 1) * 6
 		extents(("DisplayStand%d"):format(i), fx0 - 3.2, fx0 - 2.4, floorTop, floorTop + 3.6, zc - 0.4, zc + 0.4,
 			Color3.fromRGB(60, 62, 68), Enum.Material.Metal, display)
-		extents(("DisplayShirt%d"):format(i), fx0 - 4.2, fx0 - 1.4, floorTop + 3.6, floorTop + 6.2, zc - 1.6, zc + 1.6,
+		local shirt = extents(("DisplayShirt%d"):format(i), fx0 - 4.2, fx0 - 1.4, floorTop + 3.6, floorTop + 6.2, zc - 1.6, zc + 1.6,
 			if i == 1 then Config.HomeKit else Color3.fromRGB(236, 236, 232), Enum.Material.Fabric, display)
+		if i == 1 then
+			clubPaint(shirt)
+		end
 	end
 	if level >= 3 then
 		-- an A-board out on the apron, the way a shop that wants trade does

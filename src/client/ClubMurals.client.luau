@@ -166,7 +166,7 @@ town.DescendantRemoving:Connect(function(inst)
 end)
 
 local folder = ClubRef.waitState()
-for _, key in { "ClubName", "MatchesPlayed", "Tier" } do
+for _, key in { "ClubName", "MatchesPlayed", "Tier", "Crest" } do
 	folder:GetAttributeChangedSignal(key):Connect(schedule)
 end
 player:GetAttributeChangedSignal("ClubPlot"):Connect(schedule)

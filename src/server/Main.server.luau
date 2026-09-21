@@ -95,6 +95,16 @@ if game:GetService("RunService"):IsStudio() then
 			away.name = "Friendly Test XI"
 			away.kit = { 40, 90, 200 }
 			return m.MatchService.playFriendly(away, a1, a2)
+		elseif command == "crest" then
+			-- crest builder: "crest|random" or "crest|<shape>,<pattern>,<emblem>,<main>,<second>"
+			local ClubCrest = require(game:GetService("ReplicatedStorage").Shared.ClubCrest)
+			local spec = ClubCrest.random()
+			if a1 and a1 ~= "random" then
+				local f = string.split(tostring(a1), ",")
+				spec = ClubCrest.normalize({ shape = f[1], pattern = f[2], emblem = f[3], main = f[4], second = f[5] })
+			end
+			m.ClubState.set("Crest", ClubCrest.encode(spec))
+			return true, ClubCrest.encode(spec)
 		elseif command == "expandStand" then
 			return m.UpgradeService.tryExpandStand(a1)
 		elseif command == "amenity" then

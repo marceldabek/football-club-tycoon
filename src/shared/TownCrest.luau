@@ -5,7 +5,7 @@
 -- piers over two waves, drawn in scale units so one drawing works at any size.
 -- Frames only, so a banner gains a crest without adding parts.
 --
--- Shared/CrestBadge is the *club* crest (castle and waves on a shield); this is
+-- Shared/ClubCrest is the *club* crest (the crest builder); this is
 -- the town's, and it is drawn flat, with no shield behind it.
 
 local TownCrest = {}

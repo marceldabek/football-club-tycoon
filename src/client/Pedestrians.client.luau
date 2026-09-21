@@ -23,7 +23,7 @@ local TrafficMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChil
 local PedestrianMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("PedestrianMath"))
 local RoadTiles = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoadTiles"))
 local RoadPaths = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoadPaths"))
-local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local ClubCrest = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ClubCrest"))
 local Townsfolk = require(script.Parent:WaitForChild("Townsfolk"))
 
 -- Arms swing at 0.7 of the legs' amplitude: matching them exactly reads as a
@@ -238,19 +238,20 @@ end
 -- PreMatch or Match) about a third of new walkers wear the home kit colour
 local MATCHDAY_RADIUS = 900 -- plots sit on the edge of town; the nearest pavement to a plot centre is ~490 away
 local MATCHDAY_KIT_SHARE = 1 / 3
-local function matchdayNear(p: Vector3): boolean
+-- The state folder of a club with a match on near `p`, or nil.
+local function matchdayNear(p: Vector3): Instance?
 	local clubs = ReplicatedStorage:FindFirstChild("Clubs")
 	if not clubs then
-		return false
+		return nil
 	end
 	for _, folder in clubs:GetChildren() do
 		local phase = folder:GetAttribute("Phase")
 		local cf = folder:GetAttribute("PlotCFrame")
 		if (phase == "PreMatch" or phase == "Match") and typeof(cf) == "CFrame" and flatDistance(cf.Position, p) <= MATCHDAY_RADIUS then
-			return true
+			return folder
 		end
 	end
-	return false
+	return nil
 end
 
 -- ------------------------------------------------------------------ spawn / despawn
@@ -260,7 +261,9 @@ end
 local function spawnPedestrian(path: Path, kind: string, distance: number, lateral: number, pos: Vector3)
 	local model = Instance.new("Model")
 	model.Name = "Pedestrian"
-	local kit = if math.random() < MATCHDAY_KIT_SHARE and matchdayNear(pos) then Config.HomeKit else nil
+	-- crest builder: in the colours of the club playing nearby
+	local playing = if math.random() < MATCHDAY_KIT_SHARE then matchdayNear(pos) else nil
+	local kit = if playing then (ClubCrest.colours(ClubCrest.forFolder(playing))) else nil
 	local figure = Townsfolk.build(model, { shirt = kit })
 	if not figure then
 		model:Destroy()

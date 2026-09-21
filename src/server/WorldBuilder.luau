@@ -24,11 +24,24 @@ local HttpService = game:GetService("HttpService") -- X317: the XI on the pegs
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local Format = require(ReplicatedStorage.Shared.Format) -- X342
-local CrestBadge = require(ReplicatedStorage.Shared.CrestBadge)
+local ClubCrest = require(ReplicatedStorage.Shared.ClubCrest)
 local Assets = require(script.Parent.Assets)
 local PlotContext = require(script.Parent.PlotContext)
 local KitPlacer = require(script.Parent.KitPlacer)
 local Clubhouse = require(script.Parent.Clubhouse)
+
+-- Crest builder: the club's colours come from its crest. Everything painted in
+-- them goes through clubPaint(), which tags it so applyCrest can repaint the club
+-- in place when the crest changes (the found-club card runs after the build).
+local function crest(): ClubCrest.Spec
+	return ClubCrest.forFolder(PlotContext.findStateFolder())
+end
+local function clubPaint<T>(inst: T, role: string?, darken: number?, property: string?): T
+	return ClubCrest.paint(inst, crest(), role or "kit", darken, property)
+end
+local function crestBadge(parent: Instance, size: UDim2, position: UDim2, anchor: Vector2?): Frame
+	return ClubCrest.badge(parent, crest(), size, position, anchor)
+end
 
 local WorldBuilder = {}
 
@@ -521,7 +534,7 @@ local function buildDugouts(parent: Instance)
 		end
 		local roof = slab("Shelter", front - 1.2, plinthBack + 0.8, shelterH, shelterH + 0.35, z0 - 0.3, z1 + 0.3, frame, Enum.Material.Glass)
 		roof.Transparency = 0.3
-		slab("RoofEdge", front - 1.2, front - 0.6, shelterH - 0.5, shelterH, z0 - 0.3, z1 + 0.3, Config.HomeKit, Enum.Material.SmoothPlastic)
+		clubPaint(slab("RoofEdge", front - 1.2, front - 0.6, shelterH - 0.5, shelterH, z0 - 0.3, z1 + 0.3, Config.HomeKit, Enum.Material.SmoothPlastic))
 
 		-- Technical area: the box the coaching staff have to stay inside. Runs
 		-- from a metre off the touchline back to the front of the bench, and a
@@ -583,8 +596,8 @@ local function buildScoreboard(parent: Instance)
 		at("Post", Vector3.new(1.2, postH, 1.2), CFrame.new(side * 9, postH / 2, 0), Color3.fromRGB(90, 92, 98), Enum.Material.Metal)
 	end
 	local panel = at("Panel", Vector3.new(24, 10, 0.8), CFrame.new(0, postH + 5, 0), dark, Enum.Material.SmoothPlastic)
-	at("Trim", Vector3.new(25, 0.8, 1.2), CFrame.new(0, postH + 10.4, 0), Config.HomeKit, Enum.Material.SmoothPlastic)
-	at("TrimBase", Vector3.new(25, 0.8, 1.2), CFrame.new(0, postH - 0.4, 0), Config.HomeKit, Enum.Material.SmoothPlastic)
+	clubPaint(at("Trim", Vector3.new(25, 0.8, 1.2), CFrame.new(0, postH + 10.4, 0), Config.HomeKit, Enum.Material.SmoothPlastic))
+	clubPaint(at("TrimBase", Vector3.new(25, 0.8, 1.2), CFrame.new(0, postH - 0.4, 0), Config.HomeKit, Enum.Material.SmoothPlastic))
 
 	local gui = Instance.new("SurfaceGui")
 	gui.Name = "Face"
@@ -678,7 +691,7 @@ local function buildTurnstiles(parent: Instance)
 	local iron = Color3.fromRGB(28, 34, 48)
 	-- X166: lane signs and plaques in a dark shade of the club colour, like the
 	-- fascia, club shop and bar sign (the reference's navy is its club's colour)
-	local SIGN_DARK = Config.HomeKit:Lerp(Color3.new(0, 0, 0), 0.45)
+	local SIGN_DARK = Config.HomeKit:Lerp(Color3.new(0, 0, 0), 0.45) -- repainted: clubPaint(x, "kit", 0.45)
 	for i = 0, lanes do
 		local z = TURNSTILE_Z - total / 2 + pierW / 2 + i * (laneW + pierW)
 		box("Pier", Vector3.new(7, h, pierW), Vector3.new(x - 1, DECK_Y + h / 2, z), brick, Enum.Material.Brick, gate)
@@ -688,7 +701,7 @@ local function buildTurnstiles(parent: Instance)
 		local z = TURNSTILE_Z - total / 2 + pierW + laneW / 2 + (i - 1) * (laneW + pierW)
 		-- an open gate leaf folded flat against the outer face of each pier, clear of the lane
 		-- X53: a navy lane sign under the fascia, facing the walk-up side
-		local laneSign = box("LaneSign", Vector3.new(0.2, 1.3, laneW - 0.4), Vector3.new(x - 4.7, DECK_Y + h - 1.15, z), SIGN_DARK, Enum.Material.SmoothPlastic, gate)
+		local laneSign = clubPaint(box("LaneSign", Vector3.new(0.2, 1.3, laneW - 0.4), Vector3.new(x - 4.7, DECK_Y + h - 1.15, z), SIGN_DARK, Enum.Material.SmoothPlastic, gate), "kit", 0.45)
 		laneSign.CanCollide = false
 		local signGui = Instance.new("SurfaceGui")
 		signGui.Face = Enum.NormalId.Left
@@ -724,7 +737,7 @@ local function buildTurnstiles(parent: Instance)
 			drum.CanCollide = false
 		end
 	end
-	local fascia = box("Fascia", Vector3.new(8, 3.2, total), Vector3.new(x - 1, DECK_Y + h + 1.6, TURNSTILE_Z), Config.HomeKit, Enum.Material.SmoothPlastic, gate)
+	local fascia = clubPaint(box("Fascia", Vector3.new(8, 3.2, total), Vector3.new(x - 1, DECK_Y + h + 1.6, TURNSTILE_Z), Config.HomeKit, Enum.Material.SmoothPlastic, gate))
 	box("Roof", Vector3.new(9, 0.5, total + 1), Vector3.new(x - 1.5, DECK_Y + h + 3.4, TURNSTILE_Z), dark, Enum.Material.Metal, gate)
 	-- club name across the outside face, where the player walks up
 	local gui = Instance.new("SurfaceGui")
@@ -750,8 +763,8 @@ local function buildTurnstiles(parent: Instance)
 	pad.Parent = label
 	-- the badges are GUI frames on the same SurfaceGui: no extra parts
 	for _, anchorX in { 0, 1 } do
-		CrestBadge.draw(gui, SIGN_DARK, UDim2.fromOffset(42, 52),
-			UDim2.new(anchorX, if anchorX == 0 then 18 else -18, 0.5, 0), Vector2.new(anchorX, 0.5))
+		crestBadge(gui, UDim2.fromOffset(52, 52),
+			UDim2.new(anchorX, if anchorX == 0 then 14 else -14, 0.5, 0), Vector2.new(anchorX, 0.5))
 	end
 
 	-- X84: navy slogan plaques on the outer side faces of the end piers (the
@@ -761,7 +774,7 @@ local function buildTurnstiles(parent: Instance)
 	for i, slogan in { "PRIDE\nPEOPLE\nRIVERMERE", "MATCH DAYS\nBRING PEOPLE\nTOGETHER" } do
 		local side = if i == 1 then -1 else 1
 		-- x - 3.9 .. x - 0.5: clear of the perimeter wall (x +- 0.4) that starts at the pier
-		local plaque = box("Plaque", Vector3.new(3.4, 3.4, 0.15), Vector3.new(x - 2.2, DECK_Y + 4.6, TURNSTILE_Z + side * (total / 2 + 0.075)), SIGN_DARK, Enum.Material.SmoothPlastic, gate)
+		local plaque = clubPaint(box("Plaque", Vector3.new(3.4, 3.4, 0.15), Vector3.new(x - 2.2, DECK_Y + 4.6, TURNSTILE_Z + side * (total / 2 + 0.075)), SIGN_DARK, Enum.Material.SmoothPlastic, gate), "kit", 0.45)
 		plaque.CanCollide = false
 		local plaqueGui = Instance.new("SurfaceGui")
 		plaqueGui.Face = if side < 0 then Enum.NormalId.Front else Enum.NormalId.Back
@@ -777,7 +790,7 @@ local function buildTurnstiles(parent: Instance)
 		plaqueText.TextColor3 = Color3.fromRGB(240, 240, 240)
 		plaqueText.Text = slogan
 		plaqueText.Parent = plaqueGui
-		CrestBadge.draw(plaqueGui, SIGN_DARK:Lerp(Color3.new(1, 1, 1), 0.12), UDim2.fromScale(0.5, 0.26), UDim2.fromScale(0.5, 0.68), Vector2.new(0.5, 0))
+		crestBadge(plaqueGui, UDim2.fromScale(0.5, 0.26), UDim2.fromScale(0.5, 0.68), Vector2.new(0.5, 0))
 	end
 	-- X53: RivermereTurnstileEntrance.png has a brick boundary wall running off
 	-- either side of the gates. South of the block the perimeter wall already
@@ -822,7 +835,7 @@ local function buildTurnstiles(parent: Instance)
 	box("LanternCap", Vector3.new(1.4, 0.4, 1.4), Vector3.new(lx, DECK_Y + 17.9, lz), lampBlack, Enum.Material.Metal, gate)
 	-- the arm reaches away from the entrance so the banner hangs clear of the post
 	box("BannerArm", Vector3.new(0.25, 0.25, 3.6), Vector3.new(lx, DECK_Y + 14.4, lz - 2.05), lampBlack, Enum.Material.Metal, gate).CanCollide = false
-	local banner = box("LampBanner", Vector3.new(0.15, 7, 3), Vector3.new(lx, DECK_Y + 10.8, lz - 2.3), Config.HomeKit, Enum.Material.Fabric, gate)
+	local banner = clubPaint(box("LampBanner", Vector3.new(0.15, 7, 3), Vector3.new(lx, DECK_Y + 10.8, lz - 2.3), Config.HomeKit, Enum.Material.Fabric, gate))
 	banner.CanCollide = false
 	banner.CastShadow = false
 	for _, face in { Enum.NormalId.Left, Enum.NormalId.Right } do
@@ -853,7 +866,7 @@ local function buildTurnstiles(parent: Instance)
 		motto.Text = "OUR TOWN\nOUR GAME"
 		motto.Parent = bannerGui
 		-- X243: the crest between the name and the motto, as on the reference banner
-		CrestBadge.draw(bannerGui, Config.HomeKit:Lerp(Color3.new(0, 0, 0), 0.45), UDim2.fromScale(0.5, 0.21), UDim2.fromScale(0.5, 0.49))
+		crestBadge(bannerGui, UDim2.fromScale(0.5, 0.21), UDim2.fromScale(0.5, 0.49))
 	end
 end
 
@@ -997,7 +1010,7 @@ local function bindDressingRooms()
 		local onMatchday = phase == "PreMatch" or phase == "Match"
 		local opponent = (state:GetAttribute("Opponent") :: string?) or ""
 		local visitors = if onMatchday and opponent ~= ""
-			then { name = opponent, kit = Config.pitchKit(Config.clubCrest(opponent)) }
+			then { name = opponent, kit = (Config.clubCrest(opponent, false, (ClubCrest.colours(crest())))) }
 			else nil
 		WorldBuilder.dressDressingRooms(xi, visitors)
 	end
@@ -1037,7 +1050,7 @@ function WorldBuilder.buildHonours(promotions: number, servant: any?)
 
 	local state = PlotContext.stateFolder()
 	local name = (state and state:GetAttribute("ClubName") :: string?) or Config.ClubName
-	local kit, accent = Config.clubCrest(name, true)
+	local kit = Config.clubCrest(name, true)
 
 	-- pennants: a little cloth triangle each, hung in a row on the north wall
 	-- above the trophy shelf
@@ -1045,11 +1058,11 @@ function WorldBuilder.buildHonours(promotions: number, servant: any?)
 	local startX = NORTH_WALL_CX - (shown - 1) * 3 / 2
 	for i = 1, shown do
 		local x = startX + (i - 1) * 3
-		local cloth = box(("Pennant%d"):format(i), Vector3.new(2, 3, 0.2), Vector3.new(x, OFFICE_Y + 10.4, wallZ),
-			kit, Enum.Material.Fabric, model)
+		local cloth = clubPaint(box(("Pennant%d"):format(i), Vector3.new(2, 3, 0.2), Vector3.new(x, OFFICE_Y + 10.4, wallZ),
+			kit, Enum.Material.Fabric, model))
 		-- the point of the pennant: a smaller part below, so it reads as cloth
-		box(("PennantTip%d"):format(i), Vector3.new(0.9, 1, 0.2), Vector3.new(x, OFFICE_Y + 8.6, wallZ),
-			kit, Enum.Material.Fabric, model)
+		clubPaint(box(("PennantTip%d"):format(i), Vector3.new(0.9, 1, 0.2), Vector3.new(x, OFFICE_Y + 8.6, wallZ),
+			kit, Enum.Material.Fabric, model))
 		local gui = Instance.new("SurfaceGui")
 		gui.Name = "Year"
 		gui.Face = Enum.NormalId.Back
@@ -1063,7 +1076,7 @@ function WorldBuilder.buildHonours(promotions: number, servant: any?)
 		label.Position = UDim2.fromScale(0.05, 0.2)
 		label.Font = Enum.Font.GothamBlack
 		label.TextScaled = true
-		label.TextColor3 = accent
+		clubPaint(label, "accent", 0, "TextColor3")
 		label.Text = "UP"
 		label.Parent = gui
 	end
@@ -1490,7 +1503,6 @@ function WorldBuilder.dressOffice(tier: number)
 		-- the crest and the club's name on the wall behind the desk
 		local state = PlotContext.stateFolder()
 		local name = (state and state:GetAttribute("ClubName") :: string?) or Config.ClubName
-		local kit = Config.clubCrest(name, true)
 		-- on the long wall, not the one behind the desk: that one carries the
 		-- fixtures notice (X170/X301) and the panel would cover it
 		-- off-centre, so it clears the tactics board at the other end (review)
@@ -1505,7 +1517,7 @@ function WorldBuilder.dressOffice(tier: number)
 		gui.Parent = panel
 		-- the same shield the turnstile fascia and the plaques carry
 		-- 8 studs tall at 24 px/stud, so a 120px shield fills most of the panel
-		CrestBadge.draw(gui, kit, UDim2.fromOffset(97, 120), UDim2.fromScale(0.07, 0.5), Vector2.new(0, 0.5))
+		crestBadge(gui, UDim2.fromOffset(120, 120), UDim2.fromScale(0.05, 0.5), Vector2.new(0, 0.5))
 		local label = Instance.new("TextLabel")
 		label.Name = "Name"
 		label.BackgroundTransparency = 1
@@ -1924,7 +1936,7 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 				board.AnchorPoint = Vector2.new(0.5, 0)
 				board.Position = UDim2.new(0.5, -(gapMid - runMid) * 20, 0, 3.0 * 20)
 				board.Size = UDim2.fromOffset(boardW * 20, (nameH + 0.3 + mottoH + 0.4) * 20)
-				board.BackgroundColor3 = Config.HomeKit:Lerp(Color3.new(0, 0, 0), 0.45)
+				clubPaint(board, "kit", 0.45)
 				board.BorderSizePixel = 0
 				board.Parent = wallGui
 				local name = Instance.new("TextLabel")
@@ -1948,8 +1960,8 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 				motto.Text = "TOGETHER FURTHER" -- TEMP slogan, from the reference's stand sign
 				motto.Parent = board
 			end
-			lbox("BackBand", Vector3.new(0.1, 1, run[2] - run[1] - 0.2), Vector3.new(backX + 0.55, DECK_Y + wallH - 2, (run[1] + run[2]) / 2),
-				Config.HomeKit, Enum.Material.SmoothPlastic)
+			clubPaint(lbox("BackBand", Vector3.new(0.1, 1, run[2] - run[1] - 0.2), Vector3.new(backX + 0.55, DECK_Y + wallH - 2, (run[1] + run[2]) / 2),
+				Config.HomeKit, Enum.Material.SmoothPlastic))
 			-- coping sunk 0.1 into the wall top, overhanging both faces by 0.2
 			lbox("BackCoping", Vector3.new(1.4, 0.5, length + 0.4), Vector3.new(backX, DECK_Y + wallH + 0.15, runMid),
 				Color3.fromRGB(206, 196, 176), Enum.Material.Concrete)
@@ -1964,8 +1976,8 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 			lbox("Roof", Vector3.new(roofDepth, 0.8, length + 4), Vector3.new(roofDepth / 2 - 2, roofY, runMid),
 				Color3.fromRGB(88, 94, 102), Enum.Material.DiamondPlate)
 			-- fascia across the front of the roof: the obvious place for the club name
-			local fascia = lbox("Fascia", Vector3.new(0.7, 2.6, length + 4), Vector3.new(roofDepth - 2, roofY + 1.7, runMid),
-				Config.HomeKit, Enum.Material.SmoothPlastic)
+			local fascia = clubPaint(lbox("Fascia", Vector3.new(0.7, 2.6, length + 4), Vector3.new(roofDepth - 2, roofY + 1.7, runMid),
+				Config.HomeKit, Enum.Material.SmoothPlastic))
 			local gui = Instance.new("SurfaceGui")
 			gui.Name = "NameGui"
 			gui.Face = Enum.NormalId.Left -- -X local, toward the pitch
@@ -2040,15 +2052,27 @@ local function awayEndKey(levels: { [string]: number }): string?
 	return nil
 end
 
--- TEMP crowd palette: mostly home colours with some neutrals.
-local CROWD_COLORS = {
-	Config.HomeKit,
-	Config.HomeKit,
-	Color3.fromRGB(240, 240, 240),
-	Color3.fromRGB(40, 40, 40),
-	Color3.fromRGB(70, 90, 130),
-	Color3.fromRGB(220, 200, 150),
-}
+-- TEMP crowd palette: mostly home colours with some neutrals. The home
+-- colour is the club's crest kit, rebuilt only when the crest changes.
+local crowdFor: any = nil
+local crowdColours: { Color3 } = {}
+local function defaultCrowdColours(): { Color3 }
+	local folder = PlotContext.findStateFolder()
+	local key = folder and folder:GetAttribute("Crest")
+	if key ~= crowdFor or #crowdColours == 0 then
+		crowdFor = key
+		local kit = ClubCrest.colours(crest())
+		crowdColours = {
+			kit,
+			kit,
+			Color3.fromRGB(240, 240, 240),
+			Color3.fromRGB(40, 40, 40),
+			Color3.fromRGB(70, 90, 130),
+			Color3.fromRGB(220, 200, 150),
+		}
+	end
+	return crowdColours
+end
 local SKIN_TONES = {
 	Color3.fromRGB(240, 200, 170),
 	Color3.fromRGB(200, 150, 110),
@@ -2074,7 +2098,7 @@ local FAN_LEG_ROWS = 3 -- above this the row in front hides the legs anyway
 -- ball on it: blocky torso, square head with a face, arms down at the sides
 -- and thighs forward over the edge of the step. `seat` faces the pitch.
 local function buildFan(seat: CFrame, rng: Random, parent: Instance, legs: boolean, palette: { Color3 }?)
-	local colours = palette or CROWD_COLORS
+	local colours = palette or defaultCrowdColours()
 	local shirt = colours[rng:NextInteger(1, #colours)]
 	local skin = SKIN_TONES[rng:NextInteger(1, #SKIN_TONES)]
 	local trousers = Color3.fromRGB(45, 48, 58):Lerp(Color3.new(1, 1, 1), rng:NextNumber() * 0.3)
@@ -2268,7 +2292,7 @@ function WorldBuilder.buildAmenity(level: number)
 	if level >= 2 then
 		-- club shop: larger unit beside the hut, club-coloured facade
 		box("Shop", Vector3.new(12, 9, 12), p + Vector3.new(-1, 4.5, 14), Color3.fromRGB(220, 220, 225), Enum.Material.Concrete, amenity)
-		box("ShopFascia", Vector3.new(0.4, 2.5, 12), p + Vector3.new(5.2, 8, 14), Config.HomeKit, Enum.Material.SmoothPlastic, amenity)
+		clubPaint(box("ShopFascia", Vector3.new(0.4, 2.5, 12), p + Vector3.new(5.2, 8, 14), Config.HomeKit, Enum.Material.SmoothPlastic, amenity))
 		local window = box("ShopWindow", Vector3.new(0.3, 4, 8), p + Vector3.new(5.1, 4, 14), Color3.fromRGB(150, 200, 230), Enum.Material.Glass, amenity)
 		window.Transparency = 0.4
 	end
@@ -2279,7 +2303,7 @@ function WorldBuilder.buildAmenity(level: number)
 		box("Stage", Vector3.new(10, 2, 6), p + Vector3.new(-22, 1, 14), Color3.fromRGB(60, 60, 65), Enum.Material.Metal, amenity)
 		for i = 0, 3 do
 			local pole = box("Pole", Vector3.new(0.4, 14, 0.4), p + Vector3.new(-(6 + i * 7), 7, -4), Color3.fromRGB(220, 220, 220), Enum.Material.Metal, amenity)
-			box("Flag", Vector3.new(0.1, 2.5, 4), pole.Position + Vector3.new(0, 5.5, 2), Config.HomeKit, Enum.Material.Fabric, amenity)
+			clubPaint(box("Flag", Vector3.new(0.1, 2.5, 4), pole.Position + Vector3.new(0, 5.5, 2), Config.HomeKit, Enum.Material.Fabric, amenity))
 		end
 	end
 	PlotContext.place(amenity)
@@ -2331,6 +2355,15 @@ function WorldBuilder.setClubName(name: string)
 	end
 end
 
+-- Crest builder: bring every club-coloured part and crest badge up to `spec`
+-- (Session calls this when the Crest attribute changes).
+function WorldBuilder.applyCrest(spec: ClubCrest.Spec)
+	local club = PlotContext.clubModel()
+	if club then
+		ClubCrest.repaint(club, spec)
+	end
+end
+
 -- The team coach, parked on the forecourt beside the office (decorative).
 -- Primitive on purpose: the store coach was 587 parts per club, this is 11.
 -- Nose points +X; built from extents so nothing shares a face.
@@ -2352,7 +2385,7 @@ local function buildTeamBus(parent: Instance, centre: Vector3)
 	local white = Color3.fromRGB(235, 235, 238)
 	local glass = Color3.fromRGB(40, 55, 70)
 	-- lower body in club colours, white upper body, a glazed band between
-	piece("Skirt", -L / 2, L / 2, 1.2, 4.5, -W / 2, W / 2, Config.HomeKit)
+	clubPaint(piece("Skirt", -L / 2, L / 2, 1.2, 4.5, -W / 2, W / 2, Config.HomeKit))
 	piece("Band", -L / 2, L / 2, 4.5, 8.5, -W / 2 + 0.15, W / 2 - 0.15, glass, Enum.Material.Glass)
 	piece("Upper", -L / 2, L / 2, 8.5, 10.8, -W / 2, W / 2, white)
 	piece("Roof", -L / 2 + 1, L / 2 - 1, 10.8, 11.2, -W / 2 + 0.5, W / 2 - 0.5, white)

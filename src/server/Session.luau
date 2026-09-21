@@ -12,6 +12,7 @@ local RunService = game:GetService("RunService")
 local TextService = game:GetService("TextService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Profile = require(ReplicatedStorage.Shared.Profile)
+local ClubCrest = require(ReplicatedStorage.Shared.ClubCrest)
 local ClubState = require(script.Parent.ClubState)
 local WorldBuilder = require(script.Parent.WorldBuilder)
 local MatchService = require(script.Parent.MatchService)
@@ -88,6 +89,7 @@ function Session.snapshot(): Profile.Profile
 		season = SeasonService.serialize(),
 		history = HistoryService.serialize(),
 		finance = ClubState.financeSnapshot(), -- X299
+		crest = scalars.crest,
 		settings = {
 			music = ClubState.get("SettingMusic") ~= false,
 			quality = ClubState.get("SettingQuality") or "",
@@ -370,6 +372,32 @@ local function applyName(player: Player, requested: unknown)
 	toast(player, ("Welcome to %s!"):format(final), true)
 end
 
+-- -------------------------------------------------------------------- crest
+
+-- The crest builder (found-club card step 2, and the office's Edit crest).
+-- Free and repeatable for now, but only between matches, like every other
+-- change to the club. Junk fields fall back one at a time (ClubCrest.normalize).
+local function applyCrest(player: Player, requested: unknown)
+	if not ClubState.isOwner(player) then
+		toast(player, VISITOR_MESSAGE)
+		return
+	end
+	if not loaded or ClubState.get("Phase") ~= "Manage" then
+		toast(player, "The crest can only change between matches")
+		return
+	end
+	local spec = ClubCrest.normalize(requested)
+	if ClubCrest.equal(spec, ClubState.crest()) then
+		return
+	end
+	ClubState.set("Crest", ClubCrest.encode(spec))
+	-- the naming step saves with the name; a later re-edit saves on its own
+	if ClubState.get("NeedsName") ~= true then
+		Session.saveNow()
+		toast(player, "New crest and colours saved", true)
+	end
+end
+
 -- --------------------------------------------------------------------- boot
 
 -- Loads `owner`'s club into this plot and runs it until stop(). Yields while
@@ -382,6 +410,7 @@ function Session.start(owner: Player): boolean
 	HistoryService.init()
 	SeasonService.init()
 	PlotContext.onRemote(remote("ClubName"), applyName)
+	PlotContext.onRemote(remote("ClubCrest"), applyCrest)
 	-- X223: the owner's music and quality choices, saved with the club
 	PlotContext.onRemote(remote("SaveSettings"), function(player: Player, rawMusic: unknown, rawQuality: unknown)
 		if not loaded or not ClubState.isOwner(player) then
@@ -489,6 +518,10 @@ function Session.start(owner: Player): boolean
 	-- the desk folder opens on the first match, not on hiring a scout
 	ClubState.Folder:GetAttributeChangedSignal("MatchesPlayed"):Connect(Session.refreshPromptLock)
 	ClubState.Folder:GetAttributeChangedSignal("ScoutReportNew"):Connect(Session.refreshPromptLock)
+	-- crest builder: the world was built in the old colours; repaint it in place
+	ClubState.Folder:GetAttributeChangedSignal("Crest"):Connect(function()
+		WorldBuilder.applyCrest(ClubState.crest())
+	end)
 	ClubState.set("Phase", "Manage")
 	Session.refreshPromptLock()
 	print(("[FCT] %s %s profile for %s (%s): %s, %d matches played"):format(

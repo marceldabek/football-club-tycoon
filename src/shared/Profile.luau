@@ -11,6 +11,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 
 local Finance = require(script.Parent.Finance) -- X299
+local ClubCrest = require(script.Parent.ClubCrest)
 
 local Profile = {}
 
@@ -33,6 +34,7 @@ export type Profile = {
 	-- X223: the owner's music switch and quality level ("" = pick by device)
 	settings: { music: boolean, quality: string },
 	finance: any, -- X299: Finance.Ledger, shape-checked by Finance.normalize
+	crest: ClubCrest.Spec, -- the crest builder's pick; its colours are the club's kit
 	createdAt: number,
 	updatedAt: number,
 	saveCount: number,
@@ -80,6 +82,7 @@ function Profile.new(clubName: string, now: number?): Profile
 		history = { seasons = {}, servants = {} },
 		finance = Finance.new(),
 		settings = { music = true, quality = "" },
+		crest = ClubCrest.default(),
 		createdAt = t,
 		updatedAt = t,
 		saveCount = 0,
@@ -229,6 +232,15 @@ function Profile.normalize(raw: any, now: number?): (Profile, boolean)
 		music = if type(rawSettings.music) == "boolean" then rawSettings.music else true,
 		quality = if rawSettings.quality == "High" or rawSettings.quality == "Low" then rawSettings.quality else "",
 	}
+
+	-- crest is optional like settings: a save from before the crest builder
+	-- gets the default (the old red and white), and an old save is not "changed"
+	-- by merely lacking one
+	local crest, crestChanged = ClubCrest.normalize(raw.crest)
+	out.crest = crest
+	if raw.crest ~= nil and crestChanged then
+		changed = true
+	end
 
 	local seasons = {}
 	if type(raw.history) == "table" and type(raw.history.seasons) == "table" then
