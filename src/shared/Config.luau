@@ -189,20 +189,24 @@ end
 -- Squad (Milestone 3). All TEMP.
 Config.StartingSquadOverall = 45
 
--- Card rarity, FIFA-style, from the overall alone. Ascending; TEMP thresholds
--- set against Config.Divisions: a new club is bronze, silver arrives around the
--- Regional Premier (60), the Premier Division (76) is gold standard and Elite
--- (the blue card) is the handful of players better than any division.
+-- Card rarity from the overall alone, FIFA-style. Ascending, and the names
+-- match the six card backgrounds in docs/CARD_BACKGROUND_PROMPTS.md. TEMP
+-- thresholds set against Config.Divisions: a new club is bronze, silver
+-- arrives around the Regional Premier (60), the Premier Division (76) is gold
+-- standard, and Rare (blue), Epic (purple) and Legend (pearl) are the players
+-- better than any division.
 Config.Rarity = {
 	{ name = "Bronze", min = 0 },
 	{ name = "Silver", min = 55 },
 	{ name = "Gold", min = 70 },
-	{ name = "Elite", min = 85 },
+	{ name = "Rare", min = 82 },
+	{ name = "Epic", min = 88 },
+	{ name = "Legend", min = 94 },
 }
--- The rare (shiny) version of a card: a teenager (or 20) who rolled near the
--- top of the headroom range, 6..18. TEMP: about 1 prospect in 12.
-Config.RareMaxAge = 20
-Config.RareHeadroom = 16
+-- The wonderkid (shiny) version of a card: a teenager (or 20) who rolled near
+-- the top of the headroom range, 6..18. TEMP: about 1 prospect in 12.
+Config.WonderkidMaxAge = 20
+Config.WonderkidHeadroom = 16
 Config.SquadMax = 20
 Config.SquadMin = 14
 Config.BenchSize = 5

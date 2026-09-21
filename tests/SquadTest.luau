@@ -1081,26 +1081,26 @@ function T.rarityFollowsTheOverall()
 	assert(Squad.rarity(Config.Divisions[#Config.Divisions].baseStrength) == "Gold", "the top division is gold standard")
 end
 
-function T.aRareCardIsAYoungPlayerWithRealHeadroom()
-	assert(Squad.rollsRare(18, Config.RareHeadroom), "a teenager with a high ceiling is the rare card")
-	assert(not Squad.rollsRare(18, Config.RareHeadroom - 1), "not quite enough headroom")
-	assert(not Squad.rollsRare(Config.RareMaxAge + 1, 30), "too old to be a wonderkid")
+function T.aWonderkidIsAYoungPlayerWithRealHeadroom()
+	assert(Squad.rollsWonderkid(18, Config.WonderkidHeadroom), "a teenager with a high ceiling is the shiny card")
+	assert(not Squad.rollsWonderkid(18, Config.WonderkidHeadroom - 1), "not quite enough headroom")
+	assert(not Squad.rollsWonderkid(Config.WonderkidMaxAge + 1, 30), "too old to be a wonderkid")
 end
 
-function T.rareCardsAreActuallyRare()
+function T.wonderkidsAreActuallyUncommon()
 	for _, level in { 1, #Config.ScoutLevels } do
 		local rare, total = 0, 0
 		for seed = 1, 300 do
 			for _, p in Squad.prospects(seed, 50, level) do
 				total += 1
-				if p.rare then
+				if p.wonderkid then
 					rare += 1
-					assert(p.age <= Config.RareMaxAge, p.name .. " is shiny at " .. p.age)
+					assert(p.age <= Config.WonderkidMaxAge, p.name .. " is shiny at " .. p.age)
 				end
 			end
 		end
 		local share = rare / total
-		assert(share > 0.03 and share < 0.15, ("scout level %d: %.0f%% of cards are rare"):format(level, share * 100))
+		assert(share > 0.03 and share < 0.15, ("scout level %d: %.0f%% of cards are wonderkids"):format(level, share * 100))
 	end
 end
 

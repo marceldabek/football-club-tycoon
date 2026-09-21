@@ -25,7 +25,7 @@ export type Player = {
 	goals: number,
 	look: number, -- appearance seed, see Appearance.luau
 	nation: string?, -- Nations code; nil only on saves from before nationality
-	rare: boolean?, -- the shiny card, decided once when he is generated
+	wonderkid: boolean?, -- the shiny card, decided once when he is generated
 }
 
 -- X337: a prospect's ceiling reaches the player as the band his scout will
@@ -92,8 +92,8 @@ Squad.byId = byId
 -- It is his own headroom, before any scout's or academy's boost, so a better
 -- scout finds better players without every one of them being shiny. Decided
 -- once in makePlayer and kept on the card, so it never leaks the exact ceiling.
-function Squad.rollsRare(age: number, headroom: number): boolean
-	return age <= Config.RareMaxAge and headroom >= Config.RareHeadroom
+function Squad.rollsWonderkid(age: number, headroom: number): boolean
+	return age <= Config.WonderkidMaxAge and headroom >= Config.WonderkidHeadroom
 end
 
 -- Builds one player. `avg` is the target overall; spread and potential are TEMP.
@@ -125,7 +125,7 @@ local function makePlayer(rng: Random, id: number, person: TeamGen.Person, numbe
 		apps = 0,
 		goals = 0,
 		look = rng:NextInteger(1, 2 ^ 30),
-		rare = Squad.rollsRare(age, headroom),
+		wonderkid = Squad.rollsWonderkid(age, headroom),
 	}
 end
 

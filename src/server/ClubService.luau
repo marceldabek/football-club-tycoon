@@ -510,7 +510,7 @@ function ClubService.act(name: string, a: unknown, b: unknown): (boolean, string
 			goals = 0,
 			look = prospect.look, -- X227: keep the face the shortlist showed
 			nation = prospect.nation,
-			rare = prospect.rare,
+			wonderkid = prospect.wonderkid,
 		}
 		nextId += 1
 		table.insert(players, signed)
