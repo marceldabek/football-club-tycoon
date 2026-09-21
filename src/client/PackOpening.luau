@@ -47,6 +47,8 @@ local SLIDE = 0.35
 local SLIDE_STAGGER = 0.14
 local BUILD_FLAG = 0.7 -- Rare and better: nation, then role, then the card
 local BUILD_ROLE = 0.6
+local HOLD_SKIP = 0.5 -- press and hold reveals the rest (design rule 11)
+local TURN_WAIT = 3 -- longest the show waits on a card that is mid-turn
 local STING_MAX = 1.5 -- "Speed Rise" runs on for seconds; stings must not pile up
 local STING_FADE = 0.3
 -- Opaque. Roblox blends GUI transparency in linear light, so a "nearly solid"
@@ -127,8 +129,10 @@ function PackOpening.refresh()
 	end
 end
 
--- Squad full: who makes way? Only men outside the XI, cheapest sale first.
-local function pickRelease(screen: ScreenGui, club: any, onPick: (number) -> ())
+-- Who can make way when the squad is full: anyone outside the XI, cheapest sale
+-- first. The server counts that sale toward the fee, so the card needs this list
+-- to know whether a signing is affordable at all.
+local function releaseOptions(club: any): { any }
 	local inXi: { [number]: boolean } = {}
 	for _, id in club.lineup.xi do
 		inXi[id] = true
@@ -140,7 +144,26 @@ local function pickRelease(screen: ScreenGui, club: any, onPick: (number) -> ())
 		end
 	end
 	table.sort(options, function(a, b)
-		return a.overall < b.overall
+		return Squad.value(a) < Squad.value(b)
+	end)
+	return options
+end
+
+-- Squad full: who makes way? Options that cannot cover the fee are shown, but
+-- greyed and dead, so the shortfall is explained rather than silently missing.
+local function pickRelease(screen: ScreenGui, club: any, fee: number, purse: number, onPick: (number) -> ())
+	if screen:FindFirstChild("ReleasePicker") then
+		return -- one picker at a time, however fast the tapping
+	end
+	local options = releaseOptions(club)
+	-- cheapest first, but anyone who actually funds the signing comes first of all
+	table.sort(options, function(a, b)
+		local av, bv = Squad.value(a), Squad.value(b)
+		local ac, bc = purse + av >= fee, purse + bv >= fee
+		if ac ~= bc then
+			return ac
+		end
+		return av < bv
 	end)
 	local shown = math.min(#options, 6)
 	local panel = Theme.panel(screen, "ReleasePicker", {
@@ -163,11 +186,20 @@ local function pickRelease(screen: ScreenGui, club: any, onPick: (number) -> ())
 			ZIndex = 21,
 		})
 	end
+	local picked = false
 	for i = 1, shown do
 		local p = options[i]
+		local sale = Squad.value(p)
+		local covers = purse + sale >= fee
 		local b = Theme.button(
 			panel,
-			("%s   %s  %d   sells for %s"):format(Format.cardName(p.name), p.role, p.overall, Format.money(Squad.value(p))),
+			("%s   %s  %d   sells for %s%s"):format(
+				Format.cardName(p.name),
+				p.role,
+				p.overall,
+				Format.money(sale),
+				if covers then "" else ("   ·   still %s short"):format(Format.money(fee - purse - sale))
+			),
 			"ghost",
 			{
 				Position = UDim2.fromOffset(16, 56 + (i - 1) * 46),
@@ -176,7 +208,16 @@ local function pickRelease(screen: ScreenGui, club: any, onPick: (number) -> ())
 				ZIndex = 21,
 			}
 		)
+		if not covers then
+			b.Active = false -- selling him still would not pay for the signing
+			b.AutoButtonColor = false
+			b.TextColor3 = Theme.colors.muted
+		end
 		b.Activated:Connect(function()
+			if picked then
+				return
+			end
+			picked = true
 			panel:Destroy()
 			onPick(p.id)
 		end)
@@ -211,7 +252,12 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 	local camera = workspace.CurrentCamera :: Camera
 	local savedType, savedCFrame = camera.CameraType, camera.CFrame
 	local pushedIn = false -- only the desk shot touches the camera, so only it restores one
+	local pushTween: Tween? = nil
 	local skipped = false
+	-- close() can land in the middle of the show (matchday, death, Escape). Every
+	-- wait in the show watches this, or the thread spins on a destroyed screen
+	-- for good and the humanoid is never unfrozen.
+	local cancelled = false
 	local conns: { RBXScriptConnection } = {}
 
 	local shade = Instance.new("TextButton") -- a button so it swallows every tap
@@ -229,6 +275,7 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 			return -- already closed: death and DONE can both land
 		end
 		gui = nil
+		cancelled = true
 		drawResult = nil
 		for _, c in conns do
 			c:Disconnect()
@@ -238,6 +285,9 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 		end
 		unfreeze()
 		Focus.pop("pack")
+		if pushTween then
+			pushTween:Cancel() -- or the push-in keeps driving the camera after the restore
+		end
 		if pushedIn then
 			camera.CameraType = savedType
 			camera.CFrame = savedCFrame
@@ -328,6 +378,12 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 			return
 		end
 		local purse = cash()
+		-- With a full squad the server puts the released player's sale toward the
+		-- fee, so Sign must not be greyed out on cash alone: the dearest man the
+		-- player could sell counts too, and the picker says which ones cover it.
+		local squadFull = #now.players >= Config.SquadMax
+		local releasable = if squadFull then releaseOptions(now) else {}
+		local bestSale = if #releasable > 0 then Squad.value(releasable[#releasable]) else 0
 		local function cardWithButtons(p: any, order: number, pinned: boolean)
 			local s = slot(order, slotSize(count, if pinned then PINNED_SCALE else 1))
 			table.insert(resultCards, PlayerCard.new(s, p))
@@ -339,7 +395,7 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 			bar.Size = UDim2.new(1, 0, 0, 40)
 			bar.Parent = s
 			local fee = (p.fee :: number?) or 0
-			local short = fee - purse
+			local short = fee - purse - (if squadFull then bestSale else 0)
 			local signText = if fee == 0
 				then "KEEP  FREE"
 				elseif short > 0 then ("NEED %s MORE"):format(Format.money(short))
@@ -348,12 +404,19 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 				Size = UDim2.new(0.62, -4, 1, 0),
 				TextSize = 15,
 			})
+			local signing = false -- a fast double tap must not fire two signings
 			sign.Activated:Connect(function()
-				if short > 0 then
+				if short > 0 or signing then
 					return
 				end
-				if #now.players >= Config.SquadMax then
-					pickRelease(screen, now, function(releaseId: number)
+				signing = true
+				-- a signing that lands redraws this card away; if the server
+				-- refuses, the button has to come back so it can be tried again
+				task.delay(1.5, function()
+					signing = false
+				end)
+				if squadFull then
+					pickRelease(screen, now, fee, purse, function(releaseId: number)
 						actionEvent:FireServer("sign", p.id, releaseId)
 					end)
 				else
@@ -423,13 +486,20 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 			back = if back.Magnitude > 0.1 then back.Unit else Vector3.new(0, 0, 1)
 			local goal = CFrame.lookAt(target + Vector3.new(0, 2.2, 0) + back * 1.5, target)
 			Focus.push("pack", { focusDistance = 2.5, inFocusRadius = 2, farIntensity = 0.7, nearIntensity = 0 })
-			TweenService:Create(camera, TweenInfo.new(CAMERA_IN, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), { CFrame = goal }):Play()
+			pushTween = TweenService:Create(camera, TweenInfo.new(CAMERA_IN, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), { CFrame = goal })
+			;(pushTween :: Tween):Play()
 			task.wait(CAMERA_IN * 0.75)
 		else
 			Focus.push("pack")
 		end
+		if cancelled then
+			return
+		end
 		TweenService:Create(shade, TweenInfo.new(SHADE_IN), { BackgroundTransparency = SHADE }):Play()
 		task.wait(SHADE_IN)
+		if cancelled then
+			return
+		end
 
 		-- worst first, best last
 		local order = table.clone(club.shortlist)
@@ -449,6 +519,9 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 			sound(Config.PackAudio.slide, 0.95 + i * 0.05)
 			cards[i] = { card = card, slot = s, player = p }
 			task.wait(SLIDE_STAGGER)
+			if cancelled then
+				return
+			end
 		end
 		headline.Text = "TAP A CARD"
 
@@ -485,38 +558,77 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 			headline.Text = ("%s  %d"):format(string.upper(entry.card.tier), entry.player.overall)
 		end
 		local function turnNext(quick: boolean)
-			if turning or nextUp > #cards then
+			if turning or nextUp > #cards or cancelled then
 				return
 			end
 			turning = true
-			turn(nextUp, quick)
+			-- the counter moves before the turn: a card that throws must not be
+			-- retried for ever, and `turning` has to clear on every path or the
+			-- show hangs with the overlay up and the humanoid frozen (task.spawn
+			-- swallows the error)
+			local i = nextUp
 			nextUp += 1
+			local ok, err = pcall(turn, i, quick)
+			if not ok then
+				warn("[FCT] pack card " .. i .. " failed to turn: " .. tostring(err))
+				local entry = cards[i]
+				if entry then
+					entry.card:setFace(true) -- it still has to end up face up
+				end
+			end
 			turning = false
 		end
 
-		-- tap turns the next card; a double tap (or a tap mid-turn) reveals the rest
+		-- tap turns the next card; a double tap, a tap mid-turn or a press and
+		-- hold reveals the rest (design rule 11)
 		local lastTap = 0
-		local conn = shade.Activated:Connect(function()
-			local t = os.clock()
-			if t - lastTap < 0.3 or turning then
-				skipped = true
-			end
-			lastTap = t
-			if not skipped then
-				task.spawn(turnNext, false)
-			end
-		end)
-		while nextUp <= #cards and not skipped do
+		local holding = false
+		local conns2 = {
+			shade.Activated:Connect(function()
+				local t = os.clock()
+				if t - lastTap < 0.3 or turning then
+					skipped = true
+				end
+				lastTap = t
+				if not skipped then
+					task.spawn(turnNext, false)
+				end
+			end),
+			shade.MouseButton1Down:Connect(function()
+				holding = true
+				task.delay(HOLD_SKIP, function()
+					if holding then
+						skipped = true
+					end
+				end)
+			end),
+			shade.MouseButton1Up:Connect(function()
+				holding = false
+			end),
+		}
+		while nextUp <= #cards and not skipped and not cancelled do
 			task.wait(0.05)
 		end
-		conn:Disconnect()
-		while turning do
+		for _, c in conns2 do
+			c:Disconnect()
+		end
+		local waited = os.clock()
+		while turning and not cancelled and os.clock() - waited < TURN_WAIT do
 			task.wait(0.05)
 		end
-		while nextUp <= #cards do
+		-- `not turning` as well: if a turn is somehow still stuck after TURN_WAIT,
+		-- turnNext would refuse every call and this would spin. The result state
+		-- draws every card face up regardless.
+		while nextUp <= #cards and not cancelled and not turning do
 			turnNext(true)
 		end
+		if cancelled then
+			return
+		end
 		task.wait(0.4)
+		if cancelled then
+			return
+		end
 		actionEvent:FireServer("packRevealed")
 	end
 
@@ -551,13 +663,13 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 		shade.BackgroundTransparency = SHADE
 	else
 		local ok, err = pcall(show)
-		if not ok then
+		if not ok and not cancelled then
 			warn("[FCT] pack show failed: " .. tostring(err))
 			shade.BackgroundTransparency = SHADE
 			actionEvent:FireServer("packRevealed")
 		end
 	end
-	if gui == screen then -- close() may have fired during the show
+	if gui == screen and not cancelled then -- close() may have fired during the show
 		showResult()
 	end
 end

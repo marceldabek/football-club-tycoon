@@ -684,18 +684,27 @@ local function renderScouting(club: Club)
 	end
 	-- A pack lands after every match at every scout level, so the report opens
 	-- from here with no scout hired too: the hire-a-scout pitch above stays.
-	if canManage() and club.packRevealed ~= true and #club.shortlist > 0 then
-		local open = button(content, "OPEN SCOUT REPORT", Theme.colors.info, {
-			Size = UDim2.fromOffset(280, 46),
-			TextSize = 17,
-			Font = Theme.fonts.display,
-			LayoutOrder = nextOrder(),
-		})
-		open.Activated:Connect(function()
-			setOpen(false)
-			PackOpening.open(loadClub, actionEvent, { fromDesk = false })
-		end)
-		note("Three new cards are face down on your desk.", GREY)
+	-- The gate is on the pack, not on who is looking: a visitor must not read the
+	-- three names off a report the owner has not opened; he just gets no button.
+	if club.packRevealed ~= true and #club.shortlist > 0 then
+		if canManage() then
+			local open = button(content, "OPEN SCOUT REPORT", Theme.colors.info, {
+				Size = UDim2.fromOffset(280, 46),
+				TextSize = 17,
+				Font = Theme.fonts.display,
+				LayoutOrder = nextOrder(),
+			})
+			open.Activated:Connect(function()
+				setOpen(false)
+				PackOpening.open(loadClub, actionEvent, { fromDesk = false })
+			end)
+		end
+		note(
+			if canManage()
+				then "Three new cards are face down on your desk."
+				else "An unopened scout report is sitting on the owner's desk.",
+			GREY
+		)
 		return -- the names stay secret until the cards are turned
 	end
 
