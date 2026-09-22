@@ -71,6 +71,7 @@ function CarWheels.build(mesh: BasePart, kitName: string, face: BasePart?, paren
 		tyres.Size = Vector3.new(half * 2, radius * 2, radius * 2)
 		tyres.Color = TYRE_COLOR
 		tyres.Material = Enum.Material.SmoothPlastic
+		tyres:SetAttribute("V3Exempt", "EI4") -- docs/TOWN_V3_BUILD.md s7
 		still(tyres)
 		tyres.Parent = parent
 		table.insert(wheels, { part = tyres, offset = CFrame.new(0, y, z), radius = radius, spins = false })

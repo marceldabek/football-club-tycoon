@@ -102,6 +102,25 @@ local function publish()
 	ClubState.markDirty()
 end
 
+-- X294: the rest of the division's scores from the round just played, for the
+-- summary card and the league tab (the player's own fixture is dropped: it is
+-- the card's headline). Empty before round 1.
+local function elsewhereResults(): { League.RoundResult }
+	local elsewhere = {}
+	if round > 0 then
+		for _, r in League.roundResults(season, round) do
+			if not r.player then
+				table.insert(elsewhere, r)
+			end
+		end
+	end
+	return elsewhere
+end
+
+local function publishLastRound(elsewhere: { League.RoundResult })
+	ClubState.set("LastRound", if round > 0 then HttpService:JSONEncode({ round = round, results = elsewhere }) else "")
+end
+
 local function startSeason()
 	-- X294 (review): the old division's results must not sit under the new
 	-- table, which is exactly where a promoted player looks first
@@ -137,6 +156,9 @@ function SeasonService.restore(data: any?)
 			round = savedRound
 			-- the table is the club's; keep its name in step with the profile
 			season.teams[season.playerIndex].name = ClubState.get("ClubName") :: string
+			-- SL7 (X366): the league tab's "last round" strip is rebuilt from
+			-- the played fixtures, not lost on rejoin
+			publishLastRound(elsewhereResults())
 		else
 			if data.league ~= nil then
 				warn("[FCT] saved season was invalid; starting the season again")
@@ -214,15 +236,8 @@ function SeasonService.recordPlayerResult(goalsFor: number, goalsAgainst: number
 	League.completeRound(season, round, goalsFor, goalsAgainst, rng)
 	popularity = Economy.popularityAfter(popularity, outcome)
 	local position = League.positionOf(season, season.playerIndex)
-	-- X294: the rest of the division's scores, for the summary card and the
-	-- league tab (the player's own fixture is dropped: it is the card's headline)
-	local elsewhere = {}
-	for _, r in League.roundResults(season, round) do
-		if not r.player then
-			table.insert(elsewhere, r)
-		end
-	end
-	ClubState.set("LastRound", HttpService:JSONEncode({ round = round, results = elsewhere }))
+	local elsewhere = elsewhereResults()
+	publishLastRound(elsewhere)
 	local result: RoundResult = {
 		position = position,
 		round = round,

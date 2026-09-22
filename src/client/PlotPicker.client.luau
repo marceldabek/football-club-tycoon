@@ -25,7 +25,17 @@ local Theme = require(script.Parent.Theme)
 local Iris = require(script.Parent.Iris)
 
 local PLOT_COUNT = 4 -- matches PlotService.PLOT_COUNT
-local CLAIM_TIMEOUT = 20 -- seconds
+-- SL16: a rejoin can wait Config.Save.lockMaxWaitSeconds (30) for the old
+-- server's last save, then load with retries, then build; 20 s gave up on
+-- healthy claims and left the button live while the server was still busy
+local CLAIM_TIMEOUT = 60 -- seconds
+-- what the button says while it waits, by seconds elapsed
+local CLAIM_STAGES = {
+	{ 0, "BUILDING…" },
+	{ 4, "LOADING YOUR CLUB…" },
+	{ 12, "WAITING FOR YOUR LAST SESSION TO SAVE…" },
+	{ 35, "STILL LOADING… NEARLY THERE" },
+}
 
 local player = Players.LocalPlayer
 
@@ -329,11 +339,19 @@ local function showAllTaken()
 	end)
 end
 
-local function waitForClaim(timeout: number): boolean
-	local deadline = os.clock() + timeout
+local function waitForClaim(timeout: number, onProgress: (string) -> ()): boolean
+	local started = os.clock()
+	local deadline = started + timeout
+	local stage = 0
 	while os.clock() < deadline do
 		if player:GetAttribute("ClubPlot") ~= nil then
 			return true
+		end
+		local elapsed = os.clock() - started
+		local next = CLAIM_STAGES[stage + 1]
+		if next and elapsed >= next[1] then
+			stage += 1
+			onProgress(next[2])
 		end
 		task.wait(0.1)
 	end
@@ -353,7 +371,9 @@ local function onBuild()
 	nextButton.Active = false
 	claimEvent:FireServer(currentPlot)
 	task.spawn(function()
-		local claimed = waitForClaim(CLAIM_TIMEOUT)
+		local claimed = waitForClaim(CLAIM_TIMEOUT, function(text)
+			buildButton.Text = text
+		end)
 		if claimed then
 			finish()
 			return

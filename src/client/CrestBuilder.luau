@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local ClubCrest = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ClubCrest"))
+local ClubNames = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ClubNames"))
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Theme = require(script.Parent.Theme)
 local Focus = require(script.Parent.Focus)
@@ -145,6 +146,30 @@ local function buildName(parent: Frame)
 
 	heading(section, "CLUB NAME", 18)
 	nameHint = subtitle(section, NAME_HINT, 44)
+
+	-- SL14: the way out when a name keeps being refused (or the player just
+	-- wants one): drops a Rivermere name into the box, which the server
+	-- accepts without the text filter
+	local suggest = Instance.new("TextButton")
+	suggest.Name = "SuggestName"
+	suggest.Text = "Suggest one"
+	suggest.AutoButtonColor = false
+	suggest.BackgroundTransparency = 1
+	suggest.Font = Theme.fonts.bold
+	suggest.TextSize = 14
+	suggest.TextColor3 = Theme.colors.accent
+	suggest.TextXAlignment = Enum.TextXAlignment.Right
+	suggest.Size = UDim2.fromOffset(120, 24)
+	suggest.Position = UDim2.fromOffset(PAD + INNER - 120, 18)
+	suggest.Parent = section
+	local suggestRng = Random.new()
+	suggest.Activated:Connect(function()
+		local box = nameBox
+		if box then
+			box.Text = ClubNames.pick(suggestRng, box.Text)
+			CrestBuilder.setNameHint(nil)
+		end
+	end)
 
 	local box = Instance.new("TextBox")
 	box.Name = "NameBox"

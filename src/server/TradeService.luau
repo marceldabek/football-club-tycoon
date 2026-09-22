@@ -1,9 +1,9 @@
 --!strict
 -- Same-server player trades (backlog I4.1b). Global: never cloned per plot.
 -- A club owner proposes from another club's office card; the other owner
--- accepts or declines. On accept the offer is checked again against both
--- clubs as they are now, applied in one step (no yields), and both saved.
--- Rules live in Shared.Trade (TEMP values there).
+-- accepts or declines. On accept both clubs prove they can save (SL6), the
+-- offer is checked again against both clubs as they are now, applied in one
+-- step (no yields), and both saved. Rules live in Shared.Trade (TEMP values).
 --
 -- Remotes:
 --   TradePropose  client -> server  (targetPlot, give {ids}, take {ids}, giveCash, takeCash)
@@ -16,6 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Squad = require(ReplicatedStorage.Shared.Squad)
 local Trade = require(ReplicatedStorage.Shared.Trade)
+local Telemetry = require(ReplicatedStorage.Shared.Telemetry)
 local PlotService = require(script.Parent.PlotService)
 
 local TradeService = {}
@@ -192,6 +193,34 @@ local function onRespond(player: Player, rawFrom: unknown, rawAccept: unknown, r
 		return
 	end
 
+	-- SL6 (X365): the two clubs save to two keys, so the trade is never one
+	-- write. A session that cannot write right now (lock taken by a newer
+	-- server, store refusing) would keep its old squad while the other side
+	-- saved the new one: a duplicated player that carries into the full game.
+	-- So both prove they can save *before* anything moves. The saves yield, so
+	-- the offer is checked again afterwards.
+	toast(player, "Checking both clubs can save…")
+	local fromReady = from.session.saveNow()
+	local toReady = to.session.saveNow()
+	if not (fromReady and toReady) then
+		local which = if fromReady then clubName(to) else clubName(from)
+		toast(player, ("Trade not done: %s can't save right now. Nothing moved; try again in a moment."):format(which))
+		toast(proposer, ("Trade not done: %s can't save right now. Nothing moved; try again in a moment."):format(which))
+		Telemetry.event(player, "TradeSaveRefused")
+		return
+	end
+	local fromNow, toNow = PlotService.modulesFor(rawFrom), PlotService.modulesFor(player.UserId)
+	if not (fromNow and toNow and fromNow.session == from.session and toNow.session == to.session) then
+		toast(player, "The other club has left.")
+		return
+	end
+	ok, reason = check(offer, from, to)
+	if not ok then
+		toast(player, "The trade can't go through any more: " .. (reason or "something changed."))
+		toast(proposer, "Your trade can't go through any more: " .. (reason or "something changed."))
+		return
+	end
+
 	-- apply in one step: nothing here yields
 	local toReceiver = from.club.tradeAway(offer.give)
 	local toProposer = to.club.tradeAway(offer.take)
@@ -206,10 +235,19 @@ local function onRespond(player: Player, rawFrom: unknown, rawAccept: unknown, r
 		from.state.addCash(offer.takeCash, "tradesIn")
 	end
 
-	task.spawn(from.session.saveNow)
-	task.spawn(to.session.saveNow)
 	toast(player, ("Trade done with %s."):format(clubName(from)), true)
 	toast(proposer, ("%s accepted your trade!"):format(clubName(to)), true)
+	-- both sides write straight away; the autosave keeps retrying a failure,
+	-- but the owners are told so neither leaves believing it is on disk
+	local fromSaved = from.session.saveNow()
+	local toSaved = to.session.saveNow()
+	if not (fromSaved and toSaved) then
+		local which = if fromSaved then clubName(to) else clubName(from)
+		local message = ("%s's club didn't save the trade yet. Stay in the game a minute so it can retry."):format(which)
+		toast(player, message)
+		toast(proposer, message)
+		Telemetry.event(player, "TradeSaveFailed")
+	end
 end
 
 function TradeService.start()

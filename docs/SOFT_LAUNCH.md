@@ -22,17 +22,17 @@ Status key: `[ ]` open, `[x]` done, `[M]` needs Marcel (Studio setting, device, 
 ## Gate 1 — Know what we are shipping
 
 - [ ] **SL1. Disk and place file agree.** 43 of 194 scripts differ (X347, X345); tests run against the Studio copies. Reconnect Rojo (X34, X4), push disk over Studio, run `tools/parity_digest.py` to zero diffs, then RunAll. Nothing below can be trusted until this is done.
-- [ ] **SL2. Commit the dirty working tree** (card work, Clubhouse, WorldBuilder) once stable, so the published build maps to a commit.
+- [x] **SL2. Commit the dirty working tree** (DONE 2026-09-21, `9b01ff8`: card art keyed PNGs, Clubhouse light shadows, goal on the line.) once stable, so the published build maps to a commit.
 - [x] **SL3. Build label.** (DONE 2026-09-21: `Shared.Build` holds tag + version, shown faint bottom-right of the HUD and on the loading screen. Bump `Build.version` when publishing.) Small "BETA · <short commit or date>" text in a HUD corner, so a bug report names a build.
 
 ## Gate 2 — Saves are final
 
 - [x] **SL4. Final DataStore name.** DECIDED 2026-09-21: `ClubProfiles` stays and is now final. The "bump to reset" comment in `Config.luau` is replaced with a never-rename note; save-shape changes go through `Profile.MIGRATIONS`.
 - [x] **SL5. Beta save policy.** DECIDED 2026-09-21: beta saves carry over to the full game. Say so in the game description (SL27).
-- [ ] **SL6. Trade save is not atomic (X365).** Check both sessions can save before anything moves; surface a failed `saveNow` to both owners (`TradeService.luau:209-210`). Alternative for the beta: switch trades off (see SL10).
-- [ ] **SL7. LastRound lost on rejoin (X366).** Republish from `season.fixtures` on restore.
+- [x] **SL6. Trade save is not atomic (X365).** (DONE 2026-09-21: on accept both sessions `saveNow` before anything moves - a refused write cancels the trade with nothing moved, `TradeSaveRefused` event; the offer is re-checked after the yield; after the swap a failed save is toasted to both owners, `TradeSaveFailed` event. Needs the SL12 two-client run to see it live.) Check both sessions can save before anything moves; surface a failed `saveNow` to both owners. Alternative for the beta: switch trades off (see SL10).
+- [x] **SL7. LastRound lost on rejoin (X366).** (DONE 2026-09-21: `SeasonService.restore` rebuilds it from the played fixtures; verified with `reload` after a match.) Republish from `season.fixtures` on restore.
 - [ ] **SL8. Published-place save test.** On the live place, not Studio: found a club, play, leave, rejoin; rejoin on a second device while the first is still in (lock handover); leave mid-match (180 s settle, `PlotService.luau:404-419`).
-- [ ] **SL9. Crest edit write spam.** `Session.luau:396` saves on every crest change with no throttle. Add a short cooldown. General remote rate limiting is a nice-to-have.
+- [x] **SL9. Crest edit write spam.** (DONE 2026-09-21: one immediate save per 10 s per club; later changes inside the window still apply and ride the 30 s autosave.) General remote rate limiting is a nice-to-have.
 
 ## Gate 3 — Multiplayer is decided
 
@@ -46,9 +46,9 @@ Status key: `[ ]` open, `[x]` done, `[M]` needs Marcel (Studio setting, device, 
 ## Gate 4 — The first five minutes survive cold traffic
 
 - [x] **SL13. Cold-server join window.** (DONE 2026-09-21: `ReplicatedFirst.LoadingScreen` (new `src/first`, mapped in default.project.json - restart `rojo serve` once to pick the folder up) covers the screen from the first frame until Main sets `ReplicatedStorage.TownReady`; 90 s safety cap. Verified in Play. PlotService still starts last; moving it earlier is not needed now the cover hides the build.) `Main.server.luau:193-268` builds the whole town (10+ s) before `PlotService.start()`; until then there is no spawn, no picker and no UI, and there is no `ReplicatedFirst` loading screen. Add a ReplicatedFirst cover that holds until the picker is ready, and start PlotService as early as is safe.
-- [ ] **SL14. Founding card escape hatch.** No cancel, non-ASCII names refused (`Session.luau:332`), filter outage loops the player. Add "Use suggested name" that always succeeds, and show the refusal reason.
+- [x] **SL14. Founding card escape hatch.** (DONE 2026-09-21: "Suggest one" link on the name section fills the box from `Shared.ClubNames` (15 Rivermere names); the server accepts a listed name without the text filter, so it succeeds in an outage; the server's refusal reason is copied under the box with "Or tap Suggest one." `ClubNamesTest` proves every suggestion passes the length / charset / league-name rules. Checked in Play: refused a league name, founded as Lune Valley FC.) No cancel, non-ASCII names refused, filter outage loops the player.
 - [x] **SL15. Round 1 at home.** (DONE 2026-09-21: `League.newSeason` swaps every fixture's ends when the player would open away; `LeagueTest.playerAlwaysOpensAtHome`.) About half of new players get an away first fixture and see roughly £120 instead of ~£1,230 at the first payout (`League.luau:64-72`, `Economy.luau:160-188`). Force the player's round 1 (ideally 1 and 2) to be home.
-- [ ] **SL16. Silent re-claim.** Toast when a claim is already in flight (`PlotService.luau:529-531`) and show progress during a slow club load.
+- [x] **SL16. Silent re-claim.** (DONE 2026-09-21: "Still loading your club" toast when a claim is in flight; the picker's button steps through BUILDING / LOADING YOUR CLUB / WAITING FOR YOUR LAST SESSION TO SAVE and its timeout is 60 s, since a lock handover alone can take 30 s.) Toast when a claim is already in flight and show progress during a slow club load.
 - [M] **SL17. First stand is free on three of four plots** (OVERNIGHT_LOG question 18). Recommended: leave it for the beta; a free first upgrade is a fast visible win. Revisit with funnel data.
 - [ ] **SL18. Fresh-account run-through** on the published place, timed against CLAUDE.md section 12.
 
@@ -109,3 +109,15 @@ Status key: `[ ]` open, `[x]` done, `[M]` needs Marcel (Studio setting, device, 
 6. SL19, SL20, SL22 phone pass
 7. Publish privately: SL8, SL12, SL18
 8. SL26–SL29, go public, SL30
+
+## What is left (2026-09-21, end of day)
+
+Everything still open needs Marcel or the published place:
+
+- **SL1** parity check between disk and the place (Rojo was live and syncing today, so this may be a formality; run `tools/parity_digest.py` once before publishing).
+- **SL11, SL19** set MaxPlayers 4 and the six streaming properties by hand, save the place.
+- **SL20, SL22** real-phone frame rate and touch pass.
+- **SL8, SL12, SL18** published-place runs: save round trip, two clients (claim / leave / re-claim / lock handover / one trade), fresh-account timing.
+- **SL17** decision on the free first stand (recommended: leave it).
+- **SL26** group or Discord link for the feedback button.
+- **SL27–SL30** store page, asset licence check, ad test, read the data.

@@ -13,6 +13,7 @@ local TextService = game:GetService("TextService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Profile = require(ReplicatedStorage.Shared.Profile)
 local ClubCrest = require(ReplicatedStorage.Shared.ClubCrest)
+local ClubNames = require(ReplicatedStorage.Shared.ClubNames)
 local Telemetry = require(ReplicatedStorage.Shared.Telemetry)
 local ClubState = require(script.Parent.ClubState)
 local WorldBuilder = require(script.Parent.WorldBuilder)
@@ -348,11 +349,19 @@ local function applyName(player: Player, requested: unknown)
 			end
 		end
 	end
-	local ok, filtered = pcall(function()
-		local result = TextService:FilterStringAsync(name, player.UserId, Enum.TextFilterContext.PublicChat)
-		return result:GetNonChatStringForBroadcastAsync()
-	end)
 	local final: string
+	local suggested = ClubNames.isSuggested(name)
+	local ok, filtered
+	if suggested then
+		-- SL14: our own list, not the player's text, so it does not need the
+		-- filter; that is what lets it succeed during a filter outage
+		ok, filtered = true, name
+	else
+		ok, filtered = pcall(function()
+			local result = TextService:FilterStringAsync(name, player.UserId, Enum.TextFilterContext.PublicChat)
+			return result:GetNonChatStringForBroadcastAsync()
+		end)
+	end
 	if ok then
 		-- X198: a name the filter changed (hashes) is refused, not kept for good
 		if filtered ~= name then
@@ -382,6 +391,13 @@ end
 
 -- -------------------------------------------------------------------- crest
 
+-- SL9: the honest client sends one crest per Confirm, but nothing stops a
+-- modified one firing the remote every frame, and each one used to be a
+-- DataStore write. Changes inside this window still apply (the state is
+-- dirty, so the autosave picks them up); only the immediate flush is skipped.
+local CREST_SAVE_COOLDOWN = 10
+local lastCrestSave = -math.huge
+
 -- The crest builder (found-club card step 2, and the office's Edit crest).
 -- Free and repeatable for now, but only between matches, like every other
 -- change to the club. Junk fields fall back one at a time (ClubCrest.normalize).
@@ -401,7 +417,10 @@ local function applyCrest(player: Player, requested: unknown)
 	ClubState.set("Crest", ClubCrest.encode(spec))
 	-- the naming step saves with the name; a later re-edit saves on its own
 	if ClubState.get("NeedsName") ~= true then
-		Session.saveNow()
+		if os.clock() - lastCrestSave >= CREST_SAVE_COOLDOWN then
+			lastCrestSave = os.clock()
+			Session.saveNow()
+		end
 		toast(player, "New crest and colours saved", true)
 	end
 end

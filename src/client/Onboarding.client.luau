@@ -18,6 +18,8 @@ local state = require(script.Parent.ClubRef).waitState()
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local nameEvent = remotes:WaitForChild("ClubName") :: RemoteEvent
 local crestEvent = remotes:WaitForChild("ClubCrest") :: RemoteEvent
+local toastEvent = remotes:WaitForChild("Toast") :: RemoteEvent
+local lastRefusal: string? = nil
 
 local function get(key: string): any
 	return state:GetAttribute(key)
@@ -48,20 +50,28 @@ local function confirm(spec: ClubCrest.Spec, raw: string?)
 		return
 	end
 	CrestBuilder.setNameHint(nil)
+	lastRefusal = nil
 	sending = true
 	CrestBuilder.setBusy("Founding…")
 	crestEvent:FireServer(spec)
 	nameEvent:FireServer(name)
 	-- the server toasts why a name was refused; the page stays open so the
-	-- player can try another
+	-- player can try another (SL14: the reason is copied under the box too,
+	-- since the toast is easy to miss behind the card)
 	task.delay(3, function()
 		sending = false
 		if get("NeedsName") == true and founding then
-			CrestBuilder.setNameHint("Try another name.")
+			CrestBuilder.setNameHint((lastRefusal or "Try another name.") .. " Or tap Suggest one.")
 		end
 		CrestBuilder.setBusy(nil)
 	end)
 end
+
+toastEvent.OnClientEvent:Connect(function(message: unknown, ok: unknown)
+	if sending and type(message) == "string" and not ok then
+		lastRefusal = message
+	end
+end)
 
 local function refresh()
 	local isOwner = get("OwnerUserId") == player.UserId

@@ -533,7 +533,10 @@ local function onClaimPlot(player: Player, rawPlot: unknown)
 		return -- already owns a plot: ignore (idempotent-ish, no toast needed)
 	end
 	if claiming[player.UserId] then
-		return -- a claim for this player is already in flight
+		-- SL16: a claim is already in flight (a lock handover can take
+		-- Config.Save.lockMaxWaitSeconds); say so rather than swallowing the tap
+		toast(player, "Still loading your club. Hang on a moment.")
+		return
 	end
 	local plot = tonumber(rawPlot)
 	if not plot then
