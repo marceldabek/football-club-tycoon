@@ -40,7 +40,7 @@ Status key: `[ ]` open, `[x]` done, `[M]` needs Marcel (Studio setting, device, 
   - Option A (recommended): **MaxPlayers = 4**, keep plots, and switch off trades and friendlies for the beta behind a Config flag. Removes X365 and the untested paths from the launch. Still needs one two-client test of claim, leave, re-claim and save lock.
   - Option B: MaxPlayers = 1. Safest, loses the shared town.
   - Option C: everything on. Needs the full two-player test list first.
-- [M] **SL11. Set `MaxPlayers` on the place.** DECIDED 2026-09-21: **4**. Still has to be set by hand in the place's settings; it is unset in the repo. With 4 plots, anyone past the fourth player is a spectator with no club, which wastes ad clicks.
+- [x] **SL11. Set `MaxPlayers` on the place.** (DONE 2026-09-21: set to 4 by hand in the place settings.) DECIDED 2026-09-21: **4**. Not in the repo. With 4 plots, anyone past the fourth player is a spectator with no club, which wastes ad clicks.
 - [ ] **SL12. Two-client test** of whatever SL10 keeps (Studio local server with 2 players, then the live place with two accounts).
 
 ## Gate 4 — The first five minutes survive cold traffic
@@ -54,7 +54,7 @@ Status key: `[ ]` open, `[x]` done, `[M]` needs Marcel (Studio setting, device, 
 
 ## Gate 5 — It runs on a phone
 
-- [M] **SL19. Set the six Workspace streaming properties by hand** (`docs/TOWN_V3_PERF.md:124-127`) and save the place. Not script-accessible; the perf doc records them as unset when measured.
+- [x] **SL19. Set the six Workspace streaming properties by hand** (DONE 2026-09-21, set in Studio and the place saved.) (`docs/TOWN_V3_PERF.md:124-127`). Not script-accessible; the perf doc records them as unset when measured.
 - [M] **SL20. Real-phone frame rate** at the Market Square, at a plot in Manage, and during a match with a full crowd. Frame time has never been measured (`TOWN_V3_PERF.md:7-9`). Target 30 fps on Low. If the town fails, thin the Low budgets before launch.
 - [ ] **SL21. Touch sprint button.** (WRITTEN 2026-09-21: RUN toggle above the jump button, placement checked on desktop with a stand-in jump button. Tick after it is tapped on a real phone in SL22; it does not yet hide behind fullscreen menus.) `Sprint.client.luau` is Shift only; the town is a 2–3 minute walk.
 - [M] **SL22. Touch pass** on the founding card, lineup drag and pack opening (X241, X252).
@@ -78,7 +78,8 @@ Status key: `[ ]` open, `[x]` done, `[M]` needs Marcel (Studio setting, device, 
 
 ## Gate 7 — Store page and ads
 
-- [M] **SL27.** Experience questionnaire (maturity and content), icon, thumbnails, description with BETA and the save policy, title with "[BETA]".
+- [x] **SL27.** (DONE 2026-09-21.) Experience questionnaire (maturity and content), icon, thumbnails, description with BETA and the save policy, title with "[BETA]".
+  - Questionnaire answers (2026-09-21): unplayable gambling **No** (packs are playable and free); paid item trading **No** (nothing is bought with Robux). Decision for later: when packs or anything else are sold for Robux, keep the answer No by design - Robux-bought players get a `paidOrigin` flag that `TradeService` refuses to trade, and Robux never buys cash. Saying Yes would hide the experience from under-13s and some regions.
 - [M] **SL28.** Confirm every Creator Store asset in the place is script-free and licence-clean.
 - [M] **SL29. Ad test.** Check current formats and minimums in Ads Manager (not verified here). Small daily budget for 3–5 days, mobile-weighted, aiming for a few hundred to a few thousand plays.
 - [M] **SL30. Read a week of data before building anything new.** Decision numbers (temporary, adjust after the first read): D1 retention 15–20 %+, average session 10 min+, joined → match 1 finished 60 %+, match 1 finished → first upgrade 70 %+.
@@ -114,9 +115,8 @@ Status key: `[ ]` open, `[x]` done, `[M]` needs Marcel (Studio setting, device, 
 
 Everything still open needs Marcel or the published place:
 
-- **SL11, SL19** set MaxPlayers 4 and the six streaming properties by hand, save the place.
 - **SL20, SL22** real-phone frame rate and touch pass.
 - **SL8, SL12, SL18** published-place runs: save round trip, two clients (claim / leave / re-claim / lock handover / one trade), fresh-account timing.
 - **SL17** decision on the free first stand (recommended: leave it).
 - **SL26** group or Discord link for the feedback button.
-- **SL27–SL30** store page, asset licence check, ad test, read the data.
+- **SL28–SL30** asset licence check, ad test, read the data.
