@@ -270,4 +270,7 @@ require(script.Parent.BusService).start()
 require(script.Parent.FriendlyService).start()
 require(script.Parent.TradeService).start()
 
+-- SL13: ReplicatedFirst.LoadingScreen holds every client behind a cover until
+-- this is set, so nobody stands in a half-built town with no picker
+game:GetService("ReplicatedStorage"):SetAttribute("TownReady", true)
 print("[FCT] town ready")

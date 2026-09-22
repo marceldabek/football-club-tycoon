@@ -23,7 +23,7 @@ Status key: `[ ]` open, `[x]` done, `[M]` needs Marcel (Studio setting, device, 
 
 - [ ] **SL1. Disk and place file agree.** 43 of 194 scripts differ (X347, X345); tests run against the Studio copies. Reconnect Rojo (X34, X4), push disk over Studio, run `tools/parity_digest.py` to zero diffs, then RunAll. Nothing below can be trusted until this is done.
 - [ ] **SL2. Commit the dirty working tree** (card work, Clubhouse, WorldBuilder) once stable, so the published build maps to a commit.
-- [ ] **SL3. Build label.** Small "BETA · <short commit or date>" text in a HUD corner, so a bug report names a build.
+- [x] **SL3. Build label.** (DONE 2026-09-21: `Shared.Build` holds tag + version, shown faint bottom-right of the HUD and on the loading screen. Bump `Build.version` when publishing.) Small "BETA · <short commit or date>" text in a HUD corner, so a bug report names a build.
 
 ## Gate 2 — Saves are final
 
@@ -45,7 +45,7 @@ Status key: `[ ]` open, `[x]` done, `[M]` needs Marcel (Studio setting, device, 
 
 ## Gate 4 — The first five minutes survive cold traffic
 
-- [ ] **SL13. Cold-server join window.** `Main.server.luau:193-268` builds the whole town (10+ s) before `PlotService.start()`; until then there is no spawn, no picker and no UI, and there is no `ReplicatedFirst` loading screen. Add a ReplicatedFirst cover that holds until the picker is ready, and start PlotService as early as is safe.
+- [x] **SL13. Cold-server join window.** (DONE 2026-09-21: `ReplicatedFirst.LoadingScreen` (new `src/first`, mapped in default.project.json - restart `rojo serve` once to pick the folder up) covers the screen from the first frame until Main sets `ReplicatedStorage.TownReady`; 90 s safety cap. Verified in Play. PlotService still starts last; moving it earlier is not needed now the cover hides the build.) `Main.server.luau:193-268` builds the whole town (10+ s) before `PlotService.start()`; until then there is no spawn, no picker and no UI, and there is no `ReplicatedFirst` loading screen. Add a ReplicatedFirst cover that holds until the picker is ready, and start PlotService as early as is safe.
 - [ ] **SL14. Founding card escape hatch.** No cancel, non-ASCII names refused (`Session.luau:332`), filter outage loops the player. Add "Use suggested name" that always succeeds, and show the refusal reason.
 - [x] **SL15. Round 1 at home.** (DONE 2026-09-21: `League.newSeason` swaps every fixture's ends when the player would open away; `LeagueTest.playerAlwaysOpensAtHome`.) About half of new players get an away first fixture and see roughly £120 instead of ~£1,230 at the first payout (`League.luau:64-72`, `Economy.luau:160-188`). Force the player's round 1 (ideally 1 and 2) to be home.
 - [ ] **SL16. Silent re-claim.** Toast when a claim is already in flight (`PlotService.luau:529-531`) and show progress during a slow club load.

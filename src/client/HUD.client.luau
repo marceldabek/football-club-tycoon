@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Build = require(ReplicatedStorage.Shared:WaitForChild("Build")) -- SL3
 local Theme = require(script.Parent.Theme)
 local MatchAudio = require(script.Parent.MatchAudio)
 local MatchSummary = require(script.Parent.MatchSummary)
@@ -500,6 +501,18 @@ Theme.text(loadingCover, "Loading your club…", "muted", {
 	TextSize = 18,
 	TextXAlignment = Enum.TextXAlignment.Center,
 	ZIndex = 21,
+})
+
+-- SL3: the build label, bottom-right and out of the way of the thumbstick and
+-- the touch jump / RUN buttons (which sit higher up on the right)
+Theme.text(gui, Build.label(), "muted", {
+	Name = "Build",
+	Size = UDim2.fromOffset(160, 16),
+	Position = UDim2.new(1, -12, 1, -6),
+	AnchorPoint = Vector2.new(1, 1),
+	TextSize = 12,
+	TextXAlignment = Enum.TextXAlignment.Right,
+	TextTransparency = 0.35,
 })
 
 -- ----------------------------------------------------------- bottom-centre
