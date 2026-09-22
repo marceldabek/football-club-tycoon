@@ -1,0 +1,287 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1125" height="1012" viewBox="0 0 1125 1012" font-family="Segoe UI, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+<polygon points="0.0,0.0 1125.0,0.0 1125.0,1012.5 0.0,1012.5" fill="#eef0e9" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="87.5,37.5 140.0,37.5 140.0,987.5 87.5,987.5" fill="#6d6f72" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="113.8" y="137.5" font-size="9" fill="#eee" text-anchor="middle" dominant-baseline="middle"  transform="rotate(-90 113.8 137.5)">street</text>
+<polygon points="140.0,37.5 150.0,37.5 150.0,987.5 140.0,987.5" fill="#d9d6cc" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="150.0,37.5 1100.0,37.5 1100.0,987.5 150.0,987.5" fill="#cfe3b6" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="150.0,37.5 1100.0,37.5 1100.0,987.5 150.0,987.5" fill="none" stroke="#4a3b32" stroke-width="2.5"  opacity="1.0"/>
+<text x="625.0" y="13.8" font-size="16" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">PROPOSED — L1  GRASSROOTS</text>
+<text x="625.0" y="28.8" font-size="9" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >fixed envelope x ±201, z ±259 (30 studs behind every L4 stand back); same gates, masts and routes at every tier</text>
+<polyline points="1075.0,112.5 1075.0,62.5" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"  marker-end="url(#arr)" opacity="1.0"/>
+<text x="1075.0" y="52.5" font-size="10" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">N</text>
+<polyline points="912.5,75.0 1037.5,75.0" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-linejoin="round"   opacity="1.0"/>
+<text x="975.0" y="87.5" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >100 studs (~36 m)</text>
+<polygon points="77.5,37.5 87.5,37.5 87.5,987.5 77.5,987.5" fill="#d9d6cc" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="77.5,37.5 87.5,37.5 87.5,987.5 77.5,987.5" fill="#d9d6cc" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="22.5,472.5 66.2,472.5 66.2,522.5 22.5,522.5" fill="#7a4a2e" stroke="#4a3b32" stroke-width="1"  opacity="1.0"/>
+<polygon points="22.5,522.5 66.2,522.5 66.2,532.5 22.5,532.5" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<text x="44.4" y="492.7" font-size="8" fill="#fff" text-anchor="middle" dominant-baseline="middle" font-weight="bold">SUPPORTERS'</text>
+<text x="44.4" y="502.3" font-size="8" fill="#fff" text-anchor="middle" dominant-baseline="middle" font-weight="bold">BAR (town land)</text>
+<polygon points="148.8,487.5 151.2,487.5 151.2,507.5 148.8,507.5" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="160.0" y="480.0" font-size="7" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >ped gate + club arch</text>
+<polygon points="148.8,587.5 151.2,587.5 151.2,637.5 148.8,637.5" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="131.2" y="612.5" font-size="7" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >vehicle gate</text>
+<polygon points="158.8,602.5 188.8,602.5 188.8,622.5 158.8,622.5" fill="#8f9195" stroke="none" stroke-width="1"  opacity="1.0"/>
+<circle cx="103.1" cy="562.5" r="5.0" fill="#f5b400" stroke="#333" stroke-width="0.8"/>
+<text x="103.1" y="577.5" font-size="7" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >bus stop</text>
+<polygon points="151.2,412.5 156.2,412.5 156.2,484.4 151.2,484.4" fill="#7f5a3c" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="151.2,510.0 156.2,510.0 156.2,584.4 151.2,584.4" fill="#7f5a3c" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="151.2,640.6 156.2,640.6 156.2,712.5 151.2,712.5" fill="#7f5a3c" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="187.5,562.5 312.5,562.5 312.5,662.5 187.5,662.5" fill="#b9ab8c" stroke="#d9d6cc" stroke-width="1.5"  opacity="1.0"/>
+<text x="250.0" y="682.7" font-size="8" fill="#333" text-anchor="middle" dominant-baseline="middle" font-weight="bold">CAR PARK</text>
+<text x="250.0" y="692.3" font-size="8" fill="#333" text-anchor="middle" dominant-baseline="middle" font-weight="bold">gravel 100 × 80</text>
+<polygon points="235.0,565.0 280.0,565.0 280.0,582.5 235.0,582.5" fill="#a89a7c" stroke="#ffd54f" stroke-width="1" stroke-dasharray="3,2" opacity="1.0"/>
+<polygon points="237.5,568.8 277.5,568.8 277.5,578.8 237.5,578.8" fill="#2c4c9c" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="257.5" y="573.8" font-size="6" fill="#fff" text-anchor="middle" dominant-baseline="middle" font-weight="bold">COACH BAY</text>
+<polyline points="183.1,558.1 312.5,558.1" fill="none" stroke="#3f7d3a" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="183.1,562.5 183.1,588.8" fill="none" stroke="#3f7d3a" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="183.1,655.0 183.1,666.9" fill="none" stroke="#3f7d3a" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="187.5,666.9 242.5,666.9" fill="none" stroke="#3f7d3a" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="257.5,666.9 316.9,666.9" fill="none" stroke="#3f7d3a" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="316.9,575.0 316.9,735.0" fill="none" stroke="#3f7d3a" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
+<polygon points="151.2,492.5 298.8,492.5 298.8,502.5 151.2,502.5" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="288.8,273.8 298.8,273.8 298.8,502.5 288.8,502.5" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="298.8,273.8 373.8,273.8 373.8,283.8 298.8,283.8" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="298.8,492.5 373.8,492.5 373.8,502.5 298.8,502.5" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="266.2,330.0 288.8,330.0 288.8,342.5 266.2,342.5" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="312.5,741.2 373.8,741.2 373.8,751.2 312.5,751.2" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="312.5,562.5 342.5,562.5 342.5,570.0 312.5,570.0" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="332.5,502.5 342.5,502.5 342.5,570.0 332.5,570.0" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="332.5,751.2 342.5,751.2 342.5,856.2 332.5,856.2" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="332.5,846.2 895.0,846.2 895.0,856.2 332.5,856.2" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="885.0,168.8 895.0,168.8 895.0,856.2 885.0,856.2" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="332.5,168.8 895.0,168.8 895.0,178.8 332.5,178.8" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="332.5,273.8 342.5,273.8 342.5,178.8 332.5,178.8" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="970.0,735.0 980.0,735.0 980.0,846.2 970.0,846.2" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="890.0,846.2 980.0,846.2 980.0,856.2 890.0,856.2" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="970.0,532.5 980.0,532.5 980.0,735.0 970.0,735.0" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="620.0,178.8 630.0,178.8 630.0,178.8 620.0,178.8" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="876.2,507.5 885.0,507.5 885.0,517.5 876.2,517.5" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<text x="902.5" y="387.5" font-size="7" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(90 902.5 387.5)">walk-round path (exit loop)</text>
+<polygon points="233.8,306.2 266.2,306.2 266.2,343.8 233.8,343.8" fill="#b9a48a" stroke="#4a3b32" stroke-width="1"  opacity="1.0"/>
+<polygon points="265.0,332.5 266.2,332.5 266.2,340.0 265.0,340.0" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="250.0" y="325.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">CLUB SHOP</text>
+<polygon points="292.5,197.5 325.0,197.5 325.0,225.0 292.5,225.0" fill="#d9d6cc" stroke="#bbb" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="297.5,206.2 320.0,206.2 320.0,216.2 297.5,216.2" fill="#f4f4f4" stroke="#888" stroke-width="0.6"  opacity="1.0"/>
+<text x="308.8" y="190.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >media bay (TV van)</text>
+<polygon points="902.5,290.0 1047.5,290.0 1047.5,735.0 902.5,735.0" fill="none" stroke="#7a7a7a" stroke-width="1" stroke-dasharray="4,3" opacity="1.0"/>
+<polygon points="912.5,300.0 1037.5,300.0 1037.5,487.5 912.5,487.5" fill="none" stroke="#3f7d3a" stroke-width="1" stroke-dasharray="4,3" opacity="1.0"/>
+<polygon points="912.5,537.5 1037.5,537.5 1037.5,725.0 912.5,725.0" fill="none" stroke="#3f7d3a" stroke-width="1" stroke-dasharray="4,3" opacity="1.0"/>
+<text x="975.0" y="388.9" font-size="8" fill="#2d5a1e" text-anchor="middle" dominant-baseline="middle" >training pitch 1</text>
+<text x="975.0" y="398.6" font-size="8" fill="#2d5a1e" text-anchor="middle" dominant-baseline="middle" >(for sale)</text>
+<text x="975.0" y="626.4" font-size="8" fill="#2d5a1e" text-anchor="middle" dominant-baseline="middle" >training pitch 2</text>
+<text x="975.0" y="636.1" font-size="8" fill="#2d5a1e" text-anchor="middle" dominant-baseline="middle" >(for sale)</text>
+<polygon points="965.0,506.2 985.0,506.2 985.0,518.8 965.0,518.8" fill="none" stroke="#4a3b32" stroke-width="1" stroke-dasharray="3,2" opacity="1.0"/>
+<text x="975.0" y="497.5" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">COACH'S CABIN 16 × 10  (buy → hire a coach)</text>
+<polygon points="1052.5,437.5 1095.0,437.5 1095.0,587.5 1052.5,587.5" fill="none" stroke="#4a3b32" stroke-width="0.8" stroke-dasharray="3,2" opacity="1.0"/>
+<text x="1073.8" y="505.3" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(90 1073.8 505.3)">future</text>
+<text x="1073.8" y="512.5" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(90 1073.8 512.5)">academy /</text>
+<text x="1073.8" y="519.7" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(90 1073.8 519.7)">youth</text>
+<polygon points="971.2,733.8 978.8,733.8 978.8,736.2 971.2,736.2" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polyline points="896.9,290.0 896.9,497.5" fill="none" stroke="#3f7d3a" stroke-width="4" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="896.9,527.5 896.9,735.0" fill="none" stroke="#3f7d3a" stroke-width="4" stroke-linejoin="round"   opacity="1.0"/>
+<circle cx="920.0" cy="270.0" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="920.0" cy="755.0" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="960.0" cy="270.0" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="960.0" cy="755.0" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="1000.0" cy="270.0" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="1000.0" cy="755.0" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="1040.0" cy="270.0" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="1040.0" cy="755.0" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="1077.5" cy="312.5" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="1077.5" cy="362.5" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="1077.5" cy="412.5" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="1077.5" cy="462.5" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="1077.5" cy="512.5" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="1077.5" cy="562.5" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="1077.5" cy="667.5" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="1077.5" cy="715.0" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<polygon points="157.5,412.5 250.0,412.5 250.0,465.0 157.5,465.0" fill="#a8cf8e" stroke="#3f7d3a" stroke-width="0.8" stroke-dasharray="3,2" opacity="1.0"/>
+<text x="203.8" y="438.8" font-size="7" fill="#1e4a1e" text-anchor="middle" dominant-baseline="middle" >planting (old bar site)</text>
+<polygon points="175.0,300.0 225.0,300.0 225.0,387.5 175.0,387.5" fill="#a8cf8e" stroke="#3f7d3a" stroke-width="0.8" stroke-dasharray="3,2" opacity="1.0"/>
+<text x="200.0" y="343.8" font-size="7" fill="#1e4a1e" text-anchor="middle" dominant-baseline="middle" >planting</text>
+<polygon points="375.0,87.5 875.0,87.5 875.0,156.2 375.0,156.2" fill="#a8cf8e" stroke="#3f7d3a" stroke-width="0.8" stroke-dasharray="3,2" opacity="1.0"/>
+<text x="625.0" y="121.9" font-size="7" fill="#1e4a1e" text-anchor="middle" dominant-baseline="middle" >planting belt north</text>
+<polygon points="375.0,868.8 875.0,868.8 875.0,937.5 375.0,937.5" fill="#a8cf8e" stroke="#3f7d3a" stroke-width="0.8" stroke-dasharray="3,2" opacity="1.0"/>
+<text x="625.0" y="903.1" font-size="7" fill="#1e4a1e" text-anchor="middle" dominant-baseline="middle" >planting belt south</text>
+<polygon points="157.5,775.0 300.0,775.0 300.0,887.5 157.5,887.5" fill="#a8cf8e" stroke="#3f7d3a" stroke-width="0.8" stroke-dasharray="3,2" opacity="1.0"/>
+<text x="228.8" y="831.2" font-size="7" fill="#1e4a1e" text-anchor="middle" dominant-baseline="middle" >planting (car park L3 grows here)</text>
+<polygon points="157.5,906.2 300.0,906.2 300.0,975.0 157.5,975.0" fill="#a8cf8e" stroke="#3f7d3a" stroke-width="0.8" stroke-dasharray="3,2" opacity="1.0"/>
+<text x="228.8" y="940.6" font-size="7" fill="#1e4a1e" text-anchor="middle" dominant-baseline="middle" >planting</text>
+<polygon points="912.5,762.5 1050.0,762.5 1050.0,837.5 912.5,837.5" fill="#a8cf8e" stroke="#3f7d3a" stroke-width="0.8" stroke-dasharray="3,2" opacity="1.0"/>
+<text x="981.2" y="800.0" font-size="7" fill="#1e4a1e" text-anchor="middle" dominant-baseline="middle" >planting</text>
+<circle cx="160.0" cy="475.0" r="1.5" fill="#333" stroke="none" stroke-width="1"/>
+<circle cx="160.0" cy="480.0" r="1.5" fill="#333" stroke="none" stroke-width="1"/>
+<circle cx="160.0" cy="485.0" r="1.5" fill="#333" stroke="none" stroke-width="1"/>
+<text x="175.0" y="470.0" font-size="6" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >flagpoles + welcome board</text>
+<circle cx="187.5" cy="485.0" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="217.5" cy="485.0" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="247.5" cy="485.0" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="187.5" cy="510.0" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="217.5" cy="510.0" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="247.5" cy="510.0" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="167.5" cy="582.5" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="165.0" cy="657.5" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="337.5" cy="437.5" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="337.5" cy="625.0" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="250.0" cy="225.0" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<circle cx="300.0" cy="825.0" r="7.5" fill="#2f6b2f" stroke="#1e4a1e" stroke-width="0.6"/>
+<polygon points="373.8,188.8 876.2,188.8 876.2,836.2 373.8,836.2" fill="#bfd9a4" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="373.8,188.8 876.2,188.8 876.2,836.2 373.8,836.2" fill="none" stroke="#4a3b32" stroke-width="2.5"  opacity="1.0"/>
+<text x="883.8" y="325.0" font-size="7" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(90 883.8 325.0)">perimeter wall</text>
+<text x="366.2" y="375.0" font-size="7" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(-90 366.2 375.0)">perimeter wall</text>
+<polygon points="371.9,492.5 375.6,492.5 375.6,532.5 371.9,532.5" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="368.8" y="481.4" font-size="6" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >MAIN ENTRANCE gate</text>
+<text x="368.8" y="488.6" font-size="6" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >(players · staff · owner · directors)</text>
+<polygon points="600.0,186.9 650.0,186.9 650.0,190.6 600.0,190.6" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="625.0" y="178.8" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >north exit gate</text>
+<polygon points="874.4,487.5 878.1,487.5 878.1,537.5 874.4,537.5" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="863.8" y="512.5" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(90 863.8 512.5)">east exit gate</text>
+<polygon points="845.0,834.4 865.0,834.4 865.0,838.1 845.0,838.1" fill="#ff9800" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="855.0" y="846.2" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >service gate (tractor / ambulance)</text>
+<polygon points="840.0,802.5 873.8,802.5 873.8,833.8 840.0,833.8" fill="#cbb98f" stroke="#4a3b32" stroke-width="0.8" stroke-dasharray="2,2" opacity="1.0"/>
+<polygon points="843.8,807.5 863.8,807.5 863.8,820.0 843.8,820.0" fill="#b9a48a" stroke="#4a3b32" stroke-width="0.6"  opacity="1.0"/>
+<text x="856.2" y="827.5" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >groundsman: shed · mower · spare goals</text>
+<polygon points="346.2,227.5 366.2,227.5 366.2,247.5 346.2,247.5" fill="#b9a48a" stroke="#4a3b32" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="346.2,777.5 366.2,777.5 366.2,797.5 346.2,797.5" fill="#b9a48a" stroke="#4a3b32" stroke-width="0.6"  opacity="1.0"/>
+<text x="356.2" y="234.5" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >ticket</text>
+<text x="356.2" y="240.5" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >office</text>
+<text x="356.2" y="784.5" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >ticket</text>
+<text x="356.2" y="790.5" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >office</text>
+<polygon points="353.8,306.2 366.2,306.2 366.2,316.2 353.8,316.2" fill="#b9a48a" stroke="#4a3b32" stroke-width="0.6"  opacity="1.0"/>
+<text x="360.0" y="323.8" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >programmes</text>
+<polygon points="353.8,708.8 366.2,708.8 366.2,718.8 353.8,718.8" fill="#b9a48a" stroke="#4a3b32" stroke-width="0.6"  opacity="1.0"/>
+<text x="360.0" y="701.2" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >programmes</text>
+<polygon points="378.8,232.5 396.2,232.5 396.2,247.5 378.8,247.5" fill="#ffcc80" stroke="#4a3b32" stroke-width="0.6"  opacity="1.0"/>
+<text x="387.5" y="222.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >stewards /</text>
+<text x="387.5" y="228.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >control</text>
+<polygon points="378.8,202.5 396.2,202.5 396.2,217.5 378.8,217.5" fill="#ef9a9a" stroke="#4a3b32" stroke-width="0.6"  opacity="1.0"/>
+<text x="387.5" y="195.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >first aid</text>
+<text x="866.2" y="193.8" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" ></text>
+<polyline points="760.0,315.0 760.0,710.0 490.0,710.0 490.0,581.2" fill="none" stroke="#7b6f62" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="490.0,443.8 490.0,315.0 760.0,315.0" fill="none" stroke="#7b6f62" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<text x="766.2" y="662.5" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(90 766.2 662.5)">low wall</text>
+<polygon points="368.8,262.5 378.8,262.5 378.8,293.8 368.8,293.8" fill="#666" stroke="#4a3b32" stroke-width="0.8"  opacity="1.0"/>
+<polyline points="367.5,270.3 380.0,270.3" fill="none" stroke="#f2c14e" stroke-width="1.2" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="367.5,285.9 380.0,285.9" fill="none" stroke="#f2c14e" stroke-width="1.2" stroke-linejoin="round"   opacity="1.0"/>
+<text x="363.8" y="274.5" font-size="6" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >NW turnstiles</text>
+<text x="363.8" y="281.7" font-size="6" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >2 lanes + exit gate</text>
+<polygon points="368.8,731.2 378.8,731.2 378.8,762.5 368.8,762.5" fill="#666" stroke="#4a3b32" stroke-width="0.8"  opacity="1.0"/>
+<polyline points="367.5,739.1 380.0,739.1" fill="none" stroke="#f2c14e" stroke-width="1.2" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="367.5,754.7 380.0,754.7" fill="none" stroke="#f2c14e" stroke-width="1.2" stroke-linejoin="round"   opacity="1.0"/>
+<text x="363.8" y="743.3" font-size="6" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >SW turnstiles</text>
+<text x="363.8" y="750.5" font-size="6" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >2 lanes + exit gate</text>
+<polygon points="428.8,462.5 473.8,462.5 473.8,562.5 428.8,562.5" fill="#a0553d" stroke="#4a3b32" stroke-width="1"  opacity="1.0"/>
+<polyline points="428.8,532.5 473.8,532.5" fill="none" stroke="#4a3b32" stroke-width="0.6" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="428.8,492.5 473.8,492.5" fill="none" stroke="#4a3b32" stroke-width="0.6" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="440.0,492.5 440.0,532.5" fill="none" stroke="#4a3b32" stroke-width="0.6" stroke-linejoin="round"   opacity="1.0"/>
+<text x="451.2" y="547.5" font-size="7" fill="#fff" text-anchor="middle" dominant-baseline="middle" >office</text>
+<text x="451.2" y="477.5" font-size="7" fill="#fff" text-anchor="middle" dominant-baseline="middle" >store</text>
+<text x="456.2" y="525.0" font-size="6" fill="#fff" text-anchor="middle" dominant-baseline="middle" >home</text>
+<text x="456.2" y="500.0" font-size="6" fill="#fff" text-anchor="middle" dominant-baseline="middle" >away</text>
+<polygon points="428.1,507.5 429.4,507.5 429.4,517.5 428.1,517.5" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="473.1,507.5 474.4,507.5 474.4,517.5 473.1,517.5" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="431.2,561.9 437.5,561.9 437.5,563.1 431.2,563.1" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="442.5" y="572.5" font-size="6" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >staff door → concourse</text>
+<polygon points="373.8,475.0 428.8,475.0 428.8,550.0 373.8,550.0" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<text x="400.0" y="468.8" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >reception forecourt</text>
+<circle cx="392.5" cy="512.5" r="3.1" fill="#999" stroke="none" stroke-width="1"/>
+<text x="392.5" y="521.2" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >statue</text>
+<polygon points="377.5,555.0 402.5,555.0 402.5,572.5 377.5,572.5" fill="#a8cf8e" stroke="#3f7d3a" stroke-width="0.6"  opacity="1.0"/>
+<text x="390.0" y="560.8" font-size="5" fill="#1e4a1e" text-anchor="middle" dominant-baseline="middle" >memorial</text>
+<text x="390.0" y="566.8" font-size="5" fill="#1e4a1e" text-anchor="middle" dominant-baseline="middle" >garden</text>
+<text x="451.2" y="450.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">CLUBHOUSE</text>
+<polygon points="473.8,288.8 776.2,288.8 776.2,736.2 473.8,736.2" fill="#c9c3b3" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="496.2,321.2 753.8,321.2 753.8,703.8 496.2,703.8" fill="#5fae4f" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="506.2,331.2 743.8,331.2 743.8,693.8 506.2,693.8" fill="none" stroke="#eef7e6" stroke-width="1.2"  opacity="1.0"/>
+<polyline points="506.2,512.5 743.8,512.5" fill="none" stroke="#eef7e6" stroke-width="1.2" stroke-linejoin="round"   opacity="1.0"/>
+<circle cx="625.0" cy="512.5" r="31.2" fill="none" stroke="#eef7e6" stroke-width="1.2"/>
+<polygon points="555.6,331.2 694.4,331.2 694.4,387.5 555.6,387.5" fill="none" stroke="#eef7e6" stroke-width="1.2"  opacity="1.0"/>
+<polygon points="593.8,331.2 656.2,331.2 656.2,350.0 593.8,350.0" fill="none" stroke="#eef7e6" stroke-width="1.2"  opacity="1.0"/>
+<polygon points="612.5,331.2 637.5,331.2 637.5,323.8 612.5,323.8" fill="#ffffff" stroke="#777" stroke-width="0.8"  opacity="1.0"/>
+<polygon points="555.6,693.8 694.4,693.8 694.4,637.5 555.6,637.5" fill="none" stroke="#eef7e6" stroke-width="1.2"  opacity="1.0"/>
+<polygon points="593.8,693.8 656.2,693.8 656.2,675.0 593.8,675.0" fill="none" stroke="#eef7e6" stroke-width="1.2"  opacity="1.0"/>
+<polygon points="612.5,693.8 637.5,693.8 637.5,701.2 612.5,701.2" fill="#ffffff" stroke="#777" stroke-width="0.8"  opacity="1.0"/>
+<text x="625.0" y="512.5" font-size="10" fill="#e8f5e2" text-anchor="middle" dominant-baseline="middle" font-weight="bold">PITCH 190 × 290</text>
+<polyline points="494.4,321.2 494.4,443.8" fill="none" stroke="#f0e6a8" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="494.4,496.2 494.4,528.8" fill="none" stroke="#f0e6a8" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="494.4,581.2 494.4,703.8" fill="none" stroke="#f0e6a8" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="496.2,319.4 753.8,319.4" fill="none" stroke="#f0e6a8" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="755.6,321.2 755.6,703.8" fill="none" stroke="#f0e6a8" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="496.2,705.6 753.8,705.6" fill="none" stroke="#f0e6a8" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
+<polygon points="487.5,532.5 495.0,532.5 495.0,562.5 487.5,562.5" fill="#555" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="487.5,462.5 495.0,462.5 495.0,492.5 487.5,492.5" fill="#555" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="745.0,305.0 755.0,305.0 755.0,315.0 745.0,315.0" fill="#333" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="750.0" y="325.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >scoreboard</text>
+<text x="297.5" y="573.8" font-size="5" fill="#eee" text-anchor="start" dominant-baseline="middle" >players' &amp; staff bays</text>
+<text x="200.0" y="635.0" font-size="5" fill="#eee" text-anchor="start" dominant-baseline="middle" >disabled bays · cycle racks</text>
+<polyline points="150.0,497.5 293.8,497.5 293.8,278.8 373.8,278.8" fill="none" stroke="#d9342b" stroke-width="2" stroke-linejoin="round"  marker-end="url(#arr)" opacity="1.0"/>
+<polyline points="250.0,656.2 306.2,746.2 373.8,746.2" fill="none" stroke="#e07b1f" stroke-width="2" stroke-linejoin="round"  marker-end="url(#arr)" opacity="1.0"/>
+<polyline points="371.2,288.8 283.8,288.8 283.8,507.5 150.0,507.5" fill="none" stroke="#d9342b" stroke-width="1.2" stroke-linejoin="round" stroke-dasharray="4,3" marker-end="url(#arr)" opacity="1.0"/>
+<polyline points="371.2,736.2 297.5,736.2 297.5,662.5 250.0,662.5" fill="none" stroke="#e07b1f" stroke-width="1.2" stroke-linejoin="round" stroke-dasharray="4,3" marker-end="url(#arr)" opacity="1.0"/>
+<polyline points="625.0,188.8 625.0,173.8 337.5,173.8 337.5,278.8" fill="none" stroke="#d9342b" stroke-width="1.2" stroke-linejoin="round" stroke-dasharray="4,3" marker-end="url(#arr)" opacity="1.0"/>
+<polyline points="876.2,512.5 890.0,512.5 890.0,851.2 337.5,851.2 337.5,746.2" fill="none" stroke="#e07b1f" stroke-width="1.2" stroke-linejoin="round" stroke-dasharray="4,3" marker-end="url(#arr)" opacity="1.0"/>
+<polyline points="257.5,573.8 332.5,566.2 332.5,497.5 373.8,497.5" fill="none" stroke="#2c4c9c" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="2,2" marker-end="url(#arr)" opacity="1.0"/>
+<text x="332.5" y="537.5" font-size="5" fill="#2c4c9c" text-anchor="middle" dominant-baseline="middle"  transform="rotate(-90 332.5 537.5)">players: coach → main gate</text>
+<text x="283.8" y="387.5" font-size="7" fill="#d9342b" text-anchor="middle" dominant-baseline="middle"  transform="rotate(-90 283.8 387.5)">fans in / out (gate)</text>
+<text x="297.5" y="637.5" font-size="7" fill="#e07b1f" text-anchor="middle" dominant-baseline="middle"  transform="rotate(90 297.5 637.5)">fans in / out (car park)</text>
+<polygon points="776.2,471.9 788.2,471.9 788.2,553.1 776.2,553.1" fill="#8c6a5a" stroke="#4a3b32" stroke-width="0.8"  opacity="1.0"/>
+<polygon points="776.2,464.4 788.2,464.4 788.2,471.9 776.2,471.9" fill="#ffe082" stroke="#555" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="776.2,553.1 788.2,553.1 788.2,560.6 776.2,560.6" fill="#ffe082" stroke="#555" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="473.8,461.2 461.8,461.2 461.8,420.6 473.8,420.6" fill="none" stroke="#4a3b32" stroke-width="0.8" stroke-dasharray="3,2" opacity="1.0"/>
+<polygon points="473.8,563.8 461.8,563.8 461.8,604.4 473.8,604.4" fill="none" stroke="#4a3b32" stroke-width="0.8" stroke-dasharray="3,2" opacity="1.0"/>
+<polygon points="597.5,288.8 597.5,276.8 652.5,276.8 652.5,288.8" fill="none" stroke="#4a3b32" stroke-width="0.8" stroke-dasharray="3,2" opacity="1.0"/>
+<polygon points="597.5,736.2 597.5,748.2 652.5,748.2 652.5,736.2" fill="none" stroke="#4a3b32" stroke-width="0.8" stroke-dasharray="3,2" opacity="1.0"/>
+<text x="782.2" y="512.5" font-size="7" fill="#fff" text-anchor="middle" dominant-baseline="middle"  transform="rotate(90 782.2 512.5)">EAST 65 long</text>
+<text x="625.0" y="282.8" font-size="7" fill="#444" text-anchor="middle" dominant-baseline="middle" >NORTH 44 long (not built yet)</text>
+<text x="625.0" y="742.2" font-size="7" fill="#444" text-anchor="middle" dominant-baseline="middle" >SOUTH 44 long (not built yet)</text>
+<text x="451.2" y="433.9" font-size="6" fill="#8a1c1c" text-anchor="middle" dominant-baseline="middle" >store → Football Ops</text>
+<text x="451.2" y="441.1" font-size="6" fill="#8a1c1c" text-anchor="middle" dominant-baseline="middle" >(scouting) room at L2</text>
+<text x="437.5" y="358.3" font-size="7" fill="#2d5a1e" text-anchor="middle" dominant-baseline="middle" >grass inside the fence</text>
+<text x="437.5" y="366.7" font-size="7" fill="#2d5a1e" text-anchor="middle" dominant-baseline="middle" >+ gravel strip</text>
+<polygon points="425.0,375.0 442.5,375.0 442.5,387.5 425.0,387.5" fill="#f4f4f4" stroke="#888" stroke-width="0.6"  opacity="1.0"/>
+<text x="433.8" y="395.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >burger van</text>
+<polygon points="425.0,637.5 440.0,637.5 440.0,652.5 425.0,652.5" fill="#7fb3c9" stroke="#555" stroke-width="0.6"  opacity="1.0"/>
+<text x="432.5" y="660.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >portaloos</text>
+<circle cx="450.0" cy="262.5" r="3.8" fill="#222" stroke="none" stroke-width="1"/>
+<polyline points="443.8,256.2 456.2,268.8" fill="none" stroke="#222" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="443.8,268.8 456.2,256.2" fill="none" stroke="#222" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<text x="450.0" y="250.0" font-size="7" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >mast</text>
+<circle cx="450.0" cy="762.5" r="3.8" fill="#222" stroke="none" stroke-width="1"/>
+<polyline points="443.8,756.2 456.2,768.8" fill="none" stroke="#222" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="443.8,768.8 456.2,756.2" fill="none" stroke="#222" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<text x="450.0" y="750.0" font-size="7" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >mast</text>
+<circle cx="800.0" cy="262.5" r="3.8" fill="#222" stroke="none" stroke-width="1"/>
+<polyline points="793.8,256.2 806.2,268.8" fill="none" stroke="#222" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="793.8,268.8 806.2,256.2" fill="none" stroke="#222" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<text x="800.0" y="250.0" font-size="7" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >mast</text>
+<circle cx="800.0" cy="762.5" r="3.8" fill="#222" stroke="none" stroke-width="1"/>
+<polyline points="793.8,756.2 806.2,768.8" fill="none" stroke="#222" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="793.8,768.8 806.2,756.2" fill="none" stroke="#222" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<text x="800.0" y="750.0" font-size="7" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >mast</text>
+<polygon points="925.0,800.0 1112.5,800.0 1112.5,987.5 925.0,987.5" fill="#ffffff" stroke="#999" stroke-width="0.8"  opacity="0.92"/>
+<text x="931.2" y="808.8" font-size="9" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" font-weight="bold">Proposed L1</text>
+<polygon points="931.2,815.0 943.8,815.0 943.8,825.0 931.2,825.0" fill="#5fae4f" stroke="#555" stroke-width="0.5"  opacity="1.0"/>
+<text x="948.8" y="820.0" font-size="8" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >pitch / training turf</text>
+<polygon points="931.2,830.0 943.8,830.0 943.8,840.0 931.2,840.0" fill="#c9c3b3" stroke="#555" stroke-width="0.5"  opacity="1.0"/>
+<text x="948.8" y="835.0" font-size="8" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >hardstanding (inside low wall)</text>
+<polygon points="931.2,845.0 943.8,845.0 943.8,855.0 931.2,855.0" fill="#f0e6a8" stroke="#555" stroke-width="0.5"  opacity="1.0"/>
+<text x="948.8" y="850.0" font-size="8" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >ad boards</text>
+<polygon points="931.2,860.0 943.8,860.0 943.8,870.0 931.2,870.0" fill="#7b6f62" stroke="#555" stroke-width="0.5"  opacity="1.0"/>
+<text x="948.8" y="865.0" font-size="8" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >low wall (#20)</text>
+<polygon points="931.2,875.0 943.8,875.0 943.8,885.0 931.2,885.0" fill="#8c6a5a" stroke="#555" stroke-width="0.5"  opacity="1.0"/>
+<text x="948.8" y="880.0" font-size="8" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >stand</text>
+<polygon points="931.2,890.0 943.8,890.0 943.8,900.0 931.2,900.0" fill="#ffe082" stroke="#555" stroke-width="0.5"  opacity="1.0"/>
+<text x="948.8" y="895.0" font-size="8" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >end stairs (#13/#15)</text>
+<polygon points="931.2,905.0 943.8,905.0 943.8,915.0 931.2,915.0" fill="#222" stroke="#555" stroke-width="0.5"  opacity="1.0"/>
+<text x="948.8" y="910.0" font-size="8" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >vomitory (L3+)</text>
+<polygon points="931.2,920.0 943.8,920.0 943.8,930.0 931.2,930.0" fill="#a0553d" stroke="#555" stroke-width="0.5"  opacity="1.0"/>
+<text x="948.8" y="925.0" font-size="8" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >clubhouse</text>
+<polygon points="931.2,935.0 943.8,935.0 943.8,945.0 931.2,945.0" fill="#e9e4d4" stroke="#555" stroke-width="0.5"  opacity="1.0"/>
+<text x="948.8" y="940.0" font-size="8" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >footpaths</text>
+<polygon points="931.2,950.0 943.8,950.0 943.8,960.0 931.2,960.0" fill="#d9342b" stroke="#555" stroke-width="0.5"  opacity="1.0"/>
+<text x="948.8" y="955.0" font-size="8" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >fan route in / out</text>
+<polygon points="931.2,965.0 943.8,965.0 943.8,975.0 931.2,975.0" fill="#3f7d3a" stroke="#555" stroke-width="0.5"  opacity="1.0"/>
+<text x="948.8" y="970.0" font-size="8" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >hedge / trees / new planting</text>
+</svg>
