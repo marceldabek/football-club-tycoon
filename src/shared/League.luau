@@ -148,11 +148,25 @@ function League.newSeason(tier: number, seed: number, clubName: string, playerSe
 		end
 	end
 
+	-- SL15 (docs/SOFT_LAUNCH.md): only home games pay a gate (X361), so an away
+	-- opener left about half of all new clubs with next to nothing at the first
+	-- payout. If the player would open away, every fixture swaps ends: still one
+	-- home and one away game against everybody, and the season starts at home.
+	local fixtures = buildFixtures(n)
+	for _, f in fixtures do
+		if f.round == 1 and f.away == playerIndex then
+			for _, g in fixtures do
+				g.home, g.away = g.away, g.home
+			end
+			break
+		end
+	end
+
 	return {
 		tier = tier,
 		seed = seed,
 		teams = teams,
-		fixtures = buildFixtures(n),
+		fixtures = fixtures,
 		rounds = (n - 1) * 2,
 		playerIndex = playerIndex,
 	}

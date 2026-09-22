@@ -46,6 +46,24 @@ function T.fixturesAreDoubleRoundRobin()
 	end
 end
 
+-- SL15: only home games pay a gate, so the opener is always at home, and the
+-- swap that arranges it must leave the player five home games, not ten
+function T.playerAlwaysOpensAtHome()
+	for seed = 1, 40 do
+		local s = season(1 + seed % 3, seed)
+		local homeGames = 0
+		for _, f in s.fixtures do
+			if f.round == 1 and (f.home == s.playerIndex or f.away == s.playerIndex) then
+				assert(f.home == s.playerIndex, ("seed %d opens away"):format(seed))
+			end
+			if f.home == s.playerIndex then
+				homeGames += 1
+			end
+		end
+		assert(homeGames == s.rounds / 2, ("seed %d has %d home games"):format(seed, homeGames))
+	end
+end
+
 function T.playerHasOneFixtureEveryRound()
 	local s = season(2, 5)
 	local opponents = {}

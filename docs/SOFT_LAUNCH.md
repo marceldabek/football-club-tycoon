@@ -36,7 +36,7 @@ Status key: `[ ]` open, `[x]` done, `[M]` needs Marcel (Studio setting, device, 
 
 ## Gate 3 — Multiplayer is decided
 
-- [M] **SL10. Pick the beta server shape.** No multiplayer path has been run with two real clients (B2.1d, I3.1d, I4.1d, X39; X206–X211 and X237 all "needs a two-player check").
+- [x] **SL10. Pick the beta server shape.** DECIDED 2026-09-21: MaxPlayers 4 with trades and friendlies **on**, bugs accepted for the beta. SL6 (trade duplication) stays worth fixing because a duplicated player lives on in a save that carries over. Original options: No multiplayer path has been run with two real clients (B2.1d, I3.1d, I4.1d, X39; X206–X211 and X237 all "needs a two-player check").
   - Option A (recommended): **MaxPlayers = 4**, keep plots, and switch off trades and friendlies for the beta behind a Config flag. Removes X365 and the untested paths from the launch. Still needs one two-client test of claim, leave, re-claim and save lock.
   - Option B: MaxPlayers = 1. Safest, loses the shared town.
   - Option C: everything on. Needs the full two-player test list first.
@@ -47,7 +47,7 @@ Status key: `[ ]` open, `[x]` done, `[M]` needs Marcel (Studio setting, device, 
 
 - [ ] **SL13. Cold-server join window.** `Main.server.luau:193-268` builds the whole town (10+ s) before `PlotService.start()`; until then there is no spawn, no picker and no UI, and there is no `ReplicatedFirst` loading screen. Add a ReplicatedFirst cover that holds until the picker is ready, and start PlotService as early as is safe.
 - [ ] **SL14. Founding card escape hatch.** No cancel, non-ASCII names refused (`Session.luau:332`), filter outage loops the player. Add "Use suggested name" that always succeeds, and show the refusal reason.
-- [ ] **SL15. Round 1 at home.** About half of new players get an away first fixture and see roughly £120 instead of ~£1,230 at the first payout (`League.luau:64-72`, `Economy.luau:160-188`). Force the player's round 1 (ideally 1 and 2) to be home.
+- [x] **SL15. Round 1 at home.** (DONE 2026-09-21: `League.newSeason` swaps every fixture's ends when the player would open away; `LeagueTest.playerAlwaysOpensAtHome`.) About half of new players get an away first fixture and see roughly £120 instead of ~£1,230 at the first payout (`League.luau:64-72`, `Economy.luau:160-188`). Force the player's round 1 (ideally 1 and 2) to be home.
 - [ ] **SL16. Silent re-claim.** Toast when a claim is already in flight (`PlotService.luau:529-531`) and show progress during a slow club load.
 - [M] **SL17. First stand is free on three of four plots** (OVERNIGHT_LOG question 18). Recommended: leave it for the beta; a free first upgrade is a fast visible win. Revisit with funnel data.
 - [ ] **SL18. Fresh-account run-through** on the published place, timed against CLAUDE.md section 12.
@@ -56,7 +56,7 @@ Status key: `[ ]` open, `[x]` done, `[M]` needs Marcel (Studio setting, device, 
 
 - [M] **SL19. Set the six Workspace streaming properties by hand** (`docs/TOWN_V3_PERF.md:124-127`) and save the place. Not script-accessible; the perf doc records them as unset when measured.
 - [M] **SL20. Real-phone frame rate** at the Market Square, at a plot in Manage, and during a match with a full crowd. Frame time has never been measured (`TOWN_V3_PERF.md:7-9`). Target 30 fps on Low. If the town fails, thin the Low budgets before launch.
-- [ ] **SL21. Touch sprint button.** `Sprint.client.luau` is Shift only; the town is a 2–3 minute walk.
+- [ ] **SL21. Touch sprint button.** (WRITTEN 2026-09-21: RUN toggle above the jump button, placement checked on desktop with a stand-in jump button. Tick after it is tapped on a real phone in SL22; it does not yet hide behind fullscreen menus.) `Sprint.client.luau` is Shift only; the town is a 2–3 minute walk.
 - [M] **SL22. Touch pass** on the founding card, lineup drag and pack opening (X241, X252).
 
 ## Gate 6 — We can see what happens
@@ -74,7 +74,7 @@ Status key: `[ ]` open, `[x]` done, `[M]` needs Marcel (Studio setting, device, 
   10. season finished — `SeasonService.luau:234`
 - [x] **SL24. Economy events** (DONE 2026-09-21) from the one choke point `ClubState.addCash` (`ClubState.luau:81`), which already carries a category.
 - [x] **SL25. Save health.** (DONE 2026-09-21: `SaveFailing`, `ClubLoadFailed`, `JoinedServerFull`, plus the five `NameRefused*` / `NameFilterOutage` events.) Custom event on failed flush (`Session.luau:270-278`) and on "server full, joined as visitor".
-- [ ] **SL26. Feedback channel.** A Roblox group or Discord link plus a small in-game feedback button. [M] to create the group/server.
+- [ ] **SL26. Feedback channel.** (2026-09-21: Marcel will set up a Roblox group eventually; Discord understood. The in-game button waits for a link.) A Roblox group or Discord link plus a small in-game feedback button. [M] to create the group/server.
 
 ## Gate 7 — Store page and ads
 
