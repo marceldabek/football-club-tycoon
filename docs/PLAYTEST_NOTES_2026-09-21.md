@@ -153,6 +153,34 @@ Numbers are stable so they can be referenced in commits and later notes.
 
 **Assets:** use free assets for all of #30–#39 where possible.
 
+40. **You can press Play Match away from your club.** The Play Match button works when the player is out in town or at another club. Pressing it should bring the player back to their own ground, using the same move as the "go to my club" button, before the iris transition and walkout start.
+41. **Street lamps give no light at night.** The town street lamps are just models: nothing lights up after dark. They need real lights: a PointLight or SpotLight on each lamp head, with a glowing lens. Keep phones in mind: hundreds of lamps with real lights is expensive. So light only the nearest lamps, or those on higher quality settings, and give the rest just the glowing lens. This goes with #2, the floodlights not lighting the pitch.
+
+45. **Goal nets need back supports.** The nets form a square box, but there's nothing behind them to hold them up. A box net needs a back frame: two rear uprights at the back corners, joined by rear stanchions (support bars) to the crossbar and down to the ground. Either change the goal model or add the missing frame pieces. Keep the posts on the goal line (commit 9b01ff8).
+
+## New features (need a design talk)
+
+42. **A scooter or other quick way to get around.** Something faster than walking and sprinting for crossing Rivermere: a kick scooter, e-scooter or bike. It sits between walking and the bus stops. It ties into the later idea of buying a car to show off wealth (CLAUDE.md s27). Questions:
+    - Free for everyone, earned, or bought?
+    - Can the player ride it inside the ground?
+    - It needs to work with streaming (#27), because riding fast outruns what's loaded.
+43. **A way to monetize the game.** Monetization is still an open question (CLAUDE.md s25), and M5 persistence is done, so now is the right time to plan it. The soft launch already runs an ad test.
+    - **Options to discuss:**
+      - Buying packs, with odds already published in `Config.PackOdds` (s8).
+      - Cosmetic game passes: stadium styles, seat colours, kits, office decor, scooter skins (#42).
+      - A VIP pass: bigger save slots, a faster fast-forward, or a bigger scout pin slot.
+      - Small cash boosts.
+      - Private servers.
+      - Rewarded ads.
+    - **Rule to agree first:** nothing that makes promotion pay-to-win. Keep it cosmetic, convenience or luck (packs).
+
+44. **A "+" button next to the cash to buy money with Robux.** Put a plus sign beside the cash display on the HUD. Pressing it opens a small shop of cash packs. Each pack is a Roblox Developer Product (bought with `MarketplaceService`, and granted in `ProcessReceipt` so it's saved safely).
+    - **Marcel's call:** for now the amounts are deliberately absurd, as a reward for early players. Label them TEMP in `Config` so they're easy to rebalance later.
+    - **Before it's built:**
+      - Developer Products only work on the published place, so they need testing there.
+      - A big cash buy skips the early upgrade loop, which is the core fun. It also goes against the "no pay-to-win" rule suggested in #43, so decide on purpose whether early players get this as a one-off.
+      - Grant the cash in `ProcessReceipt` and save it straight away, so a crash can't eat a purchase.
+
 ---
 
 *More items to come.*
