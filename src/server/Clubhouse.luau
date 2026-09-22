@@ -233,6 +233,9 @@ local function bulb(parent: Instance, x: number, z: number, sx: number, sz: numb
 	local light = Instance.new("PointLight")
 	light.Brightness = brightness
 	light.Range = range
+	-- the rooms share thin partitions: without shadows every neighbour's bulb
+	-- shines through and the stack blows the room out to white
+	light.Shadows = true
 	light.Color = Color3.fromRGB(255, 245, 225)
 	light.Parent = b
 	return b
@@ -518,6 +521,7 @@ local function buildShell(parent: Instance, addSign: (BasePart, string, { Enum.N
 		local glow = Instance.new("PointLight")
 		glow.Brightness = 0.6
 		glow.Range = 14
+		glow.Shadows = true -- or it lights the rooms behind the wall too
 		glow.Color = Color3.fromRGB(255, 240, 215)
 		glow.Parent = l
 	end

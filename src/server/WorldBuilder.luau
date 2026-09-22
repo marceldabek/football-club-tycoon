@@ -280,14 +280,19 @@ local function buildPitch(parent: Instance)
 		local z = zSign * (PITCH_L / 2)
 		local goalName = zSign < 0 and "GoalNorth" or "GoalSouth"
 		-- Creator Store goal with a real net when the place has one; its crossbar is 33 wide
-		-- box centre sits 1.75 studs behind the line so the posts land on it; net goes back ~5.6
-		local placed = Assets.place("Goal", Vector3.new(0, GROUND_Y + 1, z + zSign * 1.75), pitch, {
-			scale = goalW / 33,
+		local goalScale = goalW / 33
+		local placed = Assets.place("Goal", Vector3.new(0, GROUND_Y + 1, z), pitch, {
+			scale = goalScale,
 			lookAt = Vector3.new(0, GROUND_Y + 1, 0),
 			flip = true, -- the model's net is on its look side
 			name = goalName,
 		})
 		if placed then
+			-- the posts are the front face of the model's box (1 stud thick before
+			-- scaling): push the box back until they stand centred on the goal line
+			local postR = goalScale / 2
+			local back = placed.size.Z / 2 - postR - lineW / 2
+			placed.model:PivotTo(placed.model:GetPivot() + Vector3.new(0, 0, zSign * back))
 			for _, d in placed.model:GetDescendants() do
 				if d:IsA("BasePart") then
 					if d.Name == "COLLIDABLE" then
