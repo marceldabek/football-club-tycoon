@@ -6,7 +6,7 @@
 local Build = {}
 
 Build.tag = "BETA"
-Build.version = "0.1.0" -- 2026-09-21: first soft-launch candidate
+Build.version = "0.1.1" -- 2026-09-21: first published private beta build
 
 function Build.label(): string
 	return ("%s %s"):format(Build.tag, Build.version)
