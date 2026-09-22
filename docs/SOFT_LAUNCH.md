@@ -21,7 +21,7 @@ Status key: `[ ]` open, `[x]` done, `[M]` needs Marcel (Studio setting, device, 
 
 ## Gate 1 — Know what we are shipping
 
-- [ ] **SL1. Disk and place file agree.** 43 of 194 scripts differ (X347, X345); tests run against the Studio copies. Reconnect Rojo (X34, X4), push disk over Studio, run `tools/parity_digest.py` to zero diffs, then RunAll. Nothing below can be trusted until this is done.
+- [x] **SL1. Disk and place file agree.** (DONE 2026-09-21: Rojo live, `tools/parity_digest.py` reports all 247 scripts match, RunAll 879/879 at `b5917f3`. Re-run the digest right before publishing; Marcel must save the place so the synced scripts are in the file.) Originally 43 of 194 scripts differed (X347, X345).
 - [x] **SL2. Commit the dirty working tree** (DONE 2026-09-21, `9b01ff8`: card art keyed PNGs, Clubhouse light shadows, goal on the line.) once stable, so the published build maps to a commit.
 - [x] **SL3. Build label.** (DONE 2026-09-21: `Shared.Build` holds tag + version, shown faint bottom-right of the HUD and on the loading screen. Bump `Build.version` when publishing.) Small "BETA · <short commit or date>" text in a HUD corner, so a bug report names a build.
 
@@ -114,7 +114,6 @@ Status key: `[ ]` open, `[x]` done, `[M]` needs Marcel (Studio setting, device, 
 
 Everything still open needs Marcel or the published place:
 
-- **SL1** parity check between disk and the place (Rojo was live and syncing today, so this may be a formality; run `tools/parity_digest.py` once before publishing).
 - **SL11, SL19** set MaxPlayers 4 and the six streaming properties by hand, save the place.
 - **SL20, SL22** real-phone frame rate and touch pass.
 - **SL8, SL12, SL18** published-place runs: save round trip, two clients (claim / leave / re-claim / lock handover / one trade), fresh-account timing.
