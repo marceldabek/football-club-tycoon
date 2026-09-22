@@ -135,3 +135,14 @@ Each step is tested and committed before the next.
 
 Trialist bonus (+4..6), walk-in `overallBonus`, stat weight table, reveal
 timings, pin expiry at season end.
+
+## Deviations at implementation (2026-09-21)
+
+- Card name text uses `TextScaled` in a fixed box, not `GetTextSize` (TextWrapped stays false).
+- The XI is shown as a card strip in `Match.client.luau` during the first walkout, not in `LineupBoard`.
+- `PackOpening.open(getClub, actionEvent, { fromDesk, folder })`; the HUD is covered by an opaque shade rather than hidden.
+- Movement is frozen via the humanoid (no PlayerModule controls in this project).
+- UNPIN discards the pinned card and needs a second tap; so does PIN when a pin already exists.
+- Hiring or upgrading a scout keeps the match-1 free pack until it is used.
+- Server toasts are shown inside the overlay.
+- Tier odds (`Config.PackOdds`) are measured at squad average 60 only.
