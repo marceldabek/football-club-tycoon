@@ -178,14 +178,17 @@ function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 	portrait.ClipsDescendants = true
 	-- as tall as the art's upper panel allows: the bust is drawn to a fixed
 	-- framing, so the window's height is the only thing that sets the head size
-	-- Width is what crops the bust sideways: any wider and the bare upper arms
-	-- come into shot beside the shirt.
-	portrait.Position = UDim2.fromScale(0.315, 0.04)
-	portrait.Size = UDim2.fromScale(0.49, 0.549) -- bottom lands on the art's divider
+	-- Wide enough for the shirt's shoulders (#18e/#19d, the card mockup), out
+	-- to the art's inner border on the right, behind the rating column on the
+	-- left; the "card" framing pulls the camera back to fill it.
+	portrait.Position = UDim2.fromScale(0.26, 0.04)
+	portrait.Size = UDim2.fromScale(0.655, 0.549) -- bottom lands on the art's divider
 	portrait.ZIndex = 3
 	portrait.Parent = face
-	local kit = if signed then (ClubCrest.localColours()) else Config.ProspectKit
-	local shot = Headshot.attach(portrait, p.look or p.id, kit, p.number or 0, { shoulders = true, keeper = p.role == "GK" })
+	-- every card wears the club's own kit, prospects too: the pack shows him in
+	-- your shirt (TEMP, question E1 -- was a grey training top)
+	local kit, trim = ClubCrest.localColours()
+	local shot = Headshot.attach(portrait, p.look or p.id, kit, p.number or 0, { card = true, trim = trim, keeper = p.role == "GK" })
 	shot.ZIndex = 3
 	shot.BackgroundTransparency = 1
 	local backdrop = portrait:FindFirstChild("Backdrop")

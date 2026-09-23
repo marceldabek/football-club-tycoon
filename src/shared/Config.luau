@@ -536,8 +536,6 @@ Config.CardTint = {
 	Epic = { glow = Color3.fromRGB(176, 90, 255), ink = Color3.fromRGB(248, 240, 255) },
 	Legend = { glow = Color3.fromRGB(255, 240, 200), ink = Color3.fromRGB(30, 24, 12) },
 }
--- a prospect is nobody's player yet: a plain grey training top on his card
-Config.ProspectKit = Color3.fromRGB(120, 126, 136)
 -- Goalkeepers wear a different shirt to the rest of the team (#18e/#19d).
 -- Matches MatchPresenter's home KEEPER_KITS colour, so a keeper's card and his
 -- match-day rig agree. TEMP: one fixed colour rather than a second kit slot --
