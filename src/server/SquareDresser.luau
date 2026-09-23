@@ -425,6 +425,11 @@ end
 -- at the landmark height; turned so the nave runs along the layout block.
 local CHURCH_KIT = "ChurchSpire" -- 163 x 202 x 77, nave along its local X (MANIFEST)
 local CHURCH_KIT_HEIGHT = 202
+-- #34: the ChurchSpire keeper is 238 primitive Parts. Its replacement is one generated mesh,
+-- 105 x 130 x 44 with the nave along its local X, installed into the place by
+-- tools/kit/install_church.luau; the keeper stays as the fallback for a place without it.
+local CHURCH_MESH = "ChurchMesh"
+local CHURCH_MESH_HEIGHT = 130
 
 -- X319: the church is one of the three landmarks every sightline in town was
 -- planned around (E9.1, Q5), and it stood on plain mown grass - no wall, no
@@ -719,13 +724,15 @@ local function dressChurchyard(town: Instance, church: Instance?, block: any): n
 
 	-- headstones on whatever grass is left, each one probed: the first version
 	-- buried one inside a terraced house and another in a tree
+	-- Each side's own room, not the tighter of the pair: the church mesh (#34) is one solid
+	-- box to the probe, so a symmetric rectangle left no grass outside it at all.
 	local placed = 0
 	for _ = 1, 120 do
 		if placed >= 14 then
 			break
 		end
-		local x = rng:NextNumber(-hx + 4, hx - 4)
-		local z = rng:NextNumber(-hz + 4, hz - 4)
+		local x = rng:NextNumber(-(room.WallW or (halfX + 4)) + 4, (room.WallE or (halfX + 4)) - 4)
+		local z = rng:NextNumber(-(room.WallN or (halfZ + 4)) + 4, (room.WallS or (halfZ + 4)) - 4)
 		local onPath = math.abs(if math.abs(gate.X) > 0.5 then z else x) < 6
 		local at = Vector3.new(centre.X + x, 0, centre.Z + z)
 		if not onPath and probeClear(at, Vector3.new(4, PROBE_Y1 - PROBE_Y0, 4), { yard }) then
@@ -835,7 +842,11 @@ local function dressChurch(town: Instance): number
 			landmark = l
 		end
 	end
-	if not landmark or not KitPlacer.find(CHURCH_KIT) then
+	local kitName, kitHeight = CHURCH_MESH, CHURCH_MESH_HEIGHT
+	if not KitPlacer.find(kitName) then
+		kitName, kitHeight = CHURCH_KIT, CHURCH_KIT_HEIGHT
+	end
+	if not landmark or not KitPlacer.find(kitName) then
 		return 0 -- keep the greybox church
 	end
 	local block = nil
@@ -865,10 +876,12 @@ local function dressChurch(town: Instance): number
 	end
 	-- nave (kit local X) along the block's long side
 	local yaw = if block and block.size.Z > block.size.X then math.pi / 2 else 0
-	local model = KitPlacer.place(CHURCH_KIT, CFrame.new(centre) * CFrame.Angles(0, yaw, 0), town, {
-		scale = landmark.height / CHURCH_KIT_HEIGHT,
+	local model = KitPlacer.place(kitName, CFrame.new(centre) * CFrame.Angles(0, yaw, 0), town, {
+		scale = landmark.height / kitHeight,
 	})
 	model.Name = "Church"
+	-- a landmark every sightline is planned around: always loaded, never streamed out (#34)
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 	local parts = 0
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then
