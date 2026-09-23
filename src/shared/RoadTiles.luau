@@ -201,22 +201,6 @@ RoadTiles.RB_HEDGE_SCALE = 0.4
 -- the lane) and 0.88 a 7.3 x 10.6 x 24 bus.
 RoadTiles.CAR_SCALE = 0.7
 RoadTiles.BUS_SCALE = 0.88
--- playtest #37/#38: CAR_SCALE above was tuned to HatchbackOrange's raw mesh
--- (the original bought car, 9.8 x 8.4 x 19.4 -- the numbers in the comment
--- above). The three AI-generated hatchbacks added later (X45) came out
--- smaller and inconsistent with Orange and with each other, so parked/moving
--- cars on the same street were visibly different sizes. This corrects each
--- named kit's raw mesh to Orange's footprint (geometric mean of the three
--- axis ratios) before CAR_SCALE is applied; an unlisted kit (Orange itself,
--- VanWhite, ...) gets 1. TEMP numbers, measured from the stored meshes.
-RoadTiles.CAR_KIT_SCALE = {
-	HatchbackNavy = 1.097,
-	HatchbackRed = 1.095,
-	HatchbackSilver = 1.123,
-} :: { [string]: number }
-function RoadTiles.carScale(name: string): number
-	return RoadTiles.CAR_SCALE * (RoadTiles.CAR_KIT_SCALE[name] or 1)
-end
 RoadTiles.RANK = { ring = 4, main = 3, residential = 2, lane = 1, alley = 0 } :: { [string]: number }
 RoadTiles.ARTERIAL = "Arterial"
 -- TEMP: the Town Centre box (yellow lines, and the district for roads with none).

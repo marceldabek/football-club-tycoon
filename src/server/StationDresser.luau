@@ -273,8 +273,7 @@ end
 -- town's navy hatchback mesh at the town's one car size (it was 0.7, bigger
 -- than the cars driving past) with a roof sign; the 7-part block taxi stays as
 -- the fallback when the kit is missing.
--- playtest #37: per-kit correction, not the flat CAR_SCALE
-local TAXI_KIT, TAXI_SCALE = "HatchbackNavy", RoadTiles.carScale("HatchbackNavy")
+local TAXI_KIT, TAXI_SCALE = "HatchbackNavy", RoadTiles.CAR_SCALE
 
 local function buildTaxi(parent: Instance, cf: CFrame)
 	if KitPlacer.find(TAXI_KIT) then
@@ -845,11 +844,9 @@ function StationDresser.build(): string
 					end
 					if rng:NextNumber() < 0.55 then
 						-- nose in: the kit car's long axis runs along its Z, facing away from the aisle.
-						-- X45: a mix of the kit hatchback and the generated ones. playtest #37:
-						-- per-kit correction, not the flat CAR_SCALE
+						-- X45: a mix of the kit hatchback and the generated ones
 						local kits = { "HatchbackOrange", "HatchbackNavy", "HatchbackRed", "HatchbackSilver" }
-						local kit = kits[rng:NextInteger(1, #kits)]
-						KitPlacer.place(kit, bay * CFrame.new(0, 0.32, 0) * CFrame.Angles(0, math.pi, 0), m, { scale = RoadTiles.carScale(kit), fallbackSize = Vector3.new(6, 4, 12), fallbackColor = Color3.fromRGB(150, 152, 156) })
+						KitPlacer.place(kits[rng:NextInteger(1, #kits)], bay * CFrame.new(0, 0.32, 0) * CFrame.Angles(0, math.pi, 0), m, { scale = RoadTiles.CAR_SCALE, fallbackSize = Vector3.new(6, 4, 12), fallbackColor = Color3.fromRGB(150, 152, 156) })
 					end
 				end
 				local signAt = Vector3.new(block.centre.X + block.size.X / 2 - 4, 0, block.centre.Z - block.size.Z / 2 - 3)

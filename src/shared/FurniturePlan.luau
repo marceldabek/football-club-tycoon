@@ -489,9 +489,7 @@ function FurniturePlan.plan(input: Input, options: Options?): ({ Placement }, St
 			road = road.name,
 			district = road.district or FurniturePlan.NO_DISTRICT,
 			onCarriageway = onCarriageway,
-			-- playtest #38: per-kit correction, not the flat CAR_SCALE -- the
-			-- kit hatchbacks aren't all the same raw size
-			scale = if category == "car" then RoadTiles.carScale(name) else nil,
+			scale = if category == "car" then FurniturePlan.CAR_SCALE else nil,
 		})
 		return true
 	end

@@ -514,8 +514,8 @@ local function buildBike(parent: Instance, color: Color3): BikeRig?
 end
 
 -- X128: kit hatchbacks published by the server's ClientKit, if any, at the
--- town's one car size (parked cars use the same number; playtest #38:
--- RoadTiles.carScale corrects each kit name to a consistent footprint).
+-- town's one car size (parked cars use the same number).
+local KIT_CAR_SCALE = RoadTiles.CAR_SCALE
 local function kitCarTemplates(): { Instance }
 	local clientKit = ReplicatedStorage:FindFirstChild("ClientKit")
 	local cars = clientKit and clientKit:FindFirstChild("Cars")
@@ -564,9 +564,7 @@ local function spawnCar(roadIndex: number, distance: number, direction: number)
 		-- the length, -Z the front, like the root), scaled to traffic size
 		local template = kitCars[math.random(1, #kitCars)]
 		local mesh = (template:FindFirstChildWhichIsA("BasePart", true) :: BasePart):Clone()
-		-- playtest #38: per-kit correction (RoadTiles.CAR_KIT_SCALE), not the
-		-- flat KIT_CAR_SCALE -- the kit hatchbacks aren't all the same raw size
-		mesh.Size *= RoadTiles.carScale(template.Name)
+		mesh.Size *= KIT_CAR_SCALE
 		mesh.CastShadow = true
 		mesh.Parent = model
 		parts = { mesh }
