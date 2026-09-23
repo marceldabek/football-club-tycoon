@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="273" height="439" viewBox="0 0 273 439" font-family="Segoe UI, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+<polygon points="0.0,0.0 273.6,0.0 273.6,439.2 0.0,439.2" fill="#f4f2ea" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="60.0,156.0 213.6,156.0 213.6,343.2 60.0,343.2" fill="#eef0e9" stroke="#4a3b32" stroke-width="2"  opacity="1.0"/>
+<text x="136.8" y="36.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">DRESSING ROOMS -- L1</text>
+<text x="136.8" y="84.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >exists today</text>
+<polyline points="69.6,415.2 129.6,415.2" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<text x="99.6" y="394.2" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >10 studs (~3.6 m)</text>
+<polygon points="60.0,278.4 213.6,278.4 213.6,343.2 60.0,343.2" fill="#efece2" stroke="#4a3b32" stroke-width="1.5"  opacity="1.0"/>
+<polygon points="60.0,156.0 213.6,156.0 213.6,220.8 60.0,220.8" fill="#efece2" stroke="#4a3b32" stroke-width="1.5"  opacity="1.0"/>
+<polygon points="60.0,225.6 213.6,225.6 213.6,273.6 60.0,273.6" fill="#e9e4d4" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="42.0" y="247.2" font-size="4" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >corridor</text>
+<text x="42.0" y="252.0" font-size="4" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >(to tunnel)</text>
+<polygon points="63.6,273.6 93.6,273.6 93.6,278.4 63.6,278.4" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="63.6,220.8 93.6,220.8 93.6,225.6 63.6,225.6" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="136.8" y="138.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >HOME (north)  /  AWAY (south, mirror)</text>
+<polygon points="72.0,278.4 201.6,278.4 201.6,286.8 72.0,286.8" fill="#78553a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="72.0,343.2 201.6,343.2 201.6,334.8 72.0,334.8" fill="#78553a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="61.2,295.8 66.0,295.8 66.0,325.8 61.2,325.8" fill="#2c4a34" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="78.0" y="310.8" font-size="4" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(90 78.0 310.8)">benches + pegs</text>
+<polygon points="72.0,220.8 201.6,220.8 201.6,212.4 72.0,212.4" fill="#78553a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="72.0,156.0 201.6,156.0 201.6,164.4 72.0,164.4" fill="#78553a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="61.2,173.4 66.0,173.4 66.0,203.4 61.2,203.4" fill="#2c4a34" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="78.0" y="188.4" font-size="4" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(90 78.0 188.4)">benches + pegs</text>
+<text x="136.8" y="108.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">DRESSING ROOMS -- benches + pegs (as built)</text>
+</svg>

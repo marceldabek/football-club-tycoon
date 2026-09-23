@@ -101,6 +101,13 @@ Add them here as the draft finds them. Don't decide them silently.
     Club Shop's.** The concourse table above already excludes it (Q1); double-check the
     implementing agent updates `AmenityLevels` in the same change it adds `Config.ShopLevels`,
     or a club will earn merch money from both tracks until someone notices.
+12. **The dressing rooms' "small home-advantage or morale bonus" (decision 6) has no number or
+    mechanism yet** — there is no home/away distinction in the fixtures (memory
+    `football-club-tycoon-m4`: "home-only fixtures"), so "home advantage" can only mean a general
+    boost to the player's own XI. **Recommendation:** a flat rating bonus in `CoachLevels.
+    strengthBonus`'s units (TEMP `0/1/2/3`) added to the home XI's effective rating for the match,
+    in a new `Config.DressingRoomLevels` — reuse the same additive pattern as Q7's fix for the
+    Athletic Centre, so none of these building bonuses multiply against each other.
 
 ## Draft (P9): level tables and floor plans
 
@@ -232,3 +239,26 @@ each bay's part count low (memory `dresser-part-budgets`).
 
 Club Map: one row ("Concourse"), not one per bay — buying it upgrades every qualifying bay at
 once, same as `Config.AmenityLevels` does today.
+
+### Dressing rooms
+
+Built after the other six (decision 6). Two fixed, mirror-image shells — `Clubhouse.ROOMS.Home`
+(plot-local x −147.6…−122, z 4.8…15.6) and `.Away` (same x, z −15.6…−4.8) — either side of the
+tunnel corridor. One diagram below shows both, since they always change together.
+
+| Level | Name | TEMP price | Prerequisite | Inside (both rooms) | Mechanic |
+|---|---|---|---|---|---|
+| 1 | Benches | £0 (exists) | none | benches + peg rails, tactics board on the far wall — [`dressing_L1.svg`](club_buildings/dressing_L1.svg) | +0 |
+| 2 | Lockers + Showers | TEMP £2,000 | Benches | pegs become lockers, a shower stall added at the tunnel end — [`dressing_L2.svg`](club_buildings/dressing_L2.svg) | +1 |
+| 3 | Cubicles + Physio | TEMP £6,000 | Lockers + Showers, division 2+ | individual cubicles, a physio table — [`dressing_L3.svg`](club_buildings/dressing_L3.svg) | +2 |
+| 4 | Hospitality Fit-out | TEMP £14,000 | Cubicles + Physio, division 1 | premium fixtures + a small player lounge nook — [`dressing_L4.svg`](club_buildings/dressing_L4.svg) | +3 |
+
+Mechanic (TEMP, Q12): a flat bonus in the same units as `Config.CoachLevels.strengthBonus`
+(0/1/2/3), applied to the home XI's effective rating for that match — "small home-advantage or
+morale bonus" per decision 6. Both rooms always match; there is no separate away-room track.
+
+Part budget: same room, same wall/lining/floor parts at every level (~14 today); only the bench/
+locker/cubicle furniture and its labels change, so this stays cheap even at L4.
+
+Club Map: greyed until the other six tracks exist on the map (decision 6's "built after the
+others" is read here as *shown* after the others too, not just built later in the codebase).

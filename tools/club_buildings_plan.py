@@ -439,6 +439,102 @@ plan("concourse_L3", BAY_SHELL, 8, "CONCOURSE -- L3 Undercroft", "TEMP GBP6,000/
 plan("concourse_L4", BAY_SHELL, 8, "CONCOURSE -- L4 (proposed)", "TEMP GBP15,000/bay -- see Q10", bay_L4)
 
 
+# ============================================================ DRESSING ROOMS
+# Clubhouse.ROOMS.Home/Away: x -147.6..-122, z 4.8..15.6 (Home) and
+# z -15.6..-4.8 (Away, the mirror image). Built after the others (decision 6).
+# One drawing shows both fixed rooms plus the corridor between them, since
+# they are one symmetric pair, not two independent shells to track.
+DRESS_SHELL = dict(x0=-147.6, x1=-122, z0=-15.6, z1=15.6)
+DOOR_X0, DOOR_X1 = -148 + 1, -148 + 6  # HomeDoor/AwayDoor opening, corridor wall
+
+
+def _dress_shell(c):
+    s = DRESS_SHELL
+    c.rect(s["x0"], 4.8, s["x1"], s["z1"], fill="#efece2", stroke=CB["wall"], sw=1.5)   # Home
+    c.rect(s["x0"], s["z0"], s["x1"], -4.8, fill="#efece2", stroke=CB["wall"], sw=1.5)  # Away
+    c.rect(s["x0"], -4, s["x1"], 4, fill=CB["path"])                                    # corridor
+    c.text(s["x0"] - 3, 0, "corridor\n(to tunnel)", 4, anchor="r")
+    door(c, DOOR_X0, DOOR_X1, 4, 4.8)
+    door(c, DOOR_X0, DOOR_X1, -4.8, -4)
+    c.text((s["x0"] + s["x1"]) / 2, s["z0"] - 3, "HOME (north)  /  AWAY (south, mirror)", 5)
+
+
+def _both_rooms(c, fn):
+    for zSign in (1, -1):
+        fn(c, zSign)
+
+
+def dress_L1(c, zSign):
+    inner, outer = 4.8 * zSign, 15.6 * zSign
+    z0, z1 = min(inner, outer), max(inner, outer)
+    x0, x1 = DRESS_SHELL["x0"], DRESS_SHELL["x1"]
+    # benches down both long (x-running) walls; door break in the corridor-side wall
+    near = z0 if zSign > 0 else z1  # the corridor-facing wall
+    far = z1 if zSign > 0 else z0
+    d = 1.4 if zSign > 0 else -1.4
+    c.rect(x0 + 2, near, x1 - 2, near + d, fill=CB["bench"])
+    c.rect(x0 + 2, far, x1 - 2, far - d, fill=CB["bench"])
+    c.rect(x0 + 0.2, (z0 + z1) / 2 - 2.5, x0 + 1, (z0 + z1) / 2 + 2.5, fill="#2c4a34")  # tactics board, far (west) wall
+    c.text(x0 + 3, (z0 + z1) / 2, "benches + pegs", 4, rot=90)
+
+
+def dress_L2(c, zSign):
+    dress_L1(c, zSign)
+    x1 = DRESS_SHELL["x1"]
+    z0, z1 = (4.8, 15.6) if zSign > 0 else (-15.6, -4.8)
+    corner = z1 - 4 if zSign > 0 else z0 + 4
+    c.rect(x1 - 6, min(corner, corner + 4 * zSign), x1 - 1, max(corner, corner + 4 * zSign), fill=CB["tile"], stroke="#888", sw=0.5)
+    c.text(x1 - 3.5, (corner + corner + 4 * zSign) / 2, "showers", 3)
+
+
+def dress_L3(c, zSign):
+    dress_L2(c, zSign)
+    x0 = DRESS_SHELL["x0"]
+    z0, z1 = (4.8, 15.6) if zSign > 0 else (-15.6, -4.8)
+    mid = (z0 + z1) / 2
+    c.rect(x0 + 8, mid - 1.6, x0 + 14, mid + 1.6, fill=CB["locker"])
+    c.text(x0 + 11, mid - 3, "physio\ntable", 3)
+
+
+def dress_L4(c, zSign):
+    dress_L3(c, zSign)
+    x0 = DRESS_SHELL["x0"]
+    z0, z1 = (4.8, 15.6) if zSign > 0 else (-15.6, -4.8)
+    near = z0 if zSign > 0 else z1
+    c.rect(x0 + 2, near, x0 + 8, near + 2.2 * (1 if zSign > 0 else -1), fill="#c9a94a")
+    c.text(x0 + 5, near + 3.6 * (1 if zSign > 0 else -1), "player\nlounge", 3)
+
+
+def dressing_L1(c):
+    _dress_shell(c)
+    _both_rooms(c, dress_L1)
+    c.text((DRESS_SHELL["x0"] + DRESS_SHELL["x1"]) / 2, DRESS_SHELL["z0"] - 8, "DRESSING ROOMS -- benches + pegs (as built)", 6, bold=True)
+
+
+def dressing_L2(c):
+    _dress_shell(c)
+    _both_rooms(c, dress_L2)
+    c.text((DRESS_SHELL["x0"] + DRESS_SHELL["x1"]) / 2, DRESS_SHELL["z0"] - 8, "DRESSING ROOMS -- lockers + showers", 6, bold=True)
+
+
+def dressing_L3(c):
+    _dress_shell(c)
+    _both_rooms(c, dress_L3)
+    c.text((DRESS_SHELL["x0"] + DRESS_SHELL["x1"]) / 2, DRESS_SHELL["z0"] - 8, "DRESSING ROOMS -- cubicles + physio table", 6, bold=True)
+
+
+def dressing_L4(c):
+    _dress_shell(c)
+    _both_rooms(c, dress_L4)
+    c.text((DRESS_SHELL["x0"] + DRESS_SHELL["x1"]) / 2, DRESS_SHELL["z0"] - 8, "DRESSING ROOMS -- hospitality fit-out + player lounge", 6, bold=True)
+
+
+plan("dressing_L1", DRESS_SHELL, 10, "DRESSING ROOMS -- L1", "exists today", dressing_L1)
+plan("dressing_L2", DRESS_SHELL, 10, "DRESSING ROOMS -- L2", "TEMP GBP2,000", dressing_L2)
+plan("dressing_L3", DRESS_SHELL, 10, "DRESSING ROOMS -- L3", "TEMP GBP6,000, division 2+", dressing_L3)
+plan("dressing_L4", DRESS_SHELL, 10, "DRESSING ROOMS -- L4", "TEMP GBP14,000, division 1", dressing_L4)
+
+
 # ---------------------------------------------------------------------- main
 def main(names=None):
     OUT.mkdir(parents=True, exist_ok=True)
