@@ -226,8 +226,9 @@ function TradeAssembler.build(parent: Instance, origin: CFrame, filter: { distri
 			group = Instance.new("Model")
 			group.Name = "Trade_" .. lot.district
 			group.ModelStreamingMode = Enum.ModelStreamingMode.Default
-			-- Lane I (#27): whole-block grouping model gets a low-detail stand-in.
-			group.LevelOfDetail = Enum.ModelLevelOfDetail.StreamingMesh
+			-- Lane I (#27): whole-block grouping model gets a low-detail stand-in
+			-- (best-effort, see V3Perf).
+			V3Perf.trySetStreamingMesh(group)
 			group.Parent = parent
 			districts[lot.district] = group
 		end
