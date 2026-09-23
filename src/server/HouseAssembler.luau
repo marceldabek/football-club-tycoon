@@ -25,6 +25,7 @@ local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local BackYards = require(ReplicatedStorage.Shared.BackYards)
 local KitPlacer = require(ServerScriptService.Server.KitPlacer)
 local V3Perf = require(ServerScriptService.Server.V3Perf)
+local TreeKit = require(ServerScriptService.Server.TreeKit)
 
 local HouseAssembler = {}
 
@@ -477,6 +478,28 @@ local function buildLot(ctx: Ctx, lot: Lot, origin: CFrame)
 			side(-x + width / 2, if i == #plans then BackYards.WALL :: any else BackYards.PARTY_FENCE :: any)
 			ctx.counts.yards += 1
 			ctx.counts.yardParts += ctx.counts.boundaryParts - partsBefore
+
+			-- #28: a tree in one back garden in three (Tier A only, matching the bins' cadence),
+			-- clear of the gate corner
+			if detail.gardenStyles == "all" then
+				local hTree = HouseRecipes.hash(lot.id .. "#yardtree" .. tostring(i))
+				if hTree % 3 == 0 then
+					local backDir = -Vector3.new(lot.front.X, 0, lot.front.Z).Unit
+					local lateral = Vector3.new(-lot.front.Z, 0, lot.front.X).Unit * -gateSide
+					local spot = unitBack + backDir * math.min(yardDepth * 0.55, math.max(yardDepth - 1.5, 1)) + lateral * width * 0.28
+					-- collide = false: HouseAssembler's output may hold no untagged primitives
+				-- (HouseAssemblerTest), and the trunk collider is a plain Part
+				local tree = TreeKit.tree(ctx.boundary, spot, { height = 12 + hTree % 5, slim = true, name = "BackGardenTree", collide = false })
+					if tree then
+						ctx.counts.gardenTrees = (ctx.counts.gardenTrees or 0) + 1
+						for _, d in tree:GetDescendants() do
+							if d:IsA("MeshPart") then
+								ctx.counts.boundaryParts += 1
+							end
+						end
+					end
+				end
+			end
 		end
 
 		if wants(detail.yards, lot) then
@@ -522,7 +545,7 @@ end
 
 -- Builds the given lots. `detail` overrides the per-tier presets (tests, reviews, Lane P trials).
 function HouseAssembler.buildLots(parent: Instance, origin: CFrame, lots: { Lot }, filter: { district: string? }?, detail: Detail?): { [string]: number }
-	local counts = { lots = 0, units = 0, houseParts = 0, boundaryParts = 0, meshParts = 0, missing = 0, districts = 0, tierA = 0, yards = 0, yardParts = 0, cores = 0, pathParts = 0 }
+	local counts = { lots = 0, units = 0, houseParts = 0, boundaryParts = 0, meshParts = 0, missing = 0, districts = 0, tierA = 0, yards = 0, yardParts = 0, cores = 0, pathParts = 0, gardenTrees = 0 }
 	local districtModels: { [string]: Model } = {}
 	local boundaryModels: { [string]: Model } = {}
 	local wantDistrict = filter and filter.district
@@ -571,9 +594,9 @@ function HouseAssembler.buildLots(parent: Instance, origin: CFrame, lots: { Lot 
 
 	local perUnit = if counts.units > 0 then counts.houseParts / counts.units else 0
 	local boundaryPerUnit = if counts.units > 0 then counts.boundaryParts / counts.units else 0
-	print(("[FCT] Housing: %d lots (%d tier A), %d units, houses %d MeshParts (%.1f/unit, town budget %d), boundaries %d (%.1f/unit, town budget %d), %d cores, %d front paths, %d KitMissing"):format(
+	print(("[FCT] Housing: %d lots (%d tier A), %d units, houses %d MeshParts (%.1f/unit, town budget %d), boundaries %d (%.1f/unit, town budget %d), %d cores, %d front paths, %d garden trees, %d KitMissing"):format(
 		counts.lots, counts.tierA, counts.units, counts.houseParts, perUnit, HouseAssembler.PART_BUDGET,
-		counts.boundaryParts, boundaryPerUnit, HouseAssembler.BOUNDARY_BUDGET, counts.cores, counts.pathParts, counts.missing))
+		counts.boundaryParts, boundaryPerUnit, HouseAssembler.BOUNDARY_BUDGET, counts.cores, counts.pathParts, counts.gardenTrees, counts.missing))
 	for _, districtModel in districtModels do
 		print(("[FCT] Housing %s: %s"):format(districtModel.Name, V3Perf.format(V3Perf.count(districtModel))))
 	end
