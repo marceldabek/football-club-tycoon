@@ -225,6 +225,76 @@ plan("academy_L3", ACADEMY_SHELL, 10, "ACADEMY -- L3 Academy Building", "TEMP GB
 plan("academy_L4", ACADEMY_SHELL, 10, "ACADEMY -- L4 Elite Academy", "TEMP GBP28,000", academy_L4, built=True)
 
 
+# ====================================================================== OFFICE
+# Clubhouse.luau: Clubhouse.ROOMS.Office, x -156..-122, z 16.4..39 -- one fixed
+# room at every level (it already is: WorldBuilder.dressOffice re-skins it for
+# free on promotion today; decision 1 turns that into a bought track and keeps
+# the top levels also needing a higher division). Layout below matches
+# buildOffice as built: lobby door (north wall, west end), side/spawn door
+# (south wall, west end), window (west wall), desk+chair at the east end,
+# fixtures notice on the east wall, trophy shelf on the north wall.
+OFFICE_SHELL = dict(x0=-156, x1=-122, z0=16.4, z1=39)
+
+
+def _office_base(c, painted):
+    s = OFFICE_SHELL
+    wall = "#e2ded2" if painted else "#aaa087"
+    c.rect(s["x0"], s["z0"], s["x1"], s["z1"], fill=wall, stroke=CB["wall"], sw=1.5)
+    door(c, s["x0"] + 2, s["x0"] + 7, s["z0"] - 0.6, s["z0"] + 0.6)          # OfficeLobbyDoor (north)
+    c.text(s["x0"] + 4.5, s["z0"] - 3, "to lobby", 5)
+    door(c, s["x0"] + 1, s["x0"] + 6, s["z1"] - 0.6, s["z1"] + 0.6)          # OfficeSideDoor (south, spawn)
+    c.text(s["x0"] + 3.5, s["z1"] + 3, "side door (spawn)", 5)
+    c.rect(s["x0"] - 0.6, s["z0"] + 7.6, s["x0"] + 0.6, s["z0"] + 17.6, fill=CB["glass"])  # window (west)
+    c.text(s["x0"] - 3, s["z0"] + 12.6, "window", 5, anchor="r")
+    # desk + chair, east end (P5 #24b/#24e): desk at east-6, chair between it and the wall
+    deskZ = (s["z0"] + s["z1"]) / 2
+    c.rect(s["x1"] - 7.5, deskZ - 2.75, s["x1"] - 4.5, deskZ + 2.75, fill=CB["wood"])
+    c.text(s["x1"] - 6, deskZ - 4, "desk + laptop", 5)
+    c.circle(s["x1"] - 2.8, deskZ, 1.2, fill=CB["bench"])
+    c.text(s["x1"] - 2.8, deskZ + 3, "chair", 4)
+    c.rect(s["x1"] - 0.4, s["z0"] + 9, s["x1"], s["z0"] + 15, fill="#ece4c8")  # fixtures notice, east wall
+    c.text(s["x1"] - 3, s["z0"] + 7, "fixtures\nnotice", 4, anchor="r")
+
+
+def office_L1(c):
+    _office_base(c, painted=False)
+    s = OFFICE_SHELL
+    c.text((s["x0"] + s["x1"]) / 2, s["z1"] - 3, "damp stains - dim light - green-screen terminal", 5)
+    c.text((s["x0"] + s["x1"]) / 2, s["z0"] + 3, "RUNDOWN OFFICE", 6, bold=True)
+
+
+def office_L2(c):
+    _office_base(c, painted=True)
+    s = OFFICE_SHELL
+    c.text((s["x0"] + s["x1"]) / 2, s["z1"] - 3, "walls painted - notice board tidied", 5)
+    c.text((s["x0"] + s["x1"]) / 2, s["z0"] + 3, "PAINTED OFFICE", 6, bold=True)
+
+
+def office_L3(c):
+    _office_base(c, painted=True)
+    s = OFFICE_SHELL
+    c.rect(s["x0"] + 3, s["z0"] + 2, s["x0"] + 9, s["z0"] + 6, fill="#8a6a48", stroke=CB["wall"], sw=0.6)
+    c.text(s["x0"] + 6, s["z0"] - 1, "rug", 4)
+    c.text((s["x0"] + s["x1"]) / 2, s["z1"] - 3, "flat-screen computer - brighter light", 5)
+    c.text((s["x0"] + s["x1"]) / 2, s["z0"] + 3, "MODERN OFFICE", 6, bold=True)
+
+
+def office_L4(c):
+    _office_base(c, painted=True)
+    s = OFFICE_SHELL
+    c.rect(s["x0"] + 3, s["z0"] + 2, s["x0"] + 9, s["z0"] + 6, fill="#8a6a48", stroke=CB["wall"], sw=0.6)
+    c.rect(s["x0"] + 11, s["z0"] + 0.6, s["x0"] + 22, s["z0"] + 2.2, fill="#c9a94a")  # trophy shelf, north wall
+    c.text(s["x0"] + 16, s["z0"] - 2, "trophy shelf", 4)
+    c.text((s["x0"] + s["x1"]) / 2, s["z1"] - 3, "flat-screen computer - branded lighting + crest", 5)
+    c.text((s["x0"] + s["x1"]) / 2, s["z0"] + 3, "BRANDED OFFICE", 6, bold=True)
+
+
+plan("office_L1", OFFICE_SHELL, 8, "OFFICE -- L1 Rundown", "exists today (tier 1 look)", office_L1)
+plan("office_L2", OFFICE_SHELL, 8, "OFFICE -- L2 Painted", "TEMP GBP1,000", office_L2)
+plan("office_L3", OFFICE_SHELL, 8, "OFFICE -- L3 Modern", "TEMP GBP5,000, division 2+", office_L3)
+plan("office_L4", OFFICE_SHELL, 8, "OFFICE -- L4 Branded", "TEMP GBP15,000, division 1", office_L4)
+
+
 # ---------------------------------------------------------------------- main
 def main(names=None):
     OUT.mkdir(parents=True, exist_ok=True)

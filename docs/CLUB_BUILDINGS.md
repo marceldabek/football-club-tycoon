@@ -65,6 +65,17 @@ Add them here as the draft finds them. Don't decide them silently.
    like `CoachLevels`/`ScoutLevels` — TEMP `{ name, cost, intakeBonus, potentialBonus,
    wonderkidChance }`, e.g. `0 / +1 / +2 / +3` intake and `0% / 0% / 3% / 8%` wonderkid chance —
    balanced once the loop is playable, same as everything else in that file.
+5. **What does the office's "small sponsorship bonus" (decision 1) actually change?** No
+   sponsorship revenue line exists yet outside the ad-board sponsors (X309, per-match, TEMP).
+   **Recommendation:** a flat `%` bump to that same per-match sponsor income, e.g. `0/2/4/7%`
+   in a new `Config.OfficeLevels`, so it reads as "a smarter office gets you better sponsorship
+   deals" rather than inventing a second, unrelated income source.
+6. **Should Office L3/L4's division gate block the *purchase*, or just hide the row until then?**
+   Ground plan §6's progressive disclosure hides rows with no prerequisite yet, but a promoted-
+   then-relegated club would keep a branded office it can no longer afford to have bought.
+   **Recommendation:** gate the purchase (can't buy above the club's current division) but never
+   repossess a level already bought, same as every other track — relegation just re-greys the
+   next level, it doesn't undo the last one.
 
 ## Draft (P9): level tables and floor plans
 
@@ -112,3 +123,27 @@ meshes — this is a windows-only building, decision 4).
 
 Club Map: "Academy" row appears once training pitch 2 exists (ground plan §5 tier 3), greyed
 with "needs training pitch 2" until then — a long-term row, not part of the dense early ladder.
+
+### Office
+
+Shell (fixed at every level — it already is, `Clubhouse.ROOMS.Office`): plot-local x −156…−122,
+z 16.4…39. Walk-in interior (decision 4), spawn point. `WorldBuilder.dressOffice(tier)` already
+re-skins this room for free on promotion through `OFFICE_TIER_PAINT/SCREEN/BRAND` (2/3/4) —
+decision 1 turns the same three re-skins into a bought track, and the top levels *also* keep
+their division requirement (so a club can't buy its way to a branded office in the bottom tier).
+
+| Level | Name | TEMP price | Prerequisite | Inside | Mechanic |
+|---|---|---|---|---|---|
+| 1 | Rundown Office | £0 (exists) | none | damp stains, dim light, green-screen terminal — [`office_L1.svg`](club_buildings/office_L1.svg) | sponsorship bonus +0% |
+| 2 | Painted Office | TEMP £1,000 | Rundown Office | walls painted, notice board tidied — [`office_L2.svg`](club_buildings/office_L2.svg) | sponsorship bonus +2% |
+| 3 | Modern Office | TEMP £5,000 | Painted Office, division 2+ | flat-screen computer, rug, brighter light — [`office_L3.svg`](club_buildings/office_L3.svg) | sponsorship bonus +4% |
+| 4 | Branded Office | TEMP £15,000 | Modern Office, division 1 | trophy shelf, branded lighting + crest — [`office_L4.svg`](club_buildings/office_L4.svg) | sponsorship bonus +7% |
+
+Part budget: unchanged from today at every level — `dressOffice` only swaps wall colour, the
+computer model, light brightness/colour and a couple of props, never the desk/chair/notice/room
+shell (~25 parts throughout, memory `dresser-part-budgets`).
+
+Club Map: "Office" row is visible from spawn (L1 already exists) alongside Club Shop; a division
+gate greys L3/L4 out with "needs Division 2" / "needs Division 1" in words, per ground plan §6.
+
+Q5 below covers the new sponsorship-bonus number this track needs.

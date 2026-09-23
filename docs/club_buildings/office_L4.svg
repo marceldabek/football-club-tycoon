@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="363" viewBox="0 0 300 363" font-family="Segoe UI, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+<polygon points="0.0,0.0 300.0,0.0 300.0,363.6 0.0,363.6" fill="#f4f2ea" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="48.0,144.0 252.0,144.0 252.0,279.6 48.0,279.6" fill="#eef0e9" stroke="#4a3b32" stroke-width="2"  opacity="1.0"/>
+<text x="150.0" y="36.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">OFFICE -- L4 Branded</text>
+<text x="150.0" y="84.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >TEMP GBP15,000, division 1</text>
+<polyline points="96.0,339.6 156.0,339.6" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<text x="126.0" y="318.6" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >10 studs (~3.6 m)</text>
+<polygon points="48.0,144.0 252.0,144.0 252.0,279.6 48.0,279.6" fill="#e2ded2" stroke="#4a3b32" stroke-width="1.5"  opacity="1.0"/>
+<polygon points="60.0,140.4 90.0,140.4 90.0,147.6 60.0,147.6" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="75.0" y="126.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >to lobby</text>
+<polygon points="54.0,276.0 84.0,276.0 84.0,283.2 54.0,283.2" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="69.0" y="297.6" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >side door (spawn)</text>
+<polygon points="44.4,189.6 51.6,189.6 51.6,249.6 44.4,249.6" fill="#8fd3f4" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="30.0" y="219.6" font-size="5" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >window</text>
+<polygon points="207.0,195.3 225.0,195.3 225.0,228.3 207.0,228.3" fill="#6e4e32" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="216.0" y="187.8" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >desk + laptop</text>
+<circle cx="235.2" cy="211.8" r="7.2" fill="#78553a" stroke="none" stroke-width="1"/>
+<text x="235.2" y="229.8" font-size="4" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >chair</text>
+<polygon points="249.6,198.0 252.0,198.0 252.0,234.0 249.6,234.0" fill="#ece4c8" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="234.0" y="183.6" font-size="4" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >fixtures</text>
+<text x="234.0" y="188.4" font-size="4" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >notice</text>
+<polygon points="66.0,156.0 102.0,156.0 102.0,180.0 66.0,180.0" fill="#8a6a48" stroke="#4a3b32" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="114.0,147.6 180.0,147.6 180.0,157.2 114.0,157.2" fill="#c9a94a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="144.0" y="132.0" font-size="4" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >trophy shelf</text>
+<text x="150.0" y="261.6" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >flat-screen computer - branded lighting + crest</text>
+<text x="150.0" y="162.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">BRANDED OFFICE</text>
+</svg>
