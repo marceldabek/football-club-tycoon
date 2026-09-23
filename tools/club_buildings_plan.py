@@ -295,6 +295,58 @@ plan("office_L3", OFFICE_SHELL, 8, "OFFICE -- L3 Modern", "TEMP GBP5,000, divisi
 plan("office_L4", OFFICE_SHELL, 8, "OFFICE -- L4 Branded", "TEMP GBP15,000, division 1", office_L4)
 
 
+# ===================================================== COACH'S CABIN / ATHLETIC CENTRE
+# Ground plan spec S5's own table already gives the per-level content; the
+# fixed shell (decision 5) is the athletic centre's full footprint, x 240..320,
+# z -16..16 (80 x 32), matching tools/ground_plan.py's `proposed_common`. The
+# cabin (L2) is a small building inside that shell, not a separate site.
+GYM_SHELL = dict(x0=240, x1=320, z0=-16, z1=16)
+
+
+def gym_L1(c):
+    s = GYM_SHELL
+    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2, "nothing yet -- for sale", 6, fill="#2d5a1e")
+
+
+def gym_L2(c):
+    s = GYM_SHELL
+    cx, cz = 280, 0
+    c.rect(cx - 8, cz - 5, cx + 8, cz + 5, fill=CB["building"], stroke=CB["wall"], sw=1)
+    door(c, cx - 1, cx + 1, cz + 4.4, cz + 5)
+    c.text(cx, cz - 7, "COACH'S CABIN 16x10", 5, bold=True)
+    c.text(cx, cz + 8, "unlocks hiring a coach", 5)
+    c.text((s["x0"] + s["x1"]) / 2, s["z0"] + 4, "rest of plot: for sale", 6, fill="#2d5a1e")
+
+
+def _gym_shell(c, extra_label):
+    s = GYM_SHELL
+    c.rect(s["x0"], s["z0"], s["x1"], s["z1"], fill=CB["building"], stroke=CB["wall"], sw=1.5)
+    door(c, 279, 281, s["z1"] - 0.5, s["z1"] + 0.5)
+    c.text(280, s["z1"] + 3, "training-ground door", 5)
+    mid = (s["x0"] + s["x1"]) / 2
+    c.line([(mid, s["z0"]), (mid, s["z1"])], CB["wall"], 1)
+    c.text(mid - 20, 0, "COACH'S OFFICE", 6, bold=True, fill="#fff")
+    c.text(mid + 20, 0, "GYM" + extra_label, 6, bold=True, fill="#fff")
+
+
+def gym_L3(c):
+    _gym_shell(c, "")
+    c.text(280, -12, "ATHLETIC CENTRE 80x32 -- training bonus", 5, fill="#fff")
+
+
+def gym_L4(c):
+    _gym_shell(c, " + PHYSIO")
+    c.rect(GYM_SHELL["x1"] - 18, -6, GYM_SHELL["x1"] - 2, 6, fill="#ef9a9a", stroke=CB["wall"], sw=0.6)
+    c.text(GYM_SHELL["x1"] - 10, 0, "physio", 4)
+    c.text(280, -12, "+ physio -- injury recovery bonus", 5, fill="#fff")
+
+
+plan("coachcabin_L1", GYM_SHELL, 10, "COACH'S CABIN -- L1 (nothing)", "for-sale outline only", gym_L1, built=False)
+plan("coachcabin_L2", GYM_SHELL, 10, "COACH'S CABIN -- L2 Cabin", "TEMP GBP2,500", gym_L2, built=False)
+plan("athleticcentre_L3", GYM_SHELL, 10, "ATHLETIC CENTRE -- L3", "TEMP GBP9,000, training pitch 1", gym_L3)
+plan("athleticcentre_L4", GYM_SHELL, 10, "ATHLETIC CENTRE -- L4 + Physio", "TEMP GBP20,000, training pitch 2", gym_L4)
+
+
 # ---------------------------------------------------------------------- main
 def main(names=None):
     OUT.mkdir(parents=True, exist_ok=True)

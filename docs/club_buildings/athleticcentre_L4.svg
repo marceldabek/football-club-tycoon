@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="444" viewBox="0 0 600 444" font-family="Segoe UI, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+<polygon points="0.0,0.0 600.0,0.0 600.0,444.0 0.0,444.0" fill="#f4f2ea" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="60.0,156.0 540.0,156.0 540.0,348.0 60.0,348.0" fill="#eef0e9" stroke="#4a3b32" stroke-width="2"  opacity="1.0"/>
+<text x="300.0" y="36.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">ATHLETIC CENTRE -- L4 + Physio</text>
+<text x="300.0" y="84.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >TEMP GBP20,000, training pitch 2</text>
+<polyline points="396.0,420.0 456.0,420.0" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<text x="426.0" y="399.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >10 studs (~3.6 m)</text>
+<polygon points="60.0,156.0 540.0,156.0 540.0,348.0 60.0,348.0" fill="#b9a48a" stroke="#4a3b32" stroke-width="1.5"  opacity="1.0"/>
+<polygon points="294.0,345.0 306.0,345.0 306.0,351.0 294.0,351.0" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="300.0" y="366.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >training-ground door</text>
+<polyline points="300.0,156.0 300.0,348.0" fill="none" stroke="#4a3b32" stroke-width="1" stroke-linejoin="round"   opacity="1.0"/>
+<text x="180.0" y="252.0" font-size="6" fill="#fff" text-anchor="middle" dominant-baseline="middle" font-weight="bold">COACH'S OFFICE</text>
+<text x="420.0" y="252.0" font-size="6" fill="#fff" text-anchor="middle" dominant-baseline="middle" font-weight="bold">GYM + PHYSIO</text>
+<polygon points="432.0,216.0 528.0,216.0 528.0,288.0 432.0,288.0" fill="#ef9a9a" stroke="#4a3b32" stroke-width="0.6"  opacity="1.0"/>
+<text x="480.0" y="252.0" font-size="4" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >physio</text>
+<text x="300.0" y="180.0" font-size="5" fill="#fff" text-anchor="middle" dominant-baseline="middle" >+ physio -- injury recovery bonus</text>
+</svg>

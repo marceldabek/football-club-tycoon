@@ -76,6 +76,12 @@ Add them here as the draft finds them. Don't decide them silently.
    **Recommendation:** gate the purchase (can't buy above the club's current division) but never
    repossess a level already bought, same as every other track — relegation just re-greys the
    next level, it doesn't undo the last one.
+7. **The Athletic Centre's training bonus and the coach's own `developMultiplier`
+   (`Config.CoachLevels`, 1×/1.5×/2×/3×) both claim "player development" (CLAUDE.md §9).**
+   Stacking two multipliers on the same stat risks a Pro Coach + full Athletic Centre trivialising
+   development entirely. **Recommendation:** make the building's bonus additive on top of the
+   coach's multiplier (`finalRate = base * coachMultiplier + buildingFlatBonus`), not another
+   multiplier, so the two tracks feel complementary rather than compounding.
 
 ## Draft (P9): level tables and floor plans
 
@@ -147,3 +153,23 @@ Club Map: "Office" row is visible from spawn (L1 already exists) alongside Club 
 gate greys L3/L4 out with "needs Division 2" / "needs Division 1" in words, per ground plan §6.
 
 Q5 below covers the new sponsorship-bonus number this track needs.
+
+### Coach's cabin -> athletic centre
+
+Shell (fixed at every level, ground plan §5's own table + `tools/ground_plan.py`
+`proposed_common`): plot-local x 240…320, z −16…16 (80 × 32), inside the training-ground fence.
+Walk-in interior from L3 (decision 4); L1/L2 are seen from outside only. Levels are already
+specified in the ground plan (§5); this draft just prices them and gives the mechanic numbers.
+
+| Level | Name | TEMP price | Prerequisite | Outside | Mechanic |
+|---|---|---|---|---|---|
+| 1 | (nothing) | — | none | for-sale outline only — [`coachcabin_L1.svg`](club_buildings/coachcabin_L1.svg) | no coach can be hired |
+| 2 | Coach's Cabin | TEMP £2,500 | none — dense early ladder (ground plan §6) | 16×10 cabin at the shell's centre, rest still for sale — [`coachcabin_L2.svg`](club_buildings/coachcabin_L2.svg) | **unlocks hiring a coach** (`Config.CoachLevels`) |
+| 3 | Athletic Centre | TEMP £9,000 | Coach's Cabin, training pitch 1 | fills the shell: coach's office + gym — [`athleticcentre_L3.svg`](club_buildings/athleticcentre_L3.svg) | training bonus, TEMP +15% `developMultiplier` |
+| 4 | + Physio | TEMP £20,000 | Athletic Centre, training pitch 2 | same footprint, physio room added — [`athleticcentre_L4.svg`](club_buildings/athleticcentre_L4.svg) | injury recovery bonus, TEMP −1 match off `Config.InjuryMatches` |
+
+Part budget: L2 ~10, L3 ~35 (coach's office + gym fixtures), L4 ~45 (+ physio table, ice bath).
+
+Club Map: "Coach's Cabin" is one of the three rows visible from spawn (ground plan §6), alongside
+one more stand and Club Shop. Athletic Centre/+ Physio only appear once their training-pitch
+prerequisite exists.
