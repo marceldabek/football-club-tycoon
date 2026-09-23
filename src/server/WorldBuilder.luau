@@ -2397,10 +2397,13 @@ function WorldBuilder.applyCrest(spec: ClubCrest.Spec)
 	end
 end
 
--- The team coach, parked on the forecourt beside the office (decorative).
--- Primitive on purpose: the store coach was 587 parts per club, this is 11.
--- Nose points +X; built from extents so nothing shares a face.
-local function buildTeamBus(parent: Instance, centre: Vector3)
+-- The team coach, parked in the car park's coach bay (decorative). X393
+-- (playtest #8): ServerStorage.Kit.Vehicles.TeamCoach is a single generated
+-- mesh (Roblox generate_mesh, ~1 part) built nose +X like the primitive
+-- below, which stays as the fallback if that kit entry is ever missing (was
+-- the only version until X393; the store coach was 587 parts per club, this
+-- primitive is 11).
+local function buildTeamBusPrimitive(parent: Instance, centre: Vector3)
 	local bus = Instance.new("Model")
 	bus.Name = "TeamBus"
 	bus.Parent = parent
@@ -2442,6 +2445,15 @@ local function buildTeamBus(parent: Instance, centre: Vector3)
 	end
 end
 
+local function buildTeamBus(parent: Instance, centre: Vector3)
+	if KitPlacer.find("TeamCoach") then
+		local bus = KitPlacer.place("TeamCoach", CFrame.new(centre), parent)
+		bus.Name = "TeamBus"
+		return
+	end
+	buildTeamBusPrimitive(parent, centre)
+end
+
 function WorldBuilder.build(standLevels: { [string]: number }, amenityLevel: number?): World
 	local existing = PlotContext.clubModel()
 	if existing then
@@ -2464,8 +2476,11 @@ function WorldBuilder.build(standLevels: { [string]: number }, amenityLevel: num
 	buildScoreboard(club)
 	buildTurnstiles(club)
 	buildForecourt(club)
-	-- the team coach, parked on the forecourt beside the office (decorative)
-	buildTeamBus(club, Vector3.new(FORECOURT_CX + 18, DECK_Y, FORECOURT_CZ - 22))
+	-- the team coach, parked in the car park's coach bay (playtest #25), not on
+	-- the forecourt paving. Bay is PlotGrounds' x -312..-276, z 42..56 (ground
+	-- plan spec s5); centred here so the 34-long bus (nose +X) clears both
+	-- edges. 0.2 matches PlotGrounds' car park asphalt top (ASPHALT_TOP).
+	buildTeamBus(club, Vector3.new(-294, 0.2, 49))
 
 	local stands = Instance.new("Folder")
 	stands.Name = "Stands"
