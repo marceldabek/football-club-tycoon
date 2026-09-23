@@ -152,10 +152,6 @@ local LAMP_SPOTS = { { -319, 110 }, { -319, 165 }, { -261, 110 }, { -261, 165 } 
 
 -- club shop
 local SHOP_CX, SHOP_CZ = -300, -150
--- X95: a matchday snack kiosk just inside the pedestrian gate, south of the
--- footpath, hatch facing the path (-Z). TEMP.
-local KIOSK_CX, KIOSK_CZ = -314, 8 -- between the south-side trees at x -326 and -302
-local KIOSK_W, KIOSK_H, KIOSK_D = 12, 9, 8 -- along X, height, along Z
 -- X97: a supporters' bar just inside the pedestrian gate, north of the
 -- footpath and facing it (+Z), with a patio of picnic benches
 -- (RivermereTurnstileEntrance.png has a pub right by the entrance). TEMP.
@@ -175,8 +171,13 @@ local FASCIA_H, FASCIA_PROUD = 3, 0.5
 
 -- training pitches
 local TRAIN_CX = 280
-local TRAIN_CZ = { -90, 90 }
-local TRAIN_W, TRAIN_L = 100, 160 -- along X, along Z
+-- #23a: the gap between the pitches widened from z -10..10 to -20..20 (tools/
+-- ground_plan.py, "athletic centre" section) so the coach's cabin / athletic
+-- centre building (spec s5: x 240..320, z -16..16) and the path up to its
+-- door fit between them without cutting across either pitch's own turf. The
+-- fence's outer z (+-178, TRAIN_CZ[2] + TRAIN_L/2 + FENCE_MARGIN) is unchanged.
+local TRAIN_CZ = { -95, 95 }
+local TRAIN_W, TRAIN_L = 100, 150 -- along X, along Z
 local TRAIN_GRASS_TOP = 0.2
 local TRAIN_INSET = 6 -- markings sit this far inside the grass edge
 local TRAIN_LINE_W = 0.6
@@ -187,6 +188,52 @@ local FENCE_MARGIN = 8 -- fence line this far outside the grass
 local FENCE_H = 8
 local FENCE_POST_STEP = 22
 local FENCE_GAP = 6 -- half-width of the west gate between the pitches
+local ATH_GATE_HALF = 4 -- half-width of the south gate the athletic-centre path uses (x 276..284)
+
+-- #7 (ground plan spec s4): the concourse inside the ground wall, one
+-- club-wide catering track. Replaces the old outside-corner Kiosk (X95),
+-- which stood at the pedestrian gate, outside the wall entirely, and never
+-- moved with the club's amenity upgrades. TEMP tier mapping: the spec wants
+-- three catering tiers and the only upgrade the club has is
+-- Config.AmenityLevels (0..3), so `cateringTier` folds them onto 1..3
+-- (0 Nothing and 1 Snack Bar both read as tier 1; 2 Merch Stand -> tier 2;
+-- 3 Fan Zone -> tier 3). Positions are the spec's own, chosen to sit in the
+-- gaps between the clubhouse/forecourt (A1) and the corner huts, so nothing
+-- here needs to know the real stand geometry.
+local CATERING_VAN = Vector3.new(-153, GROUND_Y, -105)
+local CATERING_LOOS = Vector3.new(-154, GROUND_Y, 106)
+-- one kiosk behind each side, north of the wall's mid-line; only appears once
+-- catering is paved (tier 2) AND that side's own stand has reached map tier 2
+export type ConcourseKioskSpot = { x: number, z: number, standKey: string, faceX: number, faceZ: number }
+local CATERING_KIOSKS: { ConcourseKioskSpot } = {
+	{ x = 0, z = -232, standKey = "North", faceX = 0, faceZ = 1 }, -- back of the North terrace, facing the pitch
+	{ x = 0, z = 232, standKey = "South", faceX = 0, faceZ = -1 },
+	{ x = 188, z = -60, standKey = "East", faceX = -1, faceZ = 0 },
+	{ x = 188, z = 60, standKey = "East", faceX = -1, faceZ = 0 },
+	{ x = -185, z = -110, standKey = "West", faceX = 1, faceZ = 0 },
+	{ x = -185, z = 110, standKey = "West", faceX = 1, faceZ = 0 },
+}
+local FAN_ZONE = { x0 = -198, x1 = -176, z0 = -150, z1 = -70 } -- tier 3 picnic benches
+
+local function cateringTier(amenityLevel: number): number
+	return math.clamp(amenityLevel + 1, 1, 3)
+end
+
+local function standLevel(key: string): number
+	local state = PlotContext.findStateFolder()
+	if not state then
+		return 0
+	end
+	return (state:GetAttribute("Stand_" .. key) :: number?) or 0
+end
+
+local function standMapTier(key: string): number
+	local level = standLevel(key)
+	if level < 1 then
+		return 0
+	end
+	return Config.StandMapTier[math.min(level, #Config.StandMapTier)]
+end
 
 -- footpath
 local PATH_W, PATH_TOP = 8, RoadTiles.SURFACE_Y - 0.01 -- over the street verge's reach (VERGE_REACH_X)
@@ -284,7 +331,6 @@ function PlotGrounds.footprints(): { Footprint }
 	local out: { Footprint } = {
 		{ name = "CarPark", min = Vector2.new(PARK_X0, PARK_Z0), max = Vector2.new(PARK_X1, PARK_Z1) },
 		{ name = "SupportersBar", min = Vector2.new(PUB_X0 - PUB_EAVE, PUB_Z0 - PUB_EAVE), max = Vector2.new(PUB_X1 + PUB_EAVE, PUB_Z1 + PUB_PATIO_D) },
-		{ name = "Kiosk", min = Vector2.new(KIOSK_CX - KIOSK_W / 2 - 0.5, KIOSK_CZ - KIOSK_D / 2 - 1.5), max = Vector2.new(KIOSK_CX + KIOSK_W / 2 + 0.5, KIOSK_CZ + KIOSK_D / 2 + 0.5) },
 		{
 			name = "ClubShop",
 			-- the fascia stands proud of the front wall and the roof cap overhangs 0.5
@@ -419,30 +465,150 @@ end
 
 -- -------------------------------------------------------------- boundary wall
 
-local function buildKiosk(parent: Instance)
-	local m = model("Kiosk", parent)
-	local x0, x1 = KIOSK_CX - KIOSK_W / 2, KIOSK_CX + KIOSK_W / 2
-	local z0, z1 = KIOSK_CZ - KIOSK_D / 2, KIOSK_CZ + KIOSK_D / 2
-	extents("Body", x0, x1, GROUND_Y, GROUND_Y + KIOSK_H, z0, z1, Color3.fromRGB(40, 90, 60), Enum.Material.WoodPlanks, m)
-	extents("Roof", x0 - 0.5, x1 + 0.5, GROUND_Y + KIOSK_H, GROUND_Y + KIOSK_H + 0.6, z0 - 1.5, z1 + 0.5, Color3.fromRGB(60, 62, 66), Enum.Material.Metal, m)
-	-- serving hatch and counter on the path side, and a sign board over it
-	extents("Hatch", x0 + 2, x1 - 2, GROUND_Y + 3.4, GROUND_Y + 6.4, z0 - 0.1, z0, Color3.fromRGB(240, 232, 210), Enum.Material.SmoothPlastic, m)
-	extents("Counter", x0 + 1.5, x1 - 1.5, GROUND_Y + 3.2, GROUND_Y + 3.5, z0 - 1.2, z0, Color3.fromRGB(150, 110, 70), Enum.Material.Wood, m)
-	local board = extents("SignBoard", x0 + 0.5, x1 - 0.5, GROUND_Y + 6.9, GROUND_Y + 8.6, z0 - 0.2, z0, Color3.fromRGB(245, 245, 240), Enum.Material.SmoothPlastic, m)
-	local gui = Instance.new("SurfaceGui")
-	gui.Face = Enum.NormalId.Front
-	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 30
-	gui.Parent = board
-	local label = Instance.new("TextLabel")
-	label.BackgroundTransparency = 1
-	label.Size = UDim2.fromScale(0.94, 0.8)
-	label.Position = UDim2.fromScale(0.03, 0.1)
-	label.Font = Enum.Font.GothamBlack
-	label.TextScaled = true
-	label.TextColor3 = Color3.fromRGB(40, 90, 60)
-	label.Text = "PIES · TEAS · CHIPS"
-	label.Parent = gui
+-- #7: the burger van and portaloos that appear from catering tier 1 (spawn),
+-- in the gap between the clubhouse and the corner huts on the west side.
+local function buildCateringVan(parent: Instance)
+	local m = model("BurgerVan", parent)
+	local p = CATERING_VAN
+	extents("Body", p.X - 2.5, p.X + 2.5, GROUND_Y, GROUND_Y + 3.2, p.Z - 4, p.Z + 4, Color3.fromRGB(210, 210, 202), Enum.Material.Metal, m)
+	extents("Cab", p.X - 2.5, p.X + 2.5, GROUND_Y, GROUND_Y + 2.6, p.Z + 4, p.Z + 5.4, Color3.fromRGB(180, 40, 40), Enum.Material.Metal, m)
+	local hatch = extents("Hatch", p.X + 0.5, p.X + 2.5, GROUND_Y + 1.2, GROUND_Y + 3, p.Z - 3, p.Z + 1, Color3.fromRGB(60, 60, 60), Enum.Material.SmoothPlastic, m)
+	hatch.Transparency = 0.15
+	extents("Counter", p.X + 2.5, p.X + 3.4, GROUND_Y + 1, GROUND_Y + 1.3, p.Z - 2.6, p.Z + 0.6, Color3.fromRGB(150, 110, 70), Enum.Material.Wood, m)
+	extents("Awning", p.X + 2.5, p.X + 5, GROUND_Y + 3.2, GROUND_Y + 3.4, p.Z - 3.2, p.Z + 1.2, Color3.fromRGB(220, 60, 60), Enum.Material.Fabric, m)
+	for _, wz in { p.Z - 2.6, p.Z + 2.6 } do
+		local wheel = box("Wheel", Vector3.new(1.6, 1.6, 1), CFrame.new(p.X, GROUND_Y + 0.8, wz) * CFrame.Angles(0, 0, math.pi / 2), Color3.fromRGB(20, 20, 20), Enum.Material.SmoothPlastic, m)
+		wheel.Shape = Enum.PartType.Cylinder
+		wheel.CastShadow = false
+	end
+	addSign(hatch, "BURGERS", { Enum.NormalId.Right })
+end
+
+local function buildCateringLoos(parent: Instance)
+	local m = model("Portaloos", parent)
+	local p = CATERING_LOOS
+	for i = -1, 1 do
+		local z = p.Z + i * 2.3
+		extents("Cabin", p.X - 1.1, p.X + 1.1, GROUND_Y, GROUND_Y + 7.2, z - 1.05, z + 1.05, Color3.fromRGB(38, 108, 90), Enum.Material.SmoothPlastic, m)
+		extents("Door", p.X + 1.08, p.X + 1.14, GROUND_Y + 0.2, GROUND_Y + 6.8, z - 0.75, z + 0.75, Color3.fromRGB(28, 88, 74), Enum.Material.SmoothPlastic, m)
+	end
+end
+
+-- one hatch kiosk behind a stand once catering is paved (tier 2); at tier 3
+-- it widens into an undercroft catering unit for a stand built that far.
+local function buildCateringKiosk(parent: Instance, spot: ConcourseKioskSpot, undercroft: boolean)
+	local m = model("ConcourseKiosk", parent)
+	local w, d = if undercroft then 12 else 8, 6
+	local h = if undercroft then 8.5 else 7
+	local x0, x1 = spot.x - w / 2, spot.x + w / 2
+	local z0, z1 = spot.z - d / 2, spot.z + d / 2
+	extents("Body", x0, x1, GROUND_Y, GROUND_Y + h, z0, z1, Color3.fromRGB(80, 80, 88), Enum.Material.Concrete, m)
+	-- the hatch opens on the face that looks back in toward the pitch
+	local hx0, hx1, hz0, hz1
+	if spot.faceX ~= 0 then
+		local fx = if spot.faceX > 0 then x1 else x0
+		hx0, hx1 = fx, fx + spot.faceX * 0.15
+		hz0, hz1 = z0 + 1, z1 - 1
+	else
+		local fz = if spot.faceZ > 0 then z1 else z0
+		hz0, hz1 = fz, fz + spot.faceZ * 0.15
+		hx0, hx1 = x0 + 1, x1 - 1
+	end
+	local hatch = extents("Hatch", math.min(hx0, hx1), math.max(hx0, hx1), GROUND_Y + 1.6, GROUND_Y + 4.2,
+		math.min(hz0, hz1), math.max(hz0, hz1), Color3.fromRGB(150, 200, 220), Enum.Material.Glass, m)
+	hatch.Transparency = 0.25
+	local awningFace = if spot.faceX ~= 0 then (if spot.faceX > 0 then Enum.NormalId.Right else Enum.NormalId.Left)
+		else (if spot.faceZ > 0 then Enum.NormalId.Back else Enum.NormalId.Front)
+	addSign(hatch, if undercroft then "CATERING" else "KIOSK", { awningFace })
+	if undercroft then
+		-- a wider paved apron in front of the hatch: the "strip kept for circulation"
+		local ax0, ax1, az0, az1 = x0, x1, z0, z1
+		if spot.faceX ~= 0 then
+			ax0, ax1 = if spot.faceX > 0 then x1 else x0 - 3, if spot.faceX > 0 then x1 + 3 else x0
+		else
+			az0, az1 = if spot.faceZ > 0 then z1 else z0 - 3, if spot.faceZ > 0 then z1 + 3 else z0
+		end
+		extents("Apron", ax0, ax1, GROUND_Y, GROUND_Y + PATH_TOP, az0, az1, CONCRETE, Enum.Material.Concrete, m)
+	end
+end
+
+-- tier 3: paved fan zone with picnic benches (the same shape as the
+-- supporters' bar patio's, PlotGrounds X97), on the west side away from the
+-- clubhouse and the NW huts.
+local function buildFanZone(parent: Instance)
+	local m = model("FanZone", parent)
+	local r = FAN_ZONE
+	extents("Paving", r.x0, r.x1, GROUND_Y, GROUND_Y + PATH_TOP, r.z0, r.z1, CONCRETE, Enum.Material.Concrete, m)
+	local wood = Color3.fromRGB(140, 104, 68)
+	local cx = (r.x0 + r.x1) / 2
+	for _, bz in { r.z0 + 18, (r.z0 + r.z1) / 2, r.z1 - 18 } do
+		for _, ex in { cx - 2, cx + 2 } do
+			extents("PicnicFrame", ex - 0.15, ex + 0.15, GROUND_Y + PATH_TOP, GROUND_Y + PATH_TOP + 2.4, bz - 2.7, bz + 2.7, wood, Enum.Material.Wood, m)
+		end
+		extents("PicnicTop", cx - 2.5, cx + 2.5, GROUND_Y + PATH_TOP + 2.4, GROUND_Y + PATH_TOP + 2.7, bz - 1.2, bz + 1.2, wood, Enum.Material.Wood, m)
+		for _, sz in { -1, 1 } do
+			extents("PicnicSeat", cx - 2.5, cx + 2.5, GROUND_Y + PATH_TOP + 1.3, GROUND_Y + PATH_TOP + 1.55, bz + sz * 2.3 - 0.45, bz + sz * 2.3 + 0.45, wood, Enum.Material.Wood, m)
+		end
+	end
+end
+
+-- Rebuilt whenever the catering tier or a stand's map tier changes. `place`
+-- matches GroundEnvelope.buildTiered: false during PlotGrounds.build (the
+-- whole Grounds model is moved into the plot afterwards in one go), true from
+-- bindConcourse's refresh (the plot is already live).
+local function buildConcourse(parent: Instance, place: boolean?)
+	local old = parent:FindFirstChild("Concourse")
+	if old then
+		old:Destroy()
+	end
+	local state = PlotContext.findStateFolder()
+	local amenityLevel = (state and (state:GetAttribute("AmenityLevel") :: number?)) or 0
+	local tier = cateringTier(amenityLevel)
+	local m = Instance.new("Model")
+	m.Name = "Concourse"
+	buildCateringVan(m)
+	buildCateringLoos(m)
+	if tier >= 2 then
+		for _, spot in CATERING_KIOSKS do
+			if standMapTier(spot.standKey) >= 2 then
+				buildCateringKiosk(m, spot, tier >= 3 and standMapTier(spot.standKey) >= 3)
+			end
+		end
+	end
+	if tier >= 3 then
+		buildFanZone(m)
+	end
+	m:SetAttribute("CateringTier", tier)
+	if place then
+		PlotContext.place(m)
+	end
+	m.Parent = parent
+	return m
+end
+
+local concourseBound = false
+
+-- Rebuilds the concourse when the catering track or any stand's level
+-- changes (a stand crossing a map tier can open or close a kiosk).
+local function bindConcourse()
+	local club = PlotContext.clubModel()
+	local grounds = club and club:FindFirstChild("Grounds")
+	local state = PlotContext.stateFolder()
+	if not (grounds and state) then
+		return
+	end
+	local function refresh()
+		if grounds and grounds.Parent then
+			buildConcourse(grounds, true)
+		end
+	end
+	if not concourseBound then
+		concourseBound = true
+		state:GetAttributeChangedSignal("AmenityLevel"):Connect(refresh)
+		for _, plot in Config.StandPlots do
+			state:GetAttributeChangedSignal("Stand_" .. plot.key):Connect(refresh)
+		end
+	end
 end
 
 local function buildSupportersBar(parent: Instance)
@@ -1011,9 +1177,11 @@ local function buildTrainingFence(parent: Instance)
 		p.Transparency = 0.4
 		p.CastShadow = false
 	end
-	-- panels on the inside of the fence line; north/south full width, east/west between
+	-- panels on the inside of the fence line; north full width, east/west and
+	-- south between their gates
 	panel(fx0, fx1, fz0, fz0 + panelT)
-	panel(fx0, fx1, fz1 - panelT, fz1)
+	panel(fx0, TRAIN_CX - ATH_GATE_HALF, fz1 - panelT, fz1) -- south, athletic-centre gate (#23a)
+	panel(TRAIN_CX + ATH_GATE_HALF, fx1, fz1 - panelT, fz1)
 	panel(fx1 - panelT, fx1, fz0 + panelT, fz1 - panelT)
 	panel(fx0, fx0 + panelT, fz0 + panelT, -FENCE_GAP) -- west, gate between the pitches
 	panel(fx0, fx0 + panelT, FENCE_GAP, fz1 - panelT)
@@ -1030,9 +1198,15 @@ local function buildTrainingFence(parent: Instance)
 			place(from + len * k / count)
 		end
 	end
-	-- north and south: posts along X, outside the panel face
+	-- north: posts along X, outside the panel face
 	run(fx0, fx1 - postT, function(x)
 		post(x, fz0 - postT)
+	end)
+	-- south: two runs ending at the athletic-centre gate
+	run(fx0, TRAIN_CX - ATH_GATE_HALF - postT, function(x)
+		post(x, fz1)
+	end)
+	run(TRAIN_CX + ATH_GATE_HALF, fx1 - postT, function(x)
 		post(x, fz1)
 	end)
 	-- east: along Z
@@ -1088,6 +1262,52 @@ local function buildFootpath(parent: Instance)
 	extents("CarParkLink", LINK_X0, LINK_X1, y0, y1, PATH_Z + hw, side.z0, CONCRETE, Enum.Material.Concrete, path)
 end
 
+-- #10 (ground plan spec s2 "Walk-round loop"): the public path ringing the
+-- ground outside the wall, so a leaving fan sent out through the north or
+-- east exit gate (GroundEnvelope) can walk all the way round back to the car
+-- park / turnstile paths and despawn there, never mid-plot. The west legs
+-- split round the ground's own turnstile blocks, same as the fan routes
+-- (MatchdayRoutes.toNorthExit/toEastExit use the same numbers). Numbers are
+-- tools/ground_plan.py's (ROUND_Z=271, ROUND_E=212): the maps are the source
+-- of truth for geometry when they and the prose spec disagree.
+local ROUND_Z, ROUND_E = 271, 212
+local LOOP_HALF = 4
+
+local function buildWalkRoundLoop(parent: Instance)
+	local m = model("WalkRoundLoop", parent)
+	local y0, y1 = GROUND_Y, GROUND_Y + PATH_TOP
+	local hw = PATH_W / 2
+	-- west legs: the NW one meets the existing path to the NW turnstiles,
+	-- the SW one meets the existing path to the SW turnstiles
+	extents("Path", LINK_X0, LINK_X1, y0, y1, -ROUND_Z + LOOP_HALF, PATH_END_Z - hw, CONCRETE, Enum.Material.Concrete, m)
+	extents("Path", LINK_X0, LINK_X1, y0, y1, SW_PATH_Z + hw, ROUND_Z - LOOP_HALF, CONCRETE, Enum.Material.Concrete, m)
+	-- north and south legs span the full width, corner to corner; the east
+	-- leg (below) stops short of them so the corners aren't paved twice
+	extents("Path", LINK_X0, ROUND_E + LOOP_HALF, y0, y1, -ROUND_Z - LOOP_HALF, -ROUND_Z + LOOP_HALF, CONCRETE, Enum.Material.Concrete, m)
+	extents("Path", LINK_X0, ROUND_E + LOOP_HALF, y0, y1, ROUND_Z - LOOP_HALF, ROUND_Z + LOOP_HALF, CONCRETE, Enum.Material.Concrete, m)
+	-- east leg, between the two corners
+	extents("Path", ROUND_E - LOOP_HALF, ROUND_E + LOOP_HALF, y0, y1, -ROUND_Z + LOOP_HALF, ROUND_Z - LOOP_HALF, CONCRETE, Enum.Material.Concrete, m)
+	-- the exit gates' own short links onto the loop (GroundEnvelope North/EastExit)
+	extents("Path", -4, 4, y0, y1, -ROUND_Z + LOOP_HALF, GroundEnvelope.Z0 + 8, CONCRETE, Enum.Material.Concrete, m)
+	extents("Path", GroundEnvelope.X1, ROUND_E - LOOP_HALF, y0, y1, -4, 4, CONCRETE, Enum.Material.Concrete, m)
+end
+
+-- #23a: the path from the loop's south leg up to the training fence's new
+-- south gate (ATH_GATE_HALF). Stops at the gate rather than carrying on to
+-- the future athletic-centre building's door (spec s5, not built yet):
+-- training pitch 2 already fills x230..330 z20..170 unconditionally, and a
+-- path all the way to z 16 would run straight up its own turf. Extend this
+-- once the athletic-centre building (#25-adjacent) actually stands there.
+local function buildAthleticPath(parent: Instance)
+	local m = model("AthleticPath", parent)
+	local y0, y1 = GROUND_Y, GROUND_Y + PATH_TOP
+	local fz1 = TRAIN_CZ[2] + TRAIN_L / 2 + FENCE_MARGIN -- the fence's south edge, 178
+	extents("Path", TRAIN_CX - ATH_GATE_HALF, TRAIN_CX + ATH_GATE_HALF, y0, y1, fz1, ROUND_Z - LOOP_HALF, CONCRETE, Enum.Material.Concrete, m)
+	-- the spur onto the loop's south leg: starts at the east leg's own edge
+	-- (ROUND_E + LOOP_HALF), so it doesn't repave the corner the loop already covers
+	extents("Path", ROUND_E + LOOP_HALF, TRAIN_CX + ATH_GATE_HALF, y0, y1, ROUND_Z - LOOP_HALF, ROUND_Z + LOOP_HALF, CONCRETE, Enum.Material.Concrete, m)
+end
+
 -- ---------------------------------------------------------------------- build
 
 -- Builds `Grounds` under the club model. Rebuilding replaces the old one.
@@ -1102,6 +1322,24 @@ end
 -- with this season's intake chalked on it.
 local ACADEMY_CX = TRAIN_CX + TRAIN_W / 2 + 18 -- outside the training fence
 local ACADEMY_CZ = TRAIN_CZ[2]
+
+-- #22: three flagpoles in the gap between the supporters' bar and the
+-- footpath (spec s5 planting row), x -372, z -30/-26/-22.
+local FLAGPOLE_X = -372
+local FLAGPOLE_Z = { -30, -26, -22 }
+
+local function buildFlagpoles(parent: Instance)
+	local m = model("Flagpoles", parent)
+	for i, z in FLAGPOLE_Z do
+		local pole = extents(("Pole%d"):format(i), FLAGPOLE_X - 0.25, FLAGPOLE_X + 0.25, GROUND_Y, GROUND_Y + 14, z - 0.25, z + 0.25,
+			Color3.fromRGB(220, 220, 220), Enum.Material.Metal, m)
+		pole.CastShadow = false
+		local flag = clubPaint(extents(("Flag%d"):format(i), FLAGPOLE_X, FLAGPOLE_X + 0.1, GROUND_Y + 11, GROUND_Y + 13.5, z - 2, z + 2,
+			Config.HomeKit, Enum.Material.Fabric, m))
+		flag.CanCollide = false
+		flag.CastShadow = false
+	end
+end
 
 local function buildAcademy(parent: Instance)
 	local academy = model("Academy", parent)
@@ -1335,6 +1573,21 @@ function PlotGrounds.plantingKeepOut(): { GroundsPlanting.Rect }
 	add("TrainingFence", fx0 - 1, fx1 + 1, -fz - 1, fz + 1, true)
 	add("TrainingGateWalk", 195, fx0, -FENCE_GAP - 4, FENCE_GAP + 4, false)
 	add("Academy", fx1, ACADEMY_CX + 9, ACADEMY_CZ - 8, ACADEMY_CZ + 8, true)
+	-- #23a: the athletic-centre path and its gate through the training fence
+	add("AthleticGateWalk", TRAIN_CX - ATH_GATE_HALF - 4, TRAIN_CX + ATH_GATE_HALF + 4, fz - 4, fz + 4, false)
+	add("AthleticPath", TRAIN_CX - ATH_GATE_HALF, TRAIN_CX + ATH_GATE_HALF, fz, ROUND_Z + LOOP_HALF, false)
+	-- #10: the walk-round loop and the two exit-gate links onto it. The west
+	-- legs match the built path exactly (not the whole z run): the middle
+	-- stretch (roughly z -191..191) is left open for the existing gate-walk
+	-- trees (planted() "framing the walk up to the main gate").
+	add("LoopWestNorth", LINK_X0, LINK_X1, -ROUND_Z - LOOP_HALF, PATH_END_Z - PATH_W / 2, false)
+	add("LoopWestSouth", LINK_X0, LINK_X1, SW_PATH_Z + PATH_W / 2, ROUND_Z + LOOP_HALF, false)
+	add("LoopNorthSouth", LINK_X0, ROUND_E + LOOP_HALF, -ROUND_Z - LOOP_HALF, -ROUND_Z + LOOP_HALF, false)
+	add("LoopNorthSouth", LINK_X0, ROUND_E + LOOP_HALF, ROUND_Z - LOOP_HALF, ROUND_Z + LOOP_HALF, false)
+	add("LoopEast", ROUND_E - LOOP_HALF, ROUND_E + LOOP_HALF, -ROUND_Z - LOOP_HALF, ROUND_Z + LOOP_HALF, false)
+	add("NorthExitLink", -4, 4, -ROUND_Z + LOOP_HALF, GroundEnvelope.Z0 + 8, false)
+	add("EastExitLink", GroundEnvelope.X1, ROUND_E - LOOP_HALF, -4, 4, false)
+	add("Flagpoles", FLAGPOLE_X - 3, FLAGPOLE_X + 3, FLAGPOLE_Z[1] - 3, FLAGPOLE_Z[#FLAGPOLE_Z] + 3, true)
 	local hw = PATH_W / 2
 	add("PathGateLeg", -HALF, CLUBHOUSE_FRONT_APRON_X, PATH_Z - hw, PATH_Z + hw, false)
 	add("PathNorthLeg", PATH_X - hw, PATH_X + hw, PATH_END_Z - hw, PATH_Z, false)
@@ -1374,10 +1627,13 @@ function PlotGrounds.build(club: Model): Model
 	end
 	buildTrainingFence(grounds)
 	buildFootpath(grounds)
+	buildWalkRoundLoop(grounds) -- #10
+	buildAthleticPath(grounds) -- #23a
 	buildPathside(grounds)
-	buildKiosk(grounds)
+	buildConcourse(grounds) -- #7
 	buildBorders(grounds)
 	buildSupportersBar(grounds)
+	buildFlagpoles(grounds) -- #22
 	buildAcademy(grounds) -- X289
 	-- oaks, hedges, bushes and boulders everywhere else; the seed varies the groves per plot
 	GroundsPlanting.build(grounds, PlotGrounds.plantingKeepOut(), (PlotContext.index or 0) + 1)
@@ -1386,6 +1642,7 @@ function PlotGrounds.build(club: Model): Model
 	liftFrontPavement(grounds)
 	bindAcademy()
 	bindShop() -- X300
+	bindConcourse() -- #7
 	return grounds
 end
 

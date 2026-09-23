@@ -115,11 +115,15 @@ local function planted(plan: Plan)
 	rock(-236, 70, 4.5)
 	rock(-208, -74, 3.5)
 
-	-- training pitches (fence x 222..338, z -178..178, gate on the west at z -6..6;
-	-- academy hut outside the east side at z 82..98): a hedge along the stadium
-	-- side, oak rows round the other three and bushes on the corners
-	hedge(217.5, -178, 217.5, -12, 5)
-	hedge(217.5, 12, 217.5, 178, 5)
+	-- training pitches (fence x 222..338, z -178..178, gate on the west at
+	-- z -6..6 and, from #23a, one on the south at x 276..284; academy hut
+	-- outside the east side at z 87..103): a hedge along the stadium side,
+	-- oak rows round the other three and bushes on the corners. The hedge
+	-- sits at x 218.5, not 222 - 4.5 (217.5): #10's walk-round loop runs at
+	-- x 208..216 just outside it now, so it was nudged 1 stud toward the
+	-- fence to keep clear of both.
+	hedge(218.5, -178, 218.5, -12, 5)
+	hedge(218.5, 12, 218.5, 178, 5)
 	for _, x in { 236, 268, 300, 332 } do
 		tree(x, -194, 22 + (x % 3), true)
 		tree(x, 194, 23 - (x % 3), true)
@@ -134,10 +138,37 @@ local function planted(plan: Plan)
 	end
 	for _, x in { 252, 284, 316 } do
 		bush(x, -190, 4.5)
-		bush(x, 190, 4.5)
+		-- the south one at x 284 sits right on #23a's new path edge; nudged to 288
+		bush(if x == 284 then 288 else x, 190, 4.5)
 	end
 	rock(350, 60, 4)
 	rock(352, -100, 3)
+
+	-- #22 (ground plan spec s5 "Planting"): the areas Marcel named that were
+	-- still bare. Not included: the old Supporters' Bar site (x -374..-300,
+	-- z -80..-38) - lane H moves the bar across the street and deletes it
+	-- from this plot, but the bar still stands there on this branch, so
+	-- planting it now would grow oaks through the current building. Add it
+	-- once that lands.
+	-- a belt west of the car park, before the open west end of the plot
+	tree(-345, -140, 26, false)
+	tree(-330, -158, 24, true)
+	bush(-350, -118, 5)
+	-- belts either side of the ground, in the open north/south ends beyond
+	-- the perimeter wall (z +-259)
+	tree(200, -310, 30, false)
+	tree(200, 305, 28, true)
+	tree(-200, -300, 29, true)
+	tree(-200, 322, 31, false)
+	bush(200, 288, 5)
+	bush(-200, -288, 4.5)
+	-- south of the training fence, between it and the walk-round loop
+	tree(245, 215, 24, true)
+	tree(262, 246, 22, false)
+	tree(320, 220, 23, true)
+	tree(304, 250, 25, false)
+	bush(250, 234, 5)
+	bush(314, 209, 4.5)
 end
 
 -- ----------------------------------------------------------------- scattered
