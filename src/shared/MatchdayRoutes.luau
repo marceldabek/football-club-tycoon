@@ -477,11 +477,12 @@ function MatchdayRoutes.concourseSpots(count: number, seed: number, levels: { [s
 	return out
 end
 
--- X93 (roadmap H1 "media presence"): an outside-broadcast van on the forecourt
--- on matchday once the club draws a crowd. Pitch-local ground CFrame, long axis
--- along local X, clear of the team coach (x -160..-126, z -221..-213) and the
--- barriered walk to the turnstiles. TEMP thresholds.
-MatchdayRoutes.MEDIA_VAN = CFrame.new(-176, 0, -209) * CFrame.Angles(0, math.pi / 2, 0)
+-- X93 (roadmap H1 "media presence") / playtest #25: an outside-broadcast van
+-- on matchday once the club draws a crowd, parked in the media bay outside
+-- the ground wall (ground plan spec s5: x -266..-240, z -252..-230), not on
+-- the forecourt paving. Pitch-local ground CFrame, same rotation as before
+-- (nose to world -X). TEMP thresholds.
+MatchdayRoutes.MEDIA_VAN = CFrame.new(-253, 0, -241) * CFrame.Angles(0, math.pi / 2, 0)
 MatchdayRoutes.MEDIA_TIER = 2
 MatchdayRoutes.MEDIA_ATTENDANCE = 400
 function MatchdayRoutes.hasMedia(tier: number, attendance: number): boolean
@@ -540,6 +541,9 @@ local BAY_W, BAY_D = 9, 18
 local PARK_AX0, PARK_AZ0, PARK_AZ1 = -349, 41, 189 -- asphalt inside the kerb
 local ENTRY_CLEAR_Z = 104
 local MID_ROW_X = PARK_AX0 + BAY_D + 24
+-- playtest #25: the double row starts south of the team coach's bay
+-- (PlotGrounds.COACH_BAY, z 42..56), like PlotGrounds' MID_ROW_Z0
+local MID_ROW_Z0 = 67
 
 local function bayRow(out: { Vector3 }, x0: number, z0: number, z1: number)
 	local z = z0
@@ -552,8 +556,8 @@ end
 function MatchdayRoutes.carParkBays(): { Vector3 }
 	local out = {}
 	bayRow(out, PARK_AX0, ENTRY_CLEAR_Z, PARK_AZ1 - 6)
-	bayRow(out, MID_ROW_X, PARK_AZ0 + 8, PARK_AZ1 - 6)
-	bayRow(out, MID_ROW_X + BAY_D, PARK_AZ0 + 8, PARK_AZ1 - 6)
+	bayRow(out, MID_ROW_X, MID_ROW_Z0, PARK_AZ1 - 6)
+	bayRow(out, MID_ROW_X + BAY_D, MID_ROW_Z0, PARK_AZ1 - 6)
 	return out
 end
 

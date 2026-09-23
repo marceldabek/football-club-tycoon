@@ -18,6 +18,13 @@
 --   ClientKit.Bicycle the cyclists' bike for Traffic. Pivot: on the ground under the
 --                    bottom bracket, front wheel to -Z.
 --
+--   ClientKit.Van     X393 (playtest #8): the 71-part Kit.Vehicles.VanWhite,
+--                    whole model like Cruiser/Bicycle below (not a one-mesh
+--                    car). MatchdayLife's broadcast van; front is -Z unrotated.
+--
+--   ClientKit.Dish    X393: a generated satellite dish (single mesh) for the
+--                    same broadcast van. Pivot is the mesh's own CFrame.
+--
 -- Place-file models that are already in ReplicatedStorage.ClientKit (the swan,
 -- X113) are left alone.
 
@@ -46,6 +53,14 @@ ClientKit.CRUISER = "BoatCruiser"
 -- pivot on the ground under the bottom bracket, front wheel to -Z. May be more than
 -- one part. Without it Traffic falls back to its three-part primitive bike.
 ClientKit.BICYCLE = "Bicycle"
+
+-- X393 (playtest #8): the team coach's TV/broadcast van and its dish.
+ClientKit.VAN = "VanWhite"
+ClientKit.DISH = "SatelliteDish"
+
+-- X394 (playtest #36): a generated train carriage, reused for all 3 of the
+-- town train's carriages. Single mesh, length along its Z, a cab at each end.
+ClientKit.TRAIN_CARRIAGE = "TrainCarriage"
 
 function ClientKit.publish(): string
 	local kit = ServerStorage:FindFirstChild("Kit")
@@ -190,7 +205,85 @@ function ClientKit.publish(): string
 		copy.Parent = root
 		bicycles = 1
 	end
-	return ("client kit: %d cars, %d bus, %d cruiser, %d bicycle"):format(count, buses, cruisers, bicycles)
+
+	-- X393: the broadcast van, whole model (71 parts) like Cruiser above.
+	local oldVan = root:FindFirstChild("Van")
+	if oldVan then
+		oldVan:Destroy()
+	end
+	local vanTemplate = kit and kit:FindFirstChild(ClientKit.VAN, true)
+	local vans = 0
+	if vanTemplate and vanTemplate:IsA("Model") then
+		local copy = vanTemplate:Clone()
+		copy.Name = "Van"
+		for _, d in copy:GetDescendants() do
+			if d:IsA("LuaSourceContainer") or d:IsA("Sound") then
+				d:Destroy()
+			elseif d:IsA("BasePart") then
+				d.Anchored = true
+				d.CanCollide = false
+				d.CanQuery = false
+				d.CanTouch = false
+			end
+		end
+		copy.Parent = root
+		vans = 1
+	end
+
+	-- X393: the dish, single mesh like Bus above.
+	local oldDish = root:FindFirstChild("Dish")
+	if oldDish then
+		oldDish:Destroy()
+	end
+	local dishTemplate = kit and kit:FindFirstChild(ClientKit.DISH, true)
+	local dishes = 0
+	if dishTemplate and dishTemplate:IsA("Model") then
+		local copy = dishTemplate:Clone()
+		copy.Name = "Dish"
+		for _, d in copy:GetDescendants() do
+			if d:IsA("LuaSourceContainer") then
+				d:Destroy()
+			end
+		end
+		local mesh = copy:FindFirstChildWhichIsA("BasePart", true)
+		if mesh then
+			local part = mesh :: BasePart
+			part.Anchored = true
+			part.CanCollide = false
+			part.CanQuery = false
+			part.CanTouch = false
+			copy.WorldPivot = part.CFrame
+			copy.Parent = root
+			dishes = 1
+		else
+			copy:Destroy()
+		end
+	end
+
+	-- X394: the train carriage, single mesh, pivot already at its own centre.
+	local oldCarriage = root:FindFirstChild("TrainCarriage")
+	if oldCarriage then
+		oldCarriage:Destroy()
+	end
+	local carriageTemplate = kit and kit:FindFirstChild(ClientKit.TRAIN_CARRIAGE, true)
+	local carriages = 0
+	if carriageTemplate and carriageTemplate:IsA("Model") then
+		local copy = carriageTemplate:Clone()
+		copy.Name = "TrainCarriage"
+		for _, d in copy:GetDescendants() do
+			if d:IsA("LuaSourceContainer") then
+				d:Destroy()
+			elseif d:IsA("BasePart") then
+				d.Anchored = true
+				d.CanCollide = false
+				d.CanQuery = false
+				d.CanTouch = false
+			end
+		end
+		copy.Parent = root
+		carriages = 1
+	end
+	return ("client kit: %d cars, %d bus, %d cruiser, %d bicycle, %d van, %d dish, %d train carriage"):format(count, buses, cruisers, bicycles, vans, dishes, carriages)
 end
 
 return ClientKit

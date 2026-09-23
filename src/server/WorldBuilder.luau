@@ -2416,10 +2416,13 @@ function WorldBuilder.applyCrest(spec: ClubCrest.Spec)
 	end
 end
 
--- The team coach, parked on the forecourt beside the office (decorative).
--- Primitive on purpose: the store coach was 587 parts per club, this is 11.
--- Nose points +X; built from extents so nothing shares a face.
-local function buildTeamBus(parent: Instance, centre: Vector3)
+-- The team coach, parked in the car park's coach bay (decorative). X393
+-- (playtest #8): ServerStorage.Kit.Vehicles.TeamCoach is a single generated
+-- mesh (Roblox generate_mesh, ~1 part) built nose +X like the primitive
+-- below, which stays as the fallback if that kit entry is ever missing (was
+-- the only version until X393; the store coach was 587 parts per club, this
+-- primitive is 11).
+local function buildTeamBusPrimitive(parent: Instance, centre: Vector3)
 	local bus = Instance.new("Model")
 	bus.Name = "TeamBus"
 	bus.Parent = parent
@@ -2461,6 +2464,28 @@ local function buildTeamBus(parent: Instance, centre: Vector3)
 	end
 end
 
+-- The kit mesh's length runs along its pivot Z with the windscreen at +Z, so
+-- it turns +90 about Y to put the nose to +X like the primitive (the first
+-- cut left it unturned, across the bay and through the car park hedge). The
+-- generated mesh is stubby (31 long, 11 wide); it is stretched to a coach's
+-- proportions, still inside the 36 x 14 bay. TEMP size, width x height x length.
+WorldBuilder.TEAM_COACH_SIZE = Vector3.new(9, 11, 34)
+local function buildTeamBus(parent: Instance, centre: Vector3)
+	if KitPlacer.find("TeamCoach") then
+		local bus = KitPlacer.place("TeamCoach", CFrame.new(centre) * CFrame.Angles(0, math.pi / 2, 0), parent)
+		bus.Name = "TeamBus"
+		local body = bus:FindFirstChildWhichIsA("BasePart", true)
+		if body then
+			-- stretch in the body's own axes, keeping its bottom on the tarmac
+			local bottom = body.Position.Y - body.Size.Y / 2
+			body.Size = WorldBuilder.TEAM_COACH_SIZE
+			body.Position = Vector3.new(body.Position.X, bottom + body.Size.Y / 2, body.Position.Z)
+		end
+		return
+	end
+	buildTeamBusPrimitive(parent, centre)
+end
+
 function WorldBuilder.build(standLevels: { [string]: number }, amenityLevel: number?): World
 	local existing = PlotContext.clubModel()
 	if existing then
@@ -2483,8 +2508,11 @@ function WorldBuilder.build(standLevels: { [string]: number }, amenityLevel: num
 	buildDugouts(club)
 	buildScoreboard(club)
 	buildForecourt(club)
-	-- the team coach, parked on the forecourt beside the office (decorative)
-	buildTeamBus(club, Vector3.new(FORECOURT_CX + 18, DECK_Y, FORECOURT_CZ - 22))
+	-- the team coach, parked in the car park's coach bay (playtest #25), not on
+	-- the forecourt paving. Bay is PlotGrounds' x -312..-276, z 42..56 (ground
+	-- plan spec s5); centred here so the 34-long bus (nose +X) clears both
+	-- edges. 0.2 matches PlotGrounds' car park asphalt top (ASPHALT_TOP).
+	buildTeamBus(club, Vector3.new(-294, 0.2, 49))
 
 	local stands = Instance.new("Folder")
 	stands.Name = "Stands"

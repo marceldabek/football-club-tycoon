@@ -426,4 +426,49 @@ function T.aStickerSitsAtEyeLevelOnAnythingTallEnough()
 	assert(TownLifeMath.stickerHeight(12.6, true) < tall, "bills sit lower")
 end
 
+-- #41: a kit lamp's pivot is its bounding-box centre; the pole, arm and lens
+-- come from the measured KIT_LAMPS table
+function T.kitLampShapeFindsThePoleAndTheLens()
+	local spec = TownLifeMath.KIT_LAMPS.StreetLight02
+	-- placed facing +X (arm along world +Z after a 90-degree turn)
+	local box = CFrame.new(100, spec.ref.Y / 2, 50) * CFrame.Angles(0, -math.pi / 2, 0)
+	local shape = TownLifeMath.kitLampShape("StreetLight02", box, spec.ref)
+	assert(shape, "known kind")
+	local s = shape :: TownLifeMath.LampShape
+	assert(math.abs(s.ground.Y) < EPS, "ground at the foot, got " .. s.ground.Y)
+	assert((s.roadDir - box.RightVector).Magnitude < EPS, "arm is the mesh's +X")
+	assert((s.ground - Vector3.new(100, 0, 50) - box.RightVector * spec.poleX).Magnitude < EPS, "pole at poleX")
+	local reach = (s.lens.Position - s.ground)
+	assert(math.abs(reach.Y - spec.lensY) < EPS, "lens under the head")
+	assert(math.abs(reach:Dot(s.roadDir) - (spec.headX - spec.poleX)) < EPS, "lens out along the arm")
+	assert(s.bannerForward < 0.5, "banner flush on the pole")
+end
+
+function T.kitLampShapeScalesWithTheMesh()
+	local spec = TownLifeMath.KIT_LAMPS.StreetLight01
+	local shape = TownLifeMath.kitLampShape("StreetLight01", CFrame.new(0, spec.ref.Y, 0), spec.ref * 2) :: TownLifeMath.LampShape
+	assert(math.abs(shape.lens.Position.Y - spec.lensY * 2) < EPS, "twice as tall, lens twice as high")
+	assert(math.abs(shape.ground.X - spec.poleX * 2) < EPS, "pole twice as far out")
+end
+
+function T.roundLensIsAFlatDisc()
+	local spec = TownLifeMath.KIT_LAMPS.StreetLight03
+	local shape = TownLifeMath.kitLampShape("StreetLight03", CFrame.new(0, spec.ref.Y / 2, 0), spec.ref) :: TownLifeMath.LampShape
+	assert(shape.round, "round")
+	-- a Cylinder's axis is its X: turned upright so the disc faces the ground
+	assert(math.abs(math.abs(shape.lens.RightVector.Y) - 1) < EPS, "cylinder axis vertical")
+end
+
+function T.victorianLampUsesItsBoundingBox()
+	local spec = TownLifeMath.KIT_LAMPS.LampVictorian
+	local shape = TownLifeMath.kitLampShape("LampVictorian", CFrame.new(5, spec.ref.Y / 2, 5), spec.ref) :: TownLifeMath.LampShape
+	assert((shape.ground - Vector3.new(5, 0, 5)).Magnitude < EPS, "pillar foot under the centre")
+	assert((shape.roadDir - Vector3.new(0, 0, -1)).Magnitude < EPS, "faces its -Z")
+	assert(shape.lens.Position.Y < spec.ref.Y, "lantern below the top")
+end
+
+function T.unknownLampKindHasNoShape()
+	assert(TownLifeMath.kitLampShape("Nope", CFrame.identity, Vector3.one) == nil, "nil")
+end
+
 return T

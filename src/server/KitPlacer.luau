@@ -29,6 +29,12 @@ export type PlaceOpts = {
 	yawJitter: number?, -- radians
 	rng: Random?,
 	scale: number?,
+	-- Playtest #37/#38: `scale` multiplies the kit model's stored size instead
+	-- of replacing its Model:GetScale(). ScaleTo is absolute, so a kit model
+	-- stored scaled (the generated hatchbacks are at 1.4) came out at
+	-- scale / 1.4 of the size it is stored at. Cars use this to match Traffic,
+	-- which scales the stored mesh.
+	relativeScale: boolean?,
 	-- X45: repaint a textured kit (the one-mesh hatchback ignores Color while its
 	-- TextureID is set): clears every MeshPart's texture and sets this colour.
 	-- The window and light detail goes with the texture.
@@ -239,7 +245,7 @@ function KitPlacer.place(name: string, cframe: CFrame, parent: Instance, opts: P
 
 	local scale = o.scale
 	if scale and math.abs(scale - 1) > 1e-4 then
-		model:ScaleTo(scale)
+		model:ScaleTo(if o.relativeScale then model:GetScale() * scale else scale)
 	end
 
 	local pivot = model:GetPivot()

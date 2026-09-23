@@ -16,6 +16,7 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local TownLayout = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TownLayout"))
 local TownLifeMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TownLifeMath"))
+local Quality = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Quality"))
 local ClubRef = require(script.Parent.ClubRef)
 
 -- ------------------------------------------------------------------ shared
@@ -172,7 +173,17 @@ local BANNER_BUDGET = 60
 local BANNER_BUDGET_LOW = 20 -- TEMP, Quality "Low" (mirrors Shared.Quality.BUDGETS.Low.banners)
 local BANNER_RESCAN_SECONDS = 5
 
-type LampEntry = { model: Model, ground: Vector3, roadDir: Vector3, index: number }
+type LampEntry = {
+	model: Model,
+	ground: Vector3,
+	roadDir: Vector3,
+	index: number,
+	head: Vector3, -- where the real light goes
+	lens: CFrame?, -- #41: the night lens TownLife adds (nil: the lamp has its own glass)
+	lensSize: Vector3,
+	round: boolean,
+	bannerForward: number,
+}
 type BannerEntry = { model: Model, labels: { TextLabel } }
 
 local allLamps: { LampEntry } = {}
@@ -192,31 +203,81 @@ local activeBannerCount = 0
 -- ("post top at ~13.8, arm toward local -Z"), so this rebuilds from the post
 -- directly rather than trusting the model's pivot.
 --
--- Kit lamps (attribute Kit == "LampVictorian") are placed by
--- KitPlacer.place, which ends with model:PivotTo(target * offset:Inverse())
--- where `target` keeps the placement CFrame's rotation -- so their pivot can
--- be used directly.
-local function lampPlacement(model: Model): (Vector3?, Vector3?)
+-- Kit lamps (the town-wide "StreetLightNN_Node" that StreetFurniture, the
+-- park and the marina place, and SquareDresser's LampVictorian) are measured
+-- shapes in TownLifeMath.KIT_LAMPS (#41): a kit lamp's pivot is its bounding-box
+-- centre, not the foot of its pole, and its arm reaches along the mesh's +X.
+local function kitLampKind(model: Model): string?
+	if model:GetAttribute("Kit") == "LampVictorian" then
+		return "LampVictorian"
+	end
+	return model.Name:match("^(StreetLight%d+)_Node$")
+end
+
+local function lampEntry(model: Model): LampEntry?
 	if model.Name == "TerraceLamp" then
 		local post = model:FindFirstChild("Post")
 		if not (post and post:IsA("BasePart")) then
-			return nil, nil
+			return nil
 		end
 		local ground = post.Position - Vector3.new(0, 7.5, 0)
 		local roadDir = post.CFrame:VectorToWorldSpace(Vector3.new(0, 0, -1))
-		return ground, roadDir
-	elseif model:GetAttribute("Kit") == "LampVictorian" then
-		local pivot = model:GetPivot()
-		return pivot.Position, pivot:VectorToWorldSpace(Vector3.new(0, 0, -1))
+		return {
+			model = model,
+			ground = ground,
+			roadDir = roadDir,
+			index = 0,
+			head = ground + Vector3.new(0, 13.5, 0) + roadDir * 2.3,
+			lens = nil, -- TerraceLamp has its own Glass
+			lensSize = Vector3.zero,
+			round = false,
+			bannerForward = BANNER_FORWARD,
+		}
 	end
-	return nil, nil
+	local kind = kitLampKind(model)
+	if not kind then
+		return nil
+	end
+	local box: CFrame, size: Vector3
+	if kind == "LampVictorian" then
+		if not model:FindFirstChildWhichIsA("BasePart", true) then
+			return nil -- not streamed in yet
+		end
+		box, size = model:GetBoundingBox()
+	else
+		local mesh = model:FindFirstChild(kind)
+		if not (mesh and mesh:IsA("BasePart")) then
+			return nil
+		end
+		box, size = mesh.CFrame, mesh.Size
+	end
+	local shape = TownLifeMath.kitLampShape(kind, box, size)
+	if not shape then
+		return nil
+	end
+	return {
+		model = model,
+		ground = shape.ground,
+		roadDir = shape.roadDir,
+		index = 0,
+		head = shape.lens.Position,
+		lens = shape.lens,
+		lensSize = shape.lensSize,
+		round = shape.round,
+		bannerForward = shape.bannerForward,
+	}
 end
 
 local function registerLamp(inst: Instance)
 	-- StreamingEnabled: a lamp model can arrive before its Post, so a part
-	-- arriving later retries its parent model
+	-- arriving later retries its parent model. LampVictorian keeps its parts
+	-- one Model deeper, so a part retries its grandparent too.
 	if inst:IsA("BasePart") and inst.Parent then
 		inst = inst.Parent
+		local outer = inst.Parent
+		if outer and outer:IsA("Model") and outer:GetAttribute("Kit") == "LampVictorian" then
+			inst = outer
+		end
 	end
 	if not inst:IsA("Model") then
 		return
@@ -225,17 +286,28 @@ local function registerLamp(inst: Instance)
 	if seenLamps[model] then
 		return
 	end
-	local isLamp = model.Name == "TerraceLamp" or model:GetAttribute("Kit") == "LampVictorian"
-	if not isLamp then
-		return
-	end
-	local ground, roadDir = lampPlacement(model)
-	if not (ground and roadDir) then
+	local entry = lampEntry(model)
+	if not entry then
 		return
 	end
 	seenLamps[model] = true
 	lampCounter += 1
-	table.insert(allLamps, { model = model, ground = ground :: Vector3, roadDir = roadDir :: Vector3, index = lampCounter })
+	entry.index = lampCounter
+	table.insert(allLamps, entry)
+end
+
+-- X37 follow-up: the lamps aren't under one "Dressing" folder any more (that
+-- was the pre-v3 dresser's own output folder, renamed to "TerraceStreets" and
+-- never rebuilt town-wide since); the town-wide kit lamps live under each
+-- district's model inside V3Furniture, the market square's under Square, and
+-- the park's and marina's under their own dressers. Watching those roots
+-- instead of the whole Town model keeps the initial scan cheap.
+local function watchLampRoot(town: Model, name: string)
+	local root = town:WaitForChild(name, math.huge)
+	for _, d in root:GetDescendants() do
+		registerLamp(d)
+	end
+	root.DescendantAdded:Connect(registerLamp)
 end
 
 local function watchLampDressing()
@@ -244,15 +316,9 @@ local function watchLampDressing()
 		task.wait(2)
 		town = workspace:FindFirstChild("Town")
 	end
-	local dressing = town:FindFirstChild("Dressing")
-	while not dressing do
-		task.wait(2)
-		dressing = town:FindFirstChild("Dressing")
+	for _, name in { "V3Furniture", "Square", "Park", "Marina" } do
+		task.spawn(watchLampRoot, town, name)
 	end
-	for _, d in dressing:GetDescendants() do
-		registerLamp(d)
-	end
-	dressing.DescendantAdded:Connect(registerLamp)
 end
 task.spawn(watchLampDressing)
 
@@ -266,7 +332,7 @@ local function currentClubName(): string
 end
 
 local function buildBanner(lamp: LampEntry, clubName: string): BannerEntry
-	local bannerPos = lamp.ground + Vector3.new(0, BANNER_HEIGHT, 0) + lamp.roadDir * BANNER_FORWARD
+	local bannerPos = lamp.ground + Vector3.new(0, BANNER_HEIGHT, 0) + lamp.roadDir * lamp.bannerForward
 	local cframe = CFrame.lookAt(bannerPos, bannerPos + lamp.roadDir)
 	local kit, accent = Config.clubCrest(clubName, true)
 
@@ -831,46 +897,80 @@ task.spawn(watchTown)
 
 -- X37: street lamps glow (Neon glass) but light nothing, so evening fixtures
 -- leave the streets black. When this player's sky is dark, the nearest lamps
--- get a PointLight on an Attachment in Terrain (cheap to add/remove, no parts).
-local LAMP_LIGHT_MAX = 16
-local LAMP_LIGHT_MAX_LOW = 6 -- TEMP, Quality "Low"
+-- get a real light on an Attachment in Terrain (cheap to add/remove, no parts).
+-- #41: and every streamed-in kit lamp within LENS_RADIUS gets a glowing lens
+-- (one small Neon part, local only), so a whole street reads as lit while only
+-- the nearest N pay for a light. N is the Shared.Quality budget.
 local LAMP_LIGHT_RADIUS = 260
 local LAMP_LIGHT_RESCAN_SECONDS = 2
+local LENS_RADIUS = 1200 -- past streaming range on purpose: every lamp the client has
+local LENS_COLOR = Color3.fromRGB(255, 226, 170)
 local lampLights: { [Model]: Attachment } = {}
+local lampLenses: { [Model]: BasePart } = {}
+
+local lensFolder = Instance.new("Folder")
+lensFolder.Name = "LampLenses"
+lensFolder.Parent = root
 
 -- X248: Sky publishes this for the player's own look
 local function skyIsDark(): boolean
 	return game:GetService("Players").LocalPlayer:GetAttribute("SkyDark") == true
 end
 
+local function lampLightBudget(): number
+	return Quality.budget(if isLowQuality() then "Low" else "High").lampLights
+end
+
+-- A lamp whose parts have streamed out keeps its model but has nothing to light.
+local function lampStreamedIn(lamp: LampEntry): boolean
+	return lamp.model.Parent ~= nil and lamp.model:FindFirstChildWhichIsA("BasePart") ~= nil
+end
 
 local function newLampLight(lamp: LampEntry): Attachment
 	local a = Instance.new("Attachment")
 	a.Name = "TownLifeLampLight"
-	a.Position = lamp.ground + Vector3.new(0, 13.5, 0) + lamp.roadDir * 2.3
-	local light = Instance.new("PointLight")
+	a.Position = lamp.head - Vector3.new(0, 0.3, 0)
+	-- pointing down: a pool on the pavement and road, not a lit pole and
+	-- first-floor wall
+	local light = Instance.new("SpotLight")
+	light.Face = Enum.NormalId.Bottom
 	light.Color = Color3.fromRGB(255, 214, 160)
-	light.Brightness = 1.6
-	light.Range = 32
+	light.Brightness = 2
+	light.Angle = 130
+	light.Range = 34
 	light.Shadows = false
 	light.Parent = a
 	a.Parent = workspace.Terrain
 	return a
 end
 
+local function newLens(lamp: LampEntry): BasePart
+	local lens = newPart("Lens", lamp.lensSize, lamp.lens :: CFrame, LENS_COLOR, lensFolder)
+	lens.Material = Enum.Material.Neon
+	if lamp.round then
+		(lens :: Part).Shape = Enum.PartType.Cylinder
+	end
+	return lens
+end
+
 local function rescanLampLights()
 	local wanted: { [Model]: LampEntry } = {}
+	local wantedLens: { [Model]: LampEntry } = {}
 	if skyIsDark() then
 		local camPos = currentCameraPosition()
 		local points: { Vector3 } = {}
 		for _, lamp in allLamps do
 			table.insert(points, lamp.ground)
 		end
-		local max = if isLowQuality() then LAMP_LIGHT_MAX_LOW else LAMP_LIGHT_MAX
-		for _, i in TownLifeMath.nearestIndices(points, camPos, max, LAMP_LIGHT_RADIUS) do
+		for _, i in TownLifeMath.nearestIndices(points, camPos, lampLightBudget(), LAMP_LIGHT_RADIUS) do
 			local lamp = allLamps[i]
-			if lamp.model.Parent then
+			if lampStreamedIn(lamp) then
 				wanted[lamp.model] = lamp
+			end
+		end
+		for _, lamp in allLamps do
+			if lamp.lens and (lamp.ground - camPos).Magnitude <= LENS_RADIUS and lampStreamedIn(lamp) then
+				wantedLens[lamp.model] = lamp
 			end
 		end
 	end
@@ -883,6 +983,17 @@ local function rescanLampLights()
 	for model, lamp in wanted do
 		if not lampLights[model] then
 			lampLights[model] = newLampLight(lamp)
+		end
+	end
+	for model, lens in lampLenses do
+		if not wantedLens[model] then
+			lens:Destroy()
+			lampLenses[model] = nil
+		end
+	end
+	for model, lamp in wantedLens do
+		if not lampLenses[model] then
+			lampLenses[model] = newLens(lamp)
 		end
 	end
 end

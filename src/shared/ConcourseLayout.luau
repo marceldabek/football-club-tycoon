@@ -407,10 +407,8 @@ function ConcourseLayout.obstacles(levels: Levels, tier: number): { Rect }
 	add("LowWallWestS", -108.4, -107.6, 55, 158.4)
 	add("LowWallNorth", -108.4, 108.4, -158.4, -157.6)
 	add("LowWallSouth", -108.4, 108.4, 157.6, 158.4)
-	-- not ours to move (#25 coach bay, the TV van's media bay), so kept clear
-	-- of where they stand today
-	add("TeamCoach", -160, -126, -221, -213)
-	add("TvVan", -184, -168, -213, -205) -- MatchdayRoutes.MEDIA_VAN, long axis along X
+	-- the team coach (PlotGrounds.COACH_BAY) and the TV van (MatchdayRoutes.MEDIA_VAN)
+	-- park outside the wall since #25, so nothing of theirs stands in here
 	local van = ConcourseLayout.van(levels, tier)
 	if van then
 		table.insert(out, van.rect)
