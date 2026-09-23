@@ -428,30 +428,6 @@ local function adjustFanCount(crowd: PlotCrowd)
 	end
 end
 
--- X125: four supporters with pints on the supporters' bar patio, torn down
--- with the stewards (4-5 parts each).
-local BAR_DRINKERS = 4
-local function buildBarDrinkers(crowd: PlotCrowd)
-	for i, spot in MatchdayRoutes.barDrinkerSpots(BAR_DRINKERS) do
-		local kit = if i % 2 == 1 then homeKit(crowd) else NEUTRAL_KITS[(i % #NEUTRAL_KITS) + 1]
-		local fig = Townsfolk.build(crowd.model, {
-			shirt = kit,
-			trousers = DARK_TROUSERS,
-			skin = SKIN_TONES[(i % #SKIN_TONES) + 1],
-		})
-		if fig then
-			fig.model.Name = "BarDrinker" .. i
-			local base = crowd.plotCFrame * spot
-			Townsfolk.pose(fig, base) -- holding a pint: stays still so the pint stays in hand
-			-- a pint held in front at chest height
-			local pint = part("Pint", Vector3.new(0.35, 0.6, 0.35), Color3.fromRGB(200, 140, 40), fig.model)
-			pint.Transparency = 0.15
-			pint.CFrame = base * CFrame.new(0.7, CHEST_Y, -0.75)
-			table.insert(crowd.stewards, fig.model)
-		end
-	end
-end
-
 -- X318: the concourse. A short line at the amenity's serving hatch and a thin
 -- scatter of people stood about on the paving while the match is on, sized by
 -- the amenity and by how full the ground is. Off on Low, like the rest of the
@@ -502,7 +478,8 @@ local function spawnCrowd(crowd: PlotCrowd)
 	buildStewards(crowd)
 	buildBarriers(crowd)
 	buildMediaVan(crowd)
-	buildBarDrinkers(crowd)
+	-- #16: no bar drinkers on the plot: the Supporters' Bar moved across the street, where
+	-- TownLife's pub drinkers fill it on the owner's screen only (CLAUDE.md s27)
 	buildConcourse(crowd) -- X318
 	buildCars(crowd)
 	rebuildQueue(crowd)

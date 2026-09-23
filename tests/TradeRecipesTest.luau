@@ -138,4 +138,64 @@ function T.pieceCountsStayInsideTheLanePAllowance()
 	assert(total <= 3600, "recipes total " .. total .. " pieces; leave headroom under the 4,000 budget")
 end
 
+-- #30 / #32: every block of flats is merged unit meshes with a dark core per block and the old
+-- modular block as fallback, and every live parade size has a merged windowed back.
+function T.flatsAndParadeBacksAreMergedUnits()
+	local flats, parades = 0, 0
+	for _, lot in lots() do
+		local recipe = TradeRecipes.recipeFor(lot)
+		if lot.use == "flats" or lot.use == "waterfront flats" then
+			flats += 1
+			local blocks = if lot.use == "flats" then 1 else 2
+			assert(#recipe.pieces == 3 * blocks, ("%s has %d pieces, want %d merged meshes"):format(lot.id, #recipe.pieces, 3 * blocks))
+			assert(recipe.cores and #recipe.cores == blocks, lot.id .. " has no core per block")
+			assert(recipe.fallback and #recipe.fallback > #recipe.pieces, lot.id .. " has no modular fallback")
+			for _, p in recipe.pieces do
+				assert(string.sub(p.kit, 1, 13) == "HOUSE__flats_", lot.id .. ": " .. p.kit)
+			end
+		elseif lot.use == "shops with flats" then
+			parades += 1
+			assert(recipe.fallback and recipe.core, lot.id .. " parade has no merged back (add its size to make_trade_units.py PARADES)")
+			local merged = 0
+			for _, p in recipe.pieces do
+				if string.sub(p.kit, 1, 14) == "HOUSE__parade_" then
+					merged += 1
+				end
+			end
+			assert(merged == 2, lot.id .. " has " .. merged .. " merged back meshes")
+		end
+	end
+	assert(flats > 0 and parades > 0, "no flats or parades")
+end
+
+-- #16: every plot has its Supporters' Bar on town land across the street from its pedestrian
+-- gate, at the ground plan's footprint (plot-local x -482..-447, z -32..8), facing the plot.
+function T.everyPlotHasItsSupportersBarOppositeTheGate()
+	local layout = require(ReplicatedStorage.Shared.TownLayout)
+	local bars = {}
+	for _, lot in TradeRecipes.lots(nil, layout) do
+		if lot.sign then
+			table.insert(bars, lot)
+		end
+	end
+	assert(#bars == #layout.PLOTS, ("%d signed pubs for %d plots"):format(#bars, #layout.PLOTS))
+	for i = 1, #layout.PLOTS do
+		local plotCF = layout.plotCFrame(i)
+		local want = plotCF * Vector3.new((-482 - 447) / 2, 0, (-32 + 8) / 2)
+		local found = nil
+		for _, lot in bars do
+			if (Vector3.new(lot.centre.X, 0, lot.centre.Z) - Vector3.new(want.X, 0, want.Z)).Magnitude < 1.5 then
+				found = lot
+			end
+		end
+		assert(found, "no Supporters' Bar opposite Plot " .. i)
+		assert(found.use == "pub", "Plot " .. i .. "'s bar is not a pub lot")
+		-- faces back across the street at the plot (plot-local +X)
+		assert(found.front:Dot(plotCF.XVector) > 0.99, "Plot " .. i .. "'s bar does not face its plot")
+		-- 40 along the street, 35 deep
+		assert(math.abs(found.size.X - 40) < 0.01 and math.abs(found.size.Z - 35) < 0.01, "Plot " .. i .. "'s bar is not 40 x 35")
+		assert(not layout.pointInPlot(found.centre, i), "Plot " .. i .. "'s bar stands on the plot")
+	end
+end
+
 return T

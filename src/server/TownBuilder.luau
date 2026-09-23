@@ -364,8 +364,17 @@ local function buildViaduct(m: Model, bridge: TownLayout.Bridge)
 	addRails(m, cf * CFrame.new(0, VIADUCT_THICK / 2, 0), length)
 end
 
+-- Lane I (#33): the river crossings every sightline is planned around stay
+-- loaded, never streamed out, no matter how far the player is.
+function TownBuilder.isPersistentBridge(name: string): boolean
+	return name == "Lune Viaduct" or name == "Lune Bridge"
+end
+
 local function buildBridge(parent: Instance, bridge: TownLayout.Bridge)
 	local m = model(bridge.name, parent)
+	if TownBuilder.isPersistentBridge(bridge.name) then
+		m.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
+	end
 	if bridge.kind == "rail" then
 		buildViaduct(m, bridge)
 		return
@@ -487,6 +496,8 @@ end
 local function buildStation(parent: Instance)
 	local station = TownLayout.RAIL.station
 	local m = model(station.name, parent)
+	-- Lane I (#33): a landmark on the skyline, always loaded.
+	m.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 	local base = CFrame.new(station.centre.X, 0, station.centre.Z) * CFrame.Angles(0, math.rad(station.yaw), 0)
 	local sx, sh, sz = station.size.X, station.size.Y, station.size.Z
 	part({

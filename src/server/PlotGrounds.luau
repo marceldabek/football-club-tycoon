@@ -161,19 +161,6 @@ local BAY_YELLOW = Color3.fromRGB(240, 196, 40)
 
 -- club shop
 local SHOP_CX, SHOP_CZ = -300, -150
--- X97: a supporters' bar just inside the pedestrian gate, north of the
--- footpath and facing it (+Z), with a patio of picnic benches
--- (RivermereTurnstileEntrance.png has a pub right by the entrance). TEMP.
--- X374: was 28 x 32 studs with a 12-high wall, about 10 x 12 x 6 m. A real
--- two-storey pub is nearer 12 x 15 x 7, and this one has to hold its own
--- beside a stadium, so the shell is up about a fifth on every axis.
-local PUB_X0, PUB_X1 = -374, -341
--- the extra depth goes BACKWARDS, away from the footpath: growing the front
--- edge instead pushed the patio boundary into the pathside tree line
--- (PlotGroundsTest.pathsideTreesAndLampsKeepOffThePathAndBuildings).
-local PUB_Z0, PUB_Z1 = -78, -38
-local PUB_WALL_H, PUB_ROOF_H, PUB_EAVE = 13.5, 5.5, 0.9
-local PUB_PATIO_D = 8
 local SHOP_W, SHOP_H, SHOP_D = 26, 14, 30 -- along X, height, along Z
 local SHOP_WALL_T = 1
 local FASCIA_H, FASCIA_PROUD = 3, 0.5
@@ -301,7 +288,6 @@ export type Footprint = { name: string, min: Vector2, max: Vector2 }
 function PlotGrounds.footprints(): { Footprint }
 	local out: { Footprint } = {
 		{ name = "CarPark", min = Vector2.new(PARK_X0, PARK_Z0), max = Vector2.new(PARK_X1, PARK_Z1) },
-		{ name = "SupportersBar", min = Vector2.new(PUB_X0 - PUB_EAVE, PUB_Z0 - PUB_EAVE), max = Vector2.new(PUB_X1 + PUB_EAVE, PUB_Z1 + PUB_PATIO_D) },
 		{
 			name = "ClubShop",
 			-- the fascia stands proud of the front wall and the roof cap overhangs 0.5
@@ -674,116 +660,6 @@ local function bindConcourse()
 	state:GetAttributeChangedSignal("AmenityLevel"):Connect(refresh)
 	for _, plot in Config.StandPlots do
 		state:GetAttributeChangedSignal("Stand_" .. plot.key):Connect(refresh)
-	end
-end
-
-local function buildSupportersBar(parent: Instance)
-	local m = model("SupportersBar", parent)
-	local x0, x1, z0, z1 = PUB_X0, PUB_X1, PUB_Z0, PUB_Z1
-	local xc = (x0 + x1) / 2
-	local paint = Color3.fromRGB(28, 58, 44) -- pub green ground floor
-	local cream = Color3.fromRGB(236, 230, 212)
-	extents("Body", x0, x1, GROUND_Y, GROUND_Y + PUB_WALL_H, z0, z1, BRICK, Enum.Material.Brick, m)
-	-- painted ground-floor frontage with two lit windows and a door, then the fascia
-	extents("Frontage", x0 + 0.5, x1 - 0.5, GROUND_Y, GROUND_Y + 6.2, z1, z1 + 0.3, paint, Enum.Material.WoodPlanks, m)
-	for _, wx in { x0 + 6, x1 - 6 } do
-		local glass = extents("Window", wx - 3.5, wx + 3.5, GROUND_Y + 2.0, GROUND_Y + 5.4, z1 + 0.3, z1 + 0.45, Color3.fromRGB(96, 78, 52), Enum.Material.Glass, m)
-		glass.Transparency = 0.1
-	end
-	-- X374: the door was 3.2 x 4.8 studs, so SHORTER than the 5-stud characters
-	-- walking up to it - the single clearest reason the pub read as a doll's
-	-- house. A real door is 0.9 x 2.0 m, which at 2.75 studs/m is 2.5 x 5.5.
-	extents("Door", xc - 1.3, xc + 1.3, GROUND_Y, GROUND_Y + 5.8, z1 + 0.3, z1 + 0.5, Color3.fromRGB(60, 36, 24), Enum.Material.Wood, m)
-	local fascia = clubPaint(extents("Fascia", x0 + 0.5, x1 - 0.5, GROUND_Y + 6.2, GROUND_Y + 8.2, z1, z1 + 0.5, Config.HomeKit, Enum.Material.SmoothPlastic, m))
-	addSign(fascia, "SUPPORTERS' BAR", { Enum.NormalId.Back })
-	for _, wx in { x0 + 6, xc, x1 - 6 } do
-		extents("UpperWindow", wx - 1.6, wx + 1.6, GROUND_Y + 9.2, GROUND_Y + 12.4, z1, z1 + 0.15, cream, Enum.Material.SmoothPlastic, m)
-		extents("UpperPane", wx - 1.3, wx + 1.3, GROUND_Y + 9.5, GROUND_Y + 12.1, z1 + 0.15, z1 + 0.25, Color3.fromRGB(58, 74, 90), Enum.Material.Glass, m)
-		-- X257: a flower box on the sill of every upper window (the reference pubs
-		-- are covered in flowers); it sits proud of the pane, not through it
-		extents("WindowBox", wx - 1.7, wx + 1.7, GROUND_Y + 8.6, GROUND_Y + 9.2, z1 + 0.25, z1 + 1.1,
-			Color3.fromRGB(70, 48, 34), Enum.Material.Wood, m)
-		extents("WindowBlooms", wx - 1.6, wx + 1.6, GROUND_Y + 9.2, GROUND_Y + 9.7, z1 + 0.3, z1 + 1.05,
-			Color3.fromRGB(196, 74, 92), Enum.Material.LeafyGrass, m)
-	end
-	-- X257: two hanging baskets on brackets between the ground-floor windows
-	for _, bx in { x0 + 10.5, x1 - 10.5 } do
-		-- bracket arm from the frontage face (z1 + 0.3), basket hung under it,
-		-- blooms spilling below. Above head height and walk-through, so nobody
-		-- bumps into them on the patio.
-		local bracket = extents("BasketBracket", bx - 0.15, bx + 0.15, GROUND_Y + 7.1, GROUND_Y + 7.4, z1 + 0.3, z1 + 1.6,
-			Color3.fromRGB(24, 26, 30), Enum.Material.Metal, m)
-		local basket = extents("Basket", bx - 0.9, bx + 0.9, GROUND_Y + 6.2, GROUND_Y + 7.1, z1 + 0.7, z1 + 1.5,
-			Color3.fromRGB(70, 48, 34), Enum.Material.Wood, m)
-		local blooms = extents("BasketBlooms", bx - 1.1, bx + 1.1, GROUND_Y + 5.7, GROUND_Y + 6.2, z1 + 0.6, z1 + 1.6,
-			Color3.fromRGB(226, 158, 62), Enum.Material.LeafyGrass, m)
-		bracket.CanCollide = false
-		basket.CanCollide = false
-		blooms.CanCollide = false
-	end
-	-- slate roof: two wedges meeting over the middle of the depth (tall side at local +Z)
-	local zc = (z0 + z1) / 2
-	local half = (z1 - z0) / 2 + PUB_EAVE
-	local roofY = GROUND_Y + PUB_WALL_H + PUB_ROOF_H / 2
-	local length = x1 - x0 + PUB_EAVE * 2
-	for _, side in { -1, 1 } do
-		local wedge = Instance.new("WedgePart")
-		wedge.Name = "Roof"
-		wedge.Anchored = true
-		wedge.Size = Vector3.new(length, PUB_ROOF_H, half)
-		-- the back slope (side -1) rises toward +Z as built; the front one is turned round
-		wedge.CFrame = CFrame.new(xc, roofY, zc + side * half / 2) * (if side > 0 then CFrame.Angles(0, math.pi, 0) else CFrame.identity)
-		wedge.Color = Color3.fromRGB(74, 82, 96)
-		wedge.Material = Enum.Material.Slate
-		wedge.Parent = m
-	end
-	extents("Chimney", x0 + 3, x0 + 5.5, GROUND_Y + PUB_WALL_H + 2, GROUND_Y + PUB_WALL_H + PUB_ROOF_H + 2.5, zc - 1.5, zc + 1.5, BRICK, Enum.Material.Brick, m)
-	-- patio in front, a link to the footpath and two picnic benches
-	local py0, py1 = GROUND_Y, GROUND_Y + PATH_TOP
-	extents("Patio", x0, x1, py0, py1, z1 + 0.5, z1 + PUB_PATIO_D, CONCRETE, Enum.Material.Concrete, m)
-	extents("PatioPath", xc - 2, xc + 2, py0, py1, z1 + PUB_PATIO_D, PATH_Z - PATH_W / 2, CONCRETE, Enum.Material.Concrete, m)
-	-- X115 (RivermereTurnstileEntrance.png's pub): a hanging sign on an iron
-	-- bracket at the east corner, planters either side of the door and a
-	-- chalkboard at the patio's edge
-	local iron = Color3.fromRGB(24, 24, 26)
-	local signX = x1 - 1.5
-	extents("SignBracket", signX - 0.1, signX + 0.1, GROUND_Y + 9.5, GROUND_Y + 9.7, z1, z1 + 3.4, iron, Enum.Material.Metal, m)
-	local sign = clubPaint(extents("HangingSign", signX - 0.08, signX + 0.08, GROUND_Y + 6.2, GROUND_Y + 9.3, z1 + 0.8, z1 + 3.2, Config.HomeKit, Enum.Material.Wood, m))
-	addSign(sign, "SUPPORTERS' BAR", { Enum.NormalId.Left, Enum.NormalId.Right })
-	for _, px in { xc - 3.2, xc + 3.2 } do
-		extents("Planter", px - 0.8, px + 0.8, py1, py1 + 1.3, z1 + 0.7, z1 + 1.9, Color3.fromRGB(58, 60, 64), Enum.Material.Concrete, m)
-		local shrub = box("PlanterShrub", Vector3.one * 1.8, CFrame.new(px, py1 + 1.3 + 0.6, z1 + 1.3), Color3.fromRGB(64, 108, 52), Enum.Material.LeafyGrass, m)
-		shrub.Shape = Enum.PartType.Ball
-		shrub.CastShadow = false
-	end
-	local chalk = extents("Chalkboard", x1 - 2.2, x1 - 0.4, py1, py1 + 3, z1 + 6.6, z1 + 6.75, Color3.fromRGB(34, 38, 36), Enum.Material.Wood, m)
-	local gui = Instance.new("SurfaceGui")
-	gui.Face = Enum.NormalId.Back -- +Z, toward the footpath
-	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 40
-	gui.Parent = chalk
-	local words = Instance.new("TextLabel")
-	words.BackgroundTransparency = 1
-	words.Size = UDim2.fromScale(0.86, 0.86)
-	words.Position = UDim2.fromScale(0.07, 0.07)
-	words.Font = Enum.Font.PatrickHand
-	words.TextScaled = true
-	words.TextWrapped = true
-	words.TextColor3 = Color3.fromRGB(244, 240, 228)
-	words.Text = "Good Food Great Company All Welcome"
-	words.Parent = gui
-
-	local wood = Color3.fromRGB(140, 104, 68)
-	for _, bx in { x0 + 5, x1 - 5 } do
-		local bz = z1 + 4.6
-		-- solid end frames carry the top and both seats
-		for _, ex in { bx - 2, bx + 2 } do
-			extents("PicnicFrame", ex - 0.15, ex + 0.15, py1, py1 + 2.4, bz - 2.7, bz + 2.7, wood, Enum.Material.Wood, m)
-		end
-		extents("PicnicTop", bx - 2.5, bx + 2.5, py1 + 2.4, py1 + 2.7, bz - 1.2, bz + 1.2, wood, Enum.Material.Wood, m)
-		for _, sz in { -1, 1 } do
-			extents("PicnicSeat", bx - 2.5, bx + 2.5, py1 + 1.3, py1 + 1.55, bz + sz * 2.3 - 0.45, bz + sz * 2.3 + 0.45, wood, Enum.Material.Wood, m)
-		end
 	end
 end
 
@@ -1687,7 +1563,6 @@ function PlotGrounds.plantingKeepOut(): { GroundsPlanting.Rect }
 	add("CarParkLinkNorth", LINK_X0, LINK_X1, PATH_Z + hw, CLUBHOUSE_SIDE_APRON.z0, false)
 	add("PathSWTurnstiles", PARK_X1, GROUND_WALL_X, SW_PATH_Z - hw, SW_PATH_Z + hw, false)
 	add("ShopApron", SHOP_CX + SHOP_W / 2, PATH_X, SHOP_CZ - SHOP_D / 2 + 17, SHOP_CZ - SHOP_D / 2 + 31, false)
-	add("PatioPath", (PUB_X0 + PUB_X1) / 2 - 2, (PUB_X0 + PUB_X1) / 2 + 2, PUB_Z1, PATH_Z, false)
 	-- the pathside oaks, bushes and lamps already fill this strip
 	add("Pathside", -HALF, PATH_X, PATH_Z - PATH_TREE_SIDE - 4, PATH_Z + PATH_TREE_SIDE + 4, false)
 	add("AccessRoad", ROAD_START_X, PARK_X0, ROAD_Z - ROAD_W / 2 - ROAD_PAVE_W, ROAD_Z + ROAD_W / 2 + ROAD_PAVE_W, false)
@@ -1724,7 +1599,9 @@ function PlotGrounds.build(club: Model): Model
 	buildPathside(grounds)
 	buildConcourse(grounds) -- #7
 	buildBorders(grounds)
-	buildSupportersBar(grounds)
+	-- #16: the Supporters' Bar moved off the plot onto town land, opposite the
+	-- pedestrian gate (TownLayout.DISTRICTS "pub" blocks near each plot); its old
+	-- site is one of GroundsPlanting's zones (#22)
 	buildFlagpoles(grounds) -- #22
 	buildAcademy(grounds) -- X289
 	-- oaks, hedges, bushes and boulders everywhere else; the seed varies the groves per plot

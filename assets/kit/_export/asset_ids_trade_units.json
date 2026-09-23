@@ -1,0 +1,106 @@
+{
+ "HOUSE__flats_a__masonry.glb": {
+  "assetId": "100514612226411",
+  "name": "HOUSE flats_a masonry"
+ },
+ "HOUSE__flats_a__roof.glb": {
+  "assetId": "116687813698909",
+  "name": "HOUSE flats_a roof"
+ },
+ "HOUSE__flats_a__trim.glb": {
+  "assetId": "102088018166759",
+  "name": "HOUSE flats_a trim"
+ },
+ "HOUSE__flats_b__masonry.glb": {
+  "assetId": "91077521303337",
+  "name": "HOUSE flats_b masonry"
+ },
+ "HOUSE__flats_b__roof.glb": {
+  "assetId": "103565257168784",
+  "name": "HOUSE flats_b roof"
+ },
+ "HOUSE__flats_b__trim.glb": {
+  "assetId": "127437860982684",
+  "name": "HOUSE flats_b trim"
+ },
+ "HOUSE__parade_n2_s2__masonry.glb": {
+  "assetId": "71488588979676",
+  "name": "HOUSE parade_n2_s2 masonry"
+ },
+ "HOUSE__parade_n2_s2__trim.glb": {
+  "assetId": "74896382423490",
+  "name": "HOUSE parade_n2_s2 trim"
+ },
+ "HOUSE__parade_n2_s3__masonry.glb": {
+  "assetId": "93935470707445",
+  "name": "HOUSE parade_n2_s3 masonry"
+ },
+ "HOUSE__parade_n2_s3__trim.glb": {
+  "assetId": "115867536228201",
+  "name": "HOUSE parade_n2_s3 trim"
+ },
+ "HOUSE__parade_n5_s2__masonry.glb": {
+  "assetId": "105327693666749",
+  "name": "HOUSE parade_n5_s2 masonry"
+ },
+ "HOUSE__parade_n5_s2__trim.glb": {
+  "assetId": "135593905123374",
+  "name": "HOUSE parade_n5_s2 trim"
+ },
+ "HOUSE__parade_n5_s3__masonry.glb": {
+  "assetId": "88130849806740",
+  "name": "HOUSE parade_n5_s3 masonry"
+ },
+ "HOUSE__parade_n5_s3__trim.glb": {
+  "assetId": "123549554988754",
+  "name": "HOUSE parade_n5_s3 trim"
+ },
+ "HOUSE__parade_n8_s2__masonry.glb": {
+  "assetId": "87058423559854",
+  "name": "HOUSE parade_n8_s2 masonry"
+ },
+ "HOUSE__parade_n8_s2__trim.glb": {
+  "assetId": "88178580260467",
+  "name": "HOUSE parade_n8_s2 trim"
+ },
+ "HOUSE__parade_n8_s3__masonry.glb": {
+  "assetId": "76794547004127",
+  "name": "HOUSE parade_n8_s3 masonry"
+ },
+ "HOUSE__parade_n8_s3__trim.glb": {
+  "assetId": "96850900713123",
+  "name": "HOUSE parade_n8_s3 trim"
+ },
+ "HOUSE__parade_n11_s2__masonry.glb": {
+  "assetId": "127885991706989",
+  "name": "HOUSE parade_n11_s2 masonry"
+ },
+ "HOUSE__parade_n11_s2__trim.glb": {
+  "assetId": "111178913742543",
+  "name": "HOUSE parade_n11_s2 trim"
+ },
+ "HOUSE__parade_n11_s3__masonry.glb": {
+  "assetId": "83664162666453",
+  "name": "HOUSE parade_n11_s3 masonry"
+ },
+ "HOUSE__parade_n11_s3__trim.glb": {
+  "assetId": "131392179107397",
+  "name": "HOUSE parade_n11_s3 trim"
+ },
+ "HOUSE__parade_n15_s2__masonry.glb": {
+  "assetId": "107988241899700",
+  "name": "HOUSE parade_n15_s2 masonry"
+ },
+ "HOUSE__parade_n15_s2__trim.glb": {
+  "assetId": "80574306059358",
+  "name": "HOUSE parade_n15_s2 trim"
+ },
+ "HOUSE__parade_n15_s3__masonry.glb": {
+  "assetId": "91729946753213",
+  "name": "HOUSE parade_n15_s3 masonry"
+ },
+ "HOUSE__parade_n15_s3__trim.glb": {
+  "assetId": "107490931175718",
+  "name": "HOUSE parade_n15_s3 trim"
+ }
+}

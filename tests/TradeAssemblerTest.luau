@@ -127,4 +127,41 @@ function T.districtFilterBuildsOnlyThatDistrictWithinBudget()
 	assert(ok, err)
 end
 
+-- #16: every pub gets the invisible front TownLife hangs matchday drinkers on; a signed pub
+-- (the Supporters' Bar) also gets a forecourt beside the lot with a path to the pavement and
+-- its hanging sign.
+function T.pubsGetADrinkersFrontAndTheSupportersBarItsForecourt()
+	local layout = require(ReplicatedStorage.Shared.TownLayout)
+	local signed = nil
+	for _, lot in TradeRecipes.lots(nil, layout) do
+		if lot.sign then
+			signed = lot
+			break
+		end
+	end
+	assert(signed, "no signed pub in TownLayout")
+	local folder = scratch()
+	local ok, err = pcall(function()
+		local model = TradeAssembler.buildLot(folder, ORIGIN, signed :: TradeRecipes.Lot)
+		local marker = model:FindFirstChild("ShopfrontPub", true) :: BasePart?
+		assert(marker and marker:GetAttribute("Front") == "shop_front_pub", "no pub front marker")
+		assert((marker :: BasePart).Transparency == 1, "the marker must be invisible")
+		-- its -X (where TownLife puts the drinkers) points out of the front, towards the street
+		local out = -(marker :: BasePart).CFrame.XVector
+		assert(out:Dot((signed :: TradeRecipes.Lot).front) > 0.99, "the drinkers' side faces away from the street")
+		local forecourt = folder:FindFirstChild((signed :: TradeRecipes.Lot).id .. "|Forecourt")
+		assert(forecourt, "no forecourt beside the Supporters' Bar")
+		for _, name in { "Terrace", "Path", "PubSign", "SignPost" } do
+			assert(forecourt:FindFirstChild(name, true), "forecourt has no " .. name)
+		end
+		local path = forecourt:FindFirstChild("Path") :: BasePart
+		assert(path.Size.Z > 10, ("the path is only %.1f long"):format(path.Size.Z))
+		local plain = TradeAssembler.buildLot(folder, ORIGIN, firstOf("pub"))
+		assert(plain:FindFirstChild("ShopfrontPub", true), "a town pub has no front marker")
+		assert(not folder:FindFirstChild(firstOf("pub").id .. "|Forecourt"), "an unsigned pub got a forecourt")
+	end)
+	folder:Destroy()
+	assert(ok, err)
+end
+
 return T

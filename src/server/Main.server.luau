@@ -234,6 +234,7 @@ do
 	require(script.Parent.HouseAssembler).build(holder("V3Housing"), origin, nil)
 	task.wait()
 	require(script.Parent.TradeAssembler).build(holder("V3Trade"), origin, nil)
+	print(("[FCT] Trade: %d industrial yards paved"):format(require(script.Parent.TradeAssembler).paveYards(origin))) -- #39a
 	task.wait()
 	require(script.Parent.StreetFurniture).build(holder("V3Furniture"), origin, nil)
 	task.wait()
@@ -276,9 +277,14 @@ print("[FCT] " .. require(script.Parent.SignDresser).build())
 task.wait()
 print("[FCT] " .. require(script.Parent.CentreTreeDresser).build())
 task.wait()
+print("[FCT] " .. require(script.Parent.StreetTrees).build()) -- #28
+task.wait()
 print("[FCT] " .. require(script.Parent.GreeneryDresser).build())
 task.wait()
 print("[FCT] " .. require(script.Parent.GatewayDresser).build())
+task.wait()
+-- #27: last, once every building lot exists: the low-detail town past the streaming radius
+print("[FCT] " .. select(2, require(script.Parent.TownStandIns).build(workspace:WaitForChild("Town"))))
 task.wait()
 print("[FCT] " .. require(script.Parent.ClientKit).publish())
 PlotService.start()

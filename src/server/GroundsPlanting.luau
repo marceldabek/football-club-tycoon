@@ -152,9 +152,7 @@ end
 -- #22 (ground plan spec s5 "Planting", tools/ground_plan.py's hatched areas):
 -- the bare lawns named in the spec, each filled with a few oaks and bushes by
 -- seeded rejection against the keep-out, like the groves. The old Supporters'
--- Bar site is one of them: while the bar still stands there its keep-out
--- (PlotGrounds footprint "SupportersBar") keeps the planting off it, and the
--- site fills in by itself once the bar moves across the street (#16).
+-- Bar site is one of them: the bar moved across the street onto town land (#16).
 -- TEMP counts: with the groves cut from 14 to 8 a plot keeps under ~70 oaks.
 export type Zone = { name: string, x0: number, x1: number, z0: number, z1: number, trees: number, bushes: number }
 GroundsPlanting.ZONES = {

@@ -75,7 +75,10 @@ export type Road = {
 }
 export type River = { name: string, width: number, points: { Vector3 } }
 export type Bridge = { name: string, kind: "road" | "rail" | "foot", from: Vector3, to: Vector3, width: number }
-export type Box = { centre: Vector3, size: Vector3, yaw: number, use: string }
+-- `front` (optional): the way the building faces, when it must face a particular street rather
+-- than the nearest one (#16: each Supporters' Bar faces its plot's gate). `sign`: a hanging pub
+-- sign with this name at the pavement (TradeAssembler / PubDressing).
+export type Box = { centre: Vector3, size: Vector3, yaw: number, use: string, front: Vector3?, sign: string? }
 export type Station = { name: string, centre: Vector3, size: Vector3, yaw: number }
 export type Rail = { width: number, points: { Vector3 }, station: Station }
 export type District = { name: string, kind: string, blocks: { Box } }
@@ -964,6 +967,9 @@ TownLayout.DISTRICTS = {
 		blocks = {
 			{ centre = Vector3.new(-1110, 15, 1025), size = Vector3.new(140, 30, 90), yaw = 0, use = "school" }, -- v3: new
 			{ centre = Vector3.new(-940, 0.5, 1175), size = Vector3.new(140, 1, 80), yaw = 0, use = "park" }, -- v3: new; junction moves: was x -820, Westdale Road now runs at x -850, so the park sits on its west side
+			-- #16: the plot's Supporters' Bar, moved off the plot onto town land
+			-- opposite Plot 3's pedestrian gate (plot-local x -482..-447, z -32..8)
+			{ centre = Vector3.new(-1768, 17, 491), size = Vector3.new(40, 34, 35), yaw = 0, use = "pub", front = Vector3.new(0, 0, 1), sign = "SUPPORTERS' BAR" },
 		},
 	},
 	{
@@ -981,18 +987,29 @@ TownLayout.DISTRICTS = {
 	{
 		name = "Mapleford",
 		kind = "estate",
-		blocks = {}, -- all generated: see TownFrontage
+		-- #16: the plot's Supporters' Bar, moved off the plot onto town land
+		-- opposite Plot 4's pedestrian gate (plot-local x -482..-447, z -32..8)
+		blocks = {
+			{ centre = Vector3.new(-1281, 17, -1118), size = Vector3.new(40, 34, 35), yaw = 90, use = "pub", front = Vector3.new(-1, 0, 0), sign = "SUPPORTERS' BAR" },
+		},
 	},
 	{
 		name = "Millbrook",
 		kind = "estate",
-		blocks = {}, -- all generated: see TownFrontage
+		-- #16: the plot's Supporters' Bar, moved off the plot onto town land
+		-- opposite Plot 2's pedestrian gate (plot-local x -482..-447, z -32..8)
+		blocks = {
+			{ centre = Vector3.new(1331, 17, -1172), size = Vector3.new(40, 34, 35), yaw = 90, use = "pub", front = Vector3.new(1, 0, 0), sign = "SUPPORTERS' BAR" },
+		},
 	},
 	{
 		name = "Hollingford",
 		kind = "estate",
 		blocks = {
 			{ centre = Vector3.new(1600, 0.5, 80), size = Vector3.new(120, 1, 120), yaw = 45, use = "park" }, -- v3: new, the river meadow, square to the 45-degree estate
+			-- #16: the plot's Supporters' Bar, moved off the plot onto town land
+			-- opposite Plot 1's pedestrian gate (plot-local x -482..-447, z -32..8)
+			{ centre = Vector3.new(1062, 17, 731), size = Vector3.new(40, 34, 35), yaw = 0, use = "pub", front = Vector3.new(0, 0, 1), sign = "SUPPORTERS' BAR" },
 		},
 	},
 } :: { District }

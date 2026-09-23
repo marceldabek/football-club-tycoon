@@ -166,14 +166,33 @@ local function chimney(x: number, once: boolean?): Piece
 	}
 end
 
--- Back wall (one plain wall at double scale covers 2 modules x 2 storeys) and a two-slope roof
--- with each slope stretched across both modules: 3 parts for the whole rear and top of a unit.
+-- The rear of every unit: a kitchen window and a wider living-room window downstairs, two
+-- bedroom windows up (#32: backs were one blank wall, and a terrace facing the Lune showed the
+-- river a row of blind brick). Brick face on the grid line like the fronts. Merged units make
+-- this free; the module-by-module fallback builds one stretched blank wall per row instead
+-- (backSpan "row"), as it always did.
+HouseRecipes.BACK_WINDOWS = {
+	{ piece = "Wall_Window_D", x = H, storey = 0 },
+	{ piece = "Wall_Window_B", x = -H, storey = 0 },
+	{ piece = "Wall_Window_C", x = H, storey = 1 },
+	{ piece = "Wall_Window_C", x = -H, storey = 1 },
+}
+
+-- Back wall (four windowed modules) and a two-slope roof with each slope stretched across both
+-- modules.
 local function shell(): { Piece }
-	return {
-		{ piece = "Wall_A", offset = Vector3.new(0, 0, BACK_Z), yaw = 180, role = "back", tier = 1, scale = 2 },
+	local pieces: { Piece } = {}
+	for _, w in HouseRecipes.BACK_WINDOWS do
+		local z = BACK_Z - (HouseRecipes.BRICK_PLANE[w.piece] or 0)
+		table.insert(pieces, { piece = w.piece, offset = Vector3.new(w.x, w.storey * M, z), yaw = 180, role = "back", tier = 1 })
+	end
+	for _, p in {
 		{ piece = "Roof_A", offset = Vector3.new(0, 2 * M, -H - 0.17), yaw = 0, role = "roof", tier = 1, stretchX = 2 },
 		{ piece = "Roof_A", offset = Vector3.new(0, 2 * M, H + 0.17), yaw = 180, role = "roof", tier = 1, stretchX = 2 },
-	}
+	} :: { Piece } do
+		table.insert(pieces, p)
+	end
+	return pieces
 end
 
 -- One gable end. side = -1 closes the -X end, +1 the +X end. `windowed` is the street-facing
@@ -230,7 +249,8 @@ local function recipe(id: string, kind: any, doorX: number, fronts: { Piece }, e
 		end
 	end
 	if ends then
-		pieces = concat(pieces, HouseRecipes.endCap(-1, true), HouseRecipes.endCap(1, false))
+		-- windows in both gables (#32): a detached house is seen from every side
+		pieces = concat(pieces, HouseRecipes.endCap(-1, true), HouseRecipes.endCap(1, true))
 	end
 	return { id = id, kind = kind, body = HouseRecipes.BODY, doorX = doorX, doorShift = doorShift, ends = ends, pieces = pieces }
 end

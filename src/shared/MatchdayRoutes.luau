@@ -380,27 +380,6 @@ function MatchdayRoutes.queueSpots(count: number): { CFrame }
 	return out
 end
 
--- X125: supporters standing with drinks on the supporters' bar patio
--- (PlotGrounds X97: patio x -372..-344, z -37.5..-30; picnic benches at x
--- -367 and -349, each 5 long) while the crowd is out. A huddle between the
--- benches, each facing its centre. Pitch-local ground CFrames.
-MatchdayRoutes.BAR_HUDDLE = Vector3.new(-358, 0.3, -33.8)
--- X371: four drinkers stand on this circle. The old block figures were about 2
--- studs wide with no arms, so 1.9 worked; a real R6 rig is 4 studs across the
--- shoulders, which at 1.9 put them inside each other. 3.4 gives four of them
--- about half a stud of daylight.
-MatchdayRoutes.BAR_HUDDLE_RADIUS = 3.4
-function MatchdayRoutes.barDrinkerSpots(count: number): { CFrame }
-	local out = {}
-	local c = MatchdayRoutes.BAR_HUDDLE
-	for i = 1, count do
-		local a = (i - 1) / count * math.pi * 2 + 0.4
-		local p = c + Vector3.new(math.cos(a), 0, math.sin(a)) * MatchdayRoutes.BAR_HUDDLE_RADIUS
-		table.insert(out, CFrame.lookAt(p, Vector3.new(c.X, p.Y, c.Z)))
-	end
-	return out
-end
-
 -- X318: fans at the catering the player buys, and nobody stood about while
 -- the fans who walk in vanish at the gate. Lane A2 (#7): the old concourse hut
 -- is gone; the queue is at the burger van's hatch (ConcourseLayout.hatchQueue)
