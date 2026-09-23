@@ -413,11 +413,18 @@ local function showSeason(data)
 	-- tallest card a phone can take, so it lost its last line. Names are dropped
 	-- (and counted in the "+N more" line instead) until the text fits.
 	local text, measured = "", Vector2.zero
-	local perBlock = if count(data.retirements) > 0 and count(data.arrivals) > 0 then 2 else 3
+	local blocks = 0
+	for _, list in { data.retirements, data.arrivals, data.recovered } do
+		if count(list) > 0 then
+			blocks += 1
+		end
+	end
+	local perBlock = if blocks >= 2 then 2 else 3
 	while true do
 		local all = table.clone(lines)
 		block(all, perBlock, data.retirements, "+%d more retired.")
 		block(all, perBlock, data.arrivals, "+%d more came up from the academy.")
+		block(all, perBlock, data.recovered, "+%d more back from injury.")
 		text = table.concat(all, "\n")
 		measured = TextService:GetTextSize((text:gsub("<[^>]->", "")), 17, Theme.fonts.body, Vector2.new(480 - 40, math.huge))
 		if measured.Y + 150 <= 520 or perBlock <= 1 then

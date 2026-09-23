@@ -1208,4 +1208,19 @@ function T.packOddsAreDocumented()
 	end
 end
 
+-- X367: a player hurt late in the season must not miss the next season's
+-- opening rounds, and the card needs to know who came back.
+function T.newSeasonHealsInjuries()
+	local players = Squad.generate(16, 51)
+	players[3].injured = 3
+	players[7].injured = 1
+	local healed = Squad.healAll(players)
+	assert(#healed == 2, ("expected 2 healed, got %d"):format(#healed))
+	assert(healed[1].id == players[3].id and healed[2].id == players[7].id, "healed list is not in squad order")
+	for _, p in players do
+		assert(p.injured == 0, p.name .. " is still injured after the rollover")
+	end
+	assert(#Squad.healAll(players) == 0, "a fit squad reported someone healed")
+end
+
 return T

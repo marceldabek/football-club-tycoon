@@ -743,12 +743,16 @@ function ClubService.considerBid()
 end
 
 -- New season housekeeping (Milestone 4 calls this).
--- Returns the season card's two lists — who retired (X277) and who came up to
--- replace them — and the retired players themselves, so the club can keep them
--- in its history (X288).
-function ClubService.newSeason(): ({ string }, { string }, { Squad.Player })
+-- Returns the season card's lists — who retired (X277), who came up to replace
+-- them and who is back from injury (X367) — and the retired players themselves,
+-- so the club can keep them in its history (X288).
+function ClubService.newSeason(): ({ string }, { string }, { Squad.Player }, { string })
 	Squad.ageAll(players)
 	local retired = Squad.retireVeterans(players, rng)
+	local recovered: { string } = {}
+	for _, p in Squad.healAll(players) do
+		table.insert(recovered, ("%s is fit again for the new season."):format(p.name))
+	end
 	local news: { string } = {}
 	for _, p in retired do
 		table.insert(news, ("%s retires at %d (%d app%s, %d goal%s)."):format(
@@ -784,7 +788,7 @@ function ClubService.newSeason(): ({ string }, { string }, { Squad.Player })
 	ClubState.set("Academy", HttpService:JSONEncode(intake))
 	recomputeLineup()
 	publish()
-	return news, arrivals, retired
+	return news, arrivals, retired, recovered
 end
 
 function ClubService.coachLevel(): number

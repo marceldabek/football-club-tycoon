@@ -686,6 +686,22 @@ function Squad.ageAll(players: { Player })
 	end
 end
 
+-- X367: the close season heals everyone. Injuries only count down in
+-- afterMatch, so a player hurt in round 10 used to miss the opening rounds of
+-- the next season with nothing on screen saying why. TEMP: a full heal; a
+-- long-term injury carrying over is a later design call. Returns the players
+-- who were injured, in squad order, for the season card.
+function Squad.healAll(players: { Player }): { Player }
+	local healed: { Player } = {}
+	for _, p in players do
+		if p.injured > 0 then
+			p.injured = 0
+			table.insert(healed, p)
+		end
+	end
+	return healed
+end
+
 -- X277: the end of a career. Called right after ageAll, so a player who has
 -- just turned RetireAge can go in the same summer. Removes the retirees from
 -- `players` (which frees their shirt number, see Squad.freeNumber) and returns

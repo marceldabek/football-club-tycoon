@@ -46,6 +46,7 @@ export type SeasonSummary = {
 	nextTier: number,
 	retirements: { string }, -- X277: who hung up their boots at the end of it
 	arrivals: { string }, -- and who came up from the academy to replace them
+	recovered: { string }, -- X367: who the close season healed
 }
 
 local function publishTable()
@@ -296,7 +297,7 @@ function SeasonService.endSeason(): SeasonSummary
 	-- X262: drift toward the new division's baseline before the next season
 	popularity = Economy.popularityAtSeasonEnd(popularity, tier)
 	seasonNumber += 1
-	local retirements, arrivals, retired = ClubService.newSeason()
+	local retirements, arrivals, retired, recovered = ClubService.newSeason()
 	HistoryService.recordRetirements(retired, oldSeason)
 	startSeason()
 	publish()
@@ -311,6 +312,7 @@ function SeasonService.endSeason(): SeasonSummary
 		nextTier = tier,
 		retirements = retirements,
 		arrivals = arrivals,
+		recovered = recovered,
 	}
 end
 
