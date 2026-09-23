@@ -248,14 +248,12 @@ local function buildBarriers(crowd: PlotCrowd)
 end
 
 -- X93: an outside-broadcast van with a dish and a mast once the club draws a
--- crowd (MatchdayRoutes.hasMedia). 7 parts, torn down with the stewards.
-local function buildMediaVan(crowd: PlotCrowd)
-	if not MatchdayRoutes.hasMedia(numberAttribute(crowd.folder, "Tier"), numberAttribute(crowd.folder, "Attendance")) then
-		return
-	end
-	local model = Instance.new("Model")
-	model.Name = "MediaVan"
-	local base = crowd.plotCFrame * MatchdayRoutes.MEDIA_VAN * CFrame.new(0, 0.3, 0) -- forecourt paving; nose to local -Z
+-- crowd (MatchdayRoutes.hasMedia), torn down with the stewards. X393
+-- (playtest #8): ClientKit.Van (the 71-part kit transit van, scaled down) and
+-- ClientKit.Dish (a generated mesh) if published; the original 7-part
+-- primitive stays as the fallback.
+local VAN_SCALE = 0.62 -- 26.6 x 12 x 9.3 raw -> ~16.5 x 7.4 x 5.8, a panel-van footprint
+local function buildMediaVanPrimitive(model: Model, base: CFrame)
 	local white = Color3.fromRGB(232, 234, 238)
 	part("Body", Vector3.new(6.4, 6.8, 11), white, model).CFrame = base * CFrame.new(0, 4.4, 1.5)
 	part("Cab", Vector3.new(6.4, 4.6, 3.6), white, model).CFrame = base * CFrame.new(0, 3.3, -5.8)
@@ -266,6 +264,38 @@ local function buildMediaVan(crowd: PlotCrowd)
 	dish.Shape = Enum.PartType.Cylinder
 	dish.CFrame = base * CFrame.new(-1.2, 9.4, -1) * CFrame.Angles(0, 0, math.rad(55))
 	part("Wheels", Vector3.new(6.8, 2.2, 9), Color3.fromRGB(24, 24, 26), model).CFrame = base * CFrame.new(0, 1.1, 0)
+end
+
+local function buildMediaVan(crowd: PlotCrowd)
+	if not MatchdayRoutes.hasMedia(numberAttribute(crowd.folder, "Tier"), numberAttribute(crowd.folder, "Attendance")) then
+		return
+	end
+	local model = Instance.new("Model")
+	model.Name = "MediaVan"
+	local base = crowd.plotCFrame * MatchdayRoutes.MEDIA_VAN * CFrame.new(0, 0.3, 0) -- forecourt paving; nose to local -Z
+	local clientKit = ReplicatedStorage:FindFirstChild("ClientKit")
+	local vanTemplate = clientKit and clientKit:FindFirstChild("Van")
+	local dishTemplate = clientKit and clientKit:FindFirstChild("Dish")
+	if vanTemplate then
+		local van = vanTemplate:Clone()
+		van.Name = "Van"
+		-- raw front is -X; base's nose is local -Z, so turn -90 about Y
+		van:PivotTo(base * CFrame.Angles(0, -math.pi / 2, 0))
+		van:ScaleTo(VAN_SCALE)
+		local _, size = van:GetBoundingBox()
+		van:PivotTo(base * CFrame.new(0, size.Y / 2, 0) * CFrame.Angles(0, -math.pi / 2, 0))
+		van.Parent = model
+		if dishTemplate then
+			local dish = dishTemplate:Clone()
+			dish.Name = "Dish"
+			dish:PivotTo(base * CFrame.new(1.6, size.Y + 1.4, 0.5))
+			dish.Parent = model
+		end
+		local mast = part("Mast", Vector3.new(0.3, 1.6, 0.3), Color3.fromRGB(150, 152, 156), model)
+		mast.CFrame = base * CFrame.new(1.6, size.Y + 0.7, 0.5)
+	else
+		buildMediaVanPrimitive(model, base)
+	end
 	model.Parent = crowd.model
 	table.insert(crowd.stewards, model)
 end
