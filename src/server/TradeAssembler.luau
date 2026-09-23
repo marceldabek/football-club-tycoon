@@ -18,6 +18,13 @@ local TradeAssembler = {}
 
 TradeAssembler.PART_BUDGET = 4000 -- MeshParts, whole town (section 9, published by Lane P)
 
+-- #39a: industrial lots are mostly hardstanding in real life, not lawn. A plain tarmac slab
+-- under the whole lot (same primitive-Part pattern as the EH1 core) so the yard reads as a
+-- yard instead of grass showing through around the shed and its scattered props.
+local YARD_GROUND_USES = { workshop = true, ["trade counter"] = true, warehouse = true, ["builders yard"] = true }
+local YARD_GROUND_COLOR = Color3.fromRGB(90, 90, 94)
+local YARD_GROUND_INSET = 1.5
+
 -- The 67 MEH modular pieces were uploaded without their trim-sheet SurfaceAppearance (Question P3).
 -- The prefab houses carry the same trim sheet, and the modular UVs match it (checked in Studio), so
 -- until the pieces are re-exported the sheet is borrowed from a prefab. Harmless once they are
@@ -111,6 +118,23 @@ function TradeAssembler.buildLot(parent: Instance, origin: CFrame, lot: TradeRec
 	end
 	local frame = TradeAssembler.lotFrame(origin, lot)
 	local trim = if TradeRecipes.seedOf(lot.id) % 3 == 0 then 2 else 1
+
+	if YARD_GROUND_USES[lot.use] then
+		local ground = Instance.new("Part")
+		ground.Name = "YardGround"
+		ground.Anchored = true
+		ground.CanCollide = false
+		ground.CanQuery = false
+		ground.CanTouch = false
+		ground.CastShadow = false
+		ground.Material = Enum.Material.Asphalt
+		ground.Color = YARD_GROUND_COLOR
+		-- top at 0.3, matching TownBuilder's flat-district-piece convention (car park, lawns)
+		ground.Size = Vector3.new(math.max(lot.size.X - YARD_GROUND_INSET * 2, 1), 0.3, math.max(lot.size.Z - YARD_GROUND_INSET * 2, 1))
+		ground.CFrame = frame * CFrame.new(0, 0.15, 0)
+		ground:SetAttribute("V3Exempt", "EC2")
+		ground.Parent = model
+	end
 	local pieces = recipe.pieces
 	if recipe.fallback then
 		for _, piece in pieces do

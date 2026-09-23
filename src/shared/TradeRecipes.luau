@@ -413,20 +413,30 @@ local YARD = {
 	"UKSP__ConcreteBarriers__BarrierA01",
 }
 
--- Scatters `count` yard props on a grid over the forecourt rectangle, and fences both lot sides.
+-- Scatters `count` yard props over the forecourt rectangle in loose stacks, and fences both
+-- lot sides. #39b: columns are capped so props wrap into more than one row/bay instead of
+-- lining up in a single row along the front, and both axes jitter so they read as scattered
+-- stacks rather than a placed grid.
 local function yard(pieces: { Piece }, rng: Random, lot: Lot, z0: number, z1: number, count: number)
 	local halfW = lot.size.X / 2
-	local cols = math.max(1, math.floor((lot.size.X - 16) / 14))
+	local cols = math.clamp(math.floor((lot.size.X - 16) / 14), 1, 3)
 	local start = rng:NextInteger(1, #YARD)
 	for i = 0, count - 1 do
 		local col = i % cols
 		local row = i // cols
-		local x = -halfW + 12 + col * 14 + rng:NextNumber(-1.5, 1.5)
-		local z = z0 + 7 + row * 11
+		local x = -halfW + 12 + col * 14 + rng:NextNumber(-1.8, 1.8)
+		local z = z0 + 7 + row * 11 + rng:NextNumber(-2, 2)
 		if z + 5 > z1 then
 			break
 		end
-		add(pieces, YARD[(start + i) % #YARD + 1], x, 0, z, rng:NextInteger(0, 3) * 90)
+		local kit = YARD[(start + i) % #YARD + 1]
+		local yaw = rng:NextInteger(0, 3) * 90
+		if kit == "ForkliftYellow" then
+			-- #39c: the kit mesh's pivot is baked 135 degrees off the chassis, so it was
+			-- rendering diagonally (a bigger, crooked-looking footprint than the real body)
+			yaw -= 135
+		end
+		add(pieces, kit, x, 0, z, yaw)
 	end
 	local panels = math.floor((z1 - z0) / 8.3)
 	for i = 0, panels - 1 do
