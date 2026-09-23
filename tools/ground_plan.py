@@ -552,7 +552,8 @@ def proposed_common(c, tier):
     c.rect(-234, -ROUND_Z - 4, ROUND_E + 4, -ROUND_Z + 4, **P)         # loop north
     c.rect(-234, PATH_N_Z - 4, -226, -ROUND_Z + 4, **P)      # loop west (north half)
     c.rect(276, 178, 284, ROUND_Z - 4, **P)
-    c.rect(ROUND_E, ROUND_Z - 4, 284, ROUND_Z + 4, **P)
+    c.rect(ROUND_E, ROUND_Z - 4, 352, ROUND_Z + 4, **P)      # spur on east to the academy hut's path
+    c.rect(344, 100, 352, ROUND_Z - 4, **P)                   # #23a: up to the academy hut's door (south end)
     c.rect(276, 16, 284, 178, **P)                           # inside the training fence to the door
     c.rect(-4, ENV_N - 8, 4, -ROUND_Z + 4, **P)              # north exit gate → loop
     c.rect(ENV_E, -4, ROUND_E - 4, 4, **P)                   # east exit gate → loop
@@ -587,6 +588,9 @@ def proposed_common(c, tier):
         c.rect(279, 15.5, 285, 16.5, fill=C["door"])
         c.text(280, 0, "ATHLETIC CENTRE 80 × 32\n" + ("coach's office · gym · changing" if tier == 2
                                                     else "coach's office · gym · physio · changing"), 7, bold=True)
+    c.rect(341, 90, 355, 100, fill=C["building"], stroke=C["wall"], sw=0.8)   # the academy hut (X289), door in its south end
+    c.rect(346.5, 99.5, 349.5, 100.5, fill=C["door"])
+    c.text(372, 95, "academy\nhut", 5)
     c.rect(342, -60, 376, 60, stroke=C["wall"], sw=0.8, dash="3,2")
     c.text(359, 0, "future\nacademy /\nyouth", 6, rot=90)
     c.rect(277, 177, 283, 179, fill=C["door"])

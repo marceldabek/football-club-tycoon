@@ -77,7 +77,8 @@
 <polygon points="332.5,168.8 895.0,168.8 895.0,178.8 332.5,178.8" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
 <polygon points="332.5,273.8 342.5,273.8 342.5,178.8 332.5,178.8" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
 <polygon points="970.0,735.0 980.0,735.0 980.0,846.2 970.0,846.2" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
-<polygon points="890.0,846.2 980.0,846.2 980.0,856.2 890.0,856.2" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="890.0,846.2 1065.0,846.2 1065.0,856.2 890.0,856.2" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
+<polygon points="1055.0,637.5 1065.0,637.5 1065.0,846.2 1055.0,846.2" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
 <polygon points="970.0,532.5 980.0,532.5 980.0,735.0 970.0,735.0" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
 <polygon points="620.0,178.8 630.0,178.8 630.0,178.8 620.0,178.8" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
 <polygon points="876.2,507.5 885.0,507.5 885.0,517.5 876.2,517.5" fill="#e9e4d4" stroke="#bbb" stroke-width="0.5"  opacity="1.0"/>
@@ -99,6 +100,10 @@
 <polygon points="973.8,531.9 981.2,531.9 981.2,533.1 973.8,533.1" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
 <text x="975.0" y="508.3" font-size="7" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">ATHLETIC CENTRE 80 × 32</text>
 <text x="975.0" y="516.7" font-size="7" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">coach's office · gym · changing</text>
+<polygon points="1051.2,625.0 1068.8,625.0 1068.8,637.5 1051.2,637.5" fill="#b9a48a" stroke="#4a3b32" stroke-width="0.8"  opacity="1.0"/>
+<polygon points="1058.1,636.9 1061.9,636.9 1061.9,638.1 1058.1,638.1" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="1090.0" y="628.2" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >academy</text>
+<text x="1090.0" y="634.2" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >hut</text>
 <polygon points="1052.5,437.5 1095.0,437.5 1095.0,587.5 1052.5,587.5" fill="none" stroke="#4a3b32" stroke-width="0.8" stroke-dasharray="3,2" opacity="1.0"/>
 <text x="1073.8" y="505.3" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(90 1073.8 505.3)">future</text>
 <text x="1073.8" y="512.5" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(90 1073.8 512.5)">academy /</text>

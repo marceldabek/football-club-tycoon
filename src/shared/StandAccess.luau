@@ -24,6 +24,78 @@ StandAccess.SLAB_MIN = 1 -- thinnest a carried row may be
 StandAccess.RAIL_H = 3.4 -- waist height on a standing character (WorldBuilder RAIL_H)
 StandAccess.RAIL_FROM_STEP = 3 -- the low steps stay open at the side, so fans can step on
 
+-- #7/#14 (lane A2): the stand shapes per Config.StandLevels level, shared with
+-- WorldBuilder (its STAND_SPECS read lengthFrac/rows from here), so the
+-- concourse and the fan routes know where every stand's back wall and end
+-- stairs are without building one. Stand-local frame as above.
+StandAccess.STEP_DEPTH = 3 -- one row of seats (WorldBuilder STEP_DEPTH)
+StandAccess.X0 = 0.6 -- the front row starts this far behind the wall line (WorldBuilder STAND_X0)
+StandAccess.SHAPES = {
+	{ lengthFrac = 0.21, rows = 3, roof = false },
+	{ lengthFrac = 0.66, rows = 8, roof = false },
+	{ lengthFrac = 0.82, rows = 12, roof = false },
+	{ lengthFrac = 0.94, rows = 16, roof = true },
+}
+StandAccess.CLUBHOUSE_GAP = 41 -- Clubhouse.GAP_Z: the west wings stop here
+-- the longest a stand can be along each side (WorldBuilder CORNER_Z / CORNER_X * 2)
+StandAccess.MAX_LENGTH = { Z = 310, X = 210 }
+
+-- The runs of terrace along the stand (local z) at `level`, like WorldBuilder's
+-- plotGeometry: one centred run, or the west stand's two wings out from the
+-- clubhouse. `axis` is Config.StandPlots' ("Z" = east/west side).
+function StandAccess.spans(plotKey: string, axis: string, level: number): { { number } }
+	if level < 1 then
+		return {}
+	end
+	local shape = StandAccess.SHAPES[math.clamp(level, 1, #StandAccess.SHAPES)]
+	local maxLength = if axis == "Z" then StandAccess.MAX_LENGTH.Z else StandAccess.MAX_LENGTH.X
+	local half = math.floor(maxLength * shape.lengthFrac) / 2
+	if plotKey == "West" then
+		local g = StandAccess.CLUBHOUSE_GAP
+		local far = math.min(g + half, maxLength / 2)
+		return { { -far, -g }, { g, far } }
+	end
+	return { { -half, half } }
+end
+
+-- How far behind the wall line the stand reaches on the ground: the outer face
+-- of the back wall (WorldBuilder backX + 0.5), and with a roof the pillars
+-- centred 1.5 behind the wall's middle (1.5 square), so 1.75 further out.
+function StandAccess.backFace(level: number): number
+	if level < 1 then
+		return 0
+	end
+	local shape = StandAccess.SHAPES[math.clamp(level, 1, #StandAccess.SHAPES)]
+	return StandAccess.X0 + StandAccess.STEP_DEPTH * shape.rows + 1
+end
+function StandAccess.outward(level: number): number
+	if level < 1 then
+		return 0
+	end
+	local shape = StandAccess.SHAPES[math.clamp(level, 1, #StandAccess.SHAPES)]
+	return StandAccess.backFace(level) + (if shape.roof then 1.75 else 0)
+end
+
+-- Roof pillar positions along one run of a roofed stand (local z), about six
+-- bays to a full-length stand (WorldBuilder). A pillar that would stand in
+-- front of a rear gate / vomitory steps aside to just past the opening's edge:
+-- the west wings' openings are mid-run, exactly where their middle pillar fell.
+function StandAccess.pillarZs(run: { number }, standLength: number, openings: { { number } }): { number }
+	local length = run[2] - run[1]
+	local bays = math.max(1, math.floor(length / (standLength / 6) + 0.5))
+	local out: { number } = {}
+	for i = 0, bays do
+		local z = run[1] + (length / bays) * i
+		for _, o in openings do
+			if z > o[1] - 1 and z < o[2] + 1 then
+				z = if z < (o[1] + o[2]) / 2 then o[1] - 1 else o[2] + 1
+			end
+		end
+		table.insert(out, z)
+	end
+	return out
+end
+
 export type Step = { x0: number, x1: number, top: number }
 export type StandEnd = { z: number, dir: number, kind: string } -- dir: +1 = the stair lies at z > zEnd
 

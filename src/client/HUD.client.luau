@@ -758,7 +758,7 @@ function refreshHintText()
 		hintLabel.Text = "Hire a scout to find new players: the office computer, or the CLUB OFFICE button."
 	elseif (get("AmenityLevel") or 0) == 0 then
 		hintTarget = "AmenitySign"
-		hintLabel.Text = "Fans spend money too: build a Snack Bar at the CONCOURSE sign on the forecourt."
+		hintLabel.Text = "Fans spend money too: build a Snack Bar at the CONCOURSE sign inside the ground."
 	else
 		hintLabel.Text = midGameHint()
 	end

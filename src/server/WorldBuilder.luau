@@ -77,8 +77,9 @@ local CLUBHOUSE_GAP = Clubhouse.GAP_Z -- the west stand's wings stop here
 local NORTH_WALL_CX = OFFICE.x1 - 11.5
 
 -- The old forecourt's spot outside the open north-west corner, now concourse
--- inside the ground wall (#15). The amenity and the team coach still stand here
--- until the concourse (#7) and coach bay (#25) steps move them.
+-- inside the ground wall (#15). The team coach still stands here until the
+-- coach bay (#25) step moves it; the catering sign starts here and PlotGrounds
+-- moves it to the concourse (#7).
 local FORECOURT_CX, FORECOURT_CZ = -(SIDE_EDGE + 40), -(END_EDGE + 16)
 
 local function part(props: { [string]: any }): Part
@@ -1569,12 +1570,18 @@ local STEP_DEPTH = 3 -- one row of seats, ~1.1 m at 2.75 studs/m
 local STAND_X0 = 0.6 -- stands start just behind the perimeter wall, which is their front
 
 -- One entry per Config.StandLevels level. `lengthFrac` is of the plot's max.
+-- Lane A2: lengthFrac, rows and roof come from StandAccess.SHAPES, which the
+-- concourse and the fan routes read too.
 local STAND_SPECS = {
-	{ lengthFrac = 0.21, rows = 3, stepHeight = 1.5, roof = false, seats = false },
-	{ lengthFrac = 0.66, rows = 8, stepHeight = 1.5, roof = false, seats = true },
-	{ lengthFrac = 0.82, rows = 12, stepHeight = 1.5, roof = false, seats = true },
-	{ lengthFrac = 0.94, rows = 16, stepHeight = 1.5, roof = true, seats = true },
+	{ stepHeight = 1.5, seats = false },
+	{ stepHeight = 1.5, seats = true },
+	{ stepHeight = 1.5, seats = true },
+	{ stepHeight = 1.5, seats = true },
 }
+for i, spec in STAND_SPECS do
+	local shape = StandAccess.SHAPES[i]
+	spec.lengthFrac, spec.rows, spec.roof = shape.lengthFrac, shape.rows, shape.roof
+end
 
 -- Geometry for one plot at one level, in the plot's local frame. Shared by the
 -- builder and the crowd filler so fans always land on the actual steps.
@@ -2087,8 +2094,7 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 			pad.PaddingTop = UDim.new(0.18, 0)
 			pad.PaddingBottom = UDim.new(0.18, 0)
 			pad.Parent = label
-			for i = 0, bays do
-				local z = run[1] + (length / bays) * i
+			for _, z in StandAccess.pillarZs(run, geo.length, holes) do
 				lbox("Pillar", Vector3.new(1.5, roofY - DECK_Y, 1.5), Vector3.new(backX + 1.5, DECK_Y + (roofY - DECK_Y) / 2, z),
 					Color3.fromRGB(58, 62, 68), Enum.Material.Metal)
 			end
@@ -2370,45 +2376,20 @@ function WorldBuilder.clearCrowd()
 	club:SetAttribute("CrowdCount", 0)
 end
 
--- Concourse amenity chain (snack bar -> club shop -> fan zone), on the
--- forecourt between the office and the turnstiles. Rebuilt on each upgrade.
+-- The catering track (Config.AmenityLevels). Lane A2 (#7): its primitive hut,
+-- shop unit and fan-zone paving on the old forecourt spot are retired; the
+-- concourse inside the ground wall (PlotGrounds, ConcourseLayout) grows with
+-- the AmenityLevel attribute instead. Kept so a rebuilt club drops any old
+-- "Amenity" model; the sign below is moved beside the burger van's spot by
+-- PlotGrounds.
 local AMENITY_POS = Vector3.new(FORECOURT_CX - 2, GROUND_Y, FORECOURT_CZ + 23)
 
-function WorldBuilder.buildAmenity(level: number)
+function WorldBuilder.buildAmenity(_level: number)
 	local club = PlotContext.clubModel() :: Model
 	local old = club:FindFirstChild("Amenity")
 	if old then
 		old:Destroy()
 	end
-	local amenity = Instance.new("Model")
-	amenity.Name = "Amenity"
-	amenity.Parent = club
-	local p = AMENITY_POS + Vector3.new(0, DECK_Y, 0)
-	if level >= 1 then
-		-- snack bar: hut with a serving hatch and a striped awning
-		box("Hut", Vector3.new(10, 7, 8), p + Vector3.new(0, 3.5, 0), Color3.fromRGB(190, 120, 70), Enum.Material.Wood, amenity)
-		box("Hatch", Vector3.new(0.3, 3, 5), p + Vector3.new(5.1, 4, 0), Color3.fromRGB(40, 40, 40), Enum.Material.SmoothPlastic, amenity)
-		box("Awning", Vector3.new(5, 0.3, 9), p + Vector3.new(7, 6.5, 0), Color3.fromRGB(220, 60, 60), Enum.Material.Fabric, amenity)
-		box("Counter", Vector3.new(2, 1, 6), p + Vector3.new(6, 2.5, 0), Color3.fromRGB(230, 230, 230), Enum.Material.SmoothPlastic, amenity)
-	end
-	if level >= 2 then
-		-- club shop: larger unit beside the hut, club-coloured facade
-		box("Shop", Vector3.new(12, 9, 12), p + Vector3.new(-1, 4.5, 14), Color3.fromRGB(220, 220, 225), Enum.Material.Concrete, amenity)
-		clubPaint(box("ShopFascia", Vector3.new(0.4, 2.5, 12), p + Vector3.new(5.2, 8, 14), Config.HomeKit, Enum.Material.SmoothPlastic, amenity))
-		local window = box("ShopWindow", Vector3.new(0.3, 4, 8), p + Vector3.new(5.1, 4, 14), Color3.fromRGB(150, 200, 230), Enum.Material.Glass, amenity)
-		window.Transparency = 0.4
-	end
-	if level >= 3 then
-		-- fan zone: paved square with flag poles and a small stage, growing
-		-- away from the ground (further -X) so nothing blocks the way in
-		box("Paving", Vector3.new(30, 0.3, 24), p + Vector3.new(-13, 0.15, 7), Color3.fromRGB(160, 160, 150), Enum.Material.Cobblestone, amenity)
-		box("Stage", Vector3.new(10, 2, 6), p + Vector3.new(-22, 1, 14), Color3.fromRGB(60, 60, 65), Enum.Material.Metal, amenity)
-		for i = 0, 3 do
-			local pole = box("Pole", Vector3.new(0.4, 14, 0.4), p + Vector3.new(-(6 + i * 7), 7, -4), Color3.fromRGB(220, 220, 220), Enum.Material.Metal, amenity)
-			clubPaint(box("Flag", Vector3.new(0.1, 2.5, 4), pole.Position + Vector3.new(0, 5.5, 2), Config.HomeKit, Enum.Material.Fabric, amenity))
-		end
-	end
-	PlotContext.place(amenity)
 end
 
 local function buildAmenitySign(parent: Instance): ProximityPrompt

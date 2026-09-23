@@ -37,7 +37,7 @@ GroundsPlanting.CLEAR = {
 	small = { solid = 5, flat = 3 }, -- bushes and rocks
 }
 GroundsPlanting.FOUNDATION_X = -160 -- 3 off the clubhouse's front wall (x -157)
-local GROVES = 14 -- TEMP: ~35 scattered oaks a plot on top of 22 planted; phone cost unmeasured
+local GROVES = 8 -- TEMP: ~20 scattered oaks a plot on top of the planted lines and #22's zones; phone cost unmeasured
 local GROVE_SPACING = 52
 local TREE_SPACING = 17
 
@@ -131,7 +131,9 @@ local function planted(plan: Plan)
 	for _, z in { -160, -120, -80, -40, 0, 40, 124, 162 } do
 		tree(362, z, 22 + (z % 4), true)
 	end
-	for _, corner in { { 346, -186 }, { 346, 186 } } do
+	-- (the south corner's pair stand east of #23a's path up to the academy
+	-- hut, x 344..352)
+	for _, corner in { { 346, -186 }, { 357, 186 } } do
 		bush(corner[1], corner[2], 5.5)
 		bush(corner[1] + 5, corner[2] * 0.97, 4.5)
 		bush(corner[1] - 2, corner[2] * 1.03, 4)
@@ -143,32 +145,64 @@ local function planted(plan: Plan)
 	end
 	rock(350, 60, 4)
 	rock(352, -100, 3)
+end
 
-	-- #22 (ground plan spec s5 "Planting"): the areas Marcel named that were
-	-- still bare. Not included: the old Supporters' Bar site (x -374..-300,
-	-- z -80..-38) - lane H moves the bar across the street and deletes it
-	-- from this plot, but the bar still stands there on this branch, so
-	-- planting it now would grow oaks through the current building. Add it
-	-- once that lands.
-	-- a belt west of the car park, before the open west end of the plot
-	tree(-345, -140, 26, false)
-	tree(-330, -158, 24, true)
-	bush(-350, -118, 5)
-	-- belts either side of the ground, in the open north/south ends beyond
-	-- the perimeter wall (z +-259)
-	tree(200, -310, 30, false)
-	tree(200, 305, 28, true)
-	tree(-200, -300, 29, true)
-	tree(-200, 322, 31, false)
-	bush(200, 288, 5)
-	bush(-200, -288, 4.5)
-	-- south of the training fence, between it and the walk-round loop
-	tree(245, 215, 24, true)
-	tree(262, 246, 22, false)
-	tree(320, 220, 23, true)
-	tree(304, 250, 25, false)
-	bush(250, 234, 5)
-	bush(314, 209, 4.5)
+-- ------------------------------------------------------------------- zones
+
+-- #22 (ground plan spec s5 "Planting", tools/ground_plan.py's hatched areas):
+-- the bare lawns named in the spec, each filled with a few oaks and bushes by
+-- seeded rejection against the keep-out, like the groves. The old Supporters'
+-- Bar site is one of them: while the bar still stands there its keep-out
+-- (PlotGrounds footprint "SupportersBar") keeps the planting off it, and the
+-- site fills in by itself once the bar moves across the street (#16).
+-- TEMP counts: with the groves cut from 14 to 8 a plot keeps under ~70 oaks.
+export type Zone = { name: string, x0: number, x1: number, z0: number, z1: number, trees: number, bushes: number }
+GroundsPlanting.ZONES = {
+	{ name = "OldBarSite", x0 = -374, x1 = -300, z0 = -80, z1 = -38, trees = 3, bushes = 4 },
+	{ name = "ShopWest", x0 = -360, x1 = -320, z0 = -170, z1 = -100, trees = 2, bushes = 3 },
+	{ name = "NorthBelt", x0 = -200, x1 = 200, z0 = -340, z1 = -285, trees = 6, bushes = 6 },
+	{ name = "SouthBelt", x0 = -200, x1 = 200, z0 = 285, z1 = 340, trees = 6, bushes = 6 },
+	{ name = "CarParkSouth", x0 = -374, x1 = -260, z0 = 210, z1 = 300, trees = 3, bushes = 4 }, -- until the car park grows (L3)
+	{ name = "FarSouthWest", x0 = -374, x1 = -260, z0 = 315, z1 = 370, trees = 2, bushes = 3 },
+	{ name = "TrainingSouth", x0 = 230, x1 = 340, z0 = 200, z1 = 260, trees = 3, bushes = 3 },
+} :: { Zone }
+
+local function zoned(plan: Plan, keepOut: { Rect }, seed: number)
+	local rng = Random.new(seed * 31 + 7)
+	local CLEAR = GroundsPlanting.CLEAR
+	local reach = HALF - WALL_CLEAR
+	local function spaced(p: Vector3, list: { { at: Vector3 } }, gap: number): boolean
+		for _, t in list do
+			if (t.at - p).Magnitude < gap then
+				return false
+			end
+		end
+		return true
+	end
+	for _, z in GroundsPlanting.ZONES do
+		local function spot(): Vector3
+			return v(rng:NextNumber(z.x0, z.x1), rng:NextNumber(z.z0, z.z1))
+		end
+		for _ = 1, z.trees do
+			for _ = 1, 40 do
+				local p = spot()
+				if math.abs(p.X) <= reach and math.abs(p.Z) <= reach and clearOf(p, keepOut, CLEAR.tree) and spaced(p, plan.trees, TREE_SPACING) then
+					table.insert(plan.trees, { at = p, height = rng:NextNumber(22, 34), slim = rng:NextNumber() < 0.4 })
+					break
+				end
+			end
+		end
+		for _ = 1, z.bushes do
+			for _ = 1, 40 do
+				local p = spot()
+				if math.abs(p.X) <= HALF - 6 and math.abs(p.Z) <= HALF - 6 and clearOf(p, keepOut, CLEAR.small)
+					and spaced(p, plan.bushes, 7) and spaced(p, plan.trees, 5) then
+					table.insert(plan.bushes, { at = p, width = rng:NextNumber(4, 6.5) })
+					break
+				end
+			end
+		end
+	end
 end
 
 -- ----------------------------------------------------------------- scattered
@@ -238,6 +272,7 @@ end
 function GroundsPlanting.plan(keepOut: { Rect }, seed: number?): Plan
 	local plan: Plan = { trees = {}, bushes = {}, foundation = {}, rocks = {}, hedges = {} }
 	planted(plan)
+	zoned(plan, keepOut, seed or 1) -- #22
 	scattered(plan, keepOut, seed or 1)
 	return plan
 end

@@ -54,6 +54,7 @@ local ClubCrest = require(ReplicatedStorage.Shared.ClubCrest)
 local HttpService = game:GetService("HttpService") -- X289: the academy intake
 local PlotContext = require(script.Parent.PlotContext)
 local KitPlacer = require(script.Parent.KitPlacer)
+local ConcourseLayout = require(ReplicatedStorage.Shared.ConcourseLayout) -- #7
 local TreeKit = require(script.Parent.TreeKit)
 local GroundsPlanting = require(script.Parent.GroundsPlanting)
 local GroundEnvelope = require(script.Parent.GroundEnvelope) -- #15: the ground's own wall and gates
@@ -189,51 +190,13 @@ local FENCE_H = 8
 local FENCE_POST_STEP = 22
 local FENCE_GAP = 6 -- half-width of the west gate between the pitches
 local ATH_GATE_HALF = 4 -- half-width of the south gate the athletic-centre path uses (x 276..284)
-
--- #7 (ground plan spec s4): the concourse inside the ground wall, one
--- club-wide catering track. Replaces the old outside-corner Kiosk (X95),
--- which stood at the pedestrian gate, outside the wall entirely, and never
--- moved with the club's amenity upgrades. TEMP tier mapping: the spec wants
--- three catering tiers and the only upgrade the club has is
--- Config.AmenityLevels (0..3), so `cateringTier` folds them onto 1..3
--- (0 Nothing and 1 Snack Bar both read as tier 1; 2 Merch Stand -> tier 2;
--- 3 Fan Zone -> tier 3). Positions are the spec's own, chosen to sit in the
--- gaps between the clubhouse/forecourt (A1) and the corner huts, so nothing
--- here needs to know the real stand geometry.
-local CATERING_VAN = Vector3.new(-153, GROUND_Y, -105)
-local CATERING_LOOS = Vector3.new(-154, GROUND_Y, 106)
--- one kiosk behind each side, north of the wall's mid-line; only appears once
--- catering is paved (tier 2) AND that side's own stand has reached map tier 2
-export type ConcourseKioskSpot = { x: number, z: number, standKey: string, faceX: number, faceZ: number }
-local CATERING_KIOSKS: { ConcourseKioskSpot } = {
-	{ x = 0, z = -232, standKey = "North", faceX = 0, faceZ = 1 }, -- back of the North terrace, facing the pitch
-	{ x = 0, z = 232, standKey = "South", faceX = 0, faceZ = -1 },
-	{ x = 188, z = -60, standKey = "East", faceX = -1, faceZ = 0 },
-	{ x = 188, z = 60, standKey = "East", faceX = -1, faceZ = 0 },
-	{ x = -185, z = -110, standKey = "West", faceX = 1, faceZ = 0 },
-	{ x = -185, z = 110, standKey = "West", faceX = 1, faceZ = 0 },
-}
-local FAN_ZONE = { x0 = -198, x1 = -176, z0 = -150, z1 = -70 } -- tier 3 picnic benches
-
-local function cateringTier(amenityLevel: number): number
-	return math.clamp(amenityLevel + 1, 1, 3)
-end
-
-local function standLevel(key: string): number
-	local state = PlotContext.findStateFolder()
-	if not state then
-		return 0
-	end
-	return (state:GetAttribute("Stand_" .. key) :: number?) or 0
-end
-
-local function standMapTier(key: string): number
-	local level = standLevel(key)
-	if level < 1 then
-		return 0
-	end
-	return Config.StandMapTier[math.min(level, #Config.StandMapTier)]
-end
+-- X289: the academy hut, outside the training fence beside pitch 2
+local ACADEMY_CX = TRAIN_CX + TRAIN_W / 2 + 18 -- outside the training fence
+local ACADEMY_CZ = TRAIN_CZ[2]
+-- #23a: the path up to its door, from the walk-round loop's south leg (the
+-- spur the athletic-centre path branches off carries on east to it). Clear of
+-- the fence (x 338) and of the oak row east of it (x 362).
+local ACADEMY_PATH = { x0 = ACADEMY_CX - 4, x1 = ACADEMY_CX + 4, z0 = ACADEMY_CZ + 5 }
 
 -- footpath
 local PATH_W, PATH_TOP = 8, RoadTiles.SURFACE_Y - 0.01 -- over the street verge's reach (VERGE_REACH_X)
@@ -465,94 +428,171 @@ end
 
 -- -------------------------------------------------------------- boundary wall
 
--- #7: the burger van and portaloos that appear from catering tier 1 (spawn),
--- in the gap between the clubhouse and the corner huts on the west side.
-local function buildCateringVan(parent: Instance)
-	local m = model("BurgerVan", parent)
-	local p = CATERING_VAN
-	extents("Body", p.X - 2.5, p.X + 2.5, GROUND_Y, GROUND_Y + 3.2, p.Z - 4, p.Z + 4, Color3.fromRGB(210, 210, 202), Enum.Material.Metal, m)
-	extents("Cab", p.X - 2.5, p.X + 2.5, GROUND_Y, GROUND_Y + 2.6, p.Z + 4, p.Z + 5.4, Color3.fromRGB(180, 40, 40), Enum.Material.Metal, m)
-	local hatch = extents("Hatch", p.X + 0.5, p.X + 2.5, GROUND_Y + 1.2, GROUND_Y + 3, p.Z - 3, p.Z + 1, Color3.fromRGB(60, 60, 60), Enum.Material.SmoothPlastic, m)
-	hatch.Transparency = 0.15
-	extents("Counter", p.X + 2.5, p.X + 3.4, GROUND_Y + 1, GROUND_Y + 1.3, p.Z - 2.6, p.Z + 0.6, Color3.fromRGB(150, 110, 70), Enum.Material.Wood, m)
-	extents("Awning", p.X + 2.5, p.X + 5, GROUND_Y + 3.2, GROUND_Y + 3.4, p.Z - 3.2, p.Z + 1.2, Color3.fromRGB(220, 60, 60), Enum.Material.Fabric, m)
-	for _, wz in { p.Z - 2.6, p.Z + 2.6 } do
-		local wheel = box("Wheel", Vector3.new(1.6, 1.6, 1), CFrame.new(p.X, GROUND_Y + 0.8, wz) * CFrame.Angles(0, 0, math.pi / 2), Color3.fromRGB(20, 20, 20), Enum.Material.SmoothPlastic, m)
-		wheel.Shape = Enum.PartType.Cylinder
-		wheel.CastShadow = false
-	end
-	addSign(hatch, "BURGERS", { Enum.NormalId.Right })
+-- #7 (ground plan spec s4): the concourse inside the ground wall, grown by the
+-- club's one catering track. Where everything stands is ConcourseLayout's
+-- (shared with the fan routes); this builds it. The props are the concourse
+-- kit (tools/kit/install_concourse.luau: AI meshes, no scripts), with
+-- primitive stand-ins when a place hasn't installed it.
+local GRAVEL = Color3.fromRGB(156, 146, 126)
+local CONCOURSE_PAVING = Color3.fromRGB(152, 149, 142) -- a shade off the pitch-side hardstanding
+local STAINLESS = Color3.fromRGB(196, 198, 200)
+local SURFACE_TOP = { gravel = 0.12, paving = 0.2 } -- under the footpaths (0.34) and the forecourt
+
+local function yawOf(face: Vector3): number
+	return math.atan2(face.X, face.Z) -- a kit prop's front is its +Z
 end
 
-local function buildCateringLoos(parent: Instance)
-	local m = model("Portaloos", parent)
-	local p = CATERING_LOOS
-	for i = -1, 1 do
-		local z = p.Z + i * 2.3
-		extents("Cabin", p.X - 1.1, p.X + 1.1, GROUND_Y, GROUND_Y + 7.2, z - 1.05, z + 1.05, Color3.fromRGB(38, 108, 90), Enum.Material.SmoothPlastic, m)
-		extents("Door", p.X + 1.08, p.X + 1.14, GROUND_Y + 0.2, GROUND_Y + 6.8, z - 0.75, z + 0.75, Color3.fromRGB(28, 88, 74), Enum.Material.SmoothPlastic, m)
+-- A kit prop with its front turned to `face`; `fallback` builds a primitive
+-- stand-in (in a model under `parent`) when the kit is missing.
+local function kitProp(name: string, at: Vector3, face: Vector3, parent: Instance, fallback: (Model) -> ()): Model
+	if KitPlacer.find(name) then
+		return KitPlacer.place(name, CFrame.new(at) * CFrame.Angles(0, yawOf(face), 0), parent)
 	end
+	local m = model(name, parent)
+	m:SetAttribute("KitMissing", name)
+	fallback(m)
+	return m
 end
 
--- one hatch kiosk behind a stand once catering is paved (tier 2); at tier 3
--- it widens into an undercroft catering unit for a stand built that far.
-local function buildCateringKiosk(parent: Instance, spot: ConcourseKioskSpot, undercroft: boolean)
-	local m = model("ConcourseKiosk", parent)
-	local w, d = if undercroft then 12 else 8, 6
-	local h = if undercroft then 8.5 else 7
-	local x0, x1 = spot.x - w / 2, spot.x + w / 2
-	local z0, z1 = spot.z - d / 2, spot.z + d / 2
-	extents("Body", x0, x1, GROUND_Y, GROUND_Y + h, z0, z1, Color3.fromRGB(80, 80, 88), Enum.Material.Concrete, m)
-	-- the hatch opens on the face that looks back in toward the pitch
-	local hx0, hx1, hz0, hz1
-	if spot.faceX ~= 0 then
-		local fx = if spot.faceX > 0 then x1 else x0
-		hx0, hx1 = fx, fx + spot.faceX * 0.15
-		hz0, hz1 = z0 + 1, z1 - 1
+-- A local frame on the ground at `at` whose -Z looks along `face` (CFrame.lookAt's).
+local function facing(at: Vector3, face: Vector3): CFrame
+	return CFrame.lookAt(at, at + face)
+end
+
+local function boxAt(name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material, parent: Instance): Part
+	local p = box(name, size, cf, color, material, parent)
+	p.CastShadow = size.Y > 1
+	return p
+end
+
+-- The burger van, hatch to `spot.face`. The mesh's hatch is on its -X side.
+local function buildVan(parent: Instance, spot: ConcourseLayout.Spot)
+	local yaw = if spot.face.X < 0 then 0 else math.pi
+	local van: Model
+	if KitPlacer.find("BurgerVan") then
+		van = KitPlacer.place("BurgerVan", CFrame.new(spot.at) * CFrame.Angles(0, yaw, 0), parent)
 	else
-		local fz = if spot.faceZ > 0 then z1 else z0
-		hz0, hz1 = fz, fz + spot.faceZ * 0.15
-		hx0, hx1 = x0 + 1, x1 - 1
+		van = model("BurgerVan", parent)
+		van:SetAttribute("KitMissing", "BurgerVan")
+		local cf = CFrame.new(spot.at) * CFrame.Angles(0, yaw, 0)
+		boxAt("Body", Vector3.new(7, 7.4, 9.6), cf * CFrame.new(0, 4.3, -1.4), Color3.fromRGB(236, 236, 232), Enum.Material.Metal, van)
+		boxAt("Cab", Vector3.new(7, 5.2, 3), cf * CFrame.new(0, 3.2, 4.8), Color3.fromRGB(196, 40, 40), Enum.Material.Metal, van)
+		boxAt("Hatch", Vector3.new(0.2, 2.6, 5.6), cf * CFrame.new(-3.55, 4.6, -1.4), Color3.fromRGB(40, 40, 44), Enum.Material.SmoothPlastic, van)
 	end
-	local hatch = extents("Hatch", math.min(hx0, hx1), math.max(hx0, hx1), GROUND_Y + 1.6, GROUND_Y + 4.2,
-		math.min(hz0, hz1), math.max(hz0, hz1), Color3.fromRGB(150, 200, 220), Enum.Material.Glass, m)
-	hatch.Transparency = 0.25
-	local awningFace = if spot.faceX ~= 0 then (if spot.faceX > 0 then Enum.NormalId.Right else Enum.NormalId.Left)
-		else (if spot.faceZ > 0 then Enum.NormalId.Back else Enum.NormalId.Front)
-	addSign(hatch, if undercroft then "CATERING" else "KIOSK", { awningFace })
-	if undercroft then
-		-- a wider paved apron in front of the hatch: the "strip kept for circulation"
-		local ax0, ax1, az0, az1 = x0, x1, z0, z1
-		if spot.faceX ~= 0 then
-			ax0, ax1 = if spot.faceX > 0 then x1 else x0 - 3, if spot.faceX > 0 then x1 + 3 else x0
-		else
-			az0, az1 = if spot.faceZ > 0 then z1 else z0 - 3, if spot.faceZ > 0 then z1 + 3 else z0
-		end
-		extents("Apron", ax0, ax1, GROUND_Y, GROUND_Y + PATH_TOP, az0, az1, CONCRETE, Enum.Material.Concrete, m)
+	-- the van's roof sign is AI lettering: a painted board over each side of
+	-- it (measured off the mesh: faces at x +-2.1, y 7.25..8.45, z -4.4..1.4
+	-- from the van's centre, front to +Z)
+	local vanCf = CFrame.new(spot.at) * CFrame.Angles(0, yaw, 0)
+	for _, side in { -1, 1 } do
+		local roof = boxAt("RoofSign", Vector3.new(0.1, 1.15, 5.6), vanCf * CFrame.new(side * 2.2, 7.85, -1.5), Color3.fromRGB(196, 34, 40),
+			Enum.Material.SmoothPlastic, parent)
+		roof.CastShadow = false
+		addSign(roof, "BURGERS", { if side < 0 then Enum.NormalId.Left else Enum.NormalId.Right })
 	end
+	-- and a menu A-board by the hatch says what it sells
+	local board = facing(spot.at + spot.face * 4 + Vector3.new(0, 0, if spot.face.X < 0 then -6.5 else 6.5), spot.face)
+	local ab = boxAt("MenuBoard", Vector3.new(2.4, 3.2, 0.3), board * CFrame.new(0, 1.7, 0) * CFrame.Angles(math.rad(-12), 0, 0),
+		Color3.fromRGB(34, 38, 36), Enum.Material.Wood, parent)
+	addSign(ab, "BURGERS\nCHIPS\nTEA", { Enum.NormalId.Front }, Color3.fromRGB(250, 240, 200))
 end
 
--- tier 3: paved fan zone with picnic benches (the same shape as the
--- supporters' bar patio's, PlotGrounds X97), on the west side away from the
--- clubhouse and the NW huts.
-local function buildFanZone(parent: Instance)
+local function buildLoo(parent: Instance, spot: ConcourseLayout.Spot)
+	kitProp("Portaloo", spot.at, spot.face, parent, function(m)
+		local cf = facing(spot.at, spot.face)
+		boxAt("Cabin", Vector3.new(3.4, 7.2, 3.4), cf * CFrame.new(0, 3.6, 0), Color3.fromRGB(38, 140, 96), Enum.Material.SmoothPlastic, m)
+		boxAt("Roof", Vector3.new(3.6, 0.4, 3.6), cf * CFrame.new(0, 7.4, 0), Color3.fromRGB(236, 236, 230), Enum.Material.SmoothPlastic, m)
+	end)
+end
+
+local function buildKiosk(parent: Instance, spot: ConcourseLayout.Spot)
+	local kiosk = kitProp("CateringKiosk", spot.at, spot.face, parent, function(m)
+		local cf = facing(spot.at, spot.face)
+		boxAt("Body", Vector3.new(8.4, 7.6, 5.8), cf * CFrame.new(0, 3.8, 0), Color3.fromRGB(58, 52, 46), Enum.Material.WoodPlanks, m)
+		boxAt("Counter", Vector3.new(8, 0.3, 1.2), cf * CFrame.new(0, 3.2, -3.4), STAINLESS, Enum.Material.Metal, m)
+		boxAt("Canopy", Vector3.new(8.6, 0.3, 2), cf * CFrame.new(0, 7.2, -3.6), Color3.fromRGB(236, 196, 60), Enum.Material.Fabric, m)
+	end)
+	kiosk.Name = spot.name
+	-- a bin beside it for the wrappers
+	local side = Vector3.new(-spot.face.Z, 0, spot.face.X)
+	KitPlacer.place("UKSP__LitterBin__LitterBin", CFrame.new(spot.at + side * 6 + spot.face * 1.5), parent, {
+		fallbackSize = Vector3.new(1.8, 3.2, 1.8),
+		fallbackColor = Color3.fromRGB(40, 60, 44),
+	})
+end
+
+-- Undercroft catering: a serving counter let into a big stand's back wall,
+-- shutter rolled up, the club's colours on the fascia.
+local function buildCounter(parent: Instance, c: ConcourseLayout.Counter)
+	local m = model("Undercroft" .. c.key, parent)
+	local L, D = ConcourseLayout.COUNTER_LENGTH, ConcourseLayout.COUNTER_DEPTH
+	local cf = facing(c.at, c.out) -- -Z out of the stand, X along the wall
+	boxAt("Surround", Vector3.new(L, 7.2, 0.3), cf * CFrame.new(0, 3.6, -0.15), Color3.fromRGB(70, 72, 76), Enum.Material.Concrete, m)
+	local hatch = boxAt("Hatch", Vector3.new(L - 1.2, 2.8, 0.1), cf * CFrame.new(0, 4.3, -0.35), Color3.fromRGB(250, 226, 170), Enum.Material.SmoothPlastic, m)
+	hatch.CastShadow = false
+	-- the menu on the lit back wall of the hatch
+	addSign(hatch, "PIES  ·  BURGERS  ·  CHIPS  ·  TEA", { Enum.NormalId.Front }, Color3.fromRGB(70, 44, 30))
+	boxAt("Counter", Vector3.new(L - 0.6, 0.25, D), cf * CFrame.new(0, 2.95, -D / 2), STAINLESS, Enum.Material.Metal, m)
+	KitPlacer.place("PH__CashRegister_01", cf * CFrame.new(-L / 2 + 1.6, 3.075, -0.6) * CFrame.Angles(0, math.pi, 0), m, {
+		fallbackSize = Vector3.new(1.6, 1.2, 1.2),
+		fallbackColor = Color3.fromRGB(40, 40, 44),
+	})
+	boxAt("Base", Vector3.new(L - 0.6, 2.8, 0.5), cf * CFrame.new(0, 1.4, -0.55), Color3.fromRGB(120, 122, 126), Enum.Material.DiamondPlate, m)
+	boxAt("ShutterRoll", Vector3.new(L - 0.6, 0.7, 0.7), cf * CFrame.new(0, 6.05, -0.55), Color3.fromRGB(150, 152, 156), Enum.Material.Metal, m)
+	local fascia = clubPaint(boxAt("Fascia", Vector3.new(L, 1.3, 0.25), cf * CFrame.new(0, 7.0, -0.45), Config.HomeKit, Enum.Material.SmoothPlastic, m))
+	addSign(fascia, "FOOD · DRINK", { Enum.NormalId.Front })
+end
+
+-- Tier 3's fan zone: paved, picnic benches, a tea cart and bins (spec s4).
+local function buildFanZone(parent: Instance, r: ConcourseLayout.Rect)
 	local m = model("FanZone", parent)
-	local r = FAN_ZONE
-	extents("Paving", r.x0, r.x1, GROUND_Y, GROUND_Y + PATH_TOP, r.z0, r.z1, CONCRETE, Enum.Material.Concrete, m)
-	local wood = Color3.fromRGB(140, 104, 68)
-	local cx = (r.x0 + r.x1) / 2
-	for _, bz in { r.z0 + 18, (r.z0 + r.z1) / 2, r.z1 - 18 } do
-		for _, ex in { cx - 2, cx + 2 } do
-			extents("PicnicFrame", ex - 0.15, ex + 0.15, GROUND_Y + PATH_TOP, GROUND_Y + PATH_TOP + 2.4, bz - 2.7, bz + 2.7, wood, Enum.Material.Wood, m)
-		end
-		extents("PicnicTop", cx - 2.5, cx + 2.5, GROUND_Y + PATH_TOP + 2.4, GROUND_Y + PATH_TOP + 2.7, bz - 1.2, bz + 1.2, wood, Enum.Material.Wood, m)
-		for _, sz in { -1, 1 } do
-			extents("PicnicSeat", cx - 2.5, cx + 2.5, GROUND_Y + PATH_TOP + 1.3, GROUND_Y + PATH_TOP + 1.55, bz + sz * 2.3 - 0.45, bz + sz * 2.3 + 0.45, wood, Enum.Material.Wood, m)
-		end
+	local pave = extents("Paving", r.x0, r.x1, GROUND_Y, GROUND_Y + PATH_TOP, r.z0, r.z1, Color3.fromRGB(196, 176, 148), Enum.Material.Pavement, m)
+	pave.CastShadow = false
+	local top = GROUND_Y + PATH_TOP
+	for i, at in ConcourseLayout.benchSpots() do
+		KitPlacer.place(if i % 3 == 0 then "UKSP__PicnicBenches__BenchOld" else "UKSP__PicnicBenches__BenchNew",
+			CFrame.new(at.X, top, at.Z) * CFrame.Angles(0, if i % 2 == 0 then 0 else math.pi / 2, 0), m, {
+				fallbackSize = Vector3.new(4.6, 2.6, 4.6),
+				fallbackColor = Color3.fromRGB(140, 104, 68),
+			})
+	end
+	local cart = ConcourseLayout.TEA_CART
+	KitPlacer.place("PH__CoffeeCart_01", CFrame.new(cart.X, top, cart.Z), m, { fallbackSize = Vector3.new(5.5, 4.2, 3) })
+	for _, z in { r.z0 + 4, r.z1 - 12 } do
+		KitPlacer.place("UKSP__LitterBin__LitterBin", CFrame.new(r.x1 - 2, top, z), m, { fallbackSize = Vector3.new(1.8, 3.2, 1.8) })
+	end
+	-- a string of club-coloured bunting between two poles along the zone
+	for _, z in { r.z0 + 2, r.z1 - 2 } do
+		extents("BuntingPole", r.x0 + 1.8, r.x0 + 2.2, top, top + 9, z - 0.2, z + 0.2, Color3.fromRGB(220, 220, 220), Enum.Material.Metal, m)
+	end
+	local flags = 16
+	for k = 1, flags do
+		local z = r.z0 + 2 + (r.z1 - r.z0 - 4) * (k - 0.5) / flags
+		local sag = 1.6 * math.sin(math.pi * (k - 0.5) / flags)
+		local flag = clubPaint(box("Bunting", Vector3.new(0.05, 1.1, 1.3), CFrame.new(r.x0 + 2, top + 8.2 - sag, z), Config.HomeKit,
+			Enum.Material.Fabric, m), if k % 2 == 0 then "kit" else "accent")
+		flag.CanCollide = false
+		flag.CastShadow = false
 	end
 end
 
--- Rebuilt whenever the catering tier or a stand's map tier changes. `place`
+-- Posts under the catering track's sign (WorldBuilder's AmenitySign, the
+-- world purchase point), which is moved here beside the van's spot.
+local function placeAmenitySign(parent: Instance, levels: ConcourseLayout.Levels)
+	local at, face = ConcourseLayout.signSpot(levels)
+	local side = Vector3.new(-face.Z, 0, face.X)
+	for _, k in { -2.2, 2.2 } do
+		local p = at + side * k
+		extents("SignPost", p.X - 0.2, p.X + 0.2, GROUND_Y, GROUND_Y + 2.2, p.Z - 0.2, p.Z + 0.2, Color3.fromRGB(120, 96, 60), Enum.Material.Wood, parent)
+	end
+	-- the board (5 x 4 x 0.8, text on Front and Back) is already in the plot
+	local club = PlotContext.clubModel()
+	local sign = club and club:FindFirstChild("AmenitySign")
+	if sign and sign:IsA("BasePart") then
+		sign.CFrame = PlotContext.toWorld(CFrame.lookAt(at + Vector3.new(0, 4, 0), at + Vector3.new(0, 4, 0) + face))
+	end
+end
+
+-- Rebuilt whenever the catering tier or a stand's level changes. `place`
 -- matches GroundEnvelope.buildTiered: false during PlotGrounds.build (the
 -- whole Grounds model is moved into the plot afterwards in one go), true from
 -- bindConcourse's refresh (the plot is already live).
@@ -562,22 +602,36 @@ local function buildConcourse(parent: Instance, place: boolean?)
 		old:Destroy()
 	end
 	local state = PlotContext.findStateFolder()
-	local amenityLevel = (state and (state:GetAttribute("AmenityLevel") :: number?)) or 0
-	local tier = cateringTier(amenityLevel)
+	local levels = ConcourseLayout.levelsFrom(state)
+	local tier = ConcourseLayout.cateringTier(if state then state:GetAttribute("AmenityLevel") :: number? else nil)
 	local m = Instance.new("Model")
 	m.Name = "Concourse"
-	buildCateringVan(m)
-	buildCateringLoos(m)
-	if tier >= 2 then
-		for _, spot in CATERING_KIOSKS do
-			if standMapTier(spot.standKey) >= 2 then
-				buildCateringKiosk(m, spot, tier >= 3 and standMapTier(spot.standKey) >= 3)
-			end
-		end
+	for _, r in ConcourseLayout.gravel(levels, tier) do
+		local p = extents("Gravel", r.x0, r.x1, GROUND_Y, GROUND_Y + SURFACE_TOP.gravel, r.z0, r.z1, GRAVEL, Enum.Material.Pebble, m)
+		p.CastShadow = false
 	end
-	if tier >= 3 then
-		buildFanZone(m)
+	for _, r in ConcourseLayout.paving(tier) do
+		local p = extents(r.name, r.x0, r.x1, GROUND_Y, GROUND_Y + SURFACE_TOP.paving, r.z0, r.z1, CONCOURSE_PAVING, Enum.Material.Pavement, m)
+		p.CastShadow = false
 	end
+	local van = ConcourseLayout.van(levels, tier)
+	if van then
+		buildVan(m, van)
+	end
+	for _, s in ConcourseLayout.loos(levels) do
+		buildLoo(m, s)
+	end
+	for _, s in ConcourseLayout.kiosks(levels, tier) do
+		buildKiosk(m, s)
+	end
+	for _, c in ConcourseLayout.counters(levels, tier) do
+		buildCounter(m, c)
+	end
+	local zone = ConcourseLayout.fanZone(tier)
+	if zone then
+		buildFanZone(m, zone)
+	end
+	placeAmenitySign(m, levels)
 	m:SetAttribute("CateringTier", tier)
 	if place then
 		PlotContext.place(m)
@@ -589,25 +643,24 @@ end
 local concourseBound = false
 
 -- Rebuilds the concourse when the catering track or any stand's level
--- changes (a stand crossing a map tier can open or close a kiosk).
+-- changes (a stand crossing a map tier opens a kiosk or an undercroft, and a
+-- big enough west wing moves the van).
 local function bindConcourse()
-	local club = PlotContext.clubModel()
-	local grounds = club and club:FindFirstChild("Grounds")
 	local state = PlotContext.stateFolder()
-	if not (grounds and state) then
+	if not state or concourseBound then
 		return
 	end
+	concourseBound = true
 	local function refresh()
-		if grounds and grounds.Parent then
+		local club = PlotContext.clubModel()
+		local grounds = club and club:FindFirstChild("Grounds")
+		if grounds then
 			buildConcourse(grounds, true)
 		end
 	end
-	if not concourseBound then
-		concourseBound = true
-		state:GetAttributeChangedSignal("AmenityLevel"):Connect(refresh)
-		for _, plot in Config.StandPlots do
-			state:GetAttributeChangedSignal("Stand_" .. plot.key):Connect(refresh)
-		end
+	state:GetAttributeChangedSignal("AmenityLevel"):Connect(refresh)
+	for _, plot in Config.StandPlots do
+		state:GetAttributeChangedSignal("Stand_" .. plot.key):Connect(refresh)
 	end
 end
 
@@ -1305,7 +1358,9 @@ local function buildAthleticPath(parent: Instance)
 	extents("Path", TRAIN_CX - ATH_GATE_HALF, TRAIN_CX + ATH_GATE_HALF, y0, y1, fz1, ROUND_Z - LOOP_HALF, CONCRETE, Enum.Material.Concrete, m)
 	-- the spur onto the loop's south leg: starts at the east leg's own edge
 	-- (ROUND_E + LOOP_HALF), so it doesn't repave the corner the loop already covers
-	extents("Path", ROUND_E + LOOP_HALF, TRAIN_CX + ATH_GATE_HALF, y0, y1, ROUND_Z - LOOP_HALF, ROUND_Z + LOOP_HALF, CONCRETE, Enum.Material.Concrete, m)
+	-- (#23a) and on east to the academy hut's path
+	extents("Path", ROUND_E + LOOP_HALF, ACADEMY_PATH.x1, y0, y1, ROUND_Z - LOOP_HALF, ROUND_Z + LOOP_HALF, CONCRETE, Enum.Material.Concrete, m)
+	extents("AcademyPath", ACADEMY_PATH.x0, ACADEMY_PATH.x1, y0, y1, ACADEMY_PATH.z0, ROUND_Z - LOOP_HALF, CONCRETE, Enum.Material.Concrete, m)
 end
 
 -- ---------------------------------------------------------------------- build
@@ -1320,8 +1375,7 @@ end
 -- the word academy, so the renewal that keeps a squad alive was invisible until
 -- a new name appeared in the XI. A hut and a board beside training pitch 2,
 -- with this season's intake chalked on it.
-local ACADEMY_CX = TRAIN_CX + TRAIN_W / 2 + 18 -- outside the training fence
-local ACADEMY_CZ = TRAIN_CZ[2]
+-- (ACADEMY_CX / ACADEMY_CZ / ACADEMY_PATH are with the training pitch constants)
 
 -- #22: three flagpoles in the gap between the supporters' bar and the
 -- footpath (spec s5 planting row), x -372, z -30/-26/-22.
@@ -1348,17 +1402,20 @@ local function buildAcademy(parent: Instance)
 	local x0, x1 = ACADEMY_CX - w / 2, ACADEMY_CX + w / 2
 	local z0, z1 = ACADEMY_CZ - d / 2, ACADEMY_CZ + d / 2
 
-	-- a portable cabin: slab, two long walls, one end wall, a door end and a
-	-- shallow roof. The door faces the pitches (west).
+	-- a portable cabin: slab, three walls, a door end and a shallow roof.
+	-- #23a: the doorway was on the west face, 3 studs off the training fence
+	-- with the intake board standing across it, so nobody could get in; it is
+	-- in the south end now, where ACADEMY_PATH comes up from the loop.
 	extents("Slab", x0 - 1, x1 + 1, y0, y0 + 0.4, z0 - 1, z1 + 1, Color3.fromRGB(150, 150, 146), Enum.Material.Concrete, academy)
 	local wall = Color3.fromRGB(226, 222, 210)
 	extents("WallN", x0, x1, y0 + 0.4, y0 + h, z0, z0 + 0.4, wall, Enum.Material.SmoothPlastic, academy)
-	extents("WallS", x0, x1, y0 + 0.4, y0 + h, z1 - 0.4, z1, wall, Enum.Material.SmoothPlastic, academy)
-	extents("WallE", x1 - 0.4, x1, y0 + 0.4, y0 + h, z0, z1, wall, Enum.Material.SmoothPlastic, academy)
-	-- the west face has the doorway in it: two piers and a header
-	extents("WallW", x0, x0 + 0.4, y0 + 0.4, y0 + h, z0, z0 + 3.5, wall, Enum.Material.SmoothPlastic, academy)
-	extents("WallW", x0, x0 + 0.4, y0 + 0.4, y0 + h, z1 - 3.5, z1, wall, Enum.Material.SmoothPlastic, academy)
-	extents("DoorHeader", x0, x0 + 0.4, y0 + 6.4, y0 + h, z0 + 3.5, z1 - 3.5, wall, Enum.Material.SmoothPlastic, academy)
+	extents("WallE", x1 - 0.4, x1, y0 + 0.4, y0 + h, z0 + 0.4, z1 - 0.4, wall, Enum.Material.SmoothPlastic, academy)
+	extents("WallW", x0, x0 + 0.4, y0 + 0.4, y0 + h, z0 + 0.4, z1 - 0.4, wall, Enum.Material.SmoothPlastic, academy)
+	-- the south face has the doorway in it: two piers and a header
+	local dx = (ACADEMY_PATH.x0 + ACADEMY_PATH.x1) / 2
+	extents("WallS", x0, dx - 1.75, y0 + 0.4, y0 + h, z1 - 0.4, z1, wall, Enum.Material.SmoothPlastic, academy)
+	extents("WallS", dx + 1.75, x1, y0 + 0.4, y0 + h, z1 - 0.4, z1, wall, Enum.Material.SmoothPlastic, academy)
+	extents("DoorHeader", dx - 1.75, dx + 1.75, y0 + 6.4, y0 + h, z1 - 0.4, z1, wall, Enum.Material.SmoothPlastic, academy)
 	extents("Roof", x0 - 0.8, x1 + 0.8, y0 + h, y0 + h + 0.5, z0 - 0.8, z1 + 0.8,
 		Color3.fromRGB(86, 90, 96), Enum.Material.Metal, academy)
 	local fascia = extents("Fascia", x0 - 0.5, x0 - 0.2, y0 + h - 2.4, y0 + h - 0.4, z0, z1,
@@ -1576,6 +1633,8 @@ function PlotGrounds.plantingKeepOut(): { GroundsPlanting.Rect }
 	-- #23a: the athletic-centre path and its gate through the training fence
 	add("AthleticGateWalk", TRAIN_CX - ATH_GATE_HALF - 4, TRAIN_CX + ATH_GATE_HALF + 4, fz - 4, fz + 4, false)
 	add("AthleticPath", TRAIN_CX - ATH_GATE_HALF, TRAIN_CX + ATH_GATE_HALF, fz, ROUND_Z + LOOP_HALF, false)
+	add("AcademySpur", ROUND_E, ACADEMY_PATH.x1, ROUND_Z - LOOP_HALF, ROUND_Z + LOOP_HALF, false)
+	add("AcademyPath", ACADEMY_PATH.x0, ACADEMY_PATH.x1, ACADEMY_PATH.z0, ROUND_Z, false)
 	-- #10: the walk-round loop and the two exit-gate links onto it. The west
 	-- legs match the built path exactly (not the whole z run): the middle
 	-- stretch (roughly z -191..191) is left open for the existing gate-walk
