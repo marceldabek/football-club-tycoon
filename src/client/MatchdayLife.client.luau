@@ -23,6 +23,7 @@ local player = Players.LocalPlayer -- X318: for the Quality attribute
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local ClubCrest = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ClubCrest"))
 local MatchdayRoutes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MatchdayRoutes"))
+local ConcourseLayout = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ConcourseLayout"))
 local RoadTiles = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoadTiles"))
 local CarWheels = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("CarWheels"))
 local Townsfolk = require(script.Parent.Townsfolk)
@@ -57,6 +58,7 @@ type Fan = {
 	fig: Townsfolk.Figure,
 	scarf: BasePart?,
 	route: MatchdayRoutes.Route,
+	gate: number?, -- #14: how far along the route its turnstile is (the queue shuffle)
 	distance: number,
 	length: number,
 	speed: number,
@@ -80,6 +82,7 @@ type PlotCrowd = {
 	phaseConn: RBXScriptConnection,
 	lastPhase: any,
 	leavingUntil: number?, -- X161: os.clock() until which the crowd walks out
+	routes: MatchdayRoutes.FanRoutes?, -- #14/#10: this club's fan routes, for its stands as built
 	concoursePhase: any, -- X318: the phase the concourse was last built for
 }
 
@@ -90,10 +93,6 @@ root.Name = "MatchdayLife"
 root.Parent = workspace
 
 local crowds: { [Folder]: PlotCrowd } = {}
--- Arriving fans only ever come from the street or the car park; leaving fans
--- also take the north/east exit gates round the walk-round loop (#10).
-local ROUTE_LIST = MatchdayRoutes.ARRIVAL_ROUTES
-local LEAVE_ROUTE_LIST = MatchdayRoutes.LEAVE_ROUTES
 
 -- ------------------------------------------------------------------ helpers
 
@@ -144,7 +143,7 @@ local function homeKit(crowd: PlotCrowd): Color3
 	return (ClubCrest.colours(ClubCrest.forFolder(crowd.folder)))
 end
 
-local function makeFan(parent: Instance, route: MatchdayRoutes.Route, startDistance: number, loopsInMatch: boolean, home: Color3): Fan?
+local function makeFan(parent: Instance, route: MatchdayRoutes.Route, startDistance: number, loopsInMatch: boolean, home: Color3, gate: number?): Fan?
 	local kit = if math.random() < 0.4 then home else NEUTRAL_KITS[math.random(1, #NEUTRAL_KITS)]
 	local fig = Townsfolk.build(parent, {
 		shirt = kit,
@@ -165,6 +164,7 @@ local function makeFan(parent: Instance, route: MatchdayRoutes.Route, startDista
 		fig = fig,
 		scarf = scarf,
 		route = route,
+		gate = gate,
 		distance = startDistance,
 		length = MatchdayRoutes.length(route),
 		speed = 5 + math.random() * 3,
@@ -175,11 +175,24 @@ local function makeFan(parent: Instance, route: MatchdayRoutes.Route, startDista
 	}
 end
 
+-- #14/#10: the routes for this club's stands as they are now (upgrades are
+-- locked on matchday, so once per spawn is enough)
+local function fanRoutes(crowd: PlotCrowd): MatchdayRoutes.FanRoutes
+	if not crowd.routes then
+		crowd.routes = MatchdayRoutes.fanRoutes(ConcourseLayout.levelsFrom(crowd.folder))
+	end
+	return crowd.routes :: MatchdayRoutes.FanRoutes
+end
+
 local function addFan(crowd: PlotCrowd, index: number, total: number)
-	local route = ROUTE_LIST[(index % 2) + 1]
+	local pick = MatchdayRoutes.pick(fanRoutes(crowd).arrivals, index)
+	if not pick then
+		return
+	end
+	local route = pick.route
 	local length = MatchdayRoutes.length(route)
 	local startDistance = (index / math.max(total, 1)) * length
-	local fan = makeFan(crowd.model, route, startDistance, math.random() < 0.5, homeKit(crowd))
+	local fan = makeFan(crowd.model, route, startDistance, math.random() < 0.5, homeKit(crowd), pick.gate)
 	if fan then
 		table.insert(crowd.fans, fan)
 	end
@@ -199,7 +212,8 @@ end
 -- is what the block figures did before the shared rig landed.
 local function appendFanPose(fan: Fan, plotCFrame: CFrame, parts: { BasePart }, cframes: { CFrame })
 	local point, direction = MatchdayRoutes.pointAt(fan.route, fan.distance)
-	local offset = lateralOffset(direction, fan.lateral)
+	local _, lateral = MatchdayRoutes.gateLane(fan.gate, fan.distance, fan.lateral) -- #14: the turnstile queue
+	local offset = lateralOffset(direction, lateral)
 	local bob = math.abs(math.sin(fan.phase)) * 0.15
 	local yaw = math.atan2(-direction.X, -direction.Z) + (if fan.leaving then math.pi else 0)
 	local base = plotCFrame * CFrame.new(point + offset + Vector3.new(0, bob, 0)) * CFrame.Angles(0, yaw, 0)
@@ -449,16 +463,18 @@ local function buildConcourse(crowd: PlotCrowd)
 		table.insert(crowd.concourse, fig.model)
 	end
 
-	for i, spot in MatchdayRoutes.amenityQueueSpots(MatchdayRoutes.amenityQueueCount(amenity, attendance, capacity, phase)) do
+	local levels = ConcourseLayout.levelsFrom(folder) -- #7: where the burger van is parked
+	for i, spot in MatchdayRoutes.amenityQueueSpots(MatchdayRoutes.amenityQueueCount(amenity, attendance, capacity, phase), levels) do
 		person("HatchFan" .. i, crowd.plotCFrame * spot, i, i % 2 == 1)
 	end
-	for i, spot in MatchdayRoutes.concourseSpots(MatchdayRoutes.concourseCount(amenity, attendance, capacity, phase), seed) do
+	for i, spot in MatchdayRoutes.concourseSpots(MatchdayRoutes.concourseCount(amenity, attendance, capacity, phase), seed, levels) do
 		person("ConcourseFan" .. i, crowd.plotCFrame * spot, i + 2, i % 3 == 0)
 	end
 end
 
 local function spawnCrowd(crowd: PlotCrowd)
 	crowd.plotCFrame = plotCFrameOf(crowd.folder)
+	crowd.routes = nil -- #14: the stands may have grown since the last matchday
 	buildStewards(crowd)
 	buildBarriers(crowd)
 	buildMediaVan(crowd)
@@ -507,14 +523,24 @@ local function startLeaving(crowd: PlotCrowd)
 		removeFan(crowd, i)
 	end
 	local total = math.min(targetFanCount(crowd.folder), MAX_FANS_PER_PLOT)
+	-- #10: every leaver walks their route backwards to its start (a street
+	-- gate or the car park), and the crowd stays until the last one is out
+	local longest = 0
 	for i = 1, total do
-		local route = LEAVE_ROUTE_LIST[(i % #LEAVE_ROUTE_LIST) + 1]
-		local fan = makeFan(crowd.model, route, MatchdayRoutes.leavingStart(MatchdayRoutes.length(route), i, total), false, homeKit(crowd))
+		local pick = MatchdayRoutes.pick(fanRoutes(crowd).leaving, i)
+		if not pick then
+			break
+		end
+		local start = MatchdayRoutes.leavingStart(MatchdayRoutes.length(pick.route), i, total)
+		local fan = makeFan(crowd.model, pick.route, start, false, homeKit(crowd))
 		if fan then
 			fan.leaving = true
+			fan.speed *= MatchdayRoutes.LEAVE_PACE
+			longest = math.max(longest, start / fan.speed)
 			table.insert(crowd.fans, fan)
 		end
 	end
+	crowd.leavingUntil = math.max(crowd.leavingUntil :: number, os.clock() + MatchdayRoutes.leaveSeconds(longest, 1))
 end
 
 local function recheckCrowd(crowd: PlotCrowd, camPos: Vector3)
@@ -690,7 +716,8 @@ RunService.RenderStepped:Connect(function(dt: number)
 				i += 1
 				continue
 			end
-			fan.distance += fan.speed * dt
+			local pace = MatchdayRoutes.gateLane(fan.gate, fan.distance, fan.lateral) -- #14: shuffle through the turnstile queue
+			fan.distance += fan.speed * pace * dt
 			if fan.distance >= fan.length then
 				if phase == "Match" and not fan.loopsInMatch then
 					removeFan(crowd, i)

@@ -1,6 +1,8 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local MatchdayRoutes = require(ReplicatedStorage.Shared.MatchdayRoutes)
+local ConcourseLayout = require(ReplicatedStorage.Shared.ConcourseLayout)
+local Config = require(ReplicatedStorage.Shared.Config)
 
 local T = {}
 
@@ -143,27 +145,57 @@ function T.queuesFormOnlyBeforeKickOffAndGrowWithTheCrowd()
 	assert(small > 0 and full > small and full <= MatchdayRoutes.QUEUE_MAX, ("small %d full %d"):format(small, full))
 end
 
-function T.queueSpotsStandInTheBarrieredLaneFacingTheTurnstiles()
+-- #14: the standing queue is one file at each block, to the walkers' left of
+-- the walk in, inside the barriers, facing the turnstiles, clear of each other
+-- and the stewards; the walking fans' file (gateLane) is on the other side.
+function T.queueSpotsStandInOneFileAtEachBlock()
 	local spots = MatchdayRoutes.queueSpots(MatchdayRoutes.QUEUE_MAX)
 	assert(#spots == MatchdayRoutes.QUEUE_MAX, "count")
-	-- fixed points 3 and 4 (NORTH_TURN, TURNSTILE): see the barrier test above
-	local turnstile = MatchdayRoutes.ROUTES.fromTown[4]
-	local edge = MatchdayRoutes.ROUTES.fromTown[3]
-	local a = Vector3.new(turnstile.X, 0, turnstile.Z)
-	local walk = Vector3.new(edge.X - a.X, 0, edge.Z - a.Z)
+	local blocks = {
+		{ from = MatchdayRoutes.ROUTES.fromTown[3], gate = MatchdayRoutes.ROUTES.fromTown[4] },
+		{ from = MatchdayRoutes.ROUTES.fromCarPark[2], gate = MatchdayRoutes.ROUTES.fromCarPark[3] },
+	}
+	local perBlock = { 0, 0 }
 	for i, cf in spots do
+		local b = blocks[(i - 1) % 2 + 1]
+		perBlock[(i - 1) % 2 + 1] += 1
+		local a = Vector3.new(b.gate.X, 0, b.gate.Z)
+		local walk = Vector3.new(a.X - b.from.X, 0, a.Z - b.from.Z)
 		local rel = cf.Position - a
-		local along = rel:Dot(walk.Unit)
-		local lateral = math.abs(rel:Cross(walk.Unit).Y)
-		assert(along > 2 and along < walk.Magnitude, "spot " .. i .. " between the turnstile and the forecourt edge")
-		assert(lateral < MatchdayRoutes.BARRIER_OFFSET - 1, "spot " .. i .. " inside the barriers")
-		assert(cf.LookVector:Dot(-walk.Unit) > 0.99, "spot " .. i .. " faces the turnstiles")
+		local back = -rel:Dot(walk.Unit)
+		local left = Vector3.new(-walk.Unit.Z, 0, walk.Unit.X)
+		assert(back > 2 and back < walk.Magnitude, "spot " .. i .. " between the turnstile and the start of the approach")
+		assert(math.abs(rel:Dot(left) - MatchdayRoutes.QUEUE_FILE) < 1e-3, "spot " .. i .. " in the standing file")
+		assert(MatchdayRoutes.QUEUE_FILE + 2 <= MatchdayRoutes.BARRIER_OFFSET, "a ~4-wide figure clears the barrier")
+		assert(cf.LookVector:Dot(walk.Unit) > 0.99, "spot " .. i .. " faces the turnstiles")
 		for j = i + 1, #spots do
 			assert((spots[j].Position - cf.Position).Magnitude >= 2, ("spots %d and %d crowd each other"):format(i, j))
 		end
 		for _, steward in MatchdayRoutes.STEWARD_SPOTS do
 			assert((steward.Position - cf.Position).Magnitude >= 2, "spot " .. i .. " on a steward")
 		end
+	end
+	assert(perBlock[1] == 7 and perBlock[2] == 7, "split between the two blocks")
+end
+
+-- #14: walkers close into the far file and shuffle, then go through the
+-- turnstile on the centre line and spread out again inside.
+function T.walkersShuffleThroughTheQueueInTheOtherFile()
+	local gate = 100
+	local pace, lat = MatchdayRoutes.gateLane(gate, 10, 2)
+	assert(pace == 1 and lat == 2, "well before the queue: unchanged")
+	pace, lat = MatchdayRoutes.gateLane(gate, gate - 15, 2)
+	assert(pace == MatchdayRoutes.QUEUE_SHUFFLE and lat == -MatchdayRoutes.QUEUE_FILE, "in the queue: shuffling in the far file")
+	pace, lat = MatchdayRoutes.gateLane(gate, gate, 2)
+	assert(math.abs(lat) < 1e-6, "through the turnstile on the centre line")
+	pace, lat = MatchdayRoutes.gateLane(gate, gate + 20, 2)
+	assert(pace == 1 and lat == 2, "inside the ground: back to walking")
+	pace, lat = MatchdayRoutes.gateLane(nil, 50, 1.5)
+	assert(pace == 1 and lat == 1.5, "no turnstile on the route")
+	-- the walking file and the standing file never share a lateral
+	for d = gate - MatchdayRoutes.QUEUE_ZONE + 6, gate - MatchdayRoutes.QUEUE_START, 1 do
+		local _, l = MatchdayRoutes.gateLane(gate, d, 2.5)
+		assert(math.abs(l - MatchdayRoutes.QUEUE_FILE) >= 4, "walkers keep off the standing file at " .. d)
 	end
 end
 
@@ -187,19 +219,22 @@ function T.barDrinkersStandOnThePatioClearOfBenches()
 	end
 end
 
--- X161: leavers start at the turnstile end of the route, strung out behind the first
-function T.leaversStartAtTheGateEnd()
-	local route = MatchdayRoutes.ROUTES.fromTown
-	local length = MatchdayRoutes.length(route)
+-- X161 / #10: leavers start strung out from the stand end of the route, in
+-- order, and the crowd waits for the slowest of them to reach the way out.
+function T.leaversStartAtTheStandEndAndTheCrowdWaitsForThem()
+	local length = 600
 	local n = 20
 	local prev = math.huge
 	for i = 1, n do
 		local d = MatchdayRoutes.leavingStart(length, i, n)
-		assert(d <= length and d >= length - MatchdayRoutes.LEAVE_SPREAD - 1e-6 and d >= 0, "start " .. d)
+		assert(d <= length and d >= length * (1 - MatchdayRoutes.LEAVE_SPREAD) - 1e-6, "start " .. d)
 		assert(d < prev, "strung out in order")
 		prev = d
 	end
-	assert(MatchdayRoutes.leavingStart(length, 1, 1) == length, "a lone leaver starts at the gate")
+	assert(MatchdayRoutes.leavingStart(length, 1, 1) == length, "a lone leaver starts in the stand")
+	assert(MatchdayRoutes.leaveSeconds(10, 5) == MatchdayRoutes.LEAVE_SECONDS, "never shorter than the old wait")
+	assert(MatchdayRoutes.leaveSeconds(600, 6) > 100, "long enough for a long way out")
+	assert(MatchdayRoutes.leaveSeconds(1e6, 1) == MatchdayRoutes.LEAVE_MAX_SECONDS, "but capped")
 end
 
 -- X318: the concourse
@@ -236,17 +271,29 @@ function T.theConcourseIsSizedByTheCrowdAndCapped()
 	assert(busy <= MatchdayRoutes.CONCOURSE_MAX, "and still inside the budget")
 end
 
-function T.concourseSpotsAreOnThePavingAndDoNotStack()
-	local spots = MatchdayRoutes.concourseSpots(MatchdayRoutes.CONCOURSE_MAX, 5)
-	assert(#spots == MatchdayRoutes.CONCOURSE_MAX, "should give every spot asked for")
-	local box = MatchdayRoutes.CONCOURSE
-	for i, cf in spots do
-		local p = cf.Position
-		assert(p.X >= box.x0 - 2 and p.X <= box.x1 + 2, "spot " .. i .. " is off the paving in X: " .. tostring(p.X))
-		assert(p.Z >= box.z0 - 2 and p.Z <= box.z1 + 2, "spot " .. i .. " is off the paving in Z: " .. tostring(p.Z))
-		for j = 1, i - 1 do
-			local d = (Vector3.new(p.X, 0, p.Z) - Vector3.new(spots[j].Position.X, 0, spots[j].Position.Z)).Magnitude
-			assert(d > 1.6, ("two people are stood on the same spot (%d and %d, %.1f apart)"):format(j, i, d))
+local function overlaps(p: Vector3, r: ConcourseLayout.Rect, pad: number): boolean
+	return p.X > r.x0 - pad and p.X < r.x1 + pad and p.Z > r.z0 - pad and p.Z < r.z1 + pad
+end
+
+-- #7: people stood about keep ~4 apart (a figure's shoulders) and off
+-- everything on the concourse, wherever the van is parked.
+function T.concourseSpotsStandClearOfEachOtherAndTheCatering()
+	for _, west in { 0, 2, 4 } do
+		local levels = { East = 4, West = west, North = 4, South = 4 }
+		local spots = MatchdayRoutes.concourseSpots(MatchdayRoutes.CONCOURSE_MAX, 5, levels)
+		assert(#spots == MatchdayRoutes.CONCOURSE_MAX, "should give every spot asked for")
+		local box = ConcourseLayout.millingBox(levels)
+		local obstacles = ConcourseLayout.obstacles(levels, 3)
+		for i, cf in spots do
+			local p = cf.Position
+			assert(overlaps(p, box, 0), "spot " .. i .. " is off the milling box")
+			for _, r in obstacles do
+				assert(not overlaps(p, r, 2), ("spot %d (%g, %g) stands in %s"):format(i, p.X, p.Z, r.name))
+			end
+			for j = 1, i - 1 do
+				local d = (Vector3.new(p.X, 0, p.Z) - Vector3.new(spots[j].Position.X, 0, spots[j].Position.Z)).Magnitude
+				assert(d > 3.8, ("two people are stood too close (%d and %d, %.1f apart)"):format(j, i, d))
+			end
 		end
 	end
 end
@@ -259,42 +306,183 @@ function T.theSameMatchdayLooksTheSame()
 	end
 end
 
-function T.theHatchQueueFacesTheHatch()
-	local spots = MatchdayRoutes.amenityQueueSpots(4)
-	assert(#spots == 4, "four in the queue")
-	for i, cf in spots do
-		local toHatch = (MatchdayRoutes.AMENITY_HATCH - Vector3.new(cf.Position.X, 0, cf.Position.Z)).Unit
-		local facing = Vector3.new(cf.LookVector.X, 0, cf.LookVector.Z).Unit
-		assert(facing:Dot(toHatch) > 0.3, "queuer " .. i .. " should be facing the hatch")
-	end
-	for i = 2, #spots do
-		assert(spots[i].Position.Z > spots[i - 1].Position.Z, "the queue should stretch back from the hatch")
+-- #7: the hatch queue lines up at the burger van's hatch, wherever it's parked.
+function T.theHatchQueueFacesTheVanHatch()
+	for _, west in { 0, 2, 3 } do
+		local levels = { East = 1, West = west, North = 0, South = 0 }
+		local van = ConcourseLayout.van(levels, 1) :: ConcourseLayout.Spot
+		local spots = MatchdayRoutes.amenityQueueSpots(5, levels)
+		assert(#spots == 5, "five in the queue")
+		for i, cf in spots do
+			local p = cf.Position
+			assert(not overlaps(p, van.rect, 1.5), "queuer " .. i .. " stands in the van")
+			local facing = Vector3.new(cf.LookVector.X, 0, cf.LookVector.Z).Unit
+			assert(facing:Dot(-van.face) > 0.99, "queuer " .. i .. " faces the hatch side")
+			for _, r in ConcourseLayout.obstacles(levels, 3) do
+				if r.name ~= "BurgerVan" then
+					assert(not overlaps(p, r, 1.5), ("queuer %d stands in %s"):format(i, r.name))
+				end
+			end
+		end
+		local first = spots[1].Position
+		assert((Vector3.new(first.X, 0, first.Z) - van.at):Dot(van.face) > 0, "the line starts on the hatch side")
 	end
 end
 
--- #14: arriving fans should visibly cross a short stretch of concourse after
--- the turnstile, not vanish right on the wall.
-function T.arrivalRoutesEndJustInsideTheWall()
-	for _, name in { "fromTown", "fromCarPark" } do
-		local route = MatchdayRoutes.ROUTES[name]
-		local last = route[#route]
-		assert(last.X > -197, name .. " should end inside the ground wall (inner face ~-197)")
-		assert(last.X < -150, name .. " should still be well short of the pitch")
+-- ------------------------------------------------------------------ fan routes
+
+-- A segment against an axis-aligned rect grown by `pad` (slab test).
+local function segmentHits(a: Vector3, b: Vector3, r: ConcourseLayout.Rect, pad: number): boolean
+	local x0, x1, z0, z1 = r.x0 - pad, r.x1 + pad, r.z0 - pad, r.z1 + pad
+	local t0, t1 = 0, 1
+	local d = b - a
+	for _, axis in { { a.X, d.X, x0, x1 }, { a.Z, d.Z, z0, z1 } } do
+		local p, dp, lo, hi = axis[1], axis[2], axis[3], axis[4]
+		if math.abs(dp) < 1e-9 then
+			if p <= lo or p >= hi then
+				return false
+			end
+		else
+			local ta, tb = (lo - p) / dp, (hi - p) / dp
+			if ta > tb then
+				ta, tb = tb, ta
+			end
+			t0, t1 = math.max(t0, ta), math.min(t1, tb)
+			if t0 >= t1 then
+				return false
+			end
+		end
+	end
+	return true
+end
+
+-- The stand levels the route test walks: every stand through every level on
+-- its own, with the others empty, and with the others at full size.
+local function levelSets(): { { [string]: number } }
+	local sets = {}
+	for _, others in { 0, 4 } do
+		for _, key in { "East", "West", "North", "South" } do
+			for level = 0, 4 do
+				local l = { East = math.max(others, 1), West = others, North = others, South = others }
+				l[key] = if key == "East" then math.max(level, 1) else level
+				table.insert(sets, l)
+			end
+		end
+	end
+	table.insert(sets, { East = 1, West = 0, North = 0, South = 0 })
+	table.insert(sets, { East = 2, West = 2, North = 2, South = 2 })
+	table.insert(sets, { East = 3, West = 3, North = 3, South = 3 })
+	table.insert(sets, { East = 2, West = 4, North = 1, South = 3 })
+	return sets
+end
+
+-- #14/#10: every route a crowd walks starts at the street gate or the car
+-- park, goes through a turnstile block or an exit gate, and inside the wall
+-- keeps a fan's half-width plus a margin (3.5) off every stand, hut, toilet
+-- block, mast, the catering and the rest, at every stand level and catering
+-- tier -- except the last two legs, which step up to and into its own stand.
+function T.fanRoutesWalkClearOfEverythingInsideTheGround()
+	local street, carPark = Vector3.new(-380, 0.3, -12), Vector3.new(-300, 0.3, 115)
+	local W = ConcourseLayout.WALL
+	for _, levels in levelSets() do
+		local routes = MatchdayRoutes.fanRoutes(levels)
+		local stands = 0
+		for _, plot in Config.StandPlots do
+			if (levels[plot.key] or 0) >= 1 then
+				stands += 1
+			end
+		end
+		assert(#routes.arrivals >= stands, "a route for every built stand")
+		for tier = 0, 3 do
+			local obstacles = ConcourseLayout.obstacles(levels, tier)
+			for _, list in { routes.arrivals, routes.leaving } do
+				for _, fr in list do
+					local route = fr.route
+					local first = route[1]
+					assert((first - street).Magnitude < 1e-3 or (first - carPark).Magnitude < 1e-3, fr.name .. " starts at a way out")
+					for i = 1, #route - 1 do
+						local a, b = route[i], route[i + 1]
+						local inside = math.max(a.X, b.X) > W.x0 and math.min(a.X, b.X) < W.x1
+							and math.max(a.Z, b.Z) > W.z0 and math.min(a.Z, b.Z) < W.z1
+						if not inside then
+							continue
+						end
+						local ownStand = i >= #route - 2
+						for _, r in obstacles do
+							if ownStand and string.sub(r.name, 1, 5) == "Stand" then
+								continue
+							end
+							assert(not segmentHits(a, b, r, 3.5), ("%s leg %d (%g,%g)->(%g,%g) runs through %s at tier %d, levels E%d W%d N%d S%d")
+								:format(fr.name, i, a.X, a.Z, b.X, b.Z, r.name, tier, levels.East, levels.West, levels.North, levels.South))
+						end
+					end
+				end
+			end
+		end
 	end
 end
 
--- #10: whichever gate a leaver goes out of, they only ever despawn at a
--- street gate or the car park, never mid-plot.
-function T.exitRoutesDespawnAtAStreetGateOrTheCarPark()
-	local northExit = MatchdayRoutes.ROUTES.toNorthExit
-	local eastExit = MatchdayRoutes.ROUTES.toEastExit
-	assert((northExit[#northExit] - Vector3.new(-380, 0.3, -12)).Magnitude < 1e-3, "north exit route should end at the street gate")
-	assert((eastExit[#eastExit] - Vector3.new(-300, 0.3, 115)).Magnitude < 1e-3, "east exit route should end at the car park")
+-- #14: arrivals end inside their own stand, and the ones through a turnstile
+-- know where it is (the queue shuffle).
+function T.arrivalsEndInTheirStand()
+	for _, levels in levelSets() do
+		for _, fr in MatchdayRoutes.fanRoutes(levels).arrivals do
+			local key = string.match(fr.name, "^(%a+)Via") :: string
+			local last = fr.route[#fr.route]
+			local inStand = false
+			for _, r in ConcourseLayout.standRects(key, levels[key]) do
+				if overlaps(last, r, 0) then
+					inStand = true
+				end
+			end
+			assert(inStand, fr.name .. " should end inside the " .. key .. " stand")
+			assert(fr.gate and fr.gate > 0, fr.name .. " passes a turnstile")
+		end
+	end
 end
 
-function T.leaveRouteListCoversEveryWayOut()
-	assert(#MatchdayRoutes.LEAVE_ROUTES == 4, "expected the two turnstile routes plus both exit-gate loops")
-	assert(#MatchdayRoutes.ARRIVAL_ROUTES == 2, "arriving fans only come from the street or the car park")
+-- #10: the long ways out use the exit gates, and half a stand's leavers take them.
+function T.leaversSplitBetweenTheTurnstilesAndTheExitGates()
+	local routes = MatchdayRoutes.fanRoutes({ East = 3, West = 2, North = 2, South = 1 })
+	local names = {}
+	for _, fr in routes.leaving do
+		names[fr.name] = fr
+	end
+	for _, want in { "NorthViaNWNorthExit", "EastViaNWEastExit", "EastViaSWEastExit" } do
+		assert(names[want], "missing leaving route " .. want)
+	end
+	local function passes(route: { Vector3 }, p: Vector3): boolean
+		for _, q in route do
+			if (q - p).Magnitude < 1e-3 then
+				return true
+			end
+		end
+		return false
+	end
+	assert(passes(names.NorthViaNWNorthExit.route, Vector3.new(0, 0.3, -259)), "through the north exit gate")
+	assert(passes(names.EastViaSWEastExit.route, Vector3.new(201, 0.3, 0)), "through the east exit gate")
+	assert(not names.SouthViaSWEastExit, "bleachers have no back opening onto a lane")
+	-- weights: every stand's leavers add up to its seats
+	local total, seats = 0, 0
+	for _, fr in routes.leaving do
+		total += fr.weight
+	end
+	for _, fr in routes.arrivals do
+		seats += fr.weight
+	end
+	assert(math.abs(total - seats) < 1e-6, "leavers and arrivals weigh the same")
+end
+
+function T.pickSplitsACrowdByWeight()
+	local list = { { route = {}, weight = 3, name = "a" }, { route = {}, weight = 1, name = "b" } }
+	local a = 0
+	for i = 1, 400 do
+		if (MatchdayRoutes.pick(list :: any, i) :: any).name == "a" then
+			a += 1
+		end
+	end
+	assert(a > 280 and a < 320, "about three in four, got " .. a)
+	assert(MatchdayRoutes.pick({}, 1) == nil, "nothing to pick")
 end
 
 return T
