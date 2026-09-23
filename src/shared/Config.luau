@@ -543,15 +543,18 @@ Config.CardTint = {
 -- Recommendation: not for MVP, picking a kit is already two colours; revisit
 -- once shirt customization exists.
 Config.KeeperKit = Color3.fromRGB(60, 200, 90)
--- Pack-opening SFX. slide/flip/pick are free Roblox Creator Store sound
--- effects; sting is a free APM Music riser (same catalog as Config.Music
--- above). #18h: pick is the tap on SIGN/PIN, so choosing a card has its own
--- small sound instead of landing silently.
+-- Pack-opening SFX (#18h). tear, pick and slide are Pro Sound Effects clips
+-- and sting/fanfare APM Music cues, all from Roblox's licensed library; flip
+-- is an older free Creator Store clip. tear opens the report, slide brings
+-- each card out, flip turns it, sting marks every reveal (pitched and louder
+-- up the tiers), fanfare plays over Gold and better, pick is a tap on SIGN/PIN.
 Config.PackAudio = {
+	tear = "rbxassetid://9125724621", -- "Paper Tear Fast Harsh Rip Rustling Movement 1"
 	slide = "rbxassetid://9117209855", -- "Paper Cup Lift Out Of A Stack 18": paper drawn from a stack
 	flip = "rbxassetid://4839809962", -- "cardPlace2": short card-on-card flip
 	sting = "rbxassetid://1843084040", -- "Speed Rise": pitched up for the better tiers
-	pick = "rbxassetid://72467819049463", -- "ClickUp": a light UI tap
+	fanfare = "rbxassetid://1848281810", -- "Everything Works Out - Tag2": a 3 s glitzy pop tag
+	pick = "rbxassetid://9119717523", -- "Switch Click On Or Off Toggle Button 2"
 }
 
 return Config
