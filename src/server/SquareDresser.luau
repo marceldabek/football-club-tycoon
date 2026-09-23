@@ -339,6 +339,8 @@ end
 local function buildClockTower(parent: Instance, centre: Vector3)
 	local m = Instance.new("Model")
 	m.Name = "ClockTower"
+	-- #33: after the spire the tallest thing in town (48), ~14 parts: always loaded
+	m.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 	m.Parent = parent
 	local f = CFrame.new(centre.X, TOP, centre.Z)
 	-- stepped plinth, shaft, clock stage, cornice, cupola and weather vane

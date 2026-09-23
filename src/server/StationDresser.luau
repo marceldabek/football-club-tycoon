@@ -655,14 +655,19 @@ function StationDresser.build(): string
 	end
 	local m = Instance.new("Model")
 	m.Name = "StationFront"
-	-- Lane I (#33): part of the same landmark as the greybox station, always loaded.
-	m.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 	local f = StationDresser.frontFrame()
 	local halfLen = station.size.X / 2
 
 	-- pitched roof, front gable and clock over the greybox shell (X21)
 	if greybox then
-		StationDresser.roof(m, f, station.size)
+		-- #33: the roof is the skyline half of the landmark (the greybox shell
+		-- is the other), so it alone stays loaded; the forecourt, car park and
+		-- platform dressing (~330 parts of cars, lines and planters) stream
+		local roof = Instance.new("Model")
+		roof.Name = "StationRoof"
+		roof.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
+		roof.Parent = m
+		StationDresser.roof(roof, f, station.size)
 	end
 
 	-- forecourt paving in front of the building
