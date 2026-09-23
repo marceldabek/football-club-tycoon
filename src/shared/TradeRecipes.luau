@@ -23,6 +23,7 @@ export type Piece = {
 	yaw: number, -- degrees about Y; 0 = exterior faces the street, 180 = faces the back
 	scale: number?, -- uniform
 	fit: Vector3?, -- non-uniform target box (width, height, depth before yaw); roofs and cladding only
+	trim: number?, -- MEH pieces: this trim sheet (1 = ts1, 2 = ts3) instead of the lot's, to match a prefab
 }
 export type Recipe = {
 	kind: string,
@@ -466,6 +467,16 @@ local function prefabRow(lot: Lot, rng: Random, benches: boolean): { Piece }
 			add(pieces, if rng:NextInteger(0, 1) == 0 then "UKSP__PicnicBenches__BenchNew" else "UKSP__PicnicBenches__BenchOld", x + s.X / 2, 0, -lot.size.Z / 2 + 5, 0)
 		end
 		add(pieces, kit, x + s.X / 2, 0, z, 0)
+		if kit == "MEH__House_03_VAR01__ts1" then
+			-- #32: the only prefab with a blind back. Three windowed modules a storey on it, brick
+			-- face 0.02 proud of its back wall (measured 8.88 behind the box centre).
+			for storey = 0, 1 do
+				for k = -1, 1 do
+					add(pieces, meh(if storey == 0 then "Wall_Window_D" else "Wall_Window_C"), x + s.X / 2 + k * M, storey * M, z + 8.9 + 0.149, 180)
+					pieces[#pieces].trim = 1 -- the prefab is ts1 brick whatever the lot's trim
+				end
+			end
+		end
 		x += s.X + gap
 		i += 1
 	end

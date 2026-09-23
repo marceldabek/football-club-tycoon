@@ -147,7 +147,7 @@ function TradeAssembler.buildLot(parent: Instance, origin: CFrame, lot: TradeRec
 			fitTo(placed, target, piece.fit)
 		end
 		if string.sub(piece.kit, 1, 5) == "MEH__" then
-			applyTrim(placed, trim)
+			applyTrim(placed, piece.trim or trim)
 		elseif string.sub(piece.kit, 1, 7) == "HOUSE__" then
 			local look = unitLook(piece.kit, trim)
 			for _, d in placed:GetDescendants() do
