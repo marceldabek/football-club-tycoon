@@ -538,6 +538,13 @@ Config.CardTint = {
 }
 -- a prospect is nobody's player yet: a plain grey training top on his card
 Config.ProspectKit = Color3.fromRGB(120, 126, 136)
+-- Goalkeepers wear a different shirt to the rest of the team (#18e/#19d).
+-- Matches MatchPresenter's home KEEPER_KITS colour, so a keeper's card and his
+-- match-day rig agree. TEMP: one fixed colour rather than a second kit slot --
+-- Q: should a club be able to set its own keeper kit colour later?
+-- Recommendation: not for MVP, picking a kit is already two colours; revisit
+-- once shirt customization exists.
+Config.KeeperKit = Color3.fromRGB(60, 200, 90)
 -- Pack-opening SFX. slide/flip are free Roblox Creator Store sound effects;
 -- sting is a free APM Music riser (same catalog as Config.Music above).
 Config.PackAudio = {

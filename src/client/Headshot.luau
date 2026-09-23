@@ -7,11 +7,20 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Appearance = require(ReplicatedStorage.Shared.Appearance)
+local Config = require(ReplicatedStorage.Shared.Config)
 
 local Headshot = {}
 
 local cache: { [number]: Model } = {}
 local pending: { [number]: boolean } = {}
+
+-- The bust's head is a classic mesh head blown up past the part's own Size so
+-- it reads well in a tight portrait crop. Hair/face accessories weld to an
+-- attachment whose offset was measured on the *real* rig head (Size only, no
+-- extra mesh scale), so that offset has to grow by the same factor or it lands
+-- inside the now-bigger head and only the last sliver of the hair pokes out
+-- the front (#18d: "hair renders behind the head").
+local HEAD_MESH_SCALE = 1.25
 
 local function buildBust(look: number): Model?
 	local spec = Appearance.fromSeed(look)
@@ -41,7 +50,7 @@ local function buildBust(look: number): Model?
 	head.CFrame = CFrame.identity
 	local mesh = Instance.new("SpecialMesh")
 	mesh.MeshType = Enum.MeshType.Head
-	mesh.Scale = Vector3.new(1.25, 1.25, 1.25)
+	mesh.Scale = Vector3.new(HEAD_MESH_SCALE, HEAD_MESH_SCALE, HEAD_MESH_SCALE)
 	mesh.Parent = head
 	local face = Instance.new("Decal")
 	face.Name = "face"
@@ -75,14 +84,31 @@ local function buildBust(look: number): Model?
 	local kitPlaceholder = Color3.fromRGB(200, 40, 50)
 	block("Shirt", Vector3.new(1.9, 1.7, 1.0), Vector3.new(0, neckY - 1.0, 0), kitPlaceholder)
 	block("Neck", Vector3.new(0.62, 0.3, 0.62), Vector3.new(0, neckY - 0.1, 0), spec.skin)
+	-- a V of visible neck breaks up the shirt's flat top edge (#18e/#19d: "flat
+	-- grey block shoulders" -- a collar reads as a shirt, not a slab)
 	for _, side in { -1, 1 } do
-		-- square sleeve at the shoulder, then the upper arm below it
-		block("Sleeve", Vector3.new(0.72, 0.66, 0.96), Vector3.new(side * 1.31, neckY - 0.48, 0), kitPlaceholder)
+		local collar = block(
+			"Collar",
+			Vector3.new(0.5, 0.34, 1.02),
+			Vector3.new(side * 0.24, neckY - 0.16, 0),
+			spec.skin,
+			Enum.PartType.Wedge
+		)
+		collar.Orientation = Vector3.new(0, if side < 0 then 180 else 0, 90)
+	end
+	for _, side in { -1, 1 } do
+		-- a rounded shoulder cap, then the square upper arm below it -- the cap
+		-- was a second block and read as a stacked box rather than a shoulder
+		block("Sleeve", Vector3.new(0.78, 0.72, 1.0), Vector3.new(side * 1.31, neckY - 0.42, 0), kitPlaceholder, Enum.PartType.Ball)
 		block("Arm", Vector3.new(0.72, 1.1, 0.96), Vector3.new(side * 1.31, neckY - 1.36, 0), spec.skin)
 	end
 
 	-- Accessories were never welded (the rig is torn down before physics ran),
-	-- so place each handle by matching its attachment to the head's.
+	-- so place each handle by matching its attachment to the head's. The
+	-- attachment offset was measured on the real rig head, which has no extra
+	-- mesh scale, so its *position* (not rotation) has to grow by the bust
+	-- head's HEAD_MESH_SCALE or it lands inside the bigger mesh and only a
+	-- sliver of hair pokes out the front (#18d).
 	for _, child in model:GetChildren() do
 		if child:IsA("Accessory") then
 			local handle = child:FindFirstChild("Handle")
@@ -97,7 +123,8 @@ local function buildBust(look: number): Model?
 				handle.Anchored = true
 				handle.CanCollide = false
 				handle.CanQuery = false
-				handle.CFrame = head.CFrame * headAtt.CFrame * att.CFrame:Inverse()
+				local scaledAtt = (headAtt.CFrame - headAtt.CFrame.Position) + headAtt.CFrame.Position * HEAD_MESH_SCALE
+				handle.CFrame = head.CFrame * scaledAtt * att.CFrame:Inverse()
 				handle.Name = child.Name
 				handle.Parent = bust
 			end
@@ -119,13 +146,17 @@ local function getBust(look: number): Model?
 	return cache[look]
 end
 
-export type Options = { shoulders: boolean? }
+export type Options = { shoulders: boolean?, keeper: boolean? }
 
 -- Fills `parent` with a headshot. Shows the shirt number on the kit colour
 -- until the face is ready (or if it never loads). `opts.shoulders` pulls the
 -- camera back to show the kit, for the post-match development cards.
+-- `opts.keeper` wears Config.KeeperKit instead, with the arms shirted too
+-- (a keeper's long sleeves), so a goalkeeper never gets shown in his
+-- teammates' colours (#18e/#19d).
 function Headshot.attach(parent: GuiObject, look: number, kit: Color3, number: number, opts: Options?): ViewportFrame
 	local shoulders = opts ~= nil and opts.shoulders == true
+	local keeper = opts ~= nil and opts.keeper == true
 	local vf = Instance.new("ViewportFrame")
 	vf.Name = "Headshot"
 	vf.Size = UDim2.fromScale(1, 1)
@@ -177,9 +208,16 @@ function Headshot.attach(parent: GuiObject, look: number, kit: Color3, number: n
 		end
 		local bust = src:Clone()
 		bust:PivotTo(CFrame.new(0, 0, 0))
+		local shirtColor = if keeper then Config.KeeperKit else kit
 		for _, part in bust:GetChildren() do
-			if part:IsA("BasePart") and (part.Name == "Shirt" or part.Name == "Sleeve") then
-				part.Color = kit
+			if not part:IsA("BasePart") then
+				continue
+			end
+			if part.Name == "Shirt" or part.Name == "Sleeve" then
+				part.Color = shirtColor
+			elseif keeper and part.Name == "Arm" then
+				-- long sleeves: the keeper shirt covers the forearm too
+				part.Color = shirtColor
 			end
 		end
 		bust.Parent = vf

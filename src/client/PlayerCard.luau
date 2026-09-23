@@ -141,7 +141,7 @@ function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 	portrait.ZIndex = 3
 	portrait.Parent = face
 	local kit = if signed then (ClubCrest.localColours()) else Config.ProspectKit
-	local shot = Headshot.attach(portrait, p.look or p.id, kit, p.number or 0, { shoulders = true })
+	local shot = Headshot.attach(portrait, p.look or p.id, kit, p.number or 0, { shoulders = true, keeper = p.role == "GK" })
 	shot.ZIndex = 3
 	shot.BackgroundTransparency = 1
 	local backdrop = portrait:FindFirstChild("Backdrop")
