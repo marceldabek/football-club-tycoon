@@ -370,8 +370,11 @@ function RoadTiler.build(parent: Instance, origin: CFrame, filter: { district: s
 		counts.props = (counts.props or 0) + 1
 	end
 
-	-- a single oak on each big roundabout's centre island (#29); mini
-	-- roundabouts (painted dome, vehicles can straddle it) get nothing
+	-- a single oak on each big roundabout's centre island (#29), standing in the
+	-- island's hedge ring like a planted bed; mini roundabouts (painted dome,
+	-- vehicles can straddle it) get nothing. 26 tall: well over the 4-stud hedges,
+	-- and even the widest oak's crown (34 across at that height) stays inside the
+	-- 18-radius island
 	local grassTop = RoadTiles.SURFACE_Y + RoadTiles.RB_DISC_TOP + 0.9
 	local treeRng = Random.new(1918)
 	for _, rb in TownLayout.ROUNDABOUTS do
@@ -383,7 +386,7 @@ function RoadTiler.build(parent: Instance, origin: CFrame, filter: { district: s
 			continue
 		end
 		local at = (origin * CFrame.new(rb.centre.X, grassTop, rb.centre.Z)).Position
-		if TreeKit.tree(districtModel(parent, models, district), at, { height = 20, rng = treeRng, name = "RoundaboutOak", collide = false }) then
+		if TreeKit.tree(districtModel(parent, models, district), at, { height = 26, rng = treeRng, name = "RoundaboutOak", collide = false }) then
 			counts.roundaboutTrees = (counts.roundaboutTrees or 0) + 1
 		end
 	end
