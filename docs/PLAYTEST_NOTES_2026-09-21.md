@@ -3,6 +3,10 @@
 Marcel's bug and feedback list from a playtest of build 0.1.1. Listed only; nothing here is fixed yet.
 Numbers are stable so they can be referenced in commits and later notes.
 
+**Status 2026-09-23:** the bug-fix run (`docs/BUGFIX_RUN_2026-09-23.md`, branch `bugs/2026-09-23`) fixed
+#2-4, #6-16, #18a/d/e/f/h, #19-25, #27-41 and #45 (#3, #4, #19, #24, #40, #45 in Phase P before it).
+Still open: #5, #17, #18g, #23b, #42, #43, #44.
+
 **Suggested order:** do #26 (2D layout plan) first. It turns #5, #7, #11, #12, #14, #15, #20–#23 and #25 from guesswork into build-to-plan work.
 
 ---
