@@ -4,7 +4,7 @@
 -- over. Anything that goes wrong in the show drops straight to the result
 -- state, so the player is never left behind a dark screen.
 --   1 camera pushes in on the folder (desk only)   2 three backs slide out
---   3 tap to turn, worst first, best last           4 Sign / Pin / Done
+--   3 tap to turn, worst first, best last           4 Sign / Pin / Continue
 --
 --   PackOpening.open(getClub, actionEvent, { fromDesk = true, folder = part })
 --   PackOpening.isOpen() / PackOpening.refresh()   the club JSON changed
@@ -18,6 +18,7 @@ local UserInputService = game:GetService("UserInputService")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Format = require(ReplicatedStorage.Shared.Format)
 local Nations = require(ReplicatedStorage.Shared.Nations)
+local Pack = require(ReplicatedStorage.Shared.Pack)
 local Squad = require(ReplicatedStorage.Shared.Squad)
 local ClubRef = require(script.Parent.ClubRef)
 local Focus = require(script.Parent.Focus)
@@ -32,13 +33,25 @@ local player = Players.LocalPlayer
 local gui: ScreenGui? = nil
 local drawResult: (() -> ())? = nil
 
--- the row of cards, as a fraction of the screen. Width is what bites: three
--- 2:3 cards side by side on a phone in portrait are sized off the width, not
--- the height, so the slots are measured in pixels rather than left to an
--- aspect constraint that would happily run off both edges.
-local ROW_W, ROW_H = 0.92, 0.6
+-- the row of cards. Width is what bites: three 2:3 cards side by side on a
+-- phone in portrait are sized off the width, not the height, so the slots are
+-- measured in pixels rather than left to an aspect constraint that would
+-- happily run off both edges. Vertically the row gets whatever the header
+-- above and the buttons + CONTINUE below leave it (P6: on a landscape phone the
+-- old 60% row put the Sign buttons under the bottom button).
+local ROW_W = 0.92
+local HEAD_Y = 0.05 -- SCOUT REPORT, as a fraction of the screen
+local HEAD_H = 76 -- headline + the "3 PLAYERS DISCOVERED" line under it
+local UNDER_CARD = 70 -- the Sign/Pin bar and its caption hang below each card
+local FOOT_H = 46 + 12 -- CONTINUE and the gap above it
+local FOOT_Y = 0.03
 local SLOT_GAP = 12
-local PINNED_SCALE = 0.78 -- the pinned card rides smaller, in a fourth slot
+local EXTRA_SCALE = 0.78 -- a pin from an older report rides smaller, in a fourth slot
+local BAR_H = 40
+-- the card art's shield is this much of its 2:3 box wide; the buttons match it
+-- rather than the box (measured on a 381 x 571 card in Studio)
+local ART_W = 0.88
+local SIGNED_GREY = Color3.fromRGB(120, 120, 120) -- a signed card's tint
 
 -- TEMP reveal timings, all of them: the whole show has to stay under ~10 s.
 local CAMERA_IN = 0.6
@@ -331,7 +344,7 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 	end
 	local function close()
 		if gui ~= screen then
-			return -- already closed: death and DONE can both land
+			return -- already closed: death and CONTINUE can both land
 		end
 		gui = nil
 		cancelled = true
@@ -354,31 +367,37 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 		screen:Destroy()
 	end
 
-	-- three slots in a row, plus a smaller fourth for the pinned card
+	-- three slots in a row, plus a smaller fourth for a pin from an older report.
+	-- The row runs from under the header to above the buttons, and the cards sit
+	-- in its middle. Every slot is full card height, so a smaller card sits at the
+	-- bottom of its slot and all the Sign rows still line up.
 	local row = Instance.new("Frame")
 	row.Name = "Row"
 	row.BackgroundTransparency = 1
-	row.AnchorPoint = Vector2.new(0.5, 0.5)
-	row.Position = UDim2.fromScale(0.5, 0.44)
-	row.Size = UDim2.fromScale(ROW_W, ROW_H)
+	row.AnchorPoint = Vector2.new(0.5, 0)
+	row.Position = UDim2.new(0.5, 0, HEAD_Y, HEAD_H)
+	row.Size = UDim2.new(ROW_W, 0, 1 - HEAD_Y - FOOT_Y, -(HEAD_H + UNDER_CARD + FOOT_H))
 	row.Parent = screen
 	local layout = Instance.new("UIListLayout")
 	layout.FillDirection = Enum.FillDirection.Horizontal
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	-- bottoms aligned, not centres: the pinned card is smaller, and its Sign/Unpin
-	-- row would otherwise float half a button above the other two
-	layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+	layout.VerticalAlignment = Enum.VerticalAlignment.Center
 	layout.Padding = UDim.new(0, SLOT_GAP)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = row
 
 	-- Card size for `count` cards abreast: whichever of the row's width and
 	-- height runs out first. A phone in portrait always runs out of width.
-	local function slotSize(count: number, scale: number): UDim2
+	local function cardPixels(count: number, scale: number): Vector2
 		local vp = camera.ViewportSize
 		local room = (vp.X * ROW_W - SLOT_GAP * (count - 1)) / math.max(count, 1)
-		local height = math.min(vp.Y * ROW_H, room / Config.CardAspect) * scale
-		return UDim2.fromOffset(math.floor(height * Config.CardAspect), math.floor(height))
+		local tall = vp.Y * (1 - HEAD_Y - FOOT_Y) - (HEAD_H + UNDER_CARD + FOOT_H)
+		local height = math.max(math.min(tall, room / Config.CardAspect), 60) * scale
+		return Vector2.new(math.floor(height * Config.CardAspect), math.floor(height))
+	end
+	local function slotSize(count: number, scale: number): UDim2
+		local px = cardPixels(count, scale)
+		return UDim2.fromOffset(px.X, px.Y)
 	end
 
 	local function slot(order: number, size: UDim2): Frame
@@ -407,47 +426,168 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 	-- ------------------------------------------------------------ result state
 	local headline = Theme.text(screen, "", "display", {
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, 0.05),
+		Position = UDim2.fromScale(0.5, HEAD_Y),
 		Size = UDim2.new(0.9, 0, 0, 44),
 		TextSize = 30,
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
+	-- "3 PLAYERS DISCOVERED" under the headline (Marcel's mockup, #19c)
+	local subline = Theme.text(screen, "", "accent", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, HEAD_Y, 44),
+		Size = UDim2.new(0.9, 0, 0, 22),
+		TextSize = 16,
+		Font = Theme.fonts.bold,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Visible = false,
+	})
 	-- The HUD's toast renders at DisplayOrder 1, under this opaque screen, so
 	-- "Need £2,000 more" and the like are repeated here while the pack is up.
+	-- It borrows the subline's spot for as long as it shows.
 	local toast = Theme.pill(screen, "Toast", {
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, 0.125),
-		Size = UDim2.new(0.6, 0, 0, 36),
+		Position = UDim2.new(0.5, 0, HEAD_Y, 42),
+		Size = UDim2.new(0.6, 0, 0, 30),
 		TextXAlignment = Enum.TextXAlignment.Center,
 		TextScaled = true,
 		Visible = false,
+		ZIndex = 5,
 	})
 	local toastMax = Instance.new("UITextSizeConstraint")
 	toastMax.MaxTextSize = 17
 	toastMax.Parent = toast
 	local toastToken = 0
+	local sublineWanted = false
 	local function showToast(message: string, ok: boolean?)
 		toastToken += 1
 		local mine = toastToken
 		toast.Text = message
 		toast.TextColor3 = if ok then Theme.colors.good else Theme.colors.bad
 		toast.Visible = true
+		subline.Visible = false
 		task.delay(TOAST_SECONDS, function()
 			if toastToken == mine and toast.Parent then
 				toast.Visible = false
+				subline.Visible = sublineWanted
 			end
 		end)
 	end
 
-	local done = Theme.button(screen, "DONE", "primary", {
+	local done = Theme.button(screen, "CONTINUE  >", "primary", {
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 0.97, 0),
-		Size = UDim2.fromOffset(200, 46),
+		Position = UDim2.new(0.5, 0, 1 - FOOT_Y, 0),
+		Size = UDim2.fromOffset(220, 46),
 		TextSize = 18,
 		Font = Theme.fonts.display,
 		Visible = false,
 	})
 	done.Activated:Connect(close)
+
+	-- A map pin drawn from frames: Gotham has no glyph for one. The mockup has
+	-- a star; ours is a pin (#19c).
+	local function pinIcon(parent: GuiObject, ink: Color3)
+		local icon = Instance.new("Frame")
+		icon.Name = "PinIcon"
+		icon.BackgroundTransparency = 1
+		icon.AnchorPoint = Vector2.new(0.5, 0.5)
+		icon.Position = UDim2.fromScale(0.5, 0.5)
+		icon.Size = UDim2.fromScale(0.5, 0.62)
+		icon.Rotation = 35
+		icon.ZIndex = parent.ZIndex + 1
+		icon.Parent = parent
+		local function bit(name: string, anchor: Vector2, pos: UDim2, size: UDim2, round: boolean): Frame
+			local f = Instance.new("Frame")
+			f.Name = name
+			f.BorderSizePixel = 0
+			f.BackgroundColor3 = ink
+			f.AnchorPoint = anchor
+			f.Position = pos
+			f.Size = size
+			f.ZIndex = icon.ZIndex
+			f.Parent = icon
+			if round then
+				local c = Instance.new("UICorner")
+				c.CornerRadius = UDim.new(0.5, 0)
+				c.Parent = f
+			end
+			return f
+		end
+		local head = bit("Head", Vector2.new(0.5, 0), UDim2.fromScale(0.5, 0), UDim2.fromScale(0.62, 0.62), true)
+		local square = Instance.new("UIAspectRatioConstraint")
+		square.Parent = head
+		bit("Plate", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5), UDim2.new(0.95, 0, 0, 3), true)
+		bit("Needle", Vector2.new(0.5, 0), UDim2.fromScale(0.5, 0.5), UDim2.new(0, 2, 0.5, 0), false)
+	end
+
+	-- a card signed while the screen is up gets the stamp; one that was already
+	-- signed when the screen opened just shows it
+	local stamped: { [number]: boolean } = {}
+	local firstDraw = true
+
+	-- `group` holds the card itself: tinting it greys the card along its own
+	-- shield outline, where a shade frame over it showed as a grey box
+	local function stampSigned(holder: Frame, group: CanvasGroup, animate: boolean)
+		local scale = Instance.new("UIScale")
+		scale.Parent = holder
+		local stamp = Instance.new("Frame")
+		stamp.Name = "SignedStamp"
+		stamp.BackgroundColor3 = Color3.fromRGB(12, 30, 18)
+		stamp.BackgroundTransparency = 0.25
+		stamp.AnchorPoint = Vector2.new(0.5, 0.5)
+		stamp.Position = UDim2.fromScale(0.5, 0.4)
+		stamp.Size = UDim2.fromScale(0.8, 0.15)
+		stamp.Rotation = -12
+		stamp.ZIndex = 6
+		stamp.Parent = holder
+		Theme.corner(stamp, 6)
+		local rim = Instance.new("UIStroke")
+		rim.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		rim.Color = Theme.colors.cash
+		rim.Thickness = 3
+		rim.Parent = stamp
+		local word = Instance.new("TextLabel")
+		word.BackgroundTransparency = 1
+		word.Font = Theme.fonts.display
+		word.Text = "SIGNED"
+		word.TextColor3 = Theme.colors.cash
+		word.TextScaled = true
+		word.AnchorPoint = Vector2.new(0.5, 0.5)
+		word.Position = UDim2.fromScale(0.5, 0.5)
+		word.Size = UDim2.fromScale(0.9, 0.8)
+		word.ZIndex = 7
+		word.Parent = stamp
+		if not animate then
+			scale.Scale = 0.95
+			group.GroupColor3 = SIGNED_GREY
+			return
+		end
+		-- the stamp comes down from above the card and thumps it back a little
+		local stampScale = Instance.new("UIScale")
+		stampScale.Scale = 2.2
+		stampScale.Parent = stamp
+		stamp.BackgroundTransparency = 1
+		rim.Transparency = 1
+		word.TextTransparency = 1
+		local down = TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		TweenService:Create(stampScale, down, { Scale = 1 }):Play()
+		TweenService:Create(stamp, down, { BackgroundTransparency = 0.25 }):Play()
+		TweenService:Create(rim, down, { Transparency = 0 }):Play()
+		TweenService:Create(word, down, { TextTransparency = 0 }):Play()
+		task.delay(0.16, function()
+			if not holder.Parent then
+				return
+			end
+			sound(Config.PackAudio.flip, 0.55)
+			TweenService:Create(group, TweenInfo.new(0.3), { GroupColor3 = SIGNED_GREY }):Play()
+			local thump = TweenService:Create(scale, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = 0.9 })
+			thump:Play()
+			thump.Completed:Once(function()
+				if holder.Parent then
+					TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 0.95 }):Play()
+				end
+			end)
+		end)
+	end
 
 	local function result()
 		clearRow()
@@ -455,7 +595,10 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 		if not now then
 			return close()
 		end
-		local count = #now.shortlist + (if now.pinned then 1 else 0)
+		-- P6 (#19a): slots never shuffle. A signed card stays put, stamped; a
+		-- pinned one glows where it is.
+		local slots = Pack.slots(now.shortlist, now.pinned, now.packSigned, now.packReport)
+		local count = #slots
 		if count == 0 then
 			Theme.text(row, "That is the lot. A new report lands after your next match.", "muted", {
 				Size = UDim2.fromScale(1, 0.2),
@@ -471,33 +614,148 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 		local squadFull = #now.players >= Config.SquadMax
 		local releasable = if squadFull then releaseOptions(now) else {}
 		local bestSale = if #releasable > 0 then Squad.value(releasable[#releasable]) else 0
-		local function cardWithButtons(p: any, order: number, pinned: boolean)
-			local s = slot(order, slotSize(count, if pinned then PINNED_SCALE else 1))
-			table.insert(resultCards, PlayerCard.new(s, p))
+		local full = cardPixels(count, 1)
+		local function cardWithButtons(entry: Pack.Slot, order: number)
+			local p = entry.card
+			local pinned = entry.state == "pinned"
+			local signed = entry.state == "signed"
+			local px = cardPixels(count, if entry.extra then EXTRA_SCALE else 1)
+			local s = slot(order, UDim2.fromOffset(px.X, full.Y))
+			-- the card's own 2:3 box, at the bottom of a full-height slot
+			local holder = Instance.new("Frame")
+			holder.Name = "Holder"
+			holder.BackgroundTransparency = 1
+			holder.AnchorPoint = Vector2.new(0.5, 1)
+			holder.Position = UDim2.fromScale(0.5, 1)
+			holder.Size = UDim2.fromOffset(px.X, px.Y)
+			holder.Parent = s
+			-- only a signed card pays for a CanvasGroup (it renders offscreen)
+			local cardParent: GuiObject = holder
+			local group: CanvasGroup? = nil
+			if signed then
+				local g = Instance.new("CanvasGroup")
+				g.Name = "SignedTint"
+				g.BackgroundTransparency = 1
+				g.Size = UDim2.fromScale(1, 1)
+				g.Parent = holder
+				group, cardParent = g, g
+			end
+			-- signed: he wears your kit now
+			table.insert(resultCards, PlayerCard.new(cardParent, p, { signed = signed }))
+			if pinned then
+				-- Gold glow round the pinned card (the mockup's shortlisted card).
+				-- A frame showed as a gold slab in the shield's cut corners, so the
+				-- halo is the pale Silver art itself, tinted gold and set a little
+				-- larger behind the card: it follows the shield outline. Two
+				-- layers, the outer one fainter, pulse together.
+				for i, grow in { 0.05, 0.1 } do
+					local glow = Instance.new("ImageLabel")
+					glow.Name = "PinGlow"
+					glow.BackgroundTransparency = 1
+					glow.Image = Config.CardArt.Silver
+					glow.ImageColor3 = Theme.colors.accent
+					glow.ImageTransparency = if i == 1 then 0.1 else 0.55
+					glow.AnchorPoint = Vector2.new(0.5, 0.5)
+					glow.Position = UDim2.fromScale(0.5, 0.5)
+					glow.Size = UDim2.fromScale(1 + grow, 1 + grow * Config.CardAspect)
+					glow.ZIndex = 0
+					glow.Parent = holder
+					TweenService:Create(
+						glow,
+						TweenInfo.new(0.9, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+						{ ImageTransparency = if i == 1 then 0.45 else 0.85 }
+					):Play()
+				end
+			end
+			if group then
+				local id = p.id :: number
+				stampSigned(holder, group, not firstDraw and not stamped[id])
+				stamped[id] = true
+			end
+
 			local bar = Instance.new("Frame")
 			bar.Name = "Actions"
 			bar.BackgroundTransparency = 1
 			bar.AnchorPoint = Vector2.new(0.5, 0)
 			bar.Position = UDim2.new(0.5, 0, 1, 8)
-			bar.Size = UDim2.new(1, 0, 0, 40)
+			bar.Size = UDim2.fromOffset(math.max(math.floor(px.X * ART_W), 120), BAR_H)
 			bar.Parent = s
-			local fee = (p.fee :: number?) or 0
-			local short = fee - purse - (if squadFull then bestSale else 0)
-			local signText = if fee == 0
-				then "KEEP  FREE"
-				elseif short > 0 then ("NEED %s MORE"):format(Format.money(short))
-				else ("SIGN  %s"):format(Format.money(fee))
-			local sign = Theme.button(bar, signText, if short > 0 then "ghost" else "primary", {
-				Size = UDim2.new(0.62, -4, 1, 0),
-				TextSize = 15,
+			local caption = Theme.text(s, "", "muted", {
+				Name = "Caption",
+				AnchorPoint = Vector2.new(0.5, 0),
+				Position = UDim2.new(0.5, 0, 1, 8 + BAR_H + 4),
+				Size = UDim2.new(1, 24, 0, 16),
+				TextSize = 12,
+				Font = Theme.fonts.bold,
+				TextXAlignment = Enum.TextXAlignment.Center,
 			})
+			local function restCaption()
+				if signed then
+					caption.Text = "IN YOUR SQUAD"
+					caption.TextColor3 = Theme.colors.muted
+				elseif pinned then
+					caption.Text = "PINNED UNTIL SEASON END"
+					caption.TextColor3 = Theme.colors.accent
+				else
+					caption.Text = "PIN UNTIL SEASON END"
+					caption.TextColor3 = Theme.colors.muted
+				end
+			end
+			restCaption()
+
+			local fee = (p.fee :: number?) or 0
+			local short = if signed then 0 else fee - purse - (if squadFull then bestSale else 0)
+			local signText = if signed
+				then "SIGNED"
+				elseif fee == 0 then "KEEP FREE"
+				elseif short > 0 then ("NEED %s MORE"):format(Format.money(short))
+				else ("SIGN %s"):format(Format.money(fee))
+			local sign = Theme.button(bar, signText, if short > 0 or signed then "ghost" else "primary", {
+				Name = "Sign",
+				Size = UDim2.new(1, -(BAR_H + 6), 1, 0),
+				Font = Theme.fonts.display,
+				TextScaled = true,
+			})
+			local signMax = Instance.new("UITextSizeConstraint")
+			signMax.MaxTextSize = 18
+			signMax.Parent = sign
+			Theme.padding(sign, 8, 8)
+
+			-- the square pin button beside it: gold while this card holds the pin
+			local pin = Theme.button(bar, "", if short > 0 and not pinned then "primary" else "ghost", {
+				Name = "Pin",
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.fromScale(1, 0),
+				Size = UDim2.fromOffset(BAR_H, BAR_H),
+			})
+			if pinned then
+				pin.BackgroundColor3 = Theme.colors.accent
+				pin.BackgroundTransparency = 0
+			end
+			pinIcon(pin, if pinned then Theme.colors.bg else Theme.colors.text)
+
+			if signed then
+				-- both buttons off: he is ours now (#19b)
+				for _, b in { sign, pin } do
+					b.Active = false
+					b.AutoButtonColor = false
+					b.BackgroundTransparency = 0.5
+				end
+				sign.TextColor3 = Theme.colors.muted
+				local icon = pin:FindFirstChild("PinIcon") :: Frame?
+				if icon then
+					icon.Visible = false
+				end
+				return
+			end
+
 			local signing = false -- a fast double tap must not fire two signings
 			sign.Activated:Connect(function()
 				if short > 0 or signing then
 					return
 				end
 				signing = true
-				-- a signing that lands redraws this card away; if the server
+				-- a signing that lands redraws this card as SIGNED; if the server
 				-- refuses, its toast frees the button at once, and this is only
 				-- the backstop for a reply that never arrives
 				table.insert(signBusyClears, function()
@@ -514,13 +772,9 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 					actionEvent:FireServer("sign", p.id)
 				end
 			end)
-			-- Unpinning throws the card away for good, so it asks twice...
-			local pin = Theme.button(bar, if pinned then "UNPIN" else "PIN", if short > 0 and not pinned then "primary" else "ghost", {
-				Size = UDim2.new(0.38, -4, 1, 0),
-				Position = UDim2.new(0.62, 4, 0, 0),
-				TextSize = 15,
-			})
-			-- ...and so does pinning over a pin that is already there
+			-- Unpinning throws the card away for good, so it asks twice, and so
+			-- does pinning over a pin that is already there. The square has no
+			-- room for "SURE?", so the caption asks.
 			local confirms = pinned or now.pinned ~= nil
 			local armed = false
 			pin.Activated:Connect(function()
@@ -533,37 +787,34 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 					return
 				end
 				armed = true
-				pin.Text = "SURE?"
+				caption.Text = if pinned then "TAP AGAIN TO UNPIN" else "TAP AGAIN: REPLACES YOUR PIN"
+				caption.TextColor3 = Theme.colors.bad
 				task.delay(2, function()
-					if pin.Parent then
+					if caption.Parent then
 						armed = false
-						pin.Text = if pinned then "UNPIN" else "PIN"
+						restCaption()
 					end
 				end)
 			end)
-			if pinned then
-				Theme.text(s, "PINNED", "accent", {
-					AnchorPoint = Vector2.new(0.5, 1),
-					Position = UDim2.new(0.5, 0, 0, -6),
-					Size = UDim2.new(1, 0, 0, 20),
-					TextSize = 15,
-					TextXAlignment = Enum.TextXAlignment.Center,
-				})
-			end
 		end
-		for i, p in now.shortlist do
-			cardWithButtons(p, i, false)
+		for i, entry in slots do
+			cardWithButtons(entry, i)
 		end
-		if now.pinned then
-			cardWithButtons(now.pinned, 10, true)
-		end
+		firstDraw = false
 	end
 
 	local function showResult()
 		done.Visible = true
 		drawResult = function()
 			local latest = getClub()
-			headline.Text = if latest and latest.packFree then "KEEP ONE TRIALIST FOR FREE" else "SCOUT REPORT"
+			headline.Text = "SCOUT REPORT"
+			-- every report is PackSize cards, whatever is left of it (a rejoin
+			-- only knows the cards still on the shortlist)
+			subline.Text = if latest and latest.packFree
+				then "KEEP ONE TRIALIST FOR FREE"
+				else ("%d PLAYERS DISCOVERED"):format(Config.PackSize)
+			sublineWanted = latest ~= nil
+			subline.Visible = sublineWanted and not toast.Visible
 			result()
 		end
 		;(drawResult :: () -> ())()

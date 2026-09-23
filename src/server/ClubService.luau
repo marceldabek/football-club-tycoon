@@ -82,9 +82,9 @@ local function publishedProspect(p: Squad.Prospect): any
 	return copy
 end
 
-local function publishedShortlist(): { any }
+local function publishedList(list: { Squad.Prospect }?): { any }
 	local out = {}
-	for _, p in pack.shortlist do
+	for _, p in list or {} do
 		table.insert(out, publishedProspect(p))
 	end
 	return out
@@ -98,8 +98,10 @@ local function publish()
 		autoSquad = autoSquad,
 		coachLevel = coachLevel,
 		scoutLevel = scoutLevel,
-		shortlist = publishedShortlist(), -- X337
+		shortlist = publishedList(pack.shortlist), -- X337
 		pinned = if pack.pinned then publishedProspect(pack.pinned) else nil,
+		packReport = pack.report or {}, -- P6: slots stay put on the pack screen
+		packSigned = publishedList(pack.signed),
 		packRevealed = pack.revealed,
 		packFree = pack.free,
 		bid = bid, -- X323
@@ -354,6 +356,7 @@ function ClubService.restore(data: any?)
 	if type(data.pinned) == "table" then
 		pack.pinned = restoredProspect(data.pinned)
 	end
+	pack.report = Pack.ids(pack.shortlist) -- the signings of a past session are not saved
 	local savedLineup = if type(data.lineup) == "table" then data.lineup else {}
 	lineup = {
 		xi = if type(savedLineup.xi) == "table" then Profile.unpackXi(savedLineup.xi) else {},

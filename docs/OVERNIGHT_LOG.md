@@ -16,3 +16,13 @@ Previous nights: `docs/archive/OVERNIGHT_LOG_2026-09-17.md`.
   so **it needs publishing**. `PlotService` now logs a traceback when a club fails to start.
 - X365 and X366 were already done by SOFT_LAUNCH SL6/SL7; ticked.
 - Club buildings decisions recorded in `docs/CLUB_BUILDINGS.md`; Phase P added to the backlog.
+
+## P6 (15:20–16:14, day session)
+
+- #19 pack screen: SCOUT REPORT + "3 PLAYERS DISCOVERED", green SIGN £X + square pin button (drawn from
+  frames, Gotham has no pin glyph), "PIN UNTIL SEASON END" caption, CONTINUE >. `Pack.slots` keeps every
+  report card in its slot (worst first, like the reveal); `pack.report`/`pack.signed` are published as
+  `packReport`/`packSigned`, session only (not saved). 885 passed; checked sign, pin, pin-over and the
+  older-pin extra slot in Play.
+- MCP trap: `user_mouse_input` takes GUI coordinates (below the 58 px top bar), not screenshot pixels.
+  Clicking at screenshot y hit CONTINUE and looked like the screen closing itself.

@@ -6,7 +6,13 @@ local Squad = require(ReplicatedStorage.Shared.Squad)
 local T = {}
 
 local function fresh(free: boolean?): Pack.State
-	return { shortlist = Squad.prospects(9, 45, 1), pinned = nil, free = free == true, revealed = false }
+	local s: Pack.State = { shortlist = {}, pinned = nil, free = false, revealed = false }
+	Pack.replace(s, Squad.prospects(9, 45, 1), free == true)
+	return s
+end
+
+local function layout(s: Pack.State): { Pack.Slot }
+	return Pack.slots(s.shortlist, s.pinned, s.signed, s.report)
 end
 
 function T.pinMovesTheCardAndLocksTheFee()
@@ -67,6 +73,58 @@ function T.newSeasonClearsThePin()
 	Pack.pin(s, s.shortlist[1].id)
 	Pack.newSeason(s)
 	assert(s.pinned == nil)
+end
+
+-- P6 (#19a): signing or pinning a card must not slide the others along
+function T.signedAndPinnedCardsKeepTheirSlots()
+	local s = fresh()
+	local before = layout(s)
+	assert(#before == 3, "three slots")
+	for i = 2, 3 do
+		assert(before[i - 1].card.overall <= before[i].card.overall, "worst first, like the reveal")
+	end
+	Pack.take(s, before[2].card.id)
+	Pack.pin(s, before[3].card.id)
+	local after = layout(s)
+	assert(#after == 3, "still three slots")
+	for i = 1, 3 do
+		assert(after[i].card.id == before[i].card.id, "slot " .. i .. " moved")
+		assert(not after[i].extra, "report cards are never extras")
+	end
+	assert(after[1].state == "open" and after[2].state == "signed" and after[3].state == "pinned")
+end
+
+function T.anOlderPinRidesInTheExtraSlotEvenOnceSigned()
+	local s = fresh()
+	local old = s.shortlist[1]
+	Pack.pin(s, old.id)
+	Pack.replace(s, Squad.prospects(10, 45, 1), false)
+	local slots = layout(s)
+	assert(#slots == 4 and slots[4].card == old and slots[4].extra and slots[4].state == "pinned")
+	Pack.take(s, old.id)
+	slots = layout(s)
+	assert(#slots == 4 and slots[4].card == old and slots[4].state == "signed", "a signed pin stays on screen")
+	Pack.replace(s, Squad.prospects(11, 45, 1), false)
+	assert(#layout(s) == 3, "a new report forgets the signings")
+end
+
+function T.aPinThrownAwayLosesItsSlot()
+	local s = fresh()
+	local a, b = s.shortlist[1], s.shortlist[2]
+	Pack.pin(s, a.id)
+	Pack.pin(s, b.id)
+	local slots = layout(s)
+	assert(#slots == 2, "the discarded pin is gone")
+	for _, slot in slots do
+		assert(slot.card ~= a)
+	end
+end
+
+function T.noReportFallsBackToTheShortlist()
+	-- a rejoin restores the shortlist without the session's report ids
+	local s = fresh()
+	assert(#Pack.slots(s.shortlist, nil, nil, nil) == 3)
+	assert(#Pack.slots(s.shortlist, nil, nil, {}) == 3)
 end
 
 return T
