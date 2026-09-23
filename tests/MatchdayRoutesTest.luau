@@ -75,9 +75,11 @@ end
 
 function T.carParkBaysSitOnTheAsphaltClearOfTheRoadMouth()
 	local bays = MatchdayRoutes.carParkBays()
-	assert(#bays == 8 + 14 + 14, "bay count " .. #bays)
+	assert(#bays == 8 + 12 + 12, "bay count " .. #bays)
 	for _, b in bays do
 		assert(b.X > -349 and b.X < -251, "inside the kerbs across")
+		-- playtest #25: no matchday car in the team coach's bay (x -312..-276, z 42..56)
+		assert(b.X + 9 <= -312 or b.X - 9 >= -276 or b.Z - 4.5 >= 56 or b.Z + 4.5 <= 42, ("bay at %g, %g is in the coach bay"):format(b.X, b.Z))
 		assert(b.Z - 4.5 >= 41 - 1e-6 and b.Z + 4.5 <= 189 + 1e-6, "inside the kerbs along")
 		if b.X < -330 then
 			assert(b.Z - 4.5 >= 104 - 1e-6, "west row starts past the road mouth")
@@ -126,7 +128,11 @@ function T.mediaVanComesWithACrowdAndStaysOffTheWalk()
 	for _, cf in MatchdayRoutes.barrierSections() do
 		assert((cf.Position - p).Magnitude > 12, "clear of the barriers")
 	end
-	assert(p.X + 7 < -160 or p.Z - 3 > -213, "clear of the team coach")
+	-- playtest #25: the van (~16.5 long along X, ~7.5 wide) on the media bay pad
+	-- outside the wall, x -266..-240, z -252..-230 (PlotGrounds.MEDIA_BAY)
+	assert(p.X - 8.5 >= -266 and p.X + 8.5 <= -240, "van along the media bay")
+	assert(p.Z - 4 >= -252 and p.Z + 4 <= -230, "van across the media bay")
+	assert(math.abs(MatchdayRoutes.MEDIA_VAN.LookVector.X) > 0.99, "van parked along the bay (long axis X)")
 end
 
 -- X104: queues only before kick-off, bigger with a fuller ground, standing

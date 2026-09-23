@@ -146,6 +146,14 @@ local BAY_LINE_W = 0.4
 local ENTRY_CLEAR_Z = 104 -- the west bay row starts past the road mouth
 local LAMP_H = 20
 local LAMP_SPOTS = { { -319, 110 }, { -319, 165 }, { -261, 110 }, { -261, 165 } } -- in the two aisles
+-- Playtest #25 (ground plan spec s5): the team coach's marked bay along the
+-- north kerb, so the middle double row of bays now starts south of it
+-- (MatchdayRoutes.carParkBays uses the same MID_ROW_Z0). The TV van's
+-- hardstanding (media bay) sits outside the ground wall, north-west.
+PlotGrounds.COACH_BAY = { x0 = -312, x1 = -276, z0 = 42, z1 = 56 }
+PlotGrounds.MEDIA_BAY = { x0 = -266, x1 = -240, z0 = -252, z1 = -230 }
+local MID_ROW_Z0 = 67
+local BAY_YELLOW = Color3.fromRGB(240, 196, 40)
 
 -- club shop
 local SHOP_CX, SHOP_CZ = -300, -150
@@ -280,6 +288,11 @@ function PlotGrounds.footprints(): { Footprint }
 			-- the fascia stands proud of the front wall and the roof cap overhangs 0.5
 			min = Vector2.new(SHOP_CX - SHOP_W / 2 - 0.5, SHOP_CZ - SHOP_D / 2 - 0.5),
 			max = Vector2.new(SHOP_CX + SHOP_W / 2 + FASCIA_PROUD + 0.5, SHOP_CZ + SHOP_D / 2 + 0.5),
+		},
+		{
+			name = "MediaBay", -- playtest #25: the TV van's hardstanding
+			min = Vector2.new(PlotGrounds.MEDIA_BAY.x0, PlotGrounds.MEDIA_BAY.z0),
+			max = Vector2.new(PlotGrounds.MEDIA_BAY.x1, PlotGrounds.MEDIA_BAY.z1),
 		},
 	}
 	for i, cz in TRAIN_CZ do
@@ -750,13 +763,24 @@ local function buildCarPark(parent: Instance)
 	local westRow = ax0
 	local midRow = westRow + BAY_D + 24
 	bayRow(westRow, ENTRY_CLEAR_Z, az1 - 6)
-	bayRow(midRow, az0 + 8, az1 - 6)
-	bayRow(midRow + BAY_D, az0 + 8, az1 - 6)
+	bayRow(midRow, MID_ROW_Z0, az1 - 6)
+	bayRow(midRow + BAY_D, MID_ROW_Z0, az1 - 6)
 	-- the shared line down the back of the double row; taller than the bay
 	-- lines by a hair so the crossings never have coplanar tops
-	local spineZ0, spineZ1 = az0 + 8, az0 + 8 + BAY_W * math.floor((az1 - 6 - (az0 + 8)) / BAY_W)
+	local spineZ0, spineZ1 = MID_ROW_Z0, MID_ROW_Z0 + BAY_W * math.floor((az1 - 6 - MID_ROW_Z0) / BAY_W)
 	extents("BayLineSpine", midRow + BAY_D - BAY_LINE_W / 2, midRow + BAY_D + BAY_LINE_W / 2, lineY0, lineY1 + 0.02,
 		spineZ0, spineZ1, LINE, Enum.Material.SmoothPlastic, lines)
+
+	-- playtest #25: the coach bay, a yellow box round the parked team coach
+	-- (WorldBuilder parks it here; no painted word, the coach always covers it)
+	local cb = PlotGrounds.COACH_BAY
+	local yw = BAY_LINE_W
+	for _, z in { cb.z0, cb.z1 } do
+		extents("CoachBayLine", cb.x0, cb.x1, lineY0, lineY1, z - yw / 2, z + yw / 2, BAY_YELLOW, Enum.Material.SmoothPlastic, lines).CastShadow = false
+	end
+	for _, x in { cb.x0, cb.x1 } do
+		extents("CoachBayLine", x - yw / 2, x + yw / 2, lineY0, lineY1, cb.z0 + yw / 2, cb.z1 - yw / 2, BAY_YELLOW, Enum.Material.SmoothPlastic, lines).CastShadow = false
+	end
 
 	for _, spot in LAMP_SPOTS do
 		buildLamp(spot[1], spot[2], park)
@@ -779,6 +803,14 @@ local function buildCarPark(parent: Instance)
 		-- behind the board, touching its back face
 		extents("SignPost", sx, sx + 0.5, GROUND_Y, GROUND_Y + 9, pz - 0.25, pz + 0.25, IRON, Enum.Material.Metal, park)
 	end
+end
+
+-- playtest #25: the media bay (ground plan spec s2), a concrete pad outside
+-- the wall where MatchdayLife parks the TV van (MatchdayRoutes.MEDIA_VAN
+-- stands 0.3 up, on its top). Empty except on a matchday with a crowd.
+local function buildMediaBay(parent: Instance)
+	local mb = PlotGrounds.MEDIA_BAY
+	extents("MediaBay", mb.x0, mb.x1, GROUND_Y, GROUND_Y + 0.3, mb.z0, mb.z1, CONCRETE, Enum.Material.Concrete, parent).CastShadow = false
 end
 
 -- ------------------------------------------------------------------ club shop
@@ -1349,6 +1381,7 @@ function PlotGrounds.build(club: Model): Model
 	buildBoundary(grounds)
 	buildRoad(grounds)
 	buildCarPark(grounds)
+	buildMediaBay(grounds)
 	buildShop(grounds)
 	for i, cz in TRAIN_CZ do
 		buildTrainingPitch(i, cz, grounds)

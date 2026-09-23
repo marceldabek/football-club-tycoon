@@ -272,18 +272,20 @@ local function buildMediaVan(crowd: PlotCrowd)
 	end
 	local model = Instance.new("Model")
 	model.Name = "MediaVan"
-	local base = crowd.plotCFrame * MatchdayRoutes.MEDIA_VAN * CFrame.new(0, 0.3, 0) -- forecourt paving; nose to local -Z
+	local base = crowd.plotCFrame * MatchdayRoutes.MEDIA_VAN * CFrame.new(0, 0.3, 0) -- on the media bay pad; nose to local -Z
 	local clientKit = ReplicatedStorage:FindFirstChild("ClientKit")
 	local vanTemplate = clientKit and clientKit:FindFirstChild("Van")
 	local dishTemplate = clientKit and clientKit:FindFirstChild("Dish")
 	if vanTemplate then
 		local van = vanTemplate:Clone()
 		van.Name = "Van"
-		-- raw front is -X; base's nose is local -Z, so turn -90 about Y
-		van:PivotTo(base * CFrame.Angles(0, -math.pi / 2, 0))
-		van:ScaleTo(VAN_SCALE)
+		-- the kit van's length runs along its pivot Z with the front at -Z, the
+		-- same as base: no turn (the audit found a -90 here parking it across
+		-- the pad, nose north, unlike the ground plan's van)
+		van:PivotTo(base)
+		van:ScaleTo(van:GetScale() * VAN_SCALE)
 		local _, size = van:GetBoundingBox()
-		van:PivotTo(base * CFrame.new(0, size.Y / 2, 0) * CFrame.Angles(0, -math.pi / 2, 0))
+		van:PivotTo(base * CFrame.new(0, size.Y / 2, 0))
 		van.Parent = model
 		if dishTemplate then
 			local dish = dishTemplate:Clone()

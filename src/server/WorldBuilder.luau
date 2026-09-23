@@ -2445,10 +2445,23 @@ local function buildTeamBusPrimitive(parent: Instance, centre: Vector3)
 	end
 end
 
+-- The kit mesh's length runs along its pivot Z with the windscreen at +Z, so
+-- it turns +90 about Y to put the nose to +X like the primitive (the first
+-- cut left it unturned, across the bay and through the car park hedge). The
+-- generated mesh is stubby (31 long, 11 wide); it is stretched to a coach's
+-- proportions, still inside the 36 x 14 bay. TEMP size, width x height x length.
+WorldBuilder.TEAM_COACH_SIZE = Vector3.new(9, 11, 34)
 local function buildTeamBus(parent: Instance, centre: Vector3)
 	if KitPlacer.find("TeamCoach") then
-		local bus = KitPlacer.place("TeamCoach", CFrame.new(centre), parent)
+		local bus = KitPlacer.place("TeamCoach", CFrame.new(centre) * CFrame.Angles(0, math.pi / 2, 0), parent)
 		bus.Name = "TeamBus"
+		local body = bus:FindFirstChildWhichIsA("BasePart", true)
+		if body then
+			-- stretch in the body's own axes, keeping its bottom on the tarmac
+			local bottom = body.Position.Y - body.Size.Y / 2
+			body.Size = WorldBuilder.TEAM_COACH_SIZE
+			body.Position = Vector3.new(body.Position.X, bottom + body.Size.Y / 2, body.Position.Z)
+		end
 		return
 	end
 	buildTeamBusPrimitive(parent, centre)

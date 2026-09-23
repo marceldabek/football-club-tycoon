@@ -298,6 +298,9 @@ local BAY_W, BAY_D = 9, 18
 local PARK_AX0, PARK_AZ0, PARK_AZ1 = -349, 41, 189 -- asphalt inside the kerb
 local ENTRY_CLEAR_Z = 104
 local MID_ROW_X = PARK_AX0 + BAY_D + 24
+-- playtest #25: the double row starts south of the team coach's bay
+-- (PlotGrounds.COACH_BAY, z 42..56), like PlotGrounds' MID_ROW_Z0
+local MID_ROW_Z0 = 67
 
 local function bayRow(out: { Vector3 }, x0: number, z0: number, z1: number)
 	local z = z0
@@ -310,8 +313,8 @@ end
 function MatchdayRoutes.carParkBays(): { Vector3 }
 	local out = {}
 	bayRow(out, PARK_AX0, ENTRY_CLEAR_Z, PARK_AZ1 - 6)
-	bayRow(out, MID_ROW_X, PARK_AZ0 + 8, PARK_AZ1 - 6)
-	bayRow(out, MID_ROW_X + BAY_D, PARK_AZ0 + 8, PARK_AZ1 - 6)
+	bayRow(out, MID_ROW_X, MID_ROW_Z0, PARK_AZ1 - 6)
+	bayRow(out, MID_ROW_X + BAY_D, MID_ROW_Z0, PARK_AZ1 - 6)
 	return out
 end
 

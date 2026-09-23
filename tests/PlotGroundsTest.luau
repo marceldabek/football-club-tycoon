@@ -44,7 +44,7 @@ function T.footprintsHaveTheExpectedPieces()
 		names[r.name] = true
 		assert(r.min.X < r.max.X and r.min.Y < r.max.Y, "degenerate " .. describe(r))
 	end
-	for _, want in { "CarPark", "SupportersBar", "Kiosk", "ClubShop", "TrainingPitch1", "TrainingPitch2" } do
+	for _, want in { "CarPark", "SupportersBar", "Kiosk", "ClubShop", "MediaBay", "TrainingPitch1", "TrainingPitch2" } do
 		assert(names[want], "missing footprint " .. want)
 	end
 end
@@ -93,6 +93,18 @@ function T.carParkReachableFromVehicleGate()
 	assert(r.min.Y <= VEHICLE_GATE_Z0 and r.max.Y >= VEHICLE_GATE_Z1,
 		"vehicle gate z 60..100 does not face the car park: " .. describe(r))
 	assert(r.min.X >= -HALF and r.min.X <= -HALF + 40, "car park west edge too far from the gate: " .. describe(r))
+end
+
+-- Playtest #25 (ground plan spec s5): the coach bay lies on the car park's
+-- asphalt along the north kerb, and WorldBuilder's team coach fits inside it
+-- with room round it.
+function T.coachBayIsOnTheCarParkAndHoldsTheCoach()
+	local r, cb = carPark(), PlotGrounds.COACH_BAY
+	assert(cb.x0 >= r.min.X + 1 and cb.x1 <= r.max.X - 1 and cb.z0 >= r.min.Y + 1 and cb.z1 <= r.max.Y - 1,
+		"coach bay off the asphalt")
+	local WorldBuilder = require(ServerScriptService.Server.WorldBuilder) :: any
+	local size = WorldBuilder.TEAM_COACH_SIZE :: Vector3 -- width, height, length
+	assert(size.Z <= cb.x1 - cb.x0 - 1 and size.X <= cb.z1 - cb.z0 - 2, "the coach overhangs its bay")
 end
 
 function T.footprintsClearTheStadiumAndWestBlock()
