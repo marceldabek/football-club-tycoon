@@ -304,47 +304,82 @@ local function setupTown(parent: Instance)
 end
 
 -- Four masts outside the corners. Heads are Neon so they read from anywhere.
--- X2/#2: they used to be glow-only (real lights were assumed to only reach 60
--- studs, so the pitch stayed almost black on evening matches) -- measured in
--- Studio (2026-09-23) that Light.Range actually clamps to 120, not 60. Each
--- head now also carries a real SpotLight on an Attachment aimed at the pitch
--- centre, computed from the head's own position so it keeps working however
--- far out the masts sit (Lane A1 is moving them to +-140/+-200; older/newer
--- positions both just change `dist` below).
 local floodHeads: { Part } = {}
+-- #2: the lights that actually light the pitch on an evening match. Light.Range
+-- clamps at 120 studs and the masts stand ~250 studs from the centre spot, so a
+-- lamp on a mast head reaches nothing but the stand roof beside it. Instead a
+-- rig of downward SpotLights hangs over the pitch (invisible anchor parts), each
+-- one leaning out towards the nearest mast so the light still reads as coming
+-- from the corners. The rig is laid out from the pitch and the mast bases, so it
+-- keeps working wherever the masts end up.
 local floodLights: { SpotLight } = {}
 -- Clients find the heads by this tag instead of scanning the workspace (X2).
 Scenery.FLOOD_HEAD_TAG = "FloodHead"
 
-local FLOOD_LIGHT_MAX_RANGE = 120 -- Roblox clamps Light.Range to this regardless of what's set
-local FLOOD_LIGHT_MIN_RANGE = 40
-local PITCH_CENTRE = Vector3.new(0, GROUND_Y, 0)
+local FLOOD_RIG_ROWS = 4 -- per touchline half; 2 x 4 = 8 lights per ground
+local FLOOD_RIG_X = 42 -- target line, studs either side of the halfway line's axis
+local FLOOD_RIG_HEIGHT = 55
+local FLOOD_RIG_LEAN = 27 -- how far each light sits out from its target, towards its mast
+local FLOOD_LIGHT_RANGE = 120 -- the engine's maximum
+local FLOOD_LIGHT_ANGLE = 130
+local FLOOD_LIGHT_BRIGHTNESS = 1.3
+local FLOOD_LIGHT_COLOR = Color3.fromRGB(255, 250, 235)
 
-local function floodRange(headPos: Vector3): number
-	local dist = (headPos - PITCH_CENTRE).Magnitude
-	return math.clamp(dist * 1.05, FLOOD_LIGHT_MIN_RANGE, FLOOD_LIGHT_MAX_RANGE)
+-- Pure layout: where each rig light hangs and the pitch point it aims at, in the
+-- pitch frame (origin centre spot, y = GROUND_Y). `masts` are the mast bases.
+function Scenery.floodRig(masts: { Vector3 }): { { position: Vector3, target: Vector3 } }
+	local rig = {}
+	local rowStep = Pitch.LENGTH / FLOOD_RIG_ROWS
+	for _, sx in { -1, 1 } do
+		for row = 1, FLOOD_RIG_ROWS do
+			local target = Vector3.new(sx * FLOOD_RIG_X, GROUND_Y, (row - (FLOOD_RIG_ROWS + 1) / 2) * rowStep)
+			local nearest: Vector3? = nil
+			for _, m in masts do
+				if not nearest or (m - target).Magnitude < (nearest - target).Magnitude then
+					nearest = m
+				end
+			end
+			local lean = Vector3.new(sx, 0, 0)
+			if nearest then
+				local flat = Vector3.new(nearest.X - target.X, 0, nearest.Z - target.Z)
+				if flat.Magnitude > 1e-3 then
+					lean = flat.Unit
+				end
+			end
+			table.insert(rig, {
+				position = target + lean * FLOOD_RIG_LEAN + Vector3.new(0, FLOOD_RIG_HEIGHT, 0),
+				target = target,
+			})
+		end
+	end
+	return rig
 end
 
--- One real light aimed at the pitch centre from `headPos`, parented to
--- `headPart` through an Attachment so the aim doesn't depend on the head
--- part's own facing (matters for the Creator Store StadiumLight parts, whose
--- rotation belongs to the imported model, not to us).
-local function addFloodLight(headPart: BasePart, headPos: Vector3)
-	local aim = Instance.new("Attachment")
-	aim.Name = "FloodLightAim"
-	aim.Parent = headPart
-	aim.WorldCFrame = CFrame.lookAt(headPos, PITCH_CENTRE)
-
-	local light = Instance.new("SpotLight")
-	light.Name = "FloodLight"
-	light.Color = Color3.fromRGB(255, 250, 225)
-	light.Brightness = 3
-	light.Angle = 120 -- wide: four corner masts need to overlap, not spot one line
-	light.Range = floodRange(headPos)
-	light.Shadows = false
-	light.Enabled = false
-	light.Parent = aim
-	table.insert(floodLights, light)
+local function buildFloodRig(parent: Instance, masts: { Vector3 })
+	for i, spot in Scenery.floodRig(masts) do
+		local anchor = part({
+			Name = "FloodRig" .. i,
+			Size = Vector3.one,
+			CFrame = CFrame.lookAt(spot.position, spot.target),
+			Transparency = 1,
+			CanCollide = false,
+			CanQuery = false,
+			CanTouch = false,
+			CastShadow = false,
+			Parent = parent,
+		})
+		local light = Instance.new("SpotLight")
+		light.Name = "FloodLight"
+		light.Face = Enum.NormalId.Front
+		light.Color = FLOOD_LIGHT_COLOR
+		light.Brightness = FLOOD_LIGHT_BRIGHTNESS
+		light.Angle = FLOOD_LIGHT_ANGLE
+		light.Range = FLOOD_LIGHT_RANGE
+		light.Shadows = false
+		light.Enabled = false
+		light.Parent = anchor
+		table.insert(floodLights, light)
+	end
 end
 
 local function setupFloodlights(parent: Instance)
@@ -354,14 +389,16 @@ local function setupFloodlights(parent: Instance)
 	local x = Pitch.SIDE_EDGE + 66
 	local z = Pitch.END_EDGE + 66
 	local mastH = 60
+	local masts: { Vector3 } = {}
 	for _, sx in { -1, 1 } do
 		for _, sz in { -1, 1 } do
 			local base = Vector3.new(sx * x, GROUND_Y, sz * z)
+			table.insert(masts, base)
 			-- Creator Store mast when the place has one: its lamp parts are named StadiumLight
 			local placed = Assets.place("Floodlight", base, parent, { height = mastH + 6, lookAt = Vector3.new(0, GROUND_Y, 0), name = "Floodlight" })
 			if placed then
-				-- lamps only; the store model's own baked-in lights get replaced by
-				-- addFloodLight below so every head is aimed and ranged the same way.
+				-- lamps only. The store model ships with a light source in every lamp,
+				-- which washes the pole; the pitch rig does the lighting (#2).
 				for _, d in placed.model:GetDescendants() do
 					if d:IsA("Light") then
 						d:Destroy()
@@ -369,7 +406,6 @@ local function setupFloodlights(parent: Instance)
 						d.CastShadow = false
 						CollectionService:AddTag(d, Scenery.FLOOD_HEAD_TAG)
 						table.insert(floodHeads, d)
-						addFloodLight(d, d.Position)
 					end
 				end
 				continue
@@ -384,7 +420,7 @@ local function setupFloodlights(parent: Instance)
 			})
 			-- head frame angled at the pitch centre
 			local headPos = base + Vector3.new(0, mastH + 2, 0)
-			local look = CFrame.lookAt(headPos, PITCH_CENTRE)
+			local look = CFrame.lookAt(headPos, Vector3.new(0, GROUND_Y, 0))
 			part({
 				Name = "HeadFrame",
 				Size = Vector3.new(14, 8, 1.2),
@@ -404,9 +440,9 @@ local function setupFloodlights(parent: Instance)
 			})
 			CollectionService:AddTag(head, Scenery.FLOOD_HEAD_TAG)
 			table.insert(floodHeads, head)
-			addFloodLight(head, headPos)
 		end
 	end
+	buildFloodRig(parent, masts)
 end
 
 function Scenery.setFloodlights(on: boolean)
