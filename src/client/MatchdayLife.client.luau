@@ -26,6 +26,7 @@ local MatchdayRoutes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForC
 local RoadTiles = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RoadTiles"))
 local CarWheels = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("CarWheels"))
 local Townsfolk = require(script.Parent.Townsfolk)
+local PedestrianMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("PedestrianMath")) -- #9b: the town's walk cycle
 
 -- ------------------------------------------------------------------ tuning
 
@@ -34,7 +35,6 @@ local FAR_RADIUS = 1000 -- stop showing it once the camera is this far (hysteres
 local RECHECK_INTERVAL = 2 -- seconds between camera-distance / fan-count rechecks
 local MAX_FANS_PER_PLOT = 48
 
-local SCARF = Vector3.new(2.1, 0.5, 1.1) -- stands in for either a scarf or a hat; a prop, not part of the Townsfolk figure
 local CHEST_Y = Townsfolk.SHOULDER_Y - 0.5 -- roughly chest height, for scarves and the bar drinkers' pints
 
 local SKIN_TONES = {
@@ -153,10 +153,9 @@ local function makeFan(parent: Instance, route: MatchdayRoutes.Route, startDista
 	end
 	fig.model.Name = "Fan"
 
+	-- #9a: the scarf was a 2.1-stud block at chest height, which read as a
+	-- square block stuck on the shoulders; fans wear the colours instead
 	local scarf: BasePart? = nil
-	if math.random() < 0.5 then
-		scarf = part("Scarf", SCARF, home, fig.model)
-	end
 
 	return {
 		fig = fig,
@@ -197,11 +196,12 @@ end
 local function appendFanPose(fan: Fan, plotCFrame: CFrame, parts: { BasePart }, cframes: { CFrame })
 	local point, direction = MatchdayRoutes.pointAt(fan.route, fan.distance)
 	local offset = lateralOffset(direction, fan.lateral)
-	local bob = math.abs(math.sin(fan.phase)) * 0.15
+	-- #9b: legs and arms swing with the town's walk cycle (fan.phase runs at 2.2 a second)
+	local bob, swing = PedestrianMath.walkCycle(fan.phase / 2.2, fan.speed)
 	local yaw = math.atan2(-direction.X, -direction.Z) + (if fan.leaving then math.pi else 0)
 	local base = plotCFrame * CFrame.new(point + offset + Vector3.new(0, bob, 0)) * CFrame.Angles(0, yaw, 0)
 
-	Townsfolk.appendPose(fan.fig, base, nil, nil, nil, parts, cframes)
+	Townsfolk.appendPose(fan.fig, base, swing, 0.7, nil, parts, cframes)
 	if fan.scarf then
 		table.insert(parts, fan.scarf)
 		table.insert(cframes, base * CFrame.new(0, CHEST_Y, 0.1))
@@ -219,7 +219,7 @@ local function buildStewards(crowd: PlotCrowd)
 		})
 		if fig then
 			fig.model.Name = "Steward" .. i
-			Townsfolk.pose(fig, crowd.plotCFrame * spot)
+			Townsfolk.idle(fig, crowd.plotCFrame * spot) -- #9b
 			table.insert(crowd.stewards, fig.model)
 		end
 	end
@@ -295,11 +295,7 @@ local function rebuildQueue(crowd: PlotCrowd)
 				* spot
 				* CFrame.new(math.random() * 0.6 - 0.3, 0.3, math.random() * 0.6 - 0.3) -- on the forecourt paving
 				* CFrame.Angles(0, math.rad(math.random(-20, 20)), 0)
-			Townsfolk.pose(fig, base)
-			if math.random() < 0.5 then
-				local scarf = part("Scarf", SCARF, homeKit(crowd), fig.model)
-				scarf.CFrame = base * CFrame.new(0, CHEST_Y, 0.1)
-			end
+			Townsfolk.idle(fig, base) -- #9b; #9a: no scarf block
 			table.insert(crowd.queue, fig.model)
 		end
 	end
@@ -397,7 +393,7 @@ local function buildBarDrinkers(crowd: PlotCrowd)
 		if fig then
 			fig.model.Name = "BarDrinker" .. i
 			local base = crowd.plotCFrame * spot
-			Townsfolk.pose(fig, base)
+			Townsfolk.pose(fig, base) -- holding a pint: stays still so the pint stays in hand
 			-- a pint held in front at chest height
 			local pint = part("Pint", Vector3.new(0.35, 0.6, 0.35), Color3.fromRGB(200, 140, 40), fig.model)
 			pint.Transparency = 0.15
@@ -420,11 +416,7 @@ local function buildKioskQueue(crowd: PlotCrowd)
 		if fig then
 			fig.model.Name = "KioskFan" .. i
 			local base = crowd.plotCFrame * spot
-			Townsfolk.pose(fig, base)
-			if i ~= 2 then
-				local scarf = part("Scarf", SCARF, homeKit(crowd), fig.model)
-				scarf.CFrame = base * CFrame.new(0, CHEST_Y, 0.1)
-			end
+			Townsfolk.idle(fig, base) -- #9b; #9a: no scarf block
 			table.insert(crowd.stewards, fig.model)
 		end
 	end
@@ -461,11 +453,7 @@ local function buildConcourse(crowd: PlotCrowd)
 			return
 		end
 		fig.model.Name = name
-		Townsfolk.pose(fig, base)
-		if scarf then
-			local s = part("Scarf", SCARF, homeKit(crowd), fig.model)
-			s.CFrame = base * CFrame.new(0, CHEST_Y, 0.1)
-		end
+		Townsfolk.idle(fig, base) -- #9b; #9a: `scarf` no longer adds a block
 		table.insert(crowd.concourse, fig.model)
 	end
 
