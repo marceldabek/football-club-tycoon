@@ -120,7 +120,11 @@ function TradeAssembler.buildLot(parent: Instance, origin: CFrame, lot: TradeRec
 			end
 		end
 	end
-	if recipe.core and pieces == recipe.pieces then
+	local cores = table.clone(recipe.cores or {})
+	if recipe.core then
+		table.insert(cores, recipe.core)
+	end
+	for _, box in (if pieces == recipe.pieces then cores else {}) do
 		-- Same guard as HouseAssembler.putCore (register row EH1): kit walls are single-sided.
 		local core = Instance.new("Part")
 		core.Name = "Core"
@@ -131,8 +135,8 @@ function TradeAssembler.buildLot(parent: Instance, origin: CFrame, lot: TradeRec
 		core.CastShadow = false
 		core.Material = Enum.Material.SmoothPlastic
 		core.Color = Color3.fromRGB(24, 24, 28)
-		core.Size = recipe.core.size
-		core.CFrame = frame * CFrame.new(recipe.core.pos + Vector3.new(0, recipe.core.size.Y / 2, 0))
+		core.Size = box.size
+		core.CFrame = frame * CFrame.new(box.pos + Vector3.new(0, box.size.Y / 2, 0))
 		core:SetAttribute("V3Exempt", "EH1")
 		core.Parent = model
 	end

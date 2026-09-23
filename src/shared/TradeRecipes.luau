@@ -13,6 +13,7 @@
 -- and replaced when the section 8 buy list is approved.
 
 local HouseUnits = require(script.Parent.HouseUnits)
+local TradeUnits = require(script.Parent.TradeUnits)
 
 local TradeRecipes = {}
 
@@ -31,6 +32,7 @@ export type Recipe = {
 	-- in a place whose kit does not hold them, and the dark box that goes inside the body.
 	fallback: { Piece }?,
 	core: { pos: Vector3, size: Vector3 }?,
+	cores: { { pos: Vector3, size: Vector3 } }?, -- more than one body (waterfront flats)
 }
 export type Lot = {
 	id: string,
@@ -136,6 +138,11 @@ local SIZES: { [string]: Vector3 } = {
 }
 for _, key in CORNER_SHOP_UNITS do
 	for _, mesh in HouseUnits.UNITS[key].meshes do
+		SIZES[mesh.name] = mesh.size
+	end
+end
+for _, unit in TradeUnits.UNITS do
+	for _, mesh in unit.meshes do
 		SIZES[mesh.name] = mesh.size
 	end
 end
@@ -259,7 +266,7 @@ local function upperFloor(n: number, rng: Random): { { any } }
 end
 
 -- A brick parade: shop bays at street level, `storeys - 1` floors of flats over, pitched roof.
-local function parade(lot: Lot, rng: Random, storeys: number, pitched: boolean): { Piece }
+local function parade(lot: Lot, rng: Random, storeys: number, pitched: boolean): ({ Piece }, { Piece }?, { pos: Vector3, size: Vector3 })
 	local pieces: { Piece } = {}
 	local n = math.max(2, math.floor(lot.size.X / M + 0.01))
 	local W, D = n * M, 2 * M
@@ -269,36 +276,78 @@ local function parade(lot: Lot, rng: Random, storeys: number, pitched: boolean):
 	for s = 1, storeys - 1 do
 		run(pieces, front, s * M, upperFloor(n, rng))
 	end
-	blank(pieces, back, 0, n, storeys)
-	blank(pieces, faceOf("left", 0, cz, W, D), 0, 2, storeys)
-	blank(pieces, faceOf("right", 0, cz, W, D), 0, 2, storeys)
+	-- Back and ends: blank modules, or (#32) one merged windowed shell when the kit has one
+	-- for this size. `fallback` is the whole parade module by module.
+	local shell: { Piece } = {}
+	blank(shell, back, 0, n, storeys)
+	blank(shell, faceOf("left", 0, cz, W, D), 0, 2, storeys)
+	blank(shell, faceOf("right", 0, cz, W, D), 0, 2, storeys)
+	local unit = TradeUnits.UNITS[("parade_n%d_s%d"):format(n, storeys)]
+	local fallback: { Piece }? = nil
+	if unit then
+		fallback = table.clone(pieces)
+		for _, p in shell do
+			table.insert(fallback :: { Piece }, p)
+		end
+		for _, mesh in unit.meshes do
+			add(pieces, mesh.name, mesh.offset.X, mesh.offset.Y, cz + mesh.offset.Z, 0)
+		end
+	else
+		for _, p in shell do
+			table.insert(pieces, p)
+		end
+	end
+	local function both(kit: string, x: number, y: number, z: number, yaw: number, scale: number?, fit: Vector3?)
+		add(pieces, kit, x, y, z, yaw, scale, fit)
+		if fallback then
+			add(fallback, kit, x, y, z, yaw, scale, fit)
+		end
+	end
 	local top = storeys * M
 	if pitched then
 		for i = 0, n - 1 do
-			add(pieces, meh("Roof_A"), -W / 2 + (i + 0.5) * M, top, cz - D / 2 + 4.32 - 0.2, 0)
+			both(meh("Roof_A"), -W / 2 + (i + 0.5) * M, top, cz - D / 2 + 4.32 - 0.2, 0)
 		end
 		-- The rear slope is one stretched piece: it is only seen from the back lane.
-		add(pieces, meh("Roof_A"), 0, top, cz + D / 2 - 4.32 + 0.2, 180, nil, Vector3.new(W, 5.5, 8.64))
-		add(pieces, meh("Roof_Wall_Full_A"), -W / 2, top, cz, 90)
-		add(pieces, meh("Roof_Wall_Full_A"), W / 2, top, cz, -90)
+		both(meh("Roof_A"), 0, top, cz + D / 2 - 4.32 + 0.2, 180, nil, Vector3.new(W, 5.5, 8.64))
+		both(meh("Roof_Wall_Full_A"), -W / 2, top, cz, 90)
+		both(meh("Roof_Wall_Full_A"), W / 2, top, cz, -90)
 	else
 		flatRoof(pieces, 0, cz, W, D, top)
+		if fallback then
+			flatRoof(fallback, 0, cz, W, D, top)
+		end
 		local parapet = {}
 		for _ = 1, n do
 			table.insert(parapet, { meh("Wall_Low_A"), 1 })
 		end
 		run(pieces, front, top, parapet)
+		if fallback then
+			run(fallback, front, top, parapet)
+		end
 	end
 	-- One shuttered doorway and one camera per parade, from the seed.
 	if n >= 3 then
 		local x = -W / 2 + (rng:NextInteger(0, n - 1) + 0.5) * M
-		add(pieces, "PH__security_camera_01", x, M - 1.2, cz - D / 2 - 0.8, 180)
+		both("PH__security_camera_01", x, M - 1.2, cz - D / 2 - 0.8, 180)
 	end
-	return pieces
+	local inset = CORNER_SHOP_CORE_INSET
+	local core = { pos = Vector3.new(0, 0, cz), size = Vector3.new(W - 2 * inset, top - 0.05, D - 2 * inset) }
+	return pieces, fallback, core
 end
 
--- A block of flats: 6 x 3 modules, four storeys, flat roof. Returns pieces centred on (cx, 0).
-local function flatsBlock(pieces: { Piece }, rng: Random, cx: number, cz: number)
+-- A block of flats: 6 x 3 modules, four storeys, flat roof, centred on (cx, cz).
+-- #30: one merged unit (Shared/TradeUnits, windows on all four sides, seamless brick) with a
+-- dark core inside; `fallback` gets the older module-by-module block with blank back and ends.
+local FLATS_VARIANTS = { "flats_a", "flats_b" }
+local function flatsBlock(pieces: { Piece }, fallback: { Piece }, cores: { { pos: Vector3, size: Vector3 } }, rng: Random, cx: number, cz: number, pick: number)
+	local unit = TradeUnits.UNITS[FLATS_VARIANTS[pick % #FLATS_VARIANTS + 1]]
+	for _, mesh in unit.meshes do
+		add(pieces, mesh.name, cx + mesh.offset.X, mesh.offset.Y, cz + mesh.offset.Z, 0)
+	end
+	local inset = CORNER_SHOP_CORE_INSET
+	table.insert(cores, { pos = Vector3.new(cx, 0, cz), size = Vector3.new(unit.body.X - 2 * inset, unit.body.Y - 0.05, unit.body.Z - 2 * inset) })
+	pieces = fallback
 	local W, D, storeys = 6 * M, 3 * M, 4
 	local front = faceOf("front", cx, cz, W, D)
 	run(pieces, front, 0, { { meh("Wall_WindowCentre_B"), 2 }, { meh("Wall_WideDoor_A"), 2 }, { meh("Wall_WindowCentre_B"), 2 } })
@@ -429,9 +478,11 @@ function TradeRecipes.recipeFor(lot: Lot): Recipe
 	local pieces: { Piece } = {}
 	if use == "shops with flats" then
 		local tall = lot.street == "High Street" or lot.street == "Market Street" or rng:NextInteger(1, 4) == 1
-		return { kind = "parade", gap = "EC1", pieces = parade(lot, rng, if tall then 3 else 2, true) }
+		local pieces, fallback, core = parade(lot, rng, if tall then 3 else 2, true)
+		-- the dark core only behind merged walls, like the corner shop (kit walls are single-sided)
+		return { kind = "parade", gap = "EC1", pieces = pieces, fallback = fallback, core = if fallback then core else nil }
 	elseif use == "shops" or use == "supermarket" then
-		return { kind = "shops", gap = if use == "supermarket" then "EC4" else "EC1", pieces = parade(lot, rng, 1, false) }
+		return { kind = "shops", gap = if use == "supermarket" then "EC4" else "EC1", pieces = (parade(lot, rng, 1, false)) }
 	elseif use == "corner shop" then
 		-- A two-bay shop with a flat over, built like the parades and scaled up to fill its
 		-- 18-wide lot. It stands at the end of a terrace whose houses are the same modules at
@@ -442,7 +493,8 @@ function TradeRecipes.recipeFor(lot: Lot): Recipe
 		local inner = table.clone(lot)
 		inner.size = lot.size / k
 		local fallback: { Piece } = {}
-		for _, p in parade(inner, rng, 2, true) do
+		local innerPieces, innerFallback = parade(inner, rng, 2, true)
+		for _, p in innerFallback or innerPieces do
 			add(fallback, p.kit, p.pos.X * k, p.pos.Y * k, p.pos.Z * k, p.yaw, if p.fit then nil else (p.scale or 1) * k, if p.fit then p.fit * k else nil)
 		end
 		-- That parade had no door leaf, no back faces and stood at 1.09 beside houses at 1.25
@@ -459,13 +511,15 @@ function TradeRecipes.recipeFor(lot: Lot): Recipe
 		local core = { pos = Vector3.new(0, 0, cz), size = Vector3.new(2 * M * s - 2 * inset, 2 * M * s - 0.05, 2 * M * s - 2 * inset) }
 		return { kind = "corner shop", gap = "EC1", pieces = pieces, fallback = fallback, core = core }
 	elseif use == "flats" then
-		flatsBlock(pieces, rng, 0, -lot.size.Z / 2 + 4 + 1.5 * M)
-		return { kind = "flats", pieces = pieces }
+		local fallback, cores = {}, {}
+		flatsBlock(pieces, fallback, cores, rng, 0, -lot.size.Z / 2 + 4 + 1.5 * M, seedOf(lot.id .. "#flats"))
+		return { kind = "flats", pieces = pieces, fallback = fallback, cores = cores }
 	elseif use == "waterfront flats" then
 		local cz = -lot.size.Z / 2 + 4 + 1.5 * M
-		flatsBlock(pieces, rng, -3.5 * M, cz)
-		flatsBlock(pieces, rng, 3.5 * M, cz)
-		return { kind = "flats", pieces = pieces }
+		local fallback, cores = {}, {}
+		flatsBlock(pieces, fallback, cores, rng, -3.5 * M, cz, 0)
+		flatsBlock(pieces, fallback, cores, rng, 3.5 * M, cz, 1)
+		return { kind = "flats", pieces = pieces, fallback = fallback, cores = cores }
 	elseif use == "workshop" or use == "trade counter" then
 		local W, D, H = 6 * M, 4 * M, 1.5 * M
 		local cz = lot.size.Z / 2 - 2 - D / 2

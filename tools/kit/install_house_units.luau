@@ -1,5 +1,5 @@
 -- Run once in Studio (Edit mode, command bar or MCP execute_luau). Loads the merged house unit
--- meshes named in Shared/HouseUnits into ServerStorage.Kit.Meshes and builds the tileable brick
+-- meshes named in Shared/HouseUnits and Shared/TradeUnits into ServerStorage.Kit.Meshes and builds the tileable brick
 -- and slate SurfaceAppearances in ServerStorage.Kit.Appearances. Safe to re-run: a mesh is
 -- refetched only when its asset id in HouseUnits changed (each template remembers its id in the
 -- AssetId attribute), appearances are rebuilt.
@@ -7,6 +7,14 @@
 local IS = game:GetService("InsertService")
 local inst = game.ReplicatedStorage.Shared.HouseUnits
 local HouseUnits = assert(loadstring(inst.Source, "=HouseUnits"))()
+-- Shared/TradeUnits (flats and parade backs, tools/kit/make_trade_units.py) use the same looks.
+local TradeUnits = assert(loadstring(game.ReplicatedStorage.Shared.TradeUnits.Source, "=TradeUnits"))()
+local allUnits = {}
+for _, units in { HouseUnits.UNITS, TradeUnits.UNITS } do
+	for _, unit in units do
+		table.insert(allUnits, unit)
+	end
+end
 
 local function folder(parent, name)
 	local f = parent:FindFirstChild(name) or Instance.new("Folder")
@@ -18,7 +26,7 @@ local kit = folder(game.ServerStorage, "Kit")
 local meshes, looks = folder(kit, "Meshes"), folder(kit, "Appearances")
 
 local fetched, failed = 0, {}
-for _, unit in HouseUnits.UNITS do
+for _, unit in allUnits do
 	for _, mesh in unit.meshes do
 		local old = meshes:FindFirstChild(mesh.name)
 		if old and old:GetAttribute("AssetId") ~= ("%.0f"):format(mesh.assetId) then

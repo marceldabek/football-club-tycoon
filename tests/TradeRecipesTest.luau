@@ -138,4 +138,34 @@ function T.pieceCountsStayInsideTheLanePAllowance()
 	assert(total <= 3600, "recipes total " .. total .. " pieces; leave headroom under the 4,000 budget")
 end
 
+-- #30 / #32: every block of flats is merged unit meshes with a dark core per block and the old
+-- modular block as fallback, and every live parade size has a merged windowed back.
+function T.flatsAndParadeBacksAreMergedUnits()
+	local flats, parades = 0, 0
+	for _, lot in lots() do
+		local recipe = TradeRecipes.recipeFor(lot)
+		if lot.use == "flats" or lot.use == "waterfront flats" then
+			flats += 1
+			local blocks = if lot.use == "flats" then 1 else 2
+			assert(#recipe.pieces == 3 * blocks, ("%s has %d pieces, want %d merged meshes"):format(lot.id, #recipe.pieces, 3 * blocks))
+			assert(recipe.cores and #recipe.cores == blocks, lot.id .. " has no core per block")
+			assert(recipe.fallback and #recipe.fallback > #recipe.pieces, lot.id .. " has no modular fallback")
+			for _, p in recipe.pieces do
+				assert(string.sub(p.kit, 1, 13) == "HOUSE__flats_", lot.id .. ": " .. p.kit)
+			end
+		elseif lot.use == "shops with flats" then
+			parades += 1
+			assert(recipe.fallback and recipe.core, lot.id .. " parade has no merged back (add its size to make_trade_units.py PARADES)")
+			local merged = 0
+			for _, p in recipe.pieces do
+				if string.sub(p.kit, 1, 14) == "HOUSE__parade_" then
+					merged += 1
+				end
+			end
+			assert(merged == 2, lot.id .. " has " .. merged .. " merged back meshes")
+		end
+	end
+	assert(flats > 0 and parades > 0, "no flats or parades")
+end
+
 return T
