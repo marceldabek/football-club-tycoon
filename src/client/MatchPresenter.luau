@@ -7,13 +7,13 @@
 -- Runs entirely on each client, synchronised to the server's KickoffAt time.
 
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local Footballer = require(script.Parent.Footballer)
 local ClubRef = require(script.Parent.ClubRef)
 local MatchAudio = require(script.Parent.MatchAudio)
+local StandCrowd = require(script.Parent.StandCrowd) -- #6c: the stand fans
 
 local Presenter = {}
 Presenter.__index = Presenter
@@ -635,16 +635,6 @@ function Presenter.fillerPass(self: Presenter)
 	self:pass(holder.team, to)
 end
 
--- WorldBuilder.buildFan's part offsets from the seat frame (keep in step)
-local FAN_PART_OFFSETS: { [string]: Vector3 } = {
-	Torso = Vector3.new(0, 2, 0),
-	ArmL = Vector3.new(-1.5, 2, 0),
-	ArmR = Vector3.new(1.5, 2, 0),
-	Legs = Vector3.new(0, 0.5, -1),
-	Head = Vector3.new(0, 3.6, 0),
-	Hair = Vector3.new(0, 4.375, 0),
-}
-
 -- X297: `away` hops the visiting end instead of the home stands. An away goal
 -- used to be met by a still, silent ground; now the one pocket wearing their
 -- colours goes up while the rest of the ground sits.
@@ -667,58 +657,11 @@ local function crowdReact(away: boolean?, strength: number?, sound: boolean?)
 	if not stands then
 		return
 	end
-	local fans = {}
-	for _, stand in stands:GetChildren() do
-		local crowd = stand:FindFirstChild("Crowd")
-		if crowd and (crowd:GetAttribute("AwayEnd") == true) == (away == true) then
-			for _, fan in crowd:GetChildren() do
-				table.insert(fans, fan)
-			end
-		end
-	end
-	-- X176: a crowd fan is 5-6 loose parts (WorldBuilder.buildFan), so every
-	-- part of one fan must hop together: recover the seat from the part's known
-	-- offset and give each seat one delay
-	local seatDelay: { [Vector3]: number } = {}
-	-- X344 (review): a full house is 660 fans of 5-6 parts, so a reaction is
-	-- about 2,500 delayed closures and 2,500 tweens. X335 started calling this
-	-- on every save, miss, kick-off and whistle, which on a phone is five or
-	-- six times the churn it was built for (CLAUDE.md s21.12). A goal still
-	-- lifts the whole end; the small reactions lift about a third of the seats.
-	local seatShare = if size >= 1 then 1 else 0.35
-	local seatOut: { [Vector3]: boolean } = {}
-	for _, fan in fans do
-		if fan:IsA("BasePart") then
-			local offset = FAN_PART_OFFSETS[fan.Name] or Vector3.zero
-			-- the resting position, remembered on the first hop so a hop that
-			-- starts mid-hop doesn't leave the part floating
-			local rest = fan:GetAttribute("RestPosition")
-			if typeof(rest) ~= "Vector3" then
-				rest = fan.Position
-				fan:SetAttribute("RestPosition", rest)
-			end
-			local restPos = rest :: Vector3
-			local seat = (CFrame.new(restPos) * fan.CFrame.Rotation * CFrame.new(-offset)).Position
-			local key = Vector3.new(math.round(seat.X * 2), math.round(seat.Y * 2), math.round(seat.Z * 2))
-			local delay = seatDelay[key]
-			if not delay and not seatOut[key] then
-				if seatShare < 1 and math.random() >= seatShare then
-					seatOut[key] = true
-				else
-					delay = math.random() * 0.35
-					seatDelay[key] = delay
-				end
-			end
-			if not delay then
-				continue -- this seat is sitting this one out
-			end
-			task.delay(delay, function()
-				fan.Position = restPos
-				TweenService:Create(fan, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 2, true),
-					{ Position = restPos + Vector3.new(0, 1.5 * size, 0) }):Play()
-			end)
-		end
-	end
+	-- X344 (review): a goal still lifts the whole end; the small reactions
+	-- (saves, misses, kick-off, the whistle) lift about a third of the seats,
+	-- so a phone is not moving the whole ground five or six times a match.
+	-- #6c: the fans are client avatars now (StandCrowd), hopped in one batch.
+	StandCrowd.react(stands, away == true, size, if size >= 1 then 1 else 0.35)
 end
 
 -- Build-up, shot and outcome for one chance. `shotAt` is the server time at

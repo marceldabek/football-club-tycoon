@@ -60,6 +60,7 @@ function T.lowBudgetNeverExceedsHigh()
 	assert(low.banners <= high.banners, "banners")
 	assert(low.buntingStrings <= high.buntingStrings, "bunting")
 	assert(low.pedestrians <= high.pedestrians, "pedestrians")
+	assert(low.standFans > 0 and low.standFans <= high.standFans, "stand fans")
 end
 
 function T.highBudgetMatchesShippedScriptValues()

@@ -25,6 +25,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local Format = require(ReplicatedStorage.Shared.Format) -- X342
 local ClubCrest = require(ReplicatedStorage.Shared.ClubCrest)
+local CrowdSeats = require(ReplicatedStorage.Shared.CrowdSeats) -- #6: stand fans are client avatars now
 local Assets = require(script.Parent.Assets)
 local PlotContext = require(script.Parent.PlotContext)
 local KitPlacer = require(script.Parent.KitPlacer)
@@ -1790,7 +1791,7 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 
 	local stepColor = if level == 1 then Color3.fromRGB(150, 150, 150) else Color3.fromRGB(175, 175, 172)
 	local stepMat = if level == 1 then Enum.Material.Metal else Enum.Material.Concrete
-	local sectionLen, aisleW = 26, 3
+	local sectionLen, aisleW = CrowdSeats.SECTION_LEN, CrowdSeats.AISLE_W -- #6a: the crowd keeps off these aisles
 	local depth = STEP_DEPTH * rows
 
 	local rail = Color3.fromRGB(205, 208, 212)
@@ -2106,66 +2107,11 @@ local function defaultCrowdColours(): { Color3 }
 	end
 	return crowdColours
 end
-local SKIN_TONES = {
-	Color3.fromRGB(240, 200, 170),
-	Color3.fromRGB(200, 150, 110),
-	Color3.fromRGB(150, 100, 70),
-	Color3.fromRGB(100, 65, 45),
-}
-local HAIR_COLORS = {
-	Color3.fromRGB(30, 22, 18),
-	Color3.fromRGB(70, 45, 25),
-	Color3.fromRGB(190, 160, 90),
-	Color3.fromRGB(140, 60, 35),
-	Color3.fromRGB(190, 190, 190),
-}
-local FAN_SPACING = 2.8 -- a character is 2 studs across; this is elbow room
--- Fan budget for a full house across the whole ground (mobile). A fan is a
--- seated blocky character: torso, head, hair, two arms and, on the front rows
--- where you can actually see them, thighs. Five parts each on average.
-local FAN_PART_BUDGET = 3300
-local MAX_FANS = FAN_PART_BUDGET // 5
-local FAN_LEG_ROWS = 3 -- above this the row in front hides the legs anyway
-
--- One seated fan, built like a Roblox character rather than a block with a
--- ball on it: blocky torso, square head with a face, arms down at the sides
--- and thighs forward over the edge of the step. `seat` faces the pitch.
-local function buildFan(seat: CFrame, rng: Random, parent: Instance, legs: boolean, palette: { Color3 }?)
-	local colours = palette or defaultCrowdColours()
-	local shirt = colours[rng:NextInteger(1, #colours)]
-	local skin = SKIN_TONES[rng:NextInteger(1, #SKIN_TONES)]
-	local trousers = Color3.fromRGB(45, 48, 58):Lerp(Color3.new(1, 1, 1), rng:NextNumber() * 0.3)
-	local function limb(name: string, size: Vector3, offset: CFrame, colour: Color3, material: Enum.Material?)
-		return part({
-			Name = name,
-			Size = size,
-			CFrame = seat * offset,
-			Color = colour,
-			Material = material or Enum.Material.SmoothPlastic,
-			CanCollide = false,
-			CanQuery = false,
-			CanTouch = false,
-			CastShadow = false,
-			Parent = parent,
-		})
-	end
-	-- torso sits 1 stud above the step, head on top, arms either side
-	limb("Torso", Vector3.new(2, 2, 1), CFrame.new(0, 2, 0), shirt)
-	limb("ArmL", Vector3.new(1, 2, 1), CFrame.new(-1.5, 2, 0), shirt)
-	limb("ArmR", Vector3.new(1, 2, 1), CFrame.new(1.5, 2, 0), shirt)
-	-- thighs forward over the edge of the step, knees down
-	if legs then
-		limb("Legs", Vector3.new(2, 1, 2), CFrame.new(0, 0.5, -1), trousers)
-	end
-	local head = limb("Head", Vector3.new(1.4, 1.2, 1.4), CFrame.new(0, 3.6, 0), skin)
-	-- a hair block reads at distance where a face does not
-	limb("Hair", Vector3.new(1.5, 0.35, 1.5), CFrame.new(0, 4.375, 0), HAIR_COLORS[rng:NextInteger(1, #HAIR_COLORS)])
-	local face = Instance.new("Decal")
-	face.Name = "Face"
-	face.Face = Enum.NormalId.Front
-	face.Texture = "rbxasset://textures/face.png"
-	face.Parent = head
-end
+-- #6c: fans are no longer built here. buildCrowd picks the seats and shirts
+-- and publishes them (Shared.CrowdSeats) to each stand's Crowd folder; every
+-- client builds them as the same avatars as the rest of the town
+-- (client StandCrowd + Townsfolk). MAX_FANS is the whole ground's cap.
+local MAX_FANS = CrowdSeats.MAX_FANS
 
 -- Fills every built stand with fans at a density matching attendance. One fan
 -- stands for several real ones, so a full house means every slot filled. The
@@ -2198,7 +2144,9 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 		if geo then
 			for row = 1, geo.rows do
 				for _, run in rowRuns(geo, row) do
-					totalSlots += math.floor((run[2] - run[1] - 2) / FAN_SPACING)
+					for _, block in CrowdSeats.sections(run[1], run[2], geo.spec.seats) do
+						totalSlots += math.floor((block[2] - block[1]) / CrowdSeats.SPACING)
+					end
 				end
 			end
 		end
@@ -2207,7 +2155,7 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 	-- the budget they thin out instead of spreading out: stretching the
 	-- spacing put the same z in every row, which read as vertical columns of
 	-- people rather than a crowd.
-	local spacing = FAN_SPACING
+	local spacing = CrowdSeats.SPACING
 	local base = math.min(fill, MAX_FANS / math.max(totalSlots, 1)) * math.clamp(share or 1, 0, 1)
 
 	-- X239: the front-to-back swing, shrunk when the crowd is dense enough that
@@ -2233,6 +2181,7 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 			continue
 		end
 		crowd:ClearAllChildren()
+		crowd:SetAttribute("Seats", nil)
 		local geo = plotGeometry(plot, levels[plot.key] or 0)
 		if not geo then
 			continue
@@ -2240,33 +2189,52 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 		-- X297: the away end, so the client knows whose goal to hop for
 		local awayEnd = awayKey ~= nil and plot.key == awayKey
 		crowd:SetAttribute("AwayEnd", awayEnd)
+		local colours = (if awayEnd then awayColours else homeColours) or defaultCrowdColours()
+		-- #6c: the seats go to the clients as data (Shared.CrowdSeats); each
+		-- client builds the fans as avatars (StandCrowd)
+		local seated = geo.spec.seats
+		local drop = if seated then CrowdSeats.SEAT_DROP else CrowdSeats.BENCH_DROP
+		local seats: { CrowdSeats.Seat } = {}
 		for row = 1, geo.rows do
 			local top = DECK_Y + geo.stepHeight * row
-			-- sit toward the front of the step so knees clear the row in front
-			local x = STAND_X0 + STEP_DEPTH * (row - 1) + STEP_DEPTH / 2 + 0.3
+			-- hips on the seat, back against the seat back
+			local x = STAND_X0 + STEP_DEPTH * row - CrowdSeats.HIP_FROM_BACK
 			-- the good seats near the pitch fill first, the back rows thin out;
 			-- the weights average to 1 so the budget is still what it says
 			local weight = 1 + swing * (1 - 2 * (row - 1) / math.max(geo.rows - 1, 1))
 			local chance = math.min(1, base * weight)
 			-- offset each row a little so identical seat positions never line
 			-- up into a column of people
-			local nudge = (row * 0.37) % 1 * spacing
+			local nudge = (row * 0.37) % 1 * spacing / 2
+			local i = 0
 			for _, run in rowRuns(geo, row) do
-				local perRow = math.floor((run[2] - run[1] - 2 - nudge) / spacing)
-				slots += perRow
-				for i = 1, perRow do
-					-- deterministic scatter: skip seats so density visibly tracks attendance
-					local seat = seatHash(plot.key, row, i)
-					if (seat % 10007) / 10007 > chance then
-						continue
+				-- #6a: seat blocks only, never the aisle steps between them
+				for _, block in CrowdSeats.sections(run[1], run[2], seated) do
+					for _, z in CrowdSeats.seatsIn(block[1], block[2], nudge, spacing) do
+						i += 1
+						slots += 1
+						-- deterministic scatter: skip seats so density visibly tracks attendance
+						local seat = seatHash(plot.key, row, i)
+						if (seat % 10007) / 10007 > chance then
+							continue
+						end
+						-- yaw so the fan's front faces the pitch (local -X)
+						local cf = PlotContext.cframe * geo.frame * CFrame.new(x, top + drop, z) * CFrame.Angles(0, math.pi / 2, 0)
+						local _, yaw = cf:ToEulerAnglesYXZ()
+						local pick = Random.new(seat)
+						table.insert(seats, {
+							position = cf.Position,
+							yaw = yaw,
+							shirt = colours[pick:NextInteger(1, #colours)],
+							seed = seat,
+						})
+						placed += 1
 					end
-					local z = run[1] + 1 + nudge + spacing * (i - 0.5)
-					-- yaw so the fan's front faces the pitch (local -X)
-					buildFan(PlotContext.cframe * geo.frame * CFrame.new(x, top, z) * CFrame.Angles(0, math.pi / 2, 0), Random.new(seat), crowd, row <= FAN_LEG_ROWS, if awayEnd then awayColours else homeColours)
-					placed += 1
 				end
 			end
 		end
+		crowd:SetAttribute("Drop", drop)
+		crowd:SetAttribute("Seats", CrowdSeats.encode(seats))
 	end
 	club:SetAttribute("CrowdSlots", slots)
 	club:SetAttribute("CrowdCount", placed)
@@ -2296,6 +2264,7 @@ function WorldBuilder.clearCrowd()
 		local crowd = stand:FindFirstChild("Crowd")
 		if crowd then
 			crowd:ClearAllChildren()
+			crowd:SetAttribute("Seats", nil)
 		end
 	end
 	club:SetAttribute("CrowdCount", 0)
