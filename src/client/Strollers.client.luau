@@ -72,6 +72,17 @@ end
 -- the market square disc's top (TownBuilder Y.SQUARE)
 local SQUARE_TOP = 0.25
 
+-- #35: is the town streamed in under `p`? Walkers shown over ground that has
+-- not streamed in stand at true height above the low stand-in terrain and
+-- float (see the streaming notes); the camera can be near the square while
+-- the character, and so the streaming focus, is out at a ground.
+local groundParams = RaycastParams.new()
+groundParams.FilterType = Enum.RaycastFilterType.Include
+local function streamedAt(p: Vector3): boolean
+	groundParams.FilterDescendantsInstances = { town }
+	return workspace:Raycast(Vector3.new(p.X, 60, p.Z), Vector3.new(0, -120, 0), groundParams) ~= nil
+end
+
 -- promenade walks: chains of strip centres along the bank
 type Walk = { points: { Vector3 }, lengths: { number }, total: number }
 local walks: { Walk } = {}
@@ -172,6 +183,7 @@ RunService.RenderStepped:Connect(function(dt: number)
 		local sq = TownLayout.SQUARE.centre
 		local wasSquare = squareOn
 		squareOn = not low and Vector3.new(cam.X - sq.X, 0, cam.Z - sq.Z).Magnitude < SQUARE_NEAR
+			and streamedAt(sq + Vector3.new(SQUARE_RING, 0, 0))
 		if wasSquare and not squareOn then
 			hide(squareWalkers)
 		end
@@ -181,7 +193,7 @@ RunService.RenderStepped:Connect(function(dt: number)
 			for _, walk in walks do
 				for _, p in walk.points do
 					local d = Vector3.new(p.X - cam.X, 0, p.Z - cam.Z).Magnitude
-					if d < bestD then
+					if d < bestD and streamedAt(p) then
 						best, bestD = walk, d
 					end
 				end
