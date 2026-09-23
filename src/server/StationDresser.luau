@@ -227,6 +227,82 @@ function StationDresser.carParkBays(block: TownLayout.Box, entryClear: number): 
 	return out
 end
 
+-- Playtest #37: Station Road stops ~22 studs short of the car park's +X edge
+-- (the v3 junction moves pulled its end back), leaving the car park out on the
+-- grass. Pure: the gap from the road's last point to the block edge it heads
+-- for, as { from, to, kind } (flat, y 0), or nil when there's no road, it
+-- doesn't head for the block, or the gap is closed or implausibly long.
+StationDresser.LINK_MAX = 60
+function StationDresser.carParkLink(block: TownLayout.Box, road: TownLayout.Road?): { from: Vector3, to: Vector3, kind: string }?
+	if not road or #road.points < 2 then
+		return nil
+	end
+	local last, prev = road.points[#road.points], road.points[#road.points - 1]
+	local d = Vector3.new(last.X - prev.X, 0, last.Z - prev.Z)
+	if d.Magnitude < 1e-6 then
+		return nil
+	end
+	d = d.Unit
+	local c, s = block.centre, block.size
+	-- the road runs along X or Z; its end faces one side of the (unrotated) block
+	local gap: number
+	if math.abs(d.X) > 0.99 then
+		local edge = c.X - math.sign(d.X) * s.X / 2
+		gap = (edge - last.X) * math.sign(d.X)
+		if math.abs(last.Z - c.Z) > s.Z / 2 then
+			return nil
+		end
+	elseif math.abs(d.Z) > 0.99 then
+		local edge = c.Z - math.sign(d.Z) * s.Z / 2
+		gap = (edge - last.Z) * math.sign(d.Z)
+		if math.abs(last.X - c.X) > s.X / 2 then
+			return nil
+		end
+	else
+		return nil
+	end
+	if gap < 0.5 or gap > StationDresser.LINK_MAX then
+		return nil
+	end
+	local from = Vector3.new(last.X, 0, last.Z)
+	return { from = from, to = from + d * gap, kind = road.kind }
+end
+
+-- The link itself: carriageway tarmac rising from the road's top to the car
+-- park slab's (so neither end has a step or a coplanar overlap), kerbs and
+-- paving on both sides out to the town's paved width. 5 parts.
+local CAR_PARK_TOP = 0.3 -- TownBuilder's greybox slab
+local LINK_KERB = Color3.fromRGB(170, 168, 160)
+local LINK_PAVING = Color3.fromRGB(150, 148, 142) -- RoadTiler.PAVED_VERGE
+local function buildCarParkLink(parent: Instance, link: { from: Vector3, to: Vector3, kind: string })
+	local length = (link.to - link.from).Magnitude
+	local f = CFrame.lookAt(link.from, link.to) -- -Z runs from the road end to the car park
+	local half = RoadTiles.carriagewayWidth(link.kind) / 2
+	local kerbBack = RoadTiles.kerbDistance(link.kind)
+	local paveOuter = RoadTiles.pavementOuter(link.kind)
+	-- tucks 0.2 back over the road's end, stops at the slab's edge
+	local roadTop = RoadTiles.roadTop(link.kind) + 0.01
+	local topEnd = CAR_PARK_TOP - 0.01
+	local run = length + 0.2
+	local thick = 0.3
+	local tilt = math.atan((topEnd - roadTop) / run)
+	local midTop = (roadTop + topEnd) / 2
+	part({
+		Name = "CarParkLink",
+		Size = Vector3.new(half * 2, thick, run / math.cos(tilt)),
+		CFrame = f * CFrame.new(0, midTop, -(run / 2 - 0.2)) * CFrame.Angles(tilt, 0, 0) * CFrame.new(0, -thick / 2, 0),
+		Color = Color3.fromRGB(70, 72, 76),
+		Material = Enum.Material.Asphalt,
+		Parent = parent,
+	}).CastShadow = false
+	for _, side in { -1, 1 } do
+		local k0, k1 = if side < 0 then -kerbBack else half, if side < 0 then -half else kerbBack
+		local p0, p1 = if side < 0 then -paveOuter else kerbBack, if side < 0 then -kerbBack else paveOuter
+		slab(parent, f, "LinkKerb", k0, k1, 0, RoadTiles.SURFACE_Y, -length, 0, LINK_KERB, Enum.Material.Concrete).CastShadow = false
+		slab(parent, f, "LinkPavement", p0, p1, 0, RoadTiles.SURFACE_Y - 0.01, -length, 0, LINK_PAVING, Enum.Material.Pavement).CastShadow = false
+	end
+end
+
 -- X152: a recycling point (bottle banks) instead of cars in the near row's
 -- westmost bay, as UK station and supermarket car parks have. Pure: its index
 -- in carParkBays' list.
@@ -277,7 +353,7 @@ local TAXI_KIT, TAXI_SCALE = "HatchbackNavy", RoadTiles.CAR_SCALE
 
 local function buildTaxi(parent: Instance, cf: CFrame)
 	if KitPlacer.find(TAXI_KIT) then
-		local car = KitPlacer.place(TAXI_KIT, cf, parent, { scale = TAXI_SCALE })
+		local car = KitPlacer.place(TAXI_KIT, cf, parent, { scale = TAXI_SCALE, relativeScale = true }) -- #37
 		car.Name = "Taxi"
 		local bb, size = car:GetBoundingBox()
 		local roof = part({
@@ -846,8 +922,19 @@ function StationDresser.build(): string
 						-- nose in: the kit car's long axis runs along its Z, facing away from the aisle.
 						-- X45: a mix of the kit hatchback and the generated ones
 						local kits = { "HatchbackOrange", "HatchbackNavy", "HatchbackRed", "HatchbackSilver" }
-						KitPlacer.place(kits[rng:NextInteger(1, #kits)], bay * CFrame.new(0, 0.32, 0) * CFrame.Angles(0, math.pi, 0), m, { scale = RoadTiles.CAR_SCALE, fallbackSize = Vector3.new(6, 4, 12), fallbackColor = Color3.fromRGB(150, 152, 156) })
+						KitPlacer.place(kits[rng:NextInteger(1, #kits)], bay * CFrame.new(0, 0.32, 0) * CFrame.Angles(0, math.pi, 0), m, { scale = RoadTiles.CAR_SCALE, relativeScale = true, fallbackSize = Vector3.new(6, 4, 12), fallbackColor = Color3.fromRGB(150, 152, 156) }) -- #37
 					end
+				end
+				-- playtest #37: tarmac and pavements joining Station Road's end to the slab
+				local stationRoad: TownLayout.Road? = nil
+				for _, r in TownLayout.ROADS do
+					if r.name == "Station Road" then
+						stationRoad = r
+					end
+				end
+				local link = StationDresser.carParkLink(block, stationRoad)
+				if link then
+					buildCarParkLink(m, link)
 				end
 				local signAt = Vector3.new(block.centre.X + block.size.X / 2 - 4, 0, block.centre.Z - block.size.Z / 2 - 3)
 				part({ Name = "ParkingSignPost", Size = Vector3.new(0.4, 8, 0.4), CFrame = CFrame.new(signAt + Vector3.new(0, 4, 0)), Color = IRON, Material = Enum.Material.Metal, Parent = m })

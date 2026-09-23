@@ -56,6 +56,38 @@ function T.carParkBaysFitTheBlockAndLeaveTheEntrance()
 	end
 end
 
+-- Playtest #37: the real Station Road ends short of the real car park; the
+-- link runs from the road's end to the slab's edge, where the near row of
+-- bays leaves the entrance clear. Made-up cases: no gap, pointing away.
+function T.carParkLinkJoinsStationRoadToTheSlab()
+	local block, road
+	for _, district in TownLayout.DISTRICTS do
+		for _, b in district.blocks do
+			if b.use == "station car park" then
+				block = b
+			end
+		end
+	end
+	for _, r in TownLayout.ROADS do
+		if r.name == "Station Road" then
+			road = r
+		end
+	end
+	assert(block and road, "layout has a station car park and Station Road")
+	local link = StationDresser.carParkLink(block, road)
+	assert(link, "Station Road should need a link to the car park")
+	local edgeX = block.centre.X + block.size.X / 2
+	assert(math.abs(link.to.X - edgeX) < 1e-3, "link ends on the slab's east edge")
+	assert(math.abs(link.to.Z - road.points[#road.points].Z) < 1e-3, "straight on from the road")
+	assert(math.abs(link.to.Z - block.centre.Z) + 8 <= block.size.Z / 2, "the whole carriageway lands on the slab")
+	local flush: TownLayout.Road = table.clone(road)
+	flush.points = { road.points[#road.points - 1], Vector3.new(edgeX, 0, road.points[#road.points].Z) }
+	assert(StationDresser.carParkLink(block, flush) == nil, "no link when the road already reaches the slab")
+	local away: TownLayout.Road = table.clone(road)
+	away.points = { road.points[#road.points], road.points[#road.points - 1] }
+	assert(StationDresser.carParkLink(block, away) == nil, "no link for a road heading away")
+end
+
 function T.farPlatformIsOffTheTrackAndUnderTheFarTower()
 	local f = StationDresser.frontFrame()
 	local p = StationDresser.platformFrame(f, TownLayout.RAIL.station.size)

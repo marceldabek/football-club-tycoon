@@ -172,6 +172,29 @@ function T.footprintMatchesTemplateBoundingBox()
 	assert(ok, err)
 end
 
+-- Playtest #37/#38: a kit model stored scaled (ScaleTo 1.4, like the generated
+-- hatchbacks) comes out at `scale` x its stored size with relativeScale, and at
+-- `scale` x its original size without (ScaleTo is absolute).
+function T.relativeScaleMultipliesTheStoredSize()
+	local root, template = buildFixture()
+	template:ScaleTo(1.4)
+	KitPlacer.setLibraryRoot(root)
+	local ok, err = pcall(function()
+		local _, stored = template:GetBoundingBox()
+		local rel = KitPlacer.place("TestProp", CFrame.new(0, 50, 0), workspace, { scale = 0.7, relativeScale = true })
+		local _, relSize = rel:GetBoundingBox()
+		assert((relSize - stored * 0.7).Magnitude < 1e-3, ("relative: %s, want %s"):format(tostring(relSize), tostring(stored * 0.7)))
+		local abs = KitPlacer.place("TestProp", CFrame.new(20, 50, 0), workspace, { scale = 0.7 })
+		local _, absSize = abs:GetBoundingBox()
+		assert((absSize - stored * 0.5).Magnitude < 1e-3, ("absolute: %s, want %s"):format(tostring(absSize), tostring(stored * 0.5)))
+		rel:Destroy()
+		abs:Destroy()
+	end)
+	KitPlacer.setLibraryRoot(nil)
+	root:Destroy()
+	assert(ok, err)
+end
+
 function T.rowPlacesCountModelsAlongRightVector()
 	local root = buildFixture()
 	KitPlacer.setLibraryRoot(root)

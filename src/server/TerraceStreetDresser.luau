@@ -35,6 +35,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
+local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles)
 local KitPlacer = require(script.Parent.KitPlacer)
 local TreeKit = require(script.Parent.TreeKit)
 local StreetDresser = require(script.Parent.StreetDresser)
@@ -673,6 +674,10 @@ local function car(parent: Instance, spot: Spot, rng: Random)
 	local pos = spot.position + Vector3.new(0, 0.25, 0)
 	local facing = if rng:NextNumber() < 0.8 then spot.direction else -spot.direction
 	KitPlacer.place(CAR_KITS[rng:NextInteger(1, #CAR_KITS)], CFrame.lookAt(pos, pos + facing), parent, {
+		-- playtest #38: the town's one car size (these were placed at the kit's
+		-- stored size, half as big again as the cars driving past)
+		scale = RoadTiles.CAR_SCALE,
+		relativeScale = true,
 		fallbackSize = Vector3.new(6, 5, 12),
 		fallbackColor = Color3.fromRGB(90, 100, 120),
 		yawJitter = math.rad(2),
