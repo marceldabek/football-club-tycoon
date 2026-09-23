@@ -72,15 +72,33 @@ end
 -- per carriage: parts and their offsets from the rail-top centre frame
 type Piece = { part: BasePart, offset: CFrame }
 local carriages: { { Piece } } = {}
+
+-- X394 (playtest #36): reuse one generated carriage mesh for all 3 carriages
+-- if ClientKit published it; unrotated front is local +X, so turn +90 about
+-- Y to face the frame's forward (-Z, TrainMath.carriageFrames). The old
+-- 4-piece primitive stays as the fallback (also used for the night window
+-- glow, which the kit mesh's baked windows don't need).
+local clientKit = ReplicatedStorage:WaitForChild("ClientKit", 5)
+local carriageTemplate = clientKit and clientKit:WaitForChild("TrainCarriage", 5)
+local carriageMesh = carriageTemplate and carriageTemplate:FindFirstChildWhichIsA("BasePart", true) :: BasePart?
+
 for _ = 1, CARRIAGES do
 	local pieces: { Piece } = {}
 	local function add(name: string, size: Vector3, offset: CFrame, colour: Color3, material: Enum.Material)
 		table.insert(pieces, { part = newPart(name, size, colour, material), offset = offset })
 	end
-	add("Underframe", Vector3.new(WIDTH - 1.4, 1.4, LENGTH - 3), CFrame.new(0, 0.9, 0), UNDER, Enum.Material.Metal)
-	add("Body", Vector3.new(WIDTH, 6.4, LENGTH), CFrame.new(0, 1.6 + 3.2, 0), BODY, Enum.Material.SmoothPlastic)
-	add("Windows", Vector3.new(WIDTH + 0.1, 1.8, LENGTH - 4), CFrame.new(0, 5.4, 0), WINDOWS, Enum.Material.Glass)
-	add("Stripe", Vector3.new(WIDTH + 0.12, 0.7, LENGTH - 0.2), CFrame.new(0, 3.2, 0), STRIPE, Enum.Material.SmoothPlastic)
+	if carriageMesh then
+		local mesh = carriageMesh:Clone()
+		mesh.Name = "Body"
+		mesh.CastShadow = true
+		mesh.Parent = folder
+		table.insert(pieces, { part = mesh, offset = CFrame.new(0, mesh.Size.Y / 2, 0) * CFrame.Angles(0, math.pi / 2, 0) })
+	else
+		add("Underframe", Vector3.new(WIDTH - 1.4, 1.4, LENGTH - 3), CFrame.new(0, 0.9, 0), UNDER, Enum.Material.Metal)
+		add("Body", Vector3.new(WIDTH, 6.4, LENGTH), CFrame.new(0, 1.6 + 3.2, 0), BODY, Enum.Material.SmoothPlastic)
+		add("Windows", Vector3.new(WIDTH + 0.1, 1.8, LENGTH - 4), CFrame.new(0, 5.4, 0), WINDOWS, Enum.Material.Glass)
+		add("Stripe", Vector3.new(WIDTH + 0.12, 0.7, LENGTH - 0.2), CFrame.new(0, 3.2, 0), STRIPE, Enum.Material.SmoothPlastic)
+	end
 	table.insert(carriages, pieces)
 end
 for _, pieces in carriages do
@@ -90,7 +108,16 @@ for _, pieces in carriages do
 end
 
 -- X172: a rolling rumble on the middle carriage while the train moves (Pro
--- Sound Effects, licensed library: "L Pass Bys 1"), faded out while it waits
+-- Sound Effects, licensed library: "L Pass Bys 1"), faded out while it waits.
+-- By name, not index: the kit-mesh carriage (X394) has only one piece.
+local function pieceNamed(pieces: { Piece }, name: string): BasePart
+	for _, piece in pieces do
+		if piece.part.Name == name then
+			return piece.part
+		end
+	end
+	return pieces[1].part
+end
 local rumble = Instance.new("Sound")
 rumble.Name = "TrainRumble"
 rumble.SoundId = "rbxassetid://9116330273"
@@ -99,7 +126,7 @@ rumble.Volume = 0
 rumble.RollOffMode = Enum.RollOffMode.InverseTapered
 rumble.RollOffMinDistance = 40
 rumble.RollOffMaxDistance = 400
-rumble.Parent = carriages[math.ceil(CARRIAGES / 2)][2].part -- the Body
+rumble.Parent = pieceNamed(carriages[math.ceil(CARRIAGES / 2)], "Body")
 rumble:Play()
 local RUMBLE_VOLUME = 0.6
 

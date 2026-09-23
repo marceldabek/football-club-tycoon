@@ -58,6 +58,10 @@ ClientKit.BICYCLE = "Bicycle"
 ClientKit.VAN = "VanWhite"
 ClientKit.DISH = "SatelliteDish"
 
+-- X394 (playtest #36): a generated train carriage, reused for all 3 of the
+-- town train's carriages. Single mesh, unrotated front is local +X.
+ClientKit.TRAIN_CARRIAGE = "TrainCarriage"
+
 function ClientKit.publish(): string
 	local kit = ServerStorage:FindFirstChild("Kit")
 	local root = ReplicatedStorage:FindFirstChild("ClientKit")
@@ -255,7 +259,31 @@ function ClientKit.publish(): string
 			copy:Destroy()
 		end
 	end
-	return ("client kit: %d cars, %d bus, %d cruiser, %d bicycle, %d van, %d dish"):format(count, buses, cruisers, bicycles, vans, dishes)
+
+	-- X394: the train carriage, single mesh, pivot already at its own centre.
+	local oldCarriage = root:FindFirstChild("TrainCarriage")
+	if oldCarriage then
+		oldCarriage:Destroy()
+	end
+	local carriageTemplate = kit and kit:FindFirstChild(ClientKit.TRAIN_CARRIAGE, true)
+	local carriages = 0
+	if carriageTemplate and carriageTemplate:IsA("Model") then
+		local copy = carriageTemplate:Clone()
+		copy.Name = "TrainCarriage"
+		for _, d in copy:GetDescendants() do
+			if d:IsA("LuaSourceContainer") then
+				d:Destroy()
+			elseif d:IsA("BasePart") then
+				d.Anchored = true
+				d.CanCollide = false
+				d.CanQuery = false
+				d.CanTouch = false
+			end
+		end
+		copy.Parent = root
+		carriages = 1
+	end
+	return ("client kit: %d cars, %d bus, %d cruiser, %d bicycle, %d van, %d dish, %d train carriage"):format(count, buses, cruisers, bicycles, vans, dishes, carriages)
 end
 
 return ClientKit
