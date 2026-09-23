@@ -203,6 +203,7 @@ local SW_PATH_Z = GroundEnvelope.APPROACH_Z.SWTurnstiles -- car park to the SW b
 -- ground wall to meet the main-entrance path, instead of running on to the
 -- office side door (which opens onto the concourse inside the wall now)
 local LINK_X0, LINK_X1 = -234, -226
+local RECEPTION_X = GroundEnvelope.X0 + GroundEnvelope.PIER_W / 2 -- the reception forecourt starts here (WorldBuilder)
 
 -- colours
 local BRICK = Color3.fromRGB(150, 82, 62)
@@ -1076,8 +1077,9 @@ local function buildFootpath(parent: Instance)
 	extents("Path", PATH_X - hw, PATH_X + hw, y0, y1, PATH_END_Z - hw, PATH_Z - hw, CONCRETE, Enum.Material.Concrete, path)
 	-- east to the NW turnstile block in the ground wall
 	extents("Path", PATH_X + hw, GROUND_WALL_X, y0, y1, PATH_END_Z - hw, PATH_END_Z + hw, CONCRETE, Enum.Material.Concrete, path)
-	-- straight on from the gate to the clubhouse's front doors (docs/CLUBHOUSE_PLAN.md)
-	extents("ClubhousePath", PATH_X + hw, CLUBHOUSE_FRONT_APRON_X, y0, y1, PATH_Z - hw, PATH_Z + hw, CONCRETE, Enum.Material.Concrete, path)
+	-- straight on through the main gate; the reception forecourt (WorldBuilder)
+	-- carries on from the wall's inside face to the clubhouse's front doors
+	extents("ClubhousePath", PATH_X + hw, RECEPTION_X, y0, y1, PATH_Z - hw, PATH_Z + hw, CONCRETE, Enum.Material.Concrete, path)
 	-- from the car park's east kerb to the SW turnstile block (a gap in the hedge)
 	extents("Path", PARK_X1, GROUND_WALL_X, y0, y1, SW_PATH_Z - hw, SW_PATH_Z + hw, CONCRETE, Enum.Material.Concrete, path)
 	-- and from the car park's east kerb round to the main-entrance path (#11)

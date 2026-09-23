@@ -125,6 +125,50 @@ function T.turnstileBlocksOpenLanesByTier()
 	end
 end
 
+-- Huts and toilets clear of each other, the wall, the blocks' thresholds, the
+-- full-grown stands (16 rows to x +-170.6 / z +-228.6) and the masts.
+function T.hutsStandClearOfWallStandsAndEachOther()
+	local E = GroundEnvelope
+	local rects: { Rect } = {}
+	for _, h in E.HUTS do
+		table.insert(rects, { name = h.name, x0 = h.x0, x1 = h.x1, z0 = h.z0, z1 = h.z1 })
+	end
+	for i in E.TOILETS do
+		local h = E.toiletHut(i)
+		table.insert(rects, { name = "Toilets" .. i, x0 = h.x0, x1 = h.x1, z0 = h.z0, z1 = h.z1 })
+		assert(h.x1 - h.x0 == 18 and h.z1 - h.z0 == 12, "toilets are 18 x 12")
+	end
+	local runs, piers = E.wallPieces()
+	local fixed: { Rect } = {}
+	for _, r in runs do
+		table.insert(fixed, r)
+	end
+	for _, p in piers do
+		table.insert(fixed, p)
+	end
+	for _, name in { "NWTurnstiles", "SWTurnstiles" } do
+		local g = E.gate(name)
+		local x0 = E.X0 - E.BLOCK_D / 2 - E.BLOCK_APRON
+		table.insert(fixed, { name = name, x0 = x0, x1 = E.X0 + E.BLOCK_D / 2 + E.BLOCK_APRON, z0 = g.a0, z1 = g.a1 })
+	end
+	table.insert(fixed, { name = "EastStandL4", x0 = 121, x1 = 170.6, z0 = -145.5, z1 = 145.5 })
+	table.insert(fixed, { name = "WestStandL4", x0 = -170.6, x1 = -121, z0 = -155, z1 = 155 })
+	for _, sz in { -1, 1 } do
+		table.insert(fixed, { name = "EndStandL4", x0 = -98.5, x1 = 98.5, z0 = math.min(sz * 179, sz * 228.6), z1 = math.max(sz * 179, sz * 228.6) })
+		for _, sx in { -1, 1 } do
+			table.insert(fixed, { name = "Mast", x0 = sx * 140 - 3, x1 = sx * 140 + 3, z0 = sz * 200 - 3, z1 = sz * 200 + 3 })
+		end
+	end
+	for i, a in rects do
+		for j = i + 1, #rects do
+			assert(not overlaps(a, rects[j]), describe(a) .. " overlaps " .. describe(rects[j]))
+		end
+		for _, f in fixed do
+			assert(not overlaps(a, f), describe(a) .. " overlaps " .. describe(f))
+		end
+	end
+end
+
 function T.groundTierFollowsTheBestStand()
 	assert(Config.groundTier({ East = 1 }) == 1, "spawn is tier 1")
 	assert(Config.groundTier({ East = 1, West = 2 }) == 2, "a main stand makes tier 2")

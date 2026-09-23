@@ -134,6 +134,15 @@ function GroundEnvelope.keepOut(): { { name: string, x0: number, x1: number, z0:
 		local r = along(g.name .. "Apron", g.side, g.a0 - w / 2 - E.PIER_W, g.a1 + w / 2 + E.PIER_W, 2 * 12)
 		table.insert(out, { name = r.name, x0 = r.x0, x1 = r.x1, z0 = r.z0, z1 = r.z1, solid = false })
 	end
+	-- the huts outside the wall, and the turnstile blocks' lamp posts
+	for _, hut in E.HUTS do
+		if hut.x1 < E.X0 then
+			table.insert(out, { name = hut.name, x0 = hut.x0 - 1, x1 = hut.x1 + 1, z0 = hut.z0 - 1, z1 = hut.z1 + 1, solid = true })
+		end
+	end
+	for _, z in { -204, 204 } do
+		table.insert(out, { name = "TurnstileLamp", x0 = -211, x1 = -207, z0 = z - 5, z1 = z + 5, solid = true })
+	end
 	return out
 end
 
@@ -492,6 +501,117 @@ local function buildBlock(parent: Instance, g: Gate, lanes: number)
 	buildLamp(block, bx0 - 4, farZ, if farZ < 0 then -1 else 1)
 end
 
+-- ------------------------------------------------------------------- huts
+--
+-- The small buildings the spec (s2) fixes round the envelope: ticket offices
+-- and programme huts outside each turnstile block, the stewards' control hut
+-- and first aid inside the north-west corner, the groundsman's shed in his
+-- compound by the service gate, and (from ground tier 2) toilet blocks round
+-- the concourse. `face` is the side with the window, door and sign: N = -Z,
+-- S = +Z, E = +X, W = -X. Primitive boxes, ~5 parts each.
+export type Hut = { name: string, x0: number, x1: number, z0: number, z1: number, h: number, face: string, sign: string, style: string }
+
+GroundEnvelope.HUTS = {
+	{ name = "TicketOfficeNW", x0 = -223, x1 = -207, z0 = -228, z1 = -212, h = 10, face = "S", sign = "TICKET OFFICE", style = "brick" },
+	{ name = "TicketOfficeSW", x0 = -223, x1 = -207, z0 = 212, z1 = 228, h = 10, face = "N", sign = "TICKET OFFICE", style = "brick" },
+	{ name = "ProgrammesNW", x0 = -217, x1 = -207, z0 = -165, z1 = -157, h = 8, face = "N", sign = "PROGRAMMES", style = "timber" },
+	{ name = "ProgrammesSW", x0 = -217, x1 = -207, z0 = 157, z1 = 165, h = 8, face = "S", sign = "PROGRAMMES", style = "timber" },
+	{ name = "Stewards", x0 = -197, x1 = -183, z0 = -224, z1 = -212, h = 9, face = "E", sign = "STEWARDS - CONTROL", style = "cabin" },
+	{ name = "FirstAid", x0 = -197, x1 = -183, z0 = -248, z1 = -236, h = 9, face = "E", sign = "+ FIRST AID", style = "firstaid" },
+	{ name = "GroundsmansShed", x0 = 175, x1 = 191, z0 = 236, z1 = 246, h = 9, face = "N", sign = "GROUNDSMAN", style = "timber" },
+} :: { Hut }
+
+-- 18 x 12 toilet blocks from ground tier 2 (Config.ToiletsFromTier), facing the pitch
+GroundEnvelope.TOILETS = {
+	{ x = 186, z = -222, face = "W" },
+	{ x = -170, z = 250, face = "N" },
+	{ x = 60, z = 250, face = "N" },
+	{ x = -60, z = -250, face = "S" },
+}
+
+-- the groundsman's compound in the south-east corner: gravel inside a mesh
+-- fence, the service gate in the ground wall at its back
+GroundEnvelope.COMPOUND = { x0 = 172, x1 = 199, z0 = 232, z1 = 257 }
+
+function GroundEnvelope.toiletHut(i: number): Hut
+	local t = GroundEnvelope.TOILETS[i]
+	return { name = "Toilets", x0 = t.x - 9, x1 = t.x + 9, z0 = t.z - 6, z1 = t.z + 6, h = 9, face = t.face, sign = "TOILETS", style = "brick" }
+end
+
+local HUT_STYLE = {
+	brick = { wall = BRICK, material = Enum.Material.Brick, roof = Color3.fromRGB(60, 62, 68) },
+	timber = { wall = Color3.fromRGB(46, 84, 58), material = Enum.Material.WoodPlanks, roof = Color3.fromRGB(52, 54, 58) },
+	cabin = { wall = Color3.fromRGB(214, 214, 206), material = Enum.Material.SmoothPlastic, roof = Color3.fromRGB(120, 122, 126) },
+	firstaid = { wall = Color3.fromRGB(236, 236, 230), material = Enum.Material.SmoothPlastic, roof = Color3.fromRGB(120, 122, 126) },
+}
+
+-- A slab `t` thick on the outside of face `face` of the box, from `a0..a1`
+-- along it (fractions of the face's width) and `y0..y1` up.
+local function onFace(name: string, hut: Hut, f0: number, f1: number, y0: number, y1: number, t: number,
+	color: Color3, material: Enum.Material, parent: Instance): Part
+	if hut.face == "N" or hut.face == "S" then
+		local a0, a1 = hut.x0 + (hut.x1 - hut.x0) * f0, hut.x0 + (hut.x1 - hut.x0) * f1
+		local z0, z1 = if hut.face == "N" then hut.z0 - t else hut.z1, if hut.face == "N" then hut.z0 else hut.z1 + t
+		return extents(name, a0, a1, y0, y1, z0, z1, color, material, parent)
+	end
+	local a0, a1 = hut.z0 + (hut.z1 - hut.z0) * f0, hut.z0 + (hut.z1 - hut.z0) * f1
+	local x0, x1 = if hut.face == "W" then hut.x0 - t else hut.x1, if hut.face == "W" then hut.x0 else hut.x1 + t
+	return extents(name, x0, x1, y0, y1, a0, a1, color, material, parent)
+end
+
+local FACE_NORMAL = { N = Enum.NormalId.Front, S = Enum.NormalId.Back, E = Enum.NormalId.Right, W = Enum.NormalId.Left }
+
+local function buildHut(parent: Instance, hut: Hut)
+	local style = HUT_STYLE[hut.style] or HUT_STYLE.brick
+	local m = Instance.new("Model")
+	m.Name = hut.name
+	m.Parent = parent
+	extents("Body", hut.x0, hut.x1, 0, hut.h, hut.z0, hut.z1, style.wall, style.material, m)
+	extents("Roof", hut.x0 - 0.5, hut.x1 + 0.5, hut.h, hut.h + 0.4, hut.z0 - 0.5, hut.z1 + 0.5, style.roof, Enum.Material.Metal, m)
+	local width = if hut.face == "N" or hut.face == "S" then hut.x1 - hut.x0 else hut.z1 - hut.z0
+	local glass = Color3.fromRGB(40, 55, 70)
+	if width >= 12 then
+		-- a window and a door
+		local window = onFace("Window", hut, 0.12, 0.55, 3, 6.2, 0.1, glass, Enum.Material.Glass, m)
+		window.CastShadow = false
+		onFace("Door", hut, 0.68, 0.68 + 3.2 / width, 0, 7, 0.1, Color3.fromRGB(58, 60, 66), Enum.Material.SmoothPlastic, m)
+	else
+		-- a serving hatch with its counter
+		onFace("Hatch", hut, 0.2, 0.8, 3, 5.6, 0.1, glass, Enum.Material.Glass, m).CastShadow = false
+		onFace("Counter", hut, 0.18, 0.82, 2.8, 3, 1, Color3.fromRGB(190, 186, 176), Enum.Material.Concrete, m)
+	end
+	local board = onFace("SignBoard", hut, 0.08, 0.92, hut.h - 1.9, hut.h - 0.3, 0.15, Color3.fromRGB(236, 232, 214), Enum.Material.SmoothPlastic, m)
+	local text = if hut.style == "firstaid" then Color3.fromRGB(20, 130, 60) else Color3.fromRGB(40, 44, 52)
+	sign(board, FACE_NORMAL[hut.face], hut.sign, text)
+end
+
+local function buildCompound(parent: Instance)
+	local c = GroundEnvelope.COMPOUND
+	local m = Instance.new("Model")
+	m.Name = "GroundsmansCompound"
+	m.Parent = parent
+	local inner = GroundEnvelope.Z1 - GroundEnvelope.WALL_T / 2 -- the south wall's inside face
+	local gravel = extents("Gravel", c.x0, c.x1, 0, 0.2, c.z0, inner, Color3.fromRGB(150, 140, 122), Enum.Material.Pebble, m)
+	gravel.CastShadow = false
+	-- mesh fence on three sides (the ground wall is the fourth). The shed stands
+	-- square in front of the service gate, so the tractor goes round its east
+	-- side: the gap out toward the pitch is at that end of the north fence.
+	local mesh = Color3.fromRGB(40, 90, 50)
+	local function panel(x0: number, x1: number, z0: number, z1: number)
+		local p = extents("Fence", x0, x1, 0.2, 6, z0, z1, mesh, Enum.Material.Metal, m)
+		p.Transparency = 0.45
+		p.CastShadow = false
+	end
+	local shed = GroundEnvelope.HUTS[#GroundEnvelope.HUTS]
+	panel(c.x0 - 0.1, c.x0 + 0.1, c.z0, inner)
+	panel(c.x1 - 0.1, c.x1 + 0.1, c.z0, inner)
+	panel(c.x0 - 0.1, shed.x1, c.z0 - 0.1, c.z0 + 0.1)
+	-- a sit-on mower parked beside the shed, out of the tractor's way
+	local green = Color3.fromRGB(46, 110, 60)
+	extents("MowerBody", 172.3, 174.8, 0.2, 2.2, 249, 254, green, Enum.Material.SmoothPlastic, m)
+	extents("MowerSeat", 172.8, 174.3, 2.2, 3.4, 252, 253.4, Color3.fromRGB(30, 30, 32), Enum.Material.SmoothPlastic, m)
+end
+
 -- -------------------------------------------------------------- tier fittings
 
 -- The ground tier from the club's stand levels (Config.groundTier), 1 without a club.
@@ -519,6 +639,11 @@ local function buildTiered(envelope: Instance, tier: number, place: boolean)
 	local lanes = Config.TurnstileLanes[math.clamp(tier, 1, #Config.TurnstileLanes)]
 	for _, name in { "NWTurnstiles", "SWTurnstiles" } do
 		buildBlock(model, GroundEnvelope.gate(name), lanes)
+	end
+	if tier >= Config.ToiletsFromTier then
+		for i in GroundEnvelope.TOILETS do
+			buildHut(model, GroundEnvelope.toiletHut(i))
+		end
 	end
 	envelope:SetAttribute("GroundTier", tier)
 	if place then
@@ -559,6 +684,10 @@ function GroundEnvelope.build(grounds: Instance): Model
 	envelope.Name = "GroundEnvelope"
 	envelope.Parent = grounds
 	buildWall(envelope)
+	for _, hut in GroundEnvelope.HUTS do
+		buildHut(envelope, hut)
+	end
+	buildCompound(envelope)
 	buildTiered(envelope, currentTier(), false)
 	bindTier(envelope)
 	return envelope

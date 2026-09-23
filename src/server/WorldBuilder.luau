@@ -79,7 +79,6 @@ local NORTH_WALL_CX = OFFICE.x1 - 11.5
 -- inside the ground wall (#15). The amenity and the team coach still stand here
 -- until the concourse (#7) and coach bay (#25) steps move them.
 local FORECOURT_CX, FORECOURT_CZ = -(SIDE_EDGE + 40), -(END_EDGE + 16)
-local TURNSTILE_Z = -(CORNER_Z + END_EDGE) / 2 -- middle of the corner gap
 
 local function part(props: { [string]: any }): Part
 	local p = Instance.new("Part")
@@ -708,13 +707,61 @@ local function bindScoreboard()
 	task.defer(refresh)
 end
 
--- The forecourt model the statue stands on. #15 (ground plan spec s2): the old
--- paved yard and turnstiles outside the north-west corner are retired; fans
+-- The reception forecourt (#15, ground plan spec s2): paved, inside the ground
+-- wall's main gate, in front of the clubhouse's front doors (x -201..-157,
+-- z -30..30). The statue stands on it and the memorial garden beside it. The
+-- old paved yard and turnstiles outside the north-west corner are retired; fans
 -- come in through the turnstile blocks in the ground wall (GroundEnvelope).
+-- Top level with the footpaths (0.34), stepping up onto the doors' apron
+-- (Clubhouse FrontApron, x -169..-157, z -16..16); beds either side of the
+-- apron keep the clubhouse's foundation bushes on soil (GroundsPlanting).
+local RECEPTION = { x0 = -199.8, x1 = -(SIDE_EDGE + 36), z0 = -30, z1 = 30 } -- x0: inside the main gate's piers
+local RECEPTION_TOP = 0.34
+local APRON_X0 = RECEPTION.x1 - 12 -- Clubhouse FrontApron
+local BED_X0 = RECEPTION.x1 - 7
 local function buildForecourt(parent: Instance)
 	local yard = Instance.new("Model")
 	yard.Name = "Forecourt"
 	yard.Parent = parent
+	local warm = Color3.fromRGB(196, 176, 148) -- X124: block paving like RivermereTurnstileEntrance.png
+	local function pave(x0: number, x1: number, z0: number, z1: number)
+		box("Paving", Vector3.new(x1 - x0, RECEPTION_TOP, z1 - z0), Vector3.new((x0 + x1) / 2, RECEPTION_TOP / 2, (z0 + z1) / 2),
+			warm, Enum.Material.Pavement, yard)
+	end
+	pave(RECEPTION.x0, APRON_X0, RECEPTION.z0, RECEPTION.z1)
+	pave(APRON_X0, BED_X0, RECEPTION.z0, -16)
+	pave(APRON_X0, BED_X0, 16, RECEPTION.z1)
+
+	-- memorial garden (spec s2: x -198..-178, z 34..48): a stone-kerbed bed,
+	-- a memorial stone facing the forecourt and a few flowers
+	local garden = Instance.new("Model")
+	garden.Name = "MemorialGarden"
+	garden.Parent = yard
+	local stone = Color3.fromRGB(206, 198, 180)
+	local gx0, gx1, gz0, gz1 = -198, -178, 34, 48
+	local k = 0.8
+	box("Kerb", Vector3.new(gx1 - gx0, 0.6, k), Vector3.new((gx0 + gx1) / 2, 0.3, gz0 + k / 2), stone, Enum.Material.Limestone, garden)
+	box("Kerb", Vector3.new(gx1 - gx0, 0.6, k), Vector3.new((gx0 + gx1) / 2, 0.3, gz1 - k / 2), stone, Enum.Material.Limestone, garden)
+	box("Kerb", Vector3.new(k, 0.6, gz1 - gz0 - 2 * k), Vector3.new(gx0 + k / 2, 0.3, (gz0 + gz1) / 2), stone, Enum.Material.Limestone, garden)
+	box("Kerb", Vector3.new(k, 0.6, gz1 - gz0 - 2 * k), Vector3.new(gx1 - k / 2, 0.3, (gz0 + gz1) / 2), stone, Enum.Material.Limestone, garden)
+	box("Bed", Vector3.new(gx1 - gx0 - 2 * k, 0.4, gz1 - gz0 - 2 * k), Vector3.new((gx0 + gx1) / 2, 0.2, (gz0 + gz1) / 2),
+		Color3.fromRGB(74, 58, 44), Enum.Material.Ground, garden)
+	local memorial = box("MemorialStone", Vector3.new(4, 4.2, 1.2), Vector3.new((gx0 + gx1) / 2, 0.4 + 2.1, gz0 + 4),
+		Color3.fromRGB(70, 72, 76), Enum.Material.Granite, garden)
+	addSign(memorial, "IN MEMORY OF ALL WHO LOVED THIS CLUB", { Enum.NormalId.Front })
+	for i, colour in { Color3.fromRGB(196, 40, 48), Color3.fromRGB(236, 196, 60), Color3.fromRGB(196, 40, 48), Color3.fromRGB(240, 240, 236) } do
+		part({
+			Name = "Flowers",
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.new(2.2, 1.6, 2.2),
+			CFrame = CFrame.new(gx0 + 2.6 + (i - 1) * 4.9, 0.9, gz1 - 4),
+			Color = colour,
+			Material = Enum.Material.LeafyGrass,
+			CanCollide = false,
+			CastShadow = false,
+			Parent = garden,
+		})
+	end
 end
 
 -- X317: the peg rails hung blank kit-colour slabs. The home room named nobody
@@ -977,7 +1024,8 @@ end
 -- The reference RivermereTurnstileEntrance.png has no statue (it puts wall
 -- plaques and a lamp banner there, both already built) - this is from the
 -- backlog and E9/X288, not from the image.
-local STATUE_X, STATUE_Z = -(SIDE_EDGE + 13), TURNSTILE_Z - 15
+-- #15: on the reception forecourt inside the main gate (spec s2: (-186, 0))
+local STATUE_X, STATUE_Z = -186, 0
 local BRONZE = Color3.fromRGB(122, 96, 58)
 local STATUE_STONE = Color3.fromRGB(206, 198, 180)
 local lastServant: any? = nil
@@ -1005,15 +1053,15 @@ function WorldBuilder.buildStatue(servant: any?)
 	model.Parent = yard
 
 	-- plinth, facing the walk up from the path (west)
-	box("Base", Vector3.new(7, 0.6, 7), Vector3.new(STATUE_X, DECK_Y + 0.3, STATUE_Z),
+	box("Base", Vector3.new(7, 0.6, 7), Vector3.new(STATUE_X, RECEPTION_TOP + 0.3, STATUE_Z),
 		Color3.fromRGB(150, 148, 142), Enum.Material.Concrete, model)
-	box("Plinth", Vector3.new(5, 6, 5), Vector3.new(STATUE_X, DECK_Y + 3.6, STATUE_Z),
+	box("Plinth", Vector3.new(5, 6, 5), Vector3.new(STATUE_X, RECEPTION_TOP + 3.6, STATUE_Z),
 		STATUE_STONE, Enum.Material.Limestone, model)
-	box("PlinthCap", Vector3.new(5.6, 0.5, 5.6), Vector3.new(STATUE_X, DECK_Y + 6.85, STATUE_Z),
+	box("PlinthCap", Vector3.new(5.6, 0.5, 5.6), Vector3.new(STATUE_X, RECEPTION_TOP + 6.85, STATUE_Z),
 		STATUE_STONE, Enum.Material.Limestone, model)
 
 	-- the brass plaque: who he was and what he did
-	local plaque = box("Plaque", Vector3.new(0.14, 2.6, 3.6), Vector3.new(STATUE_X - 2.57, DECK_Y + 3.9, STATUE_Z),
+	local plaque = box("Plaque", Vector3.new(0.14, 2.6, 3.6), Vector3.new(STATUE_X - 2.57, RECEPTION_TOP + 3.9, STATUE_Z),
 		Color3.fromRGB(150, 116, 52), Enum.Material.Metal, model)
 	local gui = Instance.new("SurfaceGui")
 	gui.Name = "Plaque"
@@ -1059,7 +1107,7 @@ function WorldBuilder.buildStatue(servant: any?)
 
 	-- the man himself: stood on the cap, one arm up to the crowd, ball at his
 	-- feet. Blocks, like every rig in the game (the match uses R15 blocks too).
-	local y0 = DECK_Y + 7.1
+	local y0 = RECEPTION_TOP + 7.1
 	local metal = Enum.Material.Metal
 	box("LegL", Vector3.new(1, 3.4, 1.2), Vector3.new(STATUE_X - 0.75, y0 + 1.7, STATUE_Z - 0.2), BRONZE, metal, model)
 	box("LegR", Vector3.new(1, 3.4, 1.2), Vector3.new(STATUE_X + 0.75, y0 + 1.7, STATUE_Z + 0.5), BRONZE, metal, model)
