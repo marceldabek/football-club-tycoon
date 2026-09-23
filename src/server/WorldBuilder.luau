@@ -70,8 +70,10 @@ local OFFICE_Y = Clubhouse.FLOOR_Y
 local OFFICE_H = Clubhouse.HEIGHT
 local CLUBHOUSE_GAP = Clubhouse.GAP_Z -- the west stand's wings stop here
 -- the office's north wall east of the lobby door: the trophy shelf and the
--- promotion pennants hang along it
-local NORTH_WALL_CX = OFFICE.x1 - 13.5
+-- promotion pennants hang along it. P5 (#24c): the lobby door folds back flat
+-- against this wall as far as x -144.6, and the shelf at x1 - 13.5 reached
+-- -146.5, so the leaf ran into it; the shelf now starts at -143.5.
+local NORTH_WALL_CX = OFFICE.x1 - 11.5
 
 -- Forecourt: outside the open north-west corner, where the turnstiles, the
 -- concourse and the car park are. The player only comes here to spend money.
@@ -1395,7 +1397,8 @@ end
 -- fittings follow the club's tier, the way the ground outside follows it
 -- (GroundInfluence/X105). TEMP thresholds:
 --   tier 2  the damp is painted over and a filing cabinet arrives
---   tier 3  a flat screen, a tactics board and a chair for a visitor
+--   tier 3  a flat screen and a tactics board (the primitive visitor's chair
+--           went in P5, #24e)
 --   tier 4+ the club crest on the wall behind the desk, a plant, better light
 local OFFICE_TIER_PAINT = 2
 local OFFICE_TIER_SCREEN = 3
@@ -1440,7 +1443,10 @@ function WorldBuilder.dressOffice(tier: number)
 
 	-- the computer: a green-screen terminal at the bottom, a flat screen later
 	local computer = office:FindFirstChild("Computer", true) -- a mesh inside the laptop model
-	local display = computer and computer:FindFirstChild("Display", true)
+	-- since P5 the display is on the laptop's screen, in another of the laptop
+	-- model's sub-models than the base (the grey fallback block carries both)
+	local laptop = computer and (computer:FindFirstAncestor("PH__classic_laptop") or computer.Parent)
+	local display = laptop and laptop:FindFirstChild("Display", true)
 	if display and display:IsA("TextLabel") then
 		if level >= OFFICE_TIER_SCREEN then
 			display.BackgroundColor3 = Color3.fromRGB(18, 26, 40)
@@ -1523,14 +1529,6 @@ function WorldBuilder.dressOffice(tier: number)
 				corner.Parent = disc
 			end
 		end
-		-- a chair on the visitor's side of the desk
-		local guestX, guestZ = OFFICE.x0 + 10, 31
-		box("GuestChairBase", Vector3.new(0.4, 1.4, 0.4), Vector3.new(guestX, OFFICE_Y + 0.7, guestZ),
-			Color3.fromRGB(40, 40, 42), Enum.Material.Metal, fittings)
-		box("GuestChair", Vector3.new(2, 0.5, 2), Vector3.new(guestX, OFFICE_Y + 1.65, guestZ),
-			Color3.fromRGB(70, 74, 82), Enum.Material.Fabric, fittings)
-		box("GuestChairBack", Vector3.new(0.4, 2.2, 1.8), Vector3.new(guestX + 0.8, OFFICE_Y + 3, guestZ),
-			Color3.fromRGB(70, 74, 82), Enum.Material.Fabric, fittings)
 	end
 
 	if level >= OFFICE_TIER_BRAND then
@@ -1621,14 +1619,14 @@ function WorldBuilder.buildTrophies(count: number)
 	model.Name = "Trophies"
 	model.Parent = office
 
-	local shelfLen = 22
+	local shelfLen = 20
 	local shelfY = OFFICE_Y + 7
 	local shelfZ = OFFICE.z0 + 1
 	box("Shelf", Vector3.new(shelfLen, 0.5, 2), Vector3.new(NORTH_WALL_CX, shelfY, shelfZ),
 		Color3.fromRGB(110, 75, 45), Enum.Material.Wood, model)
 
 	local gold = Color3.fromRGB(230, 190, 60)
-	local spacing = 3
+	local spacing = 2.6 -- eight cups on the shorter shelf
 	local startX = NORTH_WALL_CX - (shown - 1) * spacing / 2
 	for i = 1, shown do
 		local x = startX + (i - 1) * spacing
@@ -2277,12 +2275,12 @@ end
 -- kickoffs in every season of every division - the only piece of club
 -- paperwork in the world, and it was made up. SeasonService calls this with
 -- the real remaining fixtures.
-function WorldBuilder.setFixtureNotice(lines: { string })
+function WorldBuilder.setFixtureNotice(rows: { Clubhouse.NoticeRow })
 	local club = PlotContext.clubModel()
 	local office = club and club:FindFirstChild("Office")
-	local label = office and office:FindFirstChild("Lines", true)
-	if label and label:IsA("TextLabel") then
-		label.Text = if #lines > 0 then ("FIXTURES\n%s"):format(table.concat(lines, "\n")) else "FIXTURES\n(season over)"
+	local lines = office and office:FindFirstChild("Lines", true)
+	if lines and lines:IsA("Frame") then
+		Clubhouse.noticeRows(lines, if #rows > 0 then rows else { { text = "(season over)" } })
 	end
 end
 

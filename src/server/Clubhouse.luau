@@ -32,6 +32,7 @@
 -- in OPENINGS, in world terms; any wall or lining that runs through one is cut.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextService = game:GetService("TextService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
 local ClubCrest = require(ReplicatedStorage.Shared.ClubCrest)
@@ -239,6 +240,72 @@ local function bulb(parent: Instance, x: number, z: number, sx: number, sz: numb
 	light.Color = Color3.fromRGB(255, 245, 225)
 	light.Parent = b
 	return b
+end
+
+-- ------------------------------------------------------------ fixtures notice
+
+-- P5 (#24g): the office's fixtures sheet, 3.6 x 4.8 studs at 80 px/stud
+local NOTICE_W, NOTICE_H, NOTICE_PPS = 3.6, 4.8, 80
+local NOTICE_INK = Color3.fromRGB(40, 40, 46)
+local NOTICE_ROW_H = 62 -- px; four fixtures fill the sheet under its title
+local NOTICE_FONT_MAX = 42 -- px
+-- a row's columns, as shares of the sheet's text width
+local VENUE_W, NAME_W, TIME_W = 0.12, 0.64, 0.24
+
+export type NoticeRow = { venue: string?, name: string?, time: string?, text: string? }
+
+-- One cell, one line. The whole row used to be one TextScaled label, which
+-- wraps before it shrinks, so "Kingsmere" and "3pm" landed on separate lines;
+-- names were cut at 9 letters to stop that. Now each cell is sized from its
+-- measured width at the largest size, so a long name shrinks instead.
+local function noticeCell(row: Frame, name: string, text: string, x: number, w: number, align: Enum.TextXAlignment)
+	local size = NOTICE_FONT_MAX
+	local ok, measured = pcall(function()
+		return TextService:GetTextSize(text, NOTICE_FONT_MAX, Enum.Font.PatrickHand, Vector2.new(4096, 4096))
+	end)
+	-- the cell's width in pixels from the sheet (the "Lines" frame is 0.88 of
+	-- it): AbsoluteSize is 0 on the server, where nothing renders
+	if ok and measured.X > 0 then
+		local available = w * NOTICE_W * NOTICE_PPS * 0.88 - 4
+		size = math.min(NOTICE_FONT_MAX, math.floor(NOTICE_FONT_MAX * available / measured.X))
+	end
+	local cell = Instance.new("TextLabel")
+	cell.Name = name
+	cell.BackgroundTransparency = 1
+	cell.Position = UDim2.fromScale(x, 0)
+	cell.Size = UDim2.fromScale(w, 1)
+	cell.Font = Enum.Font.PatrickHand
+	cell.TextSize = math.max(size, 12)
+	cell.TextWrapped = false
+	cell.TextXAlignment = align
+	cell.TextColor3 = NOTICE_INK
+	cell.Text = text
+	cell.Parent = row
+end
+
+-- Replaces the rows under the notice's "Lines" frame. A row with `text` is a
+-- single line across the sheet ("(none yet)", "(season over)").
+function Clubhouse.noticeRows(lines: Instance, rows: { NoticeRow })
+	for _, old in lines:GetChildren() do
+		if old:IsA("Frame") then
+			old:Destroy()
+		end
+	end
+	for i, r in rows do
+		local row = Instance.new("Frame")
+		row.Name = "Row" .. i
+		row.BackgroundTransparency = 1
+		row.Size = UDim2.new(1, 0, 0, NOTICE_ROW_H)
+		row.LayoutOrder = i
+		row.Parent = lines
+		if r.text then
+			noticeCell(row, "Text", r.text, 0, 1, Enum.TextXAlignment.Left)
+		else
+			noticeCell(row, "Venue", r.venue or "", 0, VENUE_W, Enum.TextXAlignment.Left)
+			noticeCell(row, "Opponent", r.name or "", VENUE_W, NAME_W, Enum.TextXAlignment.Left)
+			noticeCell(row, "Time", r.time or "", VENUE_W + NAME_W, TIME_W, Enum.TextXAlignment.Right)
+		end
+	end
 end
 
 local function model(name: string, parent: Instance): Model
@@ -739,7 +806,8 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 	local walls = lineRoom(office, r, "NSEW", OFFICE_WALL, Enum.Material.Concrete, Color3.fromRGB(95, 80, 60), Enum.Material.WoodPlanks)
 
 	-- X170: the early office is rundown (CLAUDE.md s5): damp stains on the walls
-	-- and a curling fixtures notice, drawn with SurfaceGuis (no parts).
+	-- and a curling fixtures notice. The stains are SurfaceGui frames (no
+	-- parts); the notice is one thin part since P5.
 	-- dressOffice hides the "Damp" frames once the club can afford paint.
 	local function wallGui(target: BasePart, face: Enum.NormalId): SurfaceGui
 		local gui = Instance.new("SurfaceGui")
@@ -773,27 +841,49 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 	local northGui = wallGui(walls.N[1], Enum.NormalId.Back) -- +Z, into the room
 	stain(northGui, 0.0, 0.0, 0.16, 0.24)
 	stain(northGui, 0.86, 0.7, 0.14, 0.3)
-	local notice = Instance.new("Frame")
-	notice.Name = "FixturesNotice"
-	notice.AnchorPoint = Vector2.new(0.5, 0.5)
-	notice.Position = UDim2.fromScale(0.5, 0.42)
-	notice.Size = UDim2.fromOffset(60, 76)
-	notice.Rotation = -4
-	notice.BackgroundColor3 = Color3.fromRGB(236, 228, 204)
-	notice.BorderSizePixel = 0
-	notice.Parent = eastGui
-	local noticeText = Instance.new("TextLabel")
-	noticeText.BackgroundTransparency = 1
-	noticeText.Size = UDim2.fromScale(0.86, 0.9)
-	noticeText.Position = UDim2.fromScale(0.07, 0.05)
-	noticeText.Font = Enum.Font.PatrickHand
-	noticeText.TextScaled = true
-	noticeText.TextColor3 = Color3.fromRGB(40, 40, 46)
-	noticeText.Name = "Lines"
+	-- P5 (#24g): the notice is a sheet of paper with its own SurfaceGui. As a
+	-- frame on the wall's 20 px/stud gui its text came from a 60 x 76 canvas
+	-- and was blurry. Pinned slightly askew, clear of the wall's face.
+	local sheet = part({
+		Name = "FixturesNotice",
+		Size = Vector3.new(0.04, NOTICE_H, NOTICE_W),
+		CFrame = CFrame.new(r.x1 - 0.04, FLOOR_Y + 7, (r.z0 + r.z1) / 2) * CFrame.Angles(math.rad(4), 0, 0),
+		Color = Color3.fromRGB(236, 228, 204),
+		Material = Enum.Material.SmoothPlastic,
+		CanCollide = false,
+		CastShadow = false,
+		Parent = office,
+	})
+	local paper = Instance.new("SurfaceGui")
+	paper.Name = "Paper"
+	paper.Face = Enum.NormalId.Left -- -X, into the room
+	paper.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	paper.PixelsPerStud = NOTICE_PPS
+	paper.LightInfluence = 1
+	paper.Parent = sheet
+	local title = Instance.new("TextLabel")
+	title.Name = "Title"
+	title.BackgroundTransparency = 1
+	title.Position = UDim2.fromScale(0.06, 0.03)
+	title.Size = UDim2.fromScale(0.88, 0.15)
+	title.Font = Enum.Font.PatrickHand
+	title.TextScaled = true
+	title.TextColor3 = Color3.fromRGB(40, 40, 46)
+	title.Text = "FIXTURES"
+	title.Parent = paper
+	-- one row per fixture, laid out by WorldBuilder.setFixtureNotice
+	local lines = Instance.new("Frame")
+	lines.Name = "Lines"
+	lines.BackgroundTransparency = 1
+	lines.Position = UDim2.fromScale(0.06, 0.2)
+	lines.Size = UDim2.fromScale(0.88, 0.76)
+	lines.Parent = paper
+	local layout = Instance.new("UIListLayout")
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = lines
 	-- X301: filled from the real fixture list by SeasonService; this is only
 	-- what the notice says before a season exists
-	noticeText.Text = "FIXTURES\n(none yet)"
-	noticeText.Parent = notice
+	Clubhouse.noticeRows(lines, { { text = "(none yet)" } })
 
 	-- X373: furnished from the Poly Haven kit, every prop at real scale. Anything
 	-- the kit is missing falls back to a grey block inside KitPlacer, so a clone
@@ -807,25 +897,51 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 	end
 
 	local floor = FLOOR_Y
-	-- The desk sits in front of the window with the chair's back to it, the way
-	-- it sat in front of the old office's end wall: desk length along Z, the
-	-- working side facing the chair at -X.
-	local west = r.x0
-	local deskX, deskZ = west + 6, 29
-	prop("metal_office_desk", Vector3.new(deskX, floor, deskZ), math.pi / 2, Vector3.new(2.5, 2.2, 5.5))
+	-- P5 (#24b): the desk is at the far (east) end, away from both doors (they
+	-- are at the west end), facing whoever walks in: desk length along Z, the
+	-- chair between it and the east wall. It used to sit between the doors in
+	-- front of the window.
+	local west, east = r.x0, r.x1
+	local deskX, deskZ = east - 6, (r.z0 + r.z1) / 2
+	prop("metal_office_desk", Vector3.new(deskX, floor, deskZ), -math.pi / 2, Vector3.new(2.5, 2.2, 5.5))
 	local DESK_TOP = floor + 2.2
-	prop("modern_arm_chair_01", Vector3.new(west + 2.2, floor, deskZ), math.pi / 2, Vector3.new(2.3, 2.8, 2.7))
+	-- (#24e) the chair's front was the side at -X at yaw pi/2 and it faced away
+	-- from the desk; here, east of the desk, that faces it
+	prop("modern_arm_chair_01", Vector3.new(east - 2.2, floor, deskZ), math.pi / 2, Vector3.new(2.3, 2.8, 2.7))
 
 	-- the laptop IS the club computer: it carries the screen and the prompt.
 	-- Named so dressOffice and the HUD's hint beacon can find it (it had no name
-	-- after X373 and both looked for "Computer" in vain).
-	local computer = prop("classic_laptop", Vector3.new(deskX, DESK_TOP, deskZ), -math.pi / 2, Vector3.new(1.8, 1.3, 1.3)) :: BasePart
+	-- after X373 and both looked for "Computer" in vain). The kit laptop's
+	-- screen faces its -Z, turned here to face the chair at +X.
+	local laptopAt = CFrame.new(deskX, DESK_TOP, deskZ) * CFrame.Angles(0, -math.pi / 2, 0)
+	local laptop = KitPlacer.place("PH__classic_laptop", laptopAt, office, {
+		fallbackSize = Vector3.new(1.8, 1.3, 1.3),
+		fallbackColor = Color3.fromRGB(120, 110, 100),
+	})
+	-- P5 (#24a): the uploaded laptop lost its parts' offsets, so the lid stood
+	-- up in the middle of the keyboard. The lid (and cover_low, its bottom
+	-- edge) goes back to the base's rear edge, which is its +Z (checked in
+	-- Studio: the keys are at that end, the palm rest at -Z).
+	local keyboard = laptop:FindFirstChild("keyboard_low", true)
+	local lidBack = if keyboard and keyboard:IsA("BasePart") then keyboard.Size.Z / 2 else 0
+	for _, d in laptop:GetDescendants() do
+		if d:IsA("BasePart") and (d.Name:sub(1, 4) == "lid_" or d.Name == "cover_low") then
+			local lid = laptop:FindFirstChild("lid_floaters_low", true) :: BasePart?
+			local half = if lid then lid.Size.Z / 2 else 0
+			d.CFrame = laptopAt * CFrame.new(0, 0, lidBack - half) * laptopAt:Inverse() * d.CFrame
+		end
+	end
+	-- the base carries the name and the prompt: the first part found was
+	-- cover_low, a 0.03-stud sliver the display was drawn on
+	local computer = (keyboard or laptop:FindFirstChildWhichIsA("BasePart", true)) :: BasePart
 	computer.Name = "Computer"
+	-- the display goes on the screen itself when the kit has one
+	local screenPart = (laptop:FindFirstChild("lid_floaters_low2", true) or computer) :: BasePart
 	-- the manila folder on the desk IS the scout's report: a new one lands after
 	-- every match once a scout is hired. Session shows and lights it; the client
 	-- opens the report when the prompt fires. Not a PH__ mesh: a Creator Store
 	-- union (212927712, no scripts) kept at ServerStorage.Kit.manila_folder.
-	local reportModel = KitPlacer.place("manila_folder", CFrame.new(deskX - 0.2, DESK_TOP, deskZ - 1.8) * CFrame.Angles(0, 0.3, 0), office, {
+	local reportModel = KitPlacer.place("manila_folder", CFrame.new(deskX + 0.2, DESK_TOP, deskZ - 1.8) * CFrame.Angles(0, 0.3, 0), office, {
 		fallbackSize = Vector3.new(0.95, 0.06, 1.37),
 		fallbackColor = Color3.fromRGB(222, 188, 124),
 	})
@@ -845,7 +961,7 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 		glow.Enabled = false
 		glow.Parent = report
 	end
-	prop("stationery_supplies", Vector3.new(deskX + 0.3, DESK_TOP, deskZ + 1.5), -0.2, Vector3.new(0.5, 0.2, 0.2))
+	prop("stationery_supplies", Vector3.new(deskX - 0.3, DESK_TOP, deskZ + 1.5), -0.2, Vector3.new(0.5, 0.2, 0.2))
 
 	-- along the west wall either side of the window
 	-- along the west wall north of the window; the south end is the side door's
@@ -859,7 +975,6 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 
 	-- the odds and ends of a rundown grassroots office: for a club this size a
 	-- pair of boots and a spare ball say more than filing cabinets do
-	local east = r.x1
 	prop("painted_wooden_bench", Vector3.new(-132.5, floor, r.z1 - 1), math.pi, Vector3.new(3.2, 2.4, 1.4))
 	prop("korean_fire_extinguisher_01", Vector3.new(east - 0.8, floor, 25), 0, Vector3.new(0.8, 1.8, 1.0))
 	prop("wooden_ladder", Vector3.new(east - 1.2, floor, r.z0 + 1.2), math.pi / 2, Vector3.new(1.4, 6.0, 0.6))
@@ -875,28 +990,33 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 		fallbackSize = Vector3.new(1.6, 0.5, 1.6),
 		fallbackColor = Color3.fromRGB(30, 30, 32),
 	})
-	-- a bin beside the desk, from the street kit (base and lid are separate meshes)
-	KitPlacer.place("UKSP__TrachCan__TrashcanBase", CFrame.new(deskX + 3.4, floor, deskZ - 3.2), office, {
+	-- a bin beside the desk, from the street kit (base and lid are separate meshes).
+	-- P5 (#24d): at the desk's south end, out of the walkway; deskX + 3.4 had
+	-- put it in the middle of the floor.
+	local binX, binZ = deskX + 1.5, deskZ + 4.4
+	KitPlacer.place("UKSP__TrachCan__TrashcanBase", CFrame.new(binX, floor, binZ), office, {
 		fallbackSize = Vector3.new(2.1, 2.8, 1.9),
 		fallbackColor = Color3.fromRGB(60, 62, 66),
 	})
-	KitPlacer.place("UKSP__TrachCan__TrashcanLid", CFrame.new(deskX + 3.4, floor + 2.8, deskZ - 3.2), office, {
+	KitPlacer.place("UKSP__TrachCan__TrashcanLid", CFrame.new(binX, floor + 2.8, binZ), office, {
 		fallbackSize = Vector3.new(2.0, 0.5, 2.0),
 		fallbackColor = Color3.fromRGB(60, 62, 66),
 	})
 
-	-- X169: an old green-screen monitor facing the chair (-X)
+	-- X169: an old green-screen monitor facing the chair: the laptop's -Z, which
+	-- is world +X since P5. On the kit's screen plane it fills the screen.
+	local onScreen = screenPart ~= computer
 	local screen = Instance.new("SurfaceGui")
 	screen.Name = "Screen"
-	screen.Face = Enum.NormalId.Left
+	screen.Face = Enum.NormalId.Front
 	screen.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	screen.PixelsPerStud = 60
+	screen.PixelsPerStud = 120
 	screen.LightInfluence = 0
-	screen.Parent = computer
+	screen.Parent = screenPart
 	local glass = Instance.new("TextLabel")
 	glass.Name = "Display"
-	glass.Position = UDim2.fromScale(0.08, 0.1)
-	glass.Size = UDim2.fromScale(0.84, 0.66)
+	glass.Position = if onScreen then UDim2.fromScale(0.04, 0.05) else UDim2.fromScale(0.08, 0.1)
+	glass.Size = if onScreen then UDim2.fromScale(0.92, 0.9) else UDim2.fromScale(0.84, 0.66)
 	glass.BackgroundColor3 = Color3.fromRGB(12, 30, 16)
 	glass.BorderSizePixel = 0
 	glass.Font = Enum.Font.Code
