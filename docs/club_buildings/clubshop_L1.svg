@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="276" height="432" viewBox="0 0 276 432" font-family="Segoe UI, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+<polygon points="0.0,0.0 276.0,0.0 276.0,432.0 0.0,432.0" fill="#f4f2ea" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="60.0,156.0 216.0,156.0 216.0,336.0 60.0,336.0" fill="#eef0e9" stroke="#4a3b32" stroke-width="2"  opacity="1.0"/>
+<text x="138.0" y="36.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">CLUB SHOP -- L1 Kiosk</text>
+<text x="138.0" y="84.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >exists today (PlotGrounds.buildShop)</text>
+<polyline points="72.0,408.0 132.0,408.0" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<text x="102.0" y="387.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >10 studs (~3.6 m)</text>
+<polygon points="60.0,156.0 216.0,156.0 216.0,336.0 60.0,336.0" fill="#efece2" stroke="#4a3b32" stroke-width="1.5"  opacity="1.0"/>
+<polygon points="212.4,288.0 216.0,288.0 216.0,324.0 212.4,324.0" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="212.4,-576.0 966.0,-576.0 966.0,258.0 212.4,258.0" fill="#8fd3f4" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="234.0" y="216.0" font-size="5" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >window</text>
+<text x="234.0" y="306.0" font-size="5" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >door</text>
+<polygon points="111.6,195.6 123.6,195.6 123.6,255.6 111.6,255.6" fill="#6e4e32" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="117.6" y="225.6" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(90 117.6 225.6)">till</text>
+<polygon points="63.6,195.6 72.0,195.6 72.0,296.4 63.6,296.4" fill="#6e4e32" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="67.8" y="174.0" font-size="5" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle"  transform="rotate(90 67.8 174.0)">shelf: folded shirts</text>
+<polygon points="135.6,159.6 183.6,159.6 183.6,165.6 135.6,165.6" fill="#9a9a9a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="159.6" y="144.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >scarf rail</text>
+<text x="138.0" y="296.4" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">KIOSK</text>
+<text x="138.0" y="303.6" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">~8 parts</text>
+</svg>

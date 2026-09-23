@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="276" height="432" viewBox="0 0 276 432" font-family="Segoe UI, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+<polygon points="0.0,0.0 276.0,0.0 276.0,432.0 0.0,432.0" fill="#f4f2ea" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="60.0,156.0 216.0,156.0 216.0,336.0 60.0,336.0" fill="#eef0e9" stroke="#4a3b32" stroke-width="2"  opacity="1.0"/>
+<text x="138.0" y="36.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">CLUB SHOP -- L4 Flagship Store</text>
+<text x="138.0" y="84.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >TEMP GBP24,000</text>
+<polyline points="72.0,408.0 132.0,408.0" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<text x="102.0" y="387.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >10 studs (~3.6 m)</text>
+<polygon points="60.0,156.0 216.0,156.0 216.0,336.0 60.0,336.0" fill="#efece2" stroke="#4a3b32" stroke-width="1.5"  opacity="1.0"/>
+<polygon points="212.4,288.0 216.0,288.0 216.0,324.0 212.4,324.0" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="212.4,-576.0 966.0,-576.0 966.0,258.0 212.4,258.0" fill="#8fd3f4" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="234.0" y="216.0" font-size="5" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >window</text>
+<text x="234.0" y="306.0" font-size="5" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >door</text>
+<polygon points="63.6,174.0 75.6,174.0 75.6,318.0 63.6,318.0" fill="#3b5fa8" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="63.6,174.0 75.6,174.0 75.6,192.0 63.6,192.0" fill="#151515" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="69.6" y="156.0" font-size="5" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle"  transform="rotate(90 69.6 156.0)">KIT WALL + digital screen</text>
+<polygon points="108.0,180.0 126.0,180.0 126.0,228.0 108.0,228.0" fill="#6e4e32" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="108.0,264.0 126.0,264.0 126.0,312.0 108.0,312.0" fill="#6e4e32" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="117.0" y="204.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(90 117.0 204.0)">till 1</text>
+<text x="117.0" y="288.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(90 117.0 288.0)">till 2</text>
+<polygon points="132.0,186.0 180.0,186.0 180.0,198.0 132.0,198.0" fill="#9a9a9a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="132.0,234.0 180.0,234.0 180.0,246.0 132.0,246.0" fill="#9a9a9a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="132.0,282.0 180.0,282.0 180.0,294.0 132.0,294.0" fill="#9a9a9a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="132.0,318.0 180.0,318.0 180.0,330.0 132.0,330.0" fill="#9a9a9a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="186.0,300.0 210.0,300.0 210.0,330.0 186.0,330.0" fill="#d8c98a" stroke="#4a3b32" stroke-width="0.6"  opacity="1.0"/>
+<text x="198.0" y="315.6" font-size="4" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >trophy</text>
+<text x="198.0" y="320.4" font-size="4" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >cabinet</text>
+<text x="138.0" y="166.8" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">FLAGSHIP STORE</text>
+<text x="138.0" y="174.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">mannequins in window</text>
+<text x="138.0" y="181.2" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">~65 parts</text>
+</svg>
