@@ -5,16 +5,17 @@
 -- clad boxes (office, 94-stud tunnel corridor, dressing rooms) whose only way
 -- out was the tunnel mouth.
 --
--- Three ways in and out: front double doors (west, car park side), the
--- players' door (east, onto the touchline) and the office side door (south).
+-- Three ways in and out: front double doors (west, onto the reception
+-- forecourt inside the ground's main gate, #15), the players' door (east, onto
+-- the touchline) and the office side door (south, a staff door onto the concourse).
 --
 -- Built in pitch-local coordinates like WorldBuilder (origin pitch centre,
 -- +X east toward the pitch, -Z north); WorldBuilder.build moves it into the
 -- plot with everything else.
 --
---              WEST (x -157)   car park / footpath side
+--              WEST (x -157)   reception forecourt, main gate
 --   z -40        -16                        +16                 +40
---    +--[hatch]---+----====[1] FRONT====-----+----[window]-------+
+--    +------------+----====[1] FRONT====-----+----[window]-------+
 --    |            D4        LOBBY            D3          (spawn) [3] SIDE DOOR
 --    |  KIOSK /   +---------+     +----------+     OFFICE        |   (south wall,
 --    |  STORE     |  AWAY   D5   D6   HOME   |                   |    west end)
@@ -22,7 +23,7 @@
 --    +------------+---------+=[2]=+----------+-------------------+
 --              EAST (x -121)   touchline    PLAYERS' DOOR
 --
--- The hatch and the side door keep to the west end of the building because a
+-- The side door keeps to the west end of the building because a
 -- built-up west stand wing (8+ rows) runs along the rest of the end walls.
 --
 -- How it is put together, so the exterior pass (phase 2) can re-skin it without
@@ -116,7 +117,6 @@ Clubhouse.OPENINGS = {
 	{ name = "LobbyLightS", axis = "x", at = SHELL.x0 + 0.5, from = 7, to = 12, sill = 3.5, top = DOOR_H, glazed = true },
 	{ name = "HomeSlot", axis = "x", at = SHELL.x1 - 0.5, from = 8.5, to = 12.5, sill = 7.5, top = 9.5, glazed = true },
 	{ name = "AwaySlot", axis = "x", at = SHELL.x1 - 0.5, from = -12.5, to = -8.5, sill = 7.5, top = 9.5, glazed = true },
-	{ name = "KioskHatch", axis = "x", at = SHELL.x0 + 0.5, from = -34, to = -26, sill = 3.5, top = 7.5 },
 } :: { Opening }
 
 -- where PlotService puts the owner: in front of the office side door, looking
@@ -624,18 +624,8 @@ local function buildShell(parent: Instance, addSign: (BasePart, string, { Enum.N
 		slab(shell, o.name .. "Sill", s0, s1, ya - 0.3, ya, o.from - 0.3, o.to + 0.3, STONE, Enum.Material.Concrete)
 	end
 
-	-- the kiosk hatch: roller shutter down, its box above, a counter and a board
-	slab(shell, "KioskShutter", SHELL.x0 + 0.2, SHELL.x0 + 0.4, FLOOR_Y + 3.5, FLOOR_Y + 7.5, -34, -26,
-		Color3.fromRGB(120, 124, 130), Enum.Material.DiamondPlate)
-	slab(shell, "KioskShutterBox", SHELL.x0 - 0.7, SHELL.x0, FLOOR_Y + 7.5, FLOOR_Y + 8.3, -34.4, -25.6, STEEL, Enum.Material.Metal)
-	slab(shell, "KioskCounter", SHELL.x0 - 1.2, SHELL.x0, FLOOR_Y + 3.2, FLOOR_Y + 3.5, -34.5, -25.5, STONE, Enum.Material.Concrete)
-	local kioskSign = slab(shell, "KioskSign", SHELL.x0 - 0.2, SHELL.x0, FLOOR_Y + 8.6, FLOOR_Y + 9.9, -36, -24, Color3.fromRGB(236, 232, 214))
-	addSign(kioskSign, "TEAS - PIES - HOT DRINKS", { Enum.NormalId.Left }) -- TEMP wording
-	for _, d in kioskSign:GetDescendants() do
-		if d:IsA("TextLabel") then
-			d.TextColor3 = Color3.fromRGB(40, 44, 52)
-		end
-	end
+	-- #12: the west kiosk hatch is gone. Nothing used it and it faced the
+	-- players' walk in; catering moves to the concourse and the stands (#7).
 
 	-- a paved apron outside each public door, level with the slab, so nobody
 	-- steps up off the grass into a doorway. PlotGrounds brings the paths here.
@@ -787,9 +777,9 @@ local function buildLobby(parent: Instance, addSign: (BasePart, string, { Enum.N
 	addSign(toPitch, "TO THE PITCH", { Enum.NormalId.Left })
 	local office = Clubhouse.OFFICE
 	local toCars = slab(lobby, "CarParkSign", -155.5, -149.5, FLOOR_Y + 8.2, FLOOR_Y + 10.2, office.z1 - 0.3, office.z1, green)
-	addSign(toCars, "CAR PARK", { Enum.NormalId.Front })
+	addSign(toCars, "STAFF - CONCOURSE", { Enum.NormalId.Front }) -- #15: the side door opens inside the ground now
 
-	-- a few things in the store so the hatch has something behind it
+	-- a few things in the store
 	local function prop(name: string, at: Vector3, yaw: number, size: Vector3)
 		placeKit("PH__" .. name, CFrame.new(at) * CFrame.Angles(0, yaw, 0), store, {
 			fallbackSize = size,
