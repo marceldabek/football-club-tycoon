@@ -311,7 +311,9 @@ end
 
 local function recheckDespawns(camPos: Vector3)
 	for i = #pedestrians, 1, -1 do
-		if flatDistance(pedestrians[i].lastPos, camPos) > DESPAWN_DIST then
+		-- #35: a walker whose pavement has streamed out would be standing on
+		-- the low stand-in terrain, floating; it goes, like one out of range
+		if flatDistance(pedestrians[i].lastPos, camPos) > DESPAWN_DIST or not townUnder(pedestrians[i].lastPos) then
 			despawnAt(i)
 		end
 	end

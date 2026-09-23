@@ -758,7 +758,7 @@ local function renderScouting(club: Club)
 		face.Parent = r
 		Theme.corner(face, Theme.chipRadius)
 		Theme.stroke(face)
-		Headshot.attach(face, p.look or p.id, (ClubCrest.localColours()), 0, { shoulders = true })
+		Headshot.attach(face, p.look or p.id, (ClubCrest.localColours()), 0, { shoulders = true, keeper = p.role == "GK" })
 		cell(r, p.name, 96, 320, { Font = Theme.fonts.display, TextSize = 19, Size = UDim2.fromOffset(320, 30), Position = UDim2.fromOffset(96, 16), TextTruncate = Enum.TextTruncate.AtEnd })
 		cell(r, ("%s  ·  Age %d"):format(p.role, p.age), 96, 320, { TextColor3 = BLUE_LINE, TextSize = 14, Size = UDim2.fromOffset(320, 22), Position = UDim2.fromOffset(96, 46) })
 		cell(r, tostring(p.overall), 0, 90, { Position = UDim2.new(COL_OVR, -12, 0, 0), Size = UDim2.fromOffset(90, ROW_H), Font = Theme.fonts.display, TextSize = 32, TextColor3 = ACCENT, TextXAlignment = Enum.TextXAlignment.Center, TextYAlignment = Enum.TextYAlignment.Center })

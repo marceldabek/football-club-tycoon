@@ -364,7 +364,7 @@ local function row(parent: Instance, p: Player, kit: Color3): Frame
 	face.ClipsDescendants = true
 	face.Parent = f
 	Theme.corner(face, Theme.chipRadius)
-	Headshot.attach(face, p.look or p.id, kit, p.number, { shoulders = true })
+	Headshot.attach(face, p.look or p.id, kit, p.number, { shoulders = true, keeper = p.role == "GK" })
 	Theme.stroke(face)
 
 	Theme.text(f, surname(p.name), "body", {
@@ -622,7 +622,7 @@ function LineupBoard.new(parent: GuiObject, opts: Options): Board
 		face.ClipsDescendants = true
 		face.Parent = detailInner
 		Theme.corner(face, Theme.chipRadius)
-		Headshot.attach(face, p.look or p.id, opts.kit, p.number, { shoulders = true })
+		Headshot.attach(face, p.look or p.id, opts.kit, p.number, { shoulders = true, keeper = p.role == "GK" })
 		Theme.stroke(face)
 
 		Theme.text(detailInner, p.name, "body", {

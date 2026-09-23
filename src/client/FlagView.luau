@@ -1,12 +1,16 @@
 --!strict
--- Draws a Nations.Flag out of Frames: stripes, then at most one emblem. No
--- images, so eighteen flags cost nothing to load.
+-- A flag icon for the card's flag box: a clean, consistently bordered PNG per
+-- Nations.luau code (#18a, assets/ui/flags/keyed/, tools/gen_flags.py). Falls
+-- back to drawing the flag out of Frames -- stripes, then at most one emblem
+-- -- for any nation that has no generated icon yet, so a new entry in
+-- Nations.LIST never shows a blank box.
 --
 -- Rotated bars (the saltire, the diamond) are NOT clipped by an ancestor's
 -- ClipsDescendants, so anything rotated is sized to land inside the box on its
 -- own. The saltire assumes the roughly 10:7 flag box the cards use.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local FlagImages = require(ReplicatedStorage.Shared.FlagImages)
 local Nations = require(ReplicatedStorage.Shared.Nations)
 
 local FlagView = {}
@@ -26,7 +30,7 @@ local function bar(parent: Instance, color: Color3, pos: UDim2, size: UDim2, rot
 	return f
 end
 
-function FlagView.draw(parent: GuiObject, flag: Nations.Flag): Frame
+local function drawFallback(parent: GuiObject, flag: Nations.Flag): Frame
 	local root = Instance.new("Frame")
 	root.Name = "Flag"
 	root.Size = UDim2.fromScale(1, 1)
@@ -71,6 +75,28 @@ function FlagView.draw(parent: GuiObject, flag: Nations.Flag): Frame
 	elseif flag.emblem == "canton" then
 		bar(root, ink, UDim2.fromScale(0.2, 0.25), UDim2.fromScale(0.4, 0.5))
 	end
+	return root
+end
+
+-- `nation` rather than just `nation.flag`: the icon is keyed by code, and the
+-- fallback still needs the flag data if no icon was generated for it.
+function FlagView.draw(parent: GuiObject, nation: Nations.Nation): Frame
+	local imageId = FlagImages[nation.code]
+	if not imageId then
+		return drawFallback(parent, nation.flag)
+	end
+	local root = Instance.new("Frame")
+	root.Name = "Flag"
+	root.BackgroundTransparency = 1
+	root.Size = UDim2.fromScale(1, 1)
+	root.Parent = parent
+	local icon = Instance.new("ImageLabel")
+	icon.Name = "Icon"
+	icon.BackgroundTransparency = 1
+	icon.Image = imageId
+	icon.ScaleType = Enum.ScaleType.Fit
+	icon.Size = UDim2.fromScale(1, 1)
+	icon.Parent = root
 	return root
 end
 

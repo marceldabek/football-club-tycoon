@@ -64,6 +64,7 @@ local HOLD_SKIP = 0.5 -- press and hold reveals the rest (design rule 11)
 local TURN_WAIT = 3 -- longest the show waits on a card that is mid-turn
 local STING_MAX = 1.5 -- "Speed Rise" runs on for seconds; stings must not pile up
 local STING_FADE = 0.3
+local FANFARE_MAX = 3 -- the Gold-and-up tag, left to ring out
 -- Opaque. Roblox blends GUI transparency in linear light, so a "nearly solid"
 -- 0.12 or 0.04 still let the HUD's match-summary card read straight through it
 -- (measured in Studio at both). The pack is meant to take the screen over.
@@ -76,18 +77,18 @@ for i, tier in Config.Rarity do
 end
 local BUILD_UP_FROM = TIER_RANK.Rare
 
-local function sound(id: string, pitch: number?)
+local function sound(id: string, pitch: number?, volume: number?, length: number?)
 	local s = Instance.new("Sound")
 	s.SoundId = id
 	s.PlaybackSpeed = pitch or 1
-	s.Volume = 0.6
+	s.Volume = volume or 0.6
 	s.Parent = SoundService
 	s.Ended:Once(function()
 		s:Destroy()
 	end)
 	s:Play()
 	-- a long clip is faded out rather than left to run under the next beat
-	task.delay(STING_MAX - STING_FADE, function()
+	task.delay((length or STING_MAX) - STING_FADE, function()
 		if s.Parent and s.IsPlaying then
 			TweenService:Create(s, TweenInfo.new(STING_FADE), { Volume = 0 }):Play()
 			task.delay(STING_FADE, function()
@@ -755,6 +756,7 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 					return
 				end
 				signing = true
+				sound(Config.PackAudio.pick) -- #18h: a tap on SIGN/PIN gets its own sound
 				-- a signing that lands redraws this card as SIGNED; if the server
 				-- refuses, its toast frees the button at once, and this is only
 				-- the backstop for a reply that never arrives
@@ -778,6 +780,7 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 			local confirms = pinned or now.pinned ~= nil
 			local armed = false
 			pin.Activated:Connect(function()
+				sound(Config.PackAudio.pick) -- #18h: every tap, arm or confirm alike
 				if armed or not confirms then
 					if pinned then
 						actionEvent:FireServer("unpin")
@@ -845,6 +848,7 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 		if cancelled then
 			return
 		end
+		sound(Config.PackAudio.tear) -- #18h: the report is torn open, then the cards come out
 
 		-- worst first, best last
 		local order = table.clone(club.shortlist)
@@ -908,7 +912,13 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 			end
 			sound(Config.PackAudio.flip)
 			entry.card:flip()
-			sound(Config.PackAudio.sting, 0.9 + rank * 0.08)
+			-- #18h: a bigger sting for Gold and up -- louder as well as higher,
+			-- and a fanfare over it that grows with the tier
+			local bigTier = math.max(0, rank - (TIER_RANK.Gold - 1))
+			sound(Config.PackAudio.sting, 0.9 + rank * 0.08, math.min(0.6 + bigTier * 0.12, 1))
+			if bigTier > 0 and not quick then
+				sound(Config.PackAudio.fanfare, 1, math.min(0.35 + bigTier * 0.12, 0.8), FANFARE_MAX)
+			end
 			headline.Text = ("%s  %d"):format(string.upper(entry.card.tier), entry.player.overall)
 		end
 		local function turnNext(quick: boolean)

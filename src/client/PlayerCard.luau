@@ -10,6 +10,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local CardStats = require(ReplicatedStorage.Shared.CardStats)
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -39,6 +40,7 @@ export type Card = {
 
 local HALF_FLIP = TweenInfo.new(0.16, Enum.EasingStyle.Sine, Enum.EasingDirection.In)
 local OPEN_FLIP = TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local SETTLE_FLIP = TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out) -- the lift lands after the turn
 
 -- the left column of the art: overall, role, flag, crest, each centred on this x
 local SPINE_X = 0.213
@@ -94,6 +96,49 @@ local function rule(parent: Instance, centre: Vector2, size: Vector2, ink: Color
 	return f
 end
 
+-- One quick sweep of light, the same shape as the wonderkid shine below but
+-- lighter and one-shot: hover (desktop) and press-release (touch) feedback,
+-- #18f. Built and thrown away per trigger, so a card nobody touches costs
+-- nothing beyond the two connections that wait for input.
+local function pulseShine(face: Instance)
+	local layer = Instance.new("CanvasGroup")
+	layer.Name = "HoverShine"
+	layer.BackgroundTransparency = 1
+	layer.ClipsDescendants = true
+	layer.AnchorPoint = Vector2.new(0.5, 0.5)
+	layer.Position = UDim2.fromScale(0.5, 0.48)
+	layer.Size = UDim2.fromScale(0.82, 0.78)
+	layer.ZIndex = 6
+	layer.Parent = face
+
+	local band = Instance.new("Frame")
+	band.Name = "Band"
+	band.BackgroundColor3 = Color3.new(1, 1, 1)
+	band.BackgroundTransparency = 0.55
+	band.BorderSizePixel = 0
+	band.AnchorPoint = Vector2.new(0.5, 0.5)
+	band.Position = UDim2.fromScale(-0.25, 0.5)
+	band.Size = UDim2.fromScale(0.2, 2)
+	band.Rotation = 20
+	band.ZIndex = 6
+	band.Parent = layer
+	local soft = Instance.new("UIGradient")
+	soft.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.5, 0),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	soft.Parent = band
+
+	local sweep = TweenService:Create(band, TweenInfo.new(0.45, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+		Position = UDim2.fromScale(1.25, 0.5),
+	})
+	sweep.Completed:Once(function()
+		layer:Destroy()
+	end)
+	sweep:Play()
+end
+
 function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 	local signed = opts ~= nil and opts.signed == true
 	local tier = Squad.rarity(p.overall)
@@ -134,14 +179,17 @@ function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 	portrait.ClipsDescendants = true
 	-- as tall as the art's upper panel allows: the bust is drawn to a fixed
 	-- framing, so the window's height is the only thing that sets the head size
-	-- Width is what crops the bust sideways: any wider and the bare upper arms
-	-- come into shot beside the shirt.
-	portrait.Position = UDim2.fromScale(0.315, 0.04)
-	portrait.Size = UDim2.fromScale(0.49, 0.549) -- bottom lands on the art's divider
+	-- Wide enough for the shirt's shoulders (#18e/#19d, the card mockup), out
+	-- to the art's inner border on the right, behind the rating column on the
+	-- left; the "card" framing pulls the camera back to fill it.
+	portrait.Position = UDim2.fromScale(0.26, 0.04)
+	portrait.Size = UDim2.fromScale(0.655, 0.549) -- bottom lands on the art's divider
 	portrait.ZIndex = 3
 	portrait.Parent = face
-	local kit = if signed then (ClubCrest.localColours()) else Config.ProspectKit
-	local shot = Headshot.attach(portrait, p.look or p.id, kit, p.number or 0, { shoulders = true })
+	-- every card wears the club's own kit, prospects too: the pack shows him in
+	-- your shirt (TEMP, question E1 -- was a grey training top)
+	local kit, trim = ClubCrest.localColours()
+	local shot = Headshot.attach(portrait, p.look or p.id, kit, p.number or 0, { card = true, trim = trim, keeper = p.role == "GK" })
 	shot.ZIndex = 3
 	shot.BackgroundTransparency = 1
 	local backdrop = portrait:FindFirstChild("Backdrop")
@@ -160,7 +208,7 @@ function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 	flagBox.Size = UDim2.fromScale(0.146, 0.068) -- ~10:7, the shape FlagView assumes
 	flagBox.ZIndex = 4
 	flagBox.Parent = face
-	FlagView.draw(flagBox, Nations.get(p.nation).flag).ZIndex = 4
+	FlagView.draw(flagBox, Nations.get(p.nation)).ZIndex = 4
 
 	if signed then
 		-- square in pixels, so the shield is not stretched by the 2:3 card
@@ -287,11 +335,47 @@ function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 		back.Visible = not up
 	end
 
-	-- 2D spin: the back is left-right symmetrical so the swap at zero width
-	-- does not jump (docs/CARD_BACKGROUND_PROMPTS.md s7). A tap while it is
-	-- already turning is ignored, or the second flip would read `full` off a
-	-- half-squashed card and leave it that shape.
+	-- #18f: hover tilt/lift/shine on desktop; touch has no hover to trigger it,
+	-- so a quick press-and-release squash stands in there instead. Both just
+	-- tween a UIScale/Rotation already sitting on the card, so an idle card on
+	-- a squad board full of them costs nothing. A card inside a CanvasGroup
+	-- (the pack's greyed SIGNED card) stays still: the group would clip it.
+	local lift = Instance.new("UIScale")
+	lift.Parent = frame
 	local flipping = false
+	local hovering = false
+	local QUICK = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	local function rest(): (number, number) -- rotation, scale for the hover state
+		return if hovering then 3 else 0, if hovering then 1.045 else 1
+	end
+	local function still(): boolean
+		local parent = frame.Parent
+		return parent == nil or parent:IsA("CanvasGroup")
+	end
+	local function setHover(on: boolean)
+		if hovering == on or still() then
+			return
+		end
+		hovering = on
+		if flipping then
+			return -- the flip settles on whatever the hover state is by then
+		end
+		local rot, scale = rest()
+		TweenService:Create(frame, QUICK, { Rotation = rot }):Play()
+		TweenService:Create(lift, QUICK, { Scale = scale }):Play()
+		if on and not p.wonderkid then
+			pulseShine(face)
+		end
+	end
+
+	-- A 2D spin made to read as 3D (#18f): the card squashes to its edge while
+	-- it lifts toward you and leans, the art darkens as it turns away from the
+	-- light, then it opens with an overshoot and settles back. The back is
+	-- left-right symmetrical so the swap at zero width does not jump
+	-- (docs/CARD_BACKGROUND_PROMPTS.md s7). A tap while it is already turning
+	-- is ignored, or the second flip would read `full` off a half-squashed card
+	-- and leave it that shape.
+	local EDGE_DARK = Color3.fromRGB(110, 110, 120)
 	function card.flip(self: Card)
 		if flipping then
 			return
@@ -299,16 +383,53 @@ function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 		flipping = true
 		local full = frame.Size
 		aspect.Parent = nil -- or the constraint fights the squash
-		local shut = TweenService:Create(frame, HALF_FLIP, { Size = UDim2.new(0, 0, full.Y.Scale, full.Y.Offset) })
+		local leaving = if self.faceUp then face else back
+		local arriving = if self.faceUp then back else face
+		local shut = TweenService:Create(frame, HALF_FLIP, {
+			Size = UDim2.new(0, 0, full.Y.Scale * 1.04, full.Y.Offset * 1.04),
+			Rotation = -6,
+		})
+		TweenService:Create(lift, HALF_FLIP, { Scale = 1.12 }):Play()
+		TweenService:Create(leaving, HALF_FLIP, { ImageColor3 = EDGE_DARK }):Play()
 		shut:Play()
 		shut.Completed:Wait()
+		leaving.ImageColor3 = Color3.new(1, 1, 1)
+		arriving.ImageColor3 = EDGE_DARK
 		self:setFace(not self.faceUp)
-		local open = TweenService:Create(frame, OPEN_FLIP, { Size = full })
+		local rot, scale = rest()
+		local open = TweenService:Create(frame, OPEN_FLIP, { Size = full, Rotation = rot })
+		TweenService:Create(lift, SETTLE_FLIP, { Scale = scale }):Play()
+		TweenService:Create(arriving, OPEN_FLIP, { ImageColor3 = Color3.new(1, 1, 1) }):Play()
 		open:Play()
 		open.Completed:Wait()
 		aspect.Parent = frame
 		flipping = false
 	end
+
+	frame.MouseEnter:Connect(function()
+		if UserInputService.MouseEnabled then
+			setHover(true)
+		end
+	end)
+	frame.MouseLeave:Connect(function()
+		setHover(false)
+	end)
+	-- InputBegan/InputEnded fire on every GuiObject under the touch, not just
+	-- a top-most Active one, so this never steals the tap the pack's full
+	-- screen shade is waiting for.
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch and not flipping and not still() then
+			TweenService:Create(lift, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = 0.96 }):Play()
+		end
+	end)
+	frame.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch and not flipping and not still() then
+			TweenService:Create(lift, TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+			if not p.wonderkid then
+				pulseShine(face)
+			end
+		end
+	end)
 
 	function card.destroy(self: Card)
 		if shine then
