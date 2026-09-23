@@ -277,6 +277,8 @@ print("[FCT] " .. require(script.Parent.SignDresser).build())
 task.wait()
 print("[FCT] " .. require(script.Parent.CentreTreeDresser).build())
 task.wait()
+print("[FCT] " .. require(script.Parent.StreetTrees).build()) -- #28
+task.wait()
 print("[FCT] " .. require(script.Parent.GreeneryDresser).build())
 task.wait()
 print("[FCT] " .. require(script.Parent.GatewayDresser).build())

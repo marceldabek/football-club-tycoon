@@ -23,6 +23,7 @@ local HouseUnits = require(ReplicatedStorage.Shared.HouseUnits)
 local TownFrontage = require(ReplicatedStorage.Shared.TownFrontage)
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local BackYards = require(ReplicatedStorage.Shared.BackYards)
+local FrontPaths = require(ReplicatedStorage.Shared.FrontPaths)
 local KitPlacer = require(ServerScriptService.Server.KitPlacer)
 local V3Perf = require(ServerScriptService.Server.V3Perf)
 local TreeKit = require(ServerScriptService.Server.TreeKit)
@@ -228,13 +229,10 @@ local function putCore(ctx: Ctx, lotCF: CFrame, x0: number, x1: number, zFront: 
 	ctx.counts.cores += 1
 end
 
--- #31: a paved footpath from the door, through the front garden gate, to the
--- pavement. The kit has no path/slab piece, so this is a plain Part like the
--- core above (register row EH2). Runs along the gate opening's X, from the
--- house's front wall (`zNear`, the door threshold) to the garden's outer edge
--- at the pavement (`zFar`); nil when the garden is too shallow to show one.
-local PATH_COLOR = Color3.fromRGB(176, 172, 164)
-local PATH_WIDTH = 2.2
+-- #31: a paved footpath from the door, through the front garden gate and over the street's
+-- grass verge, to the pavement (Shared/FrontPaths). The kit has no path/slab piece, so this is
+-- a plain Part like the core above (register row EH2). Runs along the gate opening's X from
+-- the house's front wall (`zNear`, the door threshold) to the paving's edge (`zFar`).
 local function putFrontPath(ctx: Ctx, lotCF: CFrame, gateX: number, zNear: number, zFar: number, s: number)
 	local length = math.abs(zFar - zNear)
 	if length <= 0.2 then
@@ -248,13 +246,47 @@ local function putFrontPath(ctx: Ctx, lotCF: CFrame, gateX: number, zNear: numbe
 	path.CanTouch = false
 	path.CastShadow = false
 	path.Material = Enum.Material.Concrete
-	path.Color = PATH_COLOR
-	path.Size = Vector3.new(PATH_WIDTH * s, 0.15, length)
-	path.CFrame = lotCF * CFrame.new(gateX, 0.08, (zNear + zFar) / 2)
+	path.Color = FrontPaths.COLOR
+	path.Size = Vector3.new(FrontPaths.WIDTH * s, FrontPaths.THICKNESS, length)
+	path.CFrame = lotCF * CFrame.new(gateX, FrontPaths.TOP - FrontPaths.THICKNESS / 2, (zNear + zFar) / 2)
 	path:SetAttribute("V3Exempt", "EH2")
 	path:SetAttribute("Role", "path")
 	path.Parent = ctx.boundary
 	ctx.counts.pathParts = (ctx.counts.pathParts or 0) + 1
+end
+
+-- #28: the club grounds' oaks and bushes (TreeKit, OakPack6) in the gardens. Every one is Decor
+-- (hidden on Low) and counted apart from the boundary budget. Densities are TEMP: one garden
+-- in N gets one, by a hash of the lot, so a street is planted unevenly, like a real one.
+HouseAssembler.GARDEN_TREES = {
+	backA = 3, -- a terrace's back yard, Tier A
+	backB = 6, -- ... Tier B
+	front = 3, -- a semi's or detached house's front garden: a small tree
+	bush = 6, -- a terrace's front garden: a bush
+	rowEnd = 2, -- beside a row's far gable, in the gap to the next row
+} -- TEMP
+local function plant(ctx: Ctx, model: Model?)
+	if not model then
+		return
+	end
+	model:SetAttribute("Decor", true)
+	ctx.counts.gardenTrees = (ctx.counts.gardenTrees or 0) + 1
+	for _, d in model:GetDescendants() do
+		if d:IsA("MeshPart") then
+			ctx.counts.treeParts = (ctx.counts.treeParts or 0) + 1
+		end
+	end
+end
+
+-- `seed` keeps the variant and its turn the same build to build (HouseAssemblerTest)
+local function gardenTree(ctx: Ctx, at: Vector3, height: number, name: string, seed: number)
+	-- collide = false: HouseAssembler's output may hold no untagged primitives
+	-- (HouseAssemblerTest), and the trunk collider is a plain Part
+	plant(ctx, TreeKit.tree(ctx.boundary, at, { height = height, slim = true, name = name, collide = false, rng = Random.new(seed) }))
+end
+
+local function gardenBush(ctx: Ctx, at: Vector3, width: number, name: string, seed: number)
+	plant(ctx, TreeKit.bush(ctx.boundary, at, { width = width, name = name, rng = Random.new(seed) }))
 end
 
 -- Merged units (Shared/HouseUnits, tools/kit/make_house_units.py): brick and slates sit on their
@@ -435,11 +467,21 @@ local function buildLot(ctx: Ctx, lot: Lot, origin: CFrame)
 			local half = HouseRecipes.GATE_GAP / 2
 			boundaryRun(ctx, lotCF, x - width / 2, gate - half, gz, style, trim, "garden")
 			boundaryRun(ctx, lotCF, gate + half, x + width / 2, gz, style, trim, "garden")
-			-- #31: from the door, through the gate, to the pavement. Tier A only (gardenStyles
-			-- "all"): a path on every one of the ~2700 units town-wide would add a part apiece
-			-- on top of an already-tight boundary budget (register row EH2).
-			if detail.gardenStyles == "all" then
-				putFrontPath(ctx, lotCF, gate, -depth / 2, -depth / 2 - garden, s)
+			-- #31: from the door, through the gate and over the verge, to the pavement. One plain
+			-- Part a house wherever gardens are built (Tier A and B); counted apart from the
+			-- boundary budget (register row EH2)
+			local gardenEdge = (HouseAssembler.lotFrame(lot) * CFrame.new(gate, 0, -depth / 2 - garden)).Position
+			putFrontPath(ctx, lotCF, gate, -depth / 2, -depth / 2 - garden - FrontPaths.verge(lot.street, lot.closesStreet, gardenEdge, lot.front), s)
+			-- #28: a small tree or a bush in some front gardens, in the half away from the path
+			local hFront = HouseRecipes.hash(lot.id .. "#fronttree" .. tostring(i))
+			local away = if gate > x then -1 else 1
+			local spot = (lotCF * CFrame.new(x + away * width / 4, 0, -depth / 2 - garden + 2.5)).Position
+			if isTerrace then
+				if hFront % HouseAssembler.GARDEN_TREES.bush == 0 then
+					gardenBush(ctx, spot, 4.2 + hFront % 3 * 0.4, "FrontGardenBush", hFront)
+				end
+			elseif garden >= 8 and hFront % HouseAssembler.GARDEN_TREES.front == 0 then
+				gardenTree(ctx, spot, 10 + hFront % 3, "FrontGardenTree", hFront)
 			end
 		end
 
@@ -479,26 +521,15 @@ local function buildLot(ctx: Ctx, lot: Lot, origin: CFrame)
 			ctx.counts.yards += 1
 			ctx.counts.yardParts += ctx.counts.boundaryParts - partsBefore
 
-			-- #28: a tree in one back garden in three (Tier A only, matching the bins' cadence),
-			-- clear of the gate corner
-			if detail.gardenStyles == "all" then
-				local hTree = HouseRecipes.hash(lot.id .. "#yardtree" .. tostring(i))
-				if hTree % 3 == 0 then
-					local backDir = -Vector3.new(lot.front.X, 0, lot.front.Z).Unit
-					local lateral = Vector3.new(-lot.front.Z, 0, lot.front.X).Unit * -gateSide
-					local spot = unitBack + backDir * math.min(yardDepth * 0.55, math.max(yardDepth - 1.5, 1)) + lateral * width * 0.28
-					-- collide = false: HouseAssembler's output may hold no untagged primitives
-				-- (HouseAssemblerTest), and the trunk collider is a plain Part
-				local tree = TreeKit.tree(ctx.boundary, spot, { height = 12 + hTree % 5, slim = true, name = "BackGardenTree", collide = false })
-					if tree then
-						ctx.counts.gardenTrees = (ctx.counts.gardenTrees or 0) + 1
-						for _, d in tree:GetDescendants() do
-							if d:IsA("MeshPart") then
-								ctx.counts.boundaryParts += 1
-							end
-						end
-					end
-				end
+			-- #28: a tree in some back yards, clear of the gate corner (Tier A one in backA,
+			-- Tier B one in backB)
+			local every = if detail.gardenStyles == "all" then HouseAssembler.GARDEN_TREES.backA else HouseAssembler.GARDEN_TREES.backB
+			local hTree = HouseRecipes.hash(lot.id .. "#yardtree" .. tostring(i))
+			if hTree % every == 0 then
+				local backDir = -Vector3.new(lot.front.X, 0, lot.front.Z).Unit
+				local lateral = Vector3.new(-lot.front.Z, 0, lot.front.X).Unit * -gateSide
+				local spot = origin * (unitBack + backDir * math.min(yardDepth * 0.55, math.max(yardDepth - 1.5, 1)) + lateral * width * 0.28)
+				gardenTree(ctx, spot, 12 + hTree % 5, "BackGardenTree", hTree)
 			end
 		end
 
@@ -517,6 +548,20 @@ local function buildLot(ctx: Ctx, lot: Lot, origin: CFrame)
 	end
 
 	flushCore()
+
+	-- #28: the end of a row: in the gap before the next row of the same run (never at a run's
+	-- corner lots, whose ends face a junction or open grass), a tree beside a semi's or
+	-- detached house's gable, a bush against a terrace's
+	local frontage = TownFrontage.TYPES[lot.use]
+	local hEnd = HouseRecipes.hash(lot.id .. "#rowend")
+	if wants(detail.gardens, lot) and frontage and not lot.corner and hEnd % HouseAssembler.GARDEN_TREES.rowEnd == 0 then
+		local spot = (lotCF * CFrame.new(lot.size.X / 2 + frontage.gap / 2, 0, -depth / 2 + 4)).Position
+		if isTerrace then
+			gardenBush(ctx, spot, 4.6, "RowEndBush", hEnd)
+		else
+			gardenTree(ctx, spot, 12, "RowEndTree", hEnd)
+		end
+	end
 
 	-- Row-spanning back wall and roof, stretched along the whole row (module-by-module builds only).
 	if isRow and not merged then
@@ -550,7 +595,7 @@ end
 
 -- Builds the given lots. `detail` overrides the per-tier presets (tests, reviews, Lane P trials).
 function HouseAssembler.buildLots(parent: Instance, origin: CFrame, lots: { Lot }, filter: { district: string? }?, detail: Detail?): { [string]: number }
-	local counts = { lots = 0, units = 0, houseParts = 0, boundaryParts = 0, meshParts = 0, missing = 0, districts = 0, tierA = 0, yards = 0, yardParts = 0, cores = 0, pathParts = 0, gardenTrees = 0 }
+	local counts = { lots = 0, units = 0, houseParts = 0, boundaryParts = 0, meshParts = 0, missing = 0, districts = 0, tierA = 0, yards = 0, yardParts = 0, cores = 0, pathParts = 0, gardenTrees = 0, treeParts = 0 }
 	local districtModels: { [string]: Model } = {}
 	local boundaryModels: { [string]: Model } = {}
 	local wantDistrict = filter and filter.district
@@ -595,13 +640,13 @@ function HouseAssembler.buildLots(parent: Instance, origin: CFrame, lots: { Lot 
 			counts.tierA += 1
 		end
 	end
-	counts.meshParts = counts.houseParts + counts.boundaryParts
+	counts.meshParts = counts.houseParts + counts.boundaryParts + counts.treeParts
 
 	local perUnit = if counts.units > 0 then counts.houseParts / counts.units else 0
 	local boundaryPerUnit = if counts.units > 0 then counts.boundaryParts / counts.units else 0
-	print(("[FCT] Housing: %d lots (%d tier A), %d units, houses %d MeshParts (%.1f/unit, town budget %d), boundaries %d (%.1f/unit, town budget %d), %d cores, %d front paths, %d garden trees, %d KitMissing"):format(
+	print(("[FCT] Housing: %d lots (%d tier A), %d units, houses %d MeshParts (%.1f/unit, town budget %d), boundaries %d (%.1f/unit, town budget %d), %d cores, %d front paths, %d garden trees (%d MeshParts), %d KitMissing"):format(
 		counts.lots, counts.tierA, counts.units, counts.houseParts, perUnit, HouseAssembler.PART_BUDGET,
-		counts.boundaryParts, boundaryPerUnit, HouseAssembler.BOUNDARY_BUDGET, counts.cores, counts.pathParts, counts.gardenTrees, counts.missing))
+		counts.boundaryParts, boundaryPerUnit, HouseAssembler.BOUNDARY_BUDGET, counts.cores, counts.pathParts, counts.gardenTrees, counts.treeParts, counts.missing))
 	for _, districtModel in districtModels do
 		print(("[FCT] Housing %s: %s"):format(districtModel.Name, V3Perf.format(V3Perf.count(districtModel))))
 	end
