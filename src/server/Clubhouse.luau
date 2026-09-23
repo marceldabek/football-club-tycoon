@@ -800,6 +800,49 @@ end
 
 -- ------------------------------------------------------------------- office
 
+-- P5 (#24f), see buildOffice's prop helper
+local DESK_SCALE = 1.15
+local CLUTTER_SCALE = 1.3
+
+-- P5 (#24a, desk drawers): the kit export centred every piece of a Poly Haven
+-- model on the model's origin, so the laptop's lid stood in the middle of its
+-- keyboard and the desk's six drawers and two pull-out trays lay stacked on
+-- the floor under it. Each piece's offset from where the upload left it, in
+-- the model's own frame (studs at scale 1), by sub-model name. Measured from
+-- the source FBXs in assets/kit/_raw/PolyHaven (metres x 2.75; the source's
+-- -Y is the model's -Z, the front: the desk's drawer side, the laptop's
+-- screen side).
+local KIT_OFFSETS: { [string]: { [string]: Vector3 } } = {
+	PH__metal_office_desk = {
+		metal_office_desk_drawer_01 = Vector3.new(1.975, 1.513, -0.275),
+		metal_office_desk_drawer_02 = Vector3.new(1.977, 1.065, -0.270),
+		metal_office_desk_drawer_03 = Vector3.new(1.975, 0.611, -0.261),
+		metal_office_desk_drawer_04 = Vector3.new(-1.975, 1.505, -0.270),
+		metal_office_desk_drawer_05 = Vector3.new(-1.975, 1.057, -0.261),
+		metal_office_desk_drawer_06 = Vector3.new(-1.975, 0.611, -0.261),
+		metal_office_desk_tray_01 = Vector3.new(-1.975, 2.001, -0.478),
+		metal_office_desk_tray_02 = Vector3.new(1.975, 2.001, -0.473),
+	},
+	PH__classic_laptop = {
+		classic_laptop_screen = Vector3.new(0, 0.209, 0.558), -- lid and screen, hinged at the back
+		classic_laptop_stand = Vector3.new(0, 0, 0.580), -- the flip-down foot behind it
+	},
+}
+
+-- Puts a placed kit model's pieces back where the source had them. `at` is
+-- the CFrame it was placed at; a grey fallback block has no pieces to move.
+local function reassemble(kit: string, model: Model, at: CFrame, scale: number?)
+	local offsets = KIT_OFFSETS[kit]
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and d.Parent then
+			local o = offsets[d.Parent.Name]
+			if o then
+				d.CFrame = at * CFrame.new(o * (scale or 1)) * at:Inverse() * d.CFrame
+			end
+		end
+	end
+end
+
 local function buildOffice(parent: Instance, addPrompt: (BasePart, string, string) -> ProximityPrompt)
 	local office = model("Office", parent)
 	local r = Clubhouse.OFFICE
@@ -888,10 +931,15 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 	-- X373: furnished from the Poly Haven kit, every prop at real scale. Anything
 	-- the kit is missing falls back to a grey block inside KitPlacer, so a clone
 	-- with no uploads still builds an office you can walk around.
-	local function prop(name: string, at: Vector3, yaw: number, size: Vector3): BasePart?
+	-- P5 (#24f): the props are true to the avatar (2.75 studs/m) but the room is
+	-- Roblox-sized (12 x 8 m, a 4.4 m ceiling), so the small ones read as toys.
+	-- Marcel's call (2026-09-23): clutter x1.3 and the desk x1.15; the chair,
+	-- shelves and cabinet stay true so the avatar still fits them.
+	local function prop(name: string, at: Vector3, yaw: number, size: Vector3, scale: number?): BasePart?
 		local m = KitPlacer.place("PH__" .. name, CFrame.new(at) * CFrame.Angles(0, yaw, 0), office, {
-			fallbackSize = size,
+			fallbackSize = size * (scale or 1),
 			fallbackColor = Color3.fromRGB(120, 110, 100),
+			scale = scale,
 		})
 		return m and m:FindFirstChildWhichIsA("BasePart", true)
 	end
@@ -903,8 +951,17 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 	-- front of the window.
 	local west, east = r.x0, r.x1
 	local deskX, deskZ = east - 6, (r.z0 + r.z1) / 2
-	prop("metal_office_desk", Vector3.new(deskX, floor, deskZ), -math.pi / 2, Vector3.new(2.5, 2.2, 5.5))
-	local DESK_TOP = floor + 2.2
+	-- drawer side (the model's -Z) to the chair at +X
+	local deskAt = CFrame.new(deskX, floor, deskZ) * CFrame.Angles(0, -math.pi / 2, 0)
+	local desk = KitPlacer.place("PH__metal_office_desk", deskAt, office, {
+		fallbackSize = Vector3.new(2.5, 2.2, 5.5) * DESK_SCALE,
+		fallbackColor = Color3.fromRGB(120, 110, 100),
+		scale = DESK_SCALE,
+	})
+	reassemble("PH__metal_office_desk", desk, deskAt, DESK_SCALE)
+	-- the top from the placed desk itself, so the laptop and folder sit on it
+	local deskBox, deskSize = desk:GetBoundingBox()
+	local DESK_TOP = deskBox.Position.Y + deskSize.Y / 2
 	-- (#24e) the chair's front was the side at -X at yaw pi/2 and it faced away
 	-- from the desk; here, east of the desk, that faces it
 	prop("modern_arm_chair_01", Vector3.new(east - 2.2, floor, deskZ), math.pi / 2, Vector3.new(2.3, 2.8, 2.7))
@@ -912,25 +969,16 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 	-- the laptop IS the club computer: it carries the screen and the prompt.
 	-- Named so dressOffice and the HUD's hint beacon can find it (it had no name
 	-- after X373 and both looked for "Computer" in vain). The kit laptop's
-	-- screen faces its -Z, turned here to face the chair at +X.
-	local laptopAt = CFrame.new(deskX, DESK_TOP, deskZ) * CFrame.Angles(0, -math.pi / 2, 0)
+	-- screen faces its -Z; Marcel (2026-09-23) turned it to face the doors (-X),
+	-- so whoever walks in sees the green screen.
+	local laptopAt = CFrame.new(deskX, DESK_TOP, deskZ) * CFrame.Angles(0, math.pi / 2, 0)
 	local laptop = KitPlacer.place("PH__classic_laptop", laptopAt, office, {
 		fallbackSize = Vector3.new(1.8, 1.3, 1.3),
 		fallbackColor = Color3.fromRGB(120, 110, 100),
 	})
-	-- P5 (#24a): the uploaded laptop lost its parts' offsets, so the lid stood
-	-- up in the middle of the keyboard. The lid (and cover_low, its bottom
-	-- edge) goes back to the base's rear edge, which is its +Z (checked in
-	-- Studio: the keys are at that end, the palm rest at -Z).
+	-- P5 (#24a): the lid stood up in the middle of the keyboard (KIT_OFFSETS)
+	reassemble("PH__classic_laptop", laptop, laptopAt)
 	local keyboard = laptop:FindFirstChild("keyboard_low", true)
-	local lidBack = if keyboard and keyboard:IsA("BasePart") then keyboard.Size.Z / 2 else 0
-	for _, d in laptop:GetDescendants() do
-		if d:IsA("BasePart") and (d.Name:sub(1, 4) == "lid_" or d.Name == "cover_low") then
-			local lid = laptop:FindFirstChild("lid_floaters_low", true) :: BasePart?
-			local half = if lid then lid.Size.Z / 2 else 0
-			d.CFrame = laptopAt * CFrame.new(0, 0, lidBack - half) * laptopAt:Inverse() * d.CFrame
-		end
-	end
 	-- the base carries the name and the prompt: the first part found was
 	-- cover_low, a 0.03-stud sliver the display was drawn on
 	local computer = (keyboard or laptop:FindFirstChildWhichIsA("BasePart", true)) :: BasePart
@@ -976,24 +1024,26 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 	-- the odds and ends of a rundown grassroots office: for a club this size a
 	-- pair of boots and a spare ball say more than filing cabinets do
 	prop("painted_wooden_bench", Vector3.new(-132.5, floor, r.z1 - 1), math.pi, Vector3.new(3.2, 2.4, 1.4))
-	prop("korean_fire_extinguisher_01", Vector3.new(east - 0.8, floor, 25), 0, Vector3.new(0.8, 1.8, 1.0))
+	prop("korean_fire_extinguisher_01", Vector3.new(east - 0.8, floor, 25), 0, Vector3.new(0.8, 1.8, 1.0), CLUTTER_SCALE)
 	prop("wooden_ladder", Vector3.new(east - 1.2, floor, r.z0 + 1.2), math.pi / 2, Vector3.new(1.4, 6.0, 0.6))
-	prop("rubber_boots", Vector3.new(east - 1.6, floor, 31), -0.5, Vector3.new(1.2, 1.2, 1.6))
-	prop("cardboard_box_01", Vector3.new(-127.5, floor, r.z1 - 1.6), 0.6, Vector3.new(1.1, 0.9, 1.4))
-	prop("football", Vector3.new(-129.2, floor, r.z1 - 1), 0, Vector3.new(0.6, 0.6, 0.6))
-	prop("dirty_football", Vector3.new(-128.6, floor, r.z1 - 2.2), 0, Vector3.new(0.6, 0.6, 0.6))
-	prop("cardboard_box_01", Vector3.new(-132, floor, r.z0 + 1.4), -0.4, Vector3.new(1.1, 0.9, 1.4))
-	prop("cardboard_box_01", Vector3.new(-131.2, floor + 0.9, r.z0 + 1.6), 0.8, Vector3.new(1.1, 0.9, 1.4))
+	prop("rubber_boots", Vector3.new(east - 1.6, floor, 31), -0.5, Vector3.new(1.2, 1.2, 1.6), CLUTTER_SCALE)
+	prop("cardboard_box_01", Vector3.new(-127.5, floor, r.z1 - 1.6), 0.6, Vector3.new(1.1, 0.9, 1.4), CLUTTER_SCALE)
+	prop("football", Vector3.new(-129.2, floor, r.z1 - 1), 0, Vector3.new(0.6, 0.6, 0.6), CLUTTER_SCALE)
+	prop("dirty_football", Vector3.new(-128.6, floor, r.z1 - 2.2), 0, Vector3.new(0.6, 0.6, 0.6), CLUTTER_SCALE)
+	prop("cardboard_box_01", Vector3.new(-132, floor, r.z0 + 1.4), -0.4, Vector3.new(1.1, 0.9, 1.4), CLUTTER_SCALE)
+	prop("cardboard_box_01", Vector3.new(-131.2, floor + 0.9 * CLUTTER_SCALE, r.z0 + 1.6), 0.8, Vector3.new(1.1, 0.9, 1.4), CLUTTER_SCALE)
 	-- the tyre is modelled standing on its edge (1.6 x 1.7 x 0.5), so it is
 	-- tipped a quarter turn about X to lie flat on the floor like training kit
 	KitPlacer.place("PH__old_tyre", CFrame.new(-127, floor, r.z0 + 1.6) * CFrame.Angles(math.pi / 2, 0.3, 0), office, {
-		fallbackSize = Vector3.new(1.6, 0.5, 1.6),
+		fallbackSize = Vector3.new(1.6, 0.5, 1.6) * CLUTTER_SCALE,
 		fallbackColor = Color3.fromRGB(30, 30, 32),
+		scale = CLUTTER_SCALE,
 	})
 	-- a bin beside the desk, from the street kit (base and lid are separate meshes).
 	-- P5 (#24d): at the desk's south end, out of the walkway; deskX + 3.4 had
-	-- put it in the middle of the floor.
-	local binX, binZ = deskX + 1.5, deskZ + 4.4
+	-- put it in the middle of the floor. Not scaled up with the clutter (#24f):
+	-- a street litter bin already stands a metre tall.
+	local binX, binZ = deskX + 1.5, deskZ + 4.8
 	KitPlacer.place("UKSP__TrachCan__TrashcanBase", CFrame.new(binX, floor, binZ), office, {
 		fallbackSize = Vector3.new(2.1, 2.8, 1.9),
 		fallbackColor = Color3.fromRGB(60, 62, 66),
@@ -1003,8 +1053,8 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 		fallbackColor = Color3.fromRGB(60, 62, 66),
 	})
 
-	-- X169: an old green-screen monitor facing the chair: the laptop's -Z, which
-	-- is world +X since P5. On the kit's screen plane it fills the screen.
+	-- X169: an old green-screen monitor on the laptop's -Z, which faces the
+	-- doors (world -X) since P5. On the kit's screen plane it fills the screen.
 	local onScreen = screenPart ~= computer
 	local screen = Instance.new("SurfaceGui")
 	screen.Name = "Screen"
