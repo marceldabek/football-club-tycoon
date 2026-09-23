@@ -160,7 +160,7 @@ function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 	flagBox.Size = UDim2.fromScale(0.146, 0.068) -- ~10:7, the shape FlagView assumes
 	flagBox.ZIndex = 4
 	flagBox.Parent = face
-	FlagView.draw(flagBox, Nations.get(p.nation).flag).ZIndex = 4
+	FlagView.draw(flagBox, Nations.get(p.nation)).ZIndex = 4
 
 	if signed then
 		-- square in pixels, so the shield is not stretched by the 2:3 card
