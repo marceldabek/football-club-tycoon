@@ -24,10 +24,11 @@
 --   car park           -350..-250         40..190          kerb included (TEMP: halved, X9)
 --   club shop          -313..-287         -165..-135       front (door, window) faces +X;
 --                      (-313.5..-286)     (-165.5..-134.5) with fascia and roof overhang
---   footpath           -379..-261 / -269..-261 / -261..-201.6  along z -12, north, then east
+--   footpath           -379..-261 / -269..-261 / -261..-209  along z -12, north, then east
 --                                                          to the NW turnstile block at z -187
 --   clubhouse spur     -261..-169         -16..-8          on east through the main gate to the front doors
 --   car park link      -250..-226 / -234..-226  40..46 / -8..40   #11: car park kerb round to the spur
+--   SW turnstile path  -250..-209         183..191         car park kerb to the SW turnstile block
 --   ground wall        GroundEnvelope     x +-201, z +-259 the ground itself: stands, concourse, gates
 --   training pitch 1   230..330           -170..-10        centre (280, -90)
 --   training pitch 2   230..330           10..170          centre (280, 90)
@@ -195,8 +196,9 @@ local PATH_X = -265 -- the north-running leg, past the shop front
 local CLUBHOUSE_FRONT_APRON_X = -(121 + 36 + 12) -- west edge of the front doors' apron
 local CLUBHOUSE_SIDE_APRON = { x = -(121 + 36), z0 = 40, z1 = 46 } -- west edge, z range
 local PATH_END_Z = -187 -- #15: the walk to the NW turnstile block (GroundEnvelope)
--- the ground's perimeter wall, outer face on the street side
-local GROUND_WALL_X = GroundEnvelope.X0 - GroundEnvelope.WALL_T / 2
+-- where the turnstile blocks' thresholds start, on the street side of the wall
+local GROUND_WALL_X = GroundEnvelope.X0 - GroundEnvelope.BLOCK_D / 2 - GroundEnvelope.BLOCK_APRON
+local SW_PATH_Z = GroundEnvelope.APPROACH_Z.SWTurnstiles -- car park to the SW block (spec s2)
 -- #11 (ground plan spec s2): the car park path now turns north outside the
 -- ground wall to meet the main-entrance path, instead of running on to the
 -- office side door (which opens onto the concourse inside the wall now)
@@ -1076,6 +1078,8 @@ local function buildFootpath(parent: Instance)
 	extents("Path", PATH_X + hw, GROUND_WALL_X, y0, y1, PATH_END_Z - hw, PATH_END_Z + hw, CONCRETE, Enum.Material.Concrete, path)
 	-- straight on from the gate to the clubhouse's front doors (docs/CLUBHOUSE_PLAN.md)
 	extents("ClubhousePath", PATH_X + hw, CLUBHOUSE_FRONT_APRON_X, y0, y1, PATH_Z - hw, PATH_Z + hw, CONCRETE, Enum.Material.Concrete, path)
+	-- from the car park's east kerb to the SW turnstile block (a gap in the hedge)
+	extents("Path", PARK_X1, GROUND_WALL_X, y0, y1, SW_PATH_Z - hw, SW_PATH_Z + hw, CONCRETE, Enum.Material.Concrete, path)
 	-- and from the car park's east kerb round to the main-entrance path (#11)
 	local side = CLUBHOUSE_SIDE_APRON
 	extents("CarParkLink", PARK_X1, LINK_X1, y0, y1, side.z0, side.z1, CONCRETE, Enum.Material.Concrete, path)
@@ -1335,6 +1339,7 @@ function PlotGrounds.plantingKeepOut(): { GroundsPlanting.Rect }
 	add("PathEastLeg", PATH_X, GROUND_WALL_X, PATH_END_Z - hw, PATH_END_Z + hw, false)
 	add("CarParkLink", PARK_X1, LINK_X1, CLUBHOUSE_SIDE_APRON.z0, CLUBHOUSE_SIDE_APRON.z1, false)
 	add("CarParkLinkNorth", LINK_X0, LINK_X1, PATH_Z + hw, CLUBHOUSE_SIDE_APRON.z0, false)
+	add("PathSWTurnstiles", PARK_X1, GROUND_WALL_X, SW_PATH_Z - hw, SW_PATH_Z + hw, false)
 	add("ShopApron", SHOP_CX + SHOP_W / 2, PATH_X, SHOP_CZ - SHOP_D / 2 + 17, SHOP_CZ - SHOP_D / 2 + 31, false)
 	add("PatioPath", (PUB_X0 + PUB_X1) / 2 - 2, (PUB_X0 + PUB_X1) / 2 + 2, PUB_Z1, PATH_Z, false)
 	-- the pathside oaks, bushes and lamps already fill this strip

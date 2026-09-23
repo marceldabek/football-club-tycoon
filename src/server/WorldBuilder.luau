@@ -9,8 +9,8 @@
 -- starts at the touchline. The wall line is `Pitch.SIDE_EDGE` beside a
 -- touchline and `Pitch.END_EDGE` behind a goal. All four sides are independent
 -- plots on the same upgrade chain (Config.StandPlots), so the ground grows
--- asymmetrically. The corners stay open; the north-west one is the turnstile
--- entrance.
+-- asymmetrically. The corners stay open. Fans come in through the turnstile
+-- blocks in the ground's perimeter wall (GroundEnvelope, #15).
 --
 -- The west side is the way in and out. The tunnel runs from the middle of the
 -- west wall straight back through the stand to the dressing rooms and the
@@ -75,13 +75,11 @@ local CLUBHOUSE_GAP = Clubhouse.GAP_Z -- the west stand's wings stop here
 -- -146.5, so the leaf ran into it; the shelf now starts at -143.5.
 local NORTH_WALL_CX = OFFICE.x1 - 11.5
 
--- Forecourt: outside the open north-west corner, where the turnstiles, the
--- concourse and the car park are. The player only comes here to spend money.
+-- The old forecourt's spot outside the open north-west corner, now concourse
+-- inside the ground wall (#15). The amenity and the team coach still stand here
+-- until the concourse (#7) and coach bay (#25) steps move them.
 local FORECOURT_CX, FORECOURT_CZ = -(SIDE_EDGE + 40), -(END_EDGE + 16)
 local TURNSTILE_Z = -(CORNER_Z + END_EDGE) / 2 -- middle of the corner gap
--- Paved forecourt outside the west wall line, up to but not over the ring.
-local FORECOURT_X0, FORECOURT_X1 = -(SIDE_EDGE + 69), -SIDE_EDGE
-local FORECOURT_Z0, FORECOURT_Z1 = -(END_EDGE + 46), -(CORNER_Z - 5)
 
 local function part(props: { [string]: any }): Part
 	local p = Instance.new("Part")
@@ -710,219 +708,13 @@ local function bindScoreboard()
 	task.defer(refresh)
 end
 
--- Turnstile block in the open north-west corner: how the player gets in.
-local function buildTurnstiles(parent: Instance)
-	local gate = Instance.new("Model")
-	gate.Name = "Turnstiles"
-	gate.Parent = parent
-	local x = -SIDE_EDGE
-	local h = 9
-	local lanes, laneW, pierW = 3, 5, 2.4
-	local total = lanes * laneW + (lanes + 1) * pierW
-	local dark = Color3.fromRGB(60, 60, 65)
-	-- X52: brick piers with stone caps and open iron gate leaves folded against
-	-- them, like RivermereTurnstileEntrance.png; the club colour stays on the fascia
-	local brick = Color3.fromRGB(150, 84, 62)
-	local stone = Color3.fromRGB(214, 204, 184)
-	local iron = Color3.fromRGB(28, 34, 48)
-	-- X166: lane signs and plaques in a dark shade of the club colour, like the
-	-- fascia, club shop and bar sign (the reference's navy is its club's colour)
-	local SIGN_DARK = Config.HomeKit:Lerp(Color3.new(0, 0, 0), 0.45) -- repainted: clubPaint(x, "kit", 0.45)
-	for i = 0, lanes do
-		local z = TURNSTILE_Z - total / 2 + pierW / 2 + i * (laneW + pierW)
-		box("Pier", Vector3.new(7, h, pierW), Vector3.new(x - 1, DECK_Y + h / 2, z), brick, Enum.Material.Brick, gate)
-		box("PierCap", Vector3.new(7.3, 0.4, pierW + 0.3), Vector3.new(x - 1, DECK_Y + h - 0.15, z), stone, Enum.Material.Limestone, gate)
-	end
-	for i = 1, lanes do
-		local z = TURNSTILE_Z - total / 2 + pierW + laneW / 2 + (i - 1) * (laneW + pierW)
-		-- an open gate leaf folded flat against the outer face of each pier, clear of the lane
-		-- X53: a navy lane sign under the fascia, facing the walk-up side
-		local laneSign = clubPaint(box("LaneSign", Vector3.new(0.2, 1.3, laneW - 0.4), Vector3.new(x - 4.7, DECK_Y + h - 1.15, z), SIGN_DARK, Enum.Material.SmoothPlastic, gate), "kit", 0.45)
-		laneSign.CanCollide = false
-		local signGui = Instance.new("SurfaceGui")
-		signGui.Face = Enum.NormalId.Left
-		signGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		signGui.PixelsPerStud = 40
-		signGui.Parent = laneSign
-		local signText = Instance.new("TextLabel")
-		signText.Size = UDim2.fromScale(0.9, 0.7)
-		signText.Position = UDim2.fromScale(0.05, 0.15)
-		signText.BackgroundTransparency = 1
-		signText.Font = Enum.Font.GothamBold
-		signText.TextScaled = true
-		signText.TextColor3 = Color3.fromRGB(240, 240, 240)
-		signText.Text = if i == 2 then "TICKETS" else "HOME SUPPORTERS" -- X155: the reference board's wording
-		signText.Parent = signGui
-		for _, side in { -1, 1 } do
-			-- X153: a barred leaf (top and bottom rails, four uprights) rather than a
-			-- solid panel, which read as a dark doorway on each pier
-			local lz = z + side * (laneW / 2 + pierW / 2)
-			for _, ry in { 0.4, 6.5 } do
-				box("GateRail", Vector3.new(0.2, 0.2, 2.2), Vector3.new(x - 4.65, DECK_Y + ry, lz), iron, Enum.Material.Metal, gate).CanCollide = false
-			end
-			for _, bz in { -0.95, -0.32, 0.32, 0.95 } do
-				box("GateBar", Vector3.new(0.12, 5.9, 0.15), Vector3.new(x - 4.65, DECK_Y + 0.5 + 2.95, lz + bz), iron, Enum.Material.Metal, gate).CanCollide = false
-			end
-		end
-	end
-	for i = 1, lanes do
-		local z = TURNSTILE_Z - total / 2 + pierW + laneW / 2 + (i - 1) * (laneW + pierW)
-		-- a waist-high drum either side of the lane, so it reads as a turnstile
-		for _, side in { -1, 1 } do
-			local drum = box("Drum", Vector3.new(1.6, 3.4, 0.8), Vector3.new(x - 1, DECK_Y + 1.7, z + side * (laneW / 2 - 0.5)), Color3.fromRGB(150, 150, 155), Enum.Material.Metal, gate)
-			drum.CanCollide = false
-		end
-	end
-	local fascia = clubPaint(box("Fascia", Vector3.new(8, 3.2, total), Vector3.new(x - 1, DECK_Y + h + 1.6, TURNSTILE_Z), Config.HomeKit, Enum.Material.SmoothPlastic, gate))
-	box("Roof", Vector3.new(9, 0.5, total + 1), Vector3.new(x - 1.5, DECK_Y + h + 3.4, TURNSTILE_Z), dark, Enum.Material.Metal, gate)
-	-- club name across the outside face, where the player walks up
-	local gui = Instance.new("SurfaceGui")
-	gui.Face = Enum.NormalId.Left
-	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 22
-	gui.LightInfluence = 0.25 -- X270: near-unlit, so it still reads at an evening fixture
-	gui.Parent = fascia
-	local label = Instance.new("TextLabel")
-	label.Name = "ClubName"
-	-- X236: room for a crest badge at each end, as on RivermereTurnstileEntrance.png
-	label.Size = UDim2.new(1, -150, 1, 0)
-	label.Position = UDim2.fromOffset(75, 0)
-	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.GothamBlack
-	label.TextScaled = true
-	label.TextColor3 = Color3.new(1, 1, 1)
-	label.Text = "CLUB"
-	label.Parent = gui
-	local pad = Instance.new("UIPadding")
-	pad.PaddingTop = UDim.new(0.18, 0)
-	pad.PaddingBottom = UDim.new(0.18, 0)
-	pad.Parent = label
-	-- the badges are GUI frames on the same SurfaceGui: no extra parts
-	for _, anchorX in { 0, 1 } do
-		crestBadge(gui, UDim2.fromOffset(52, 52),
-			UDim2.new(anchorX, if anchorX == 0 then 14 else -14, 0.5, 0), Vector2.new(anchorX, 0.5))
-	end
-
-	-- X84: navy slogan plaques on the outer side faces of the end piers (the
-	-- walk-up faces carry the open gate leaves) and a shrub planter beside the
-	-- gates (RivermereTurnstileEntrance.png)
-	-- X283: with a crest under the wording, as on RivermereTurnstileEntrance.png
-	for i, slogan in { "PRIDE\nPEOPLE\nRIVERMERE", "MATCH DAYS\nBRING PEOPLE\nTOGETHER" } do
-		local side = if i == 1 then -1 else 1
-		-- x - 3.9 .. x - 0.5: clear of the perimeter wall (x +- 0.4) that starts at the pier
-		local plaque = clubPaint(box("Plaque", Vector3.new(3.4, 3.4, 0.15), Vector3.new(x - 2.2, DECK_Y + 4.6, TURNSTILE_Z + side * (total / 2 + 0.075)), SIGN_DARK, Enum.Material.SmoothPlastic, gate), "kit", 0.45)
-		plaque.CanCollide = false
-		local plaqueGui = Instance.new("SurfaceGui")
-		plaqueGui.Face = if side < 0 then Enum.NormalId.Front else Enum.NormalId.Back
-		plaqueGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		plaqueGui.PixelsPerStud = 50
-		plaqueGui.Parent = plaque
-		local plaqueText = Instance.new("TextLabel")
-		plaqueText.Size = UDim2.fromScale(0.86, 0.6)
-		plaqueText.Position = UDim2.fromScale(0.07, 0.06)
-		plaqueText.BackgroundTransparency = 1
-		plaqueText.Font = Enum.Font.GothamBold
-		plaqueText.TextScaled = true
-		plaqueText.TextColor3 = Color3.fromRGB(240, 240, 240)
-		plaqueText.Text = slogan
-		plaqueText.Parent = plaqueGui
-		crestBadge(plaqueGui, UDim2.fromScale(0.5, 0.26), UDim2.fromScale(0.5, 0.68), Vector2.new(0.5, 0))
-	end
-	-- X53: RivermereTurnstileEntrance.png has a brick boundary wall running off
-	-- either side of the gates. South of the block the perimeter wall already
-	-- picks the line up (it starts 0.3 further on), but the north side left an
-	-- open corner between the turnstiles and the end wall - you could walk
-	-- straight into the ground beside the gates. Measured in play with all four
-	-- stands built: that corner is clear, so the wall is unconditional.
-	local wallZ = -END_EDGE
-	local wallFrom, wallTo = x - 1 - 3.5, -CORNER_X
-	if wallTo > wallFrom + 2 then
-		local mid = (wallFrom + wallTo) / 2
-		local span = wallTo - wallFrom
-		box("BoundaryWall", Vector3.new(span, 3.4, 1.2), Vector3.new(mid, DECK_Y + 1.7, wallZ), brick, Enum.Material.Brick, gate)
-		box("BoundaryCoping", Vector3.new(span + 0.4, 0.4, 1.6), Vector3.new(mid, DECK_Y + 3.6, wallZ), stone, Enum.Material.Limestone, gate)
-		-- a pier where it meets the turnstile block, like the piers on the gates
-		box("BoundaryPier", Vector3.new(2, 4.2, 2), Vector3.new(wallFrom + 1, DECK_Y + 2.1, wallZ), brick, Enum.Material.Brick, gate)
-		box("BoundaryPierCap", Vector3.new(2.4, 0.4, 2.4), Vector3.new(wallFrom + 1, DECK_Y + 4.4, wallZ), stone, Enum.Material.Limestone, gate)
-	end
-
-	-- out beside the plaque (x - 3.9 .. x - 0.5), not in front of it
-	local planterX, planterZ = x - 7.5, TURNSTILE_Z + total / 2 + 2.5
-	box("Planter", Vector3.new(3, 2.2, 3), Vector3.new(planterX, DECK_Y + 1.1, planterZ), Color3.fromRGB(58, 60, 64), Enum.Material.Concrete, gate)
-	local shrub = part({
-		Name = "Shrub",
-		Shape = Enum.PartType.Ball,
-		Size = Vector3.new(3.4, 3.4, 3.4),
-		CFrame = CFrame.new(planterX, DECK_Y + 2.2 + 1.2, planterZ),
-		Color = Color3.fromRGB(62, 104, 50),
-		Material = Enum.Material.LeafyGrass,
-		Parent = gate,
-	})
-	shrub.CanCollide = false
-	shrub.CastShadow = false
-
-	-- X53: a black lamp post outside, beside the entrance, flying a club banner
-	-- (RivermereTurnstileEntrance.png: "OUR TOWN / OUR GAME")
-	local lx, lz = x - 7, TURNSTILE_Z - total / 2 - 4
-	local lampBlack = Color3.fromRGB(24, 26, 30)
-	box("LampBase", Vector3.new(1.2, 1.2, 1.2), Vector3.new(lx, DECK_Y + 0.6, lz), lampBlack, Enum.Material.Metal, gate)
-	box("LampPost", Vector3.new(0.5, 15.4, 0.5), Vector3.new(lx, DECK_Y + 1 + 7.7, lz), lampBlack, Enum.Material.Metal, gate)
-	box("Lantern", Vector3.new(1, 1.6, 1), Vector3.new(lx, DECK_Y + 17, lz), Color3.fromRGB(250, 236, 196), Enum.Material.Glass, gate)
-	box("LanternCap", Vector3.new(1.4, 0.4, 1.4), Vector3.new(lx, DECK_Y + 17.9, lz), lampBlack, Enum.Material.Metal, gate)
-	-- the arm reaches away from the entrance so the banner hangs clear of the post
-	box("BannerArm", Vector3.new(0.25, 0.25, 3.6), Vector3.new(lx, DECK_Y + 14.4, lz - 2.05), lampBlack, Enum.Material.Metal, gate).CanCollide = false
-	local banner = clubPaint(box("LampBanner", Vector3.new(0.15, 7, 3), Vector3.new(lx, DECK_Y + 10.8, lz - 2.3), Config.HomeKit, Enum.Material.Fabric, gate))
-	banner.CanCollide = false
-	banner.CastShadow = false
-	for _, face in { Enum.NormalId.Left, Enum.NormalId.Right } do
-		local bannerGui = Instance.new("SurfaceGui")
-		bannerGui.Face = face
-		bannerGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		bannerGui.PixelsPerStud = 40
-		bannerGui.LightInfluence = 0.25 -- X270: near-unlit, so it still reads at an evening fixture
-		bannerGui.Parent = banner
-		local bannerName = Instance.new("TextLabel")
-		bannerName.Name = "ClubName" -- WorldBuilder.setClubName repaints it
-		bannerName.Size = UDim2.fromScale(0.86, 0.3)
-		bannerName.Position = UDim2.fromScale(0.07, 0.06)
-		bannerName.BackgroundTransparency = 1
-		bannerName.Font = Enum.Font.GothamBlack
-		bannerName.TextScaled = true
-		bannerName.TextColor3 = Color3.new(1, 1, 1)
-		bannerName.Text = "CLUB"
-		bannerName.Parent = bannerGui
-		local motto = Instance.new("TextLabel")
-		motto.Name = "Motto"
-		motto.Size = UDim2.fromScale(0.8, 0.26)
-		motto.Position = UDim2.fromScale(0.1, 0.62)
-		motto.BackgroundTransparency = 1
-		motto.Font = Enum.Font.GothamBold
-		motto.TextScaled = true
-		motto.TextColor3 = Color3.new(1, 1, 1)
-		motto.Text = "OUR TOWN\nOUR GAME"
-		motto.Parent = bannerGui
-		-- X243: the crest between the name and the motto, as on the reference banner
-		crestBadge(bannerGui, UDim2.fromScale(0.5, 0.21), UDim2.fromScale(0.5, 0.49))
-	end
-end
-
--- Paved forecourt outside the corner, with the car park. Everything the club
--- does away from the pitch (office, matchday board, concourse) sits on it.
+-- The forecourt model the statue stands on. #15 (ground plan spec s2): the old
+-- paved yard and turnstiles outside the north-west corner are retired; fans
+-- come in through the turnstile blocks in the ground wall (GroundEnvelope).
 local function buildForecourt(parent: Instance)
 	local yard = Instance.new("Model")
 	yard.Name = "Forecourt"
 	yard.Parent = parent
-	local w = FORECOURT_X1 - FORECOURT_X0
-	local d = FORECOURT_Z1 - FORECOURT_Z0
-	box("Paving", Vector3.new(w, DECK_Y, d), Vector3.new((FORECOURT_X0 + FORECOURT_X1) / 2, DECK_Y / 2, (FORECOURT_Z0 + FORECOURT_Z1) / 2),
-		-- X124: warm block paving like RivermereTurnstileEntrance.png (was flat grey concrete)
-		Color3.fromRGB(196, 176, 148), Enum.Material.Pavement, yard)
-	-- car park bays between the office and the corner
-	local bayZ = FORECOURT_Z1 - 13
-	for i = 0, 5 do
-		local bx = FORECOURT_X0 + 12 + i * 9
-		box("Bay", Vector3.new(0.6, 0.08, 18), Vector3.new(bx, DECK_Y + 0.04, bayZ), Color3.fromRGB(215, 212, 200), Enum.Material.Concrete, yard)
-	end
 end
 
 -- X317: the peg rails hung blank kit-colour slabs. The home room named nobody
@@ -2462,7 +2254,6 @@ function WorldBuilder.build(standLevels: { [string]: number }, amenityLevel: num
 	buildAdBoards(club)
 	buildDugouts(club)
 	buildScoreboard(club)
-	buildTurnstiles(club)
 	buildForecourt(club)
 	-- the team coach, parked on the forecourt beside the office (decorative)
 	buildTeamBus(club, Vector3.new(FORECOURT_CX + 18, DECK_Y, FORECOURT_CZ - 22))

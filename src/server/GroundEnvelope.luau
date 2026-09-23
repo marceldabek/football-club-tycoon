@@ -274,11 +274,293 @@ local function buildWall(parent: Instance)
 	end
 end
 
+-- ---------------------------------------------------------- turnstile blocks
+--
+-- #15/#14: a brick block straddling the west wall at each end of the ground,
+-- in the style of the old corner turnstiles (RivermereTurnstileEntrance.png:
+-- brick piers, a club-colour fascia with the name and crest, slogan plaques,
+-- a lamp post flying a banner). Six lane slots and an exit gate at the end
+-- nearer halfway; the slots nearest the approach path open first, the rest
+-- have their shutters down until the ground tier opens them (spec s2, free).
+GroundEnvelope.BLOCK_D = 8 -- across the wall, centred on it
+GroundEnvelope.BLOCK_APRON = 4 -- concrete threshold either side of the block
+GroundEnvelope.LANE_SLOTS = 6
+local END_PIER, DIVIDER, EXIT_W = 1.2, 0.8, 4.4
+local BLOCK_OPEN_H, BLOCK_H = 8, 11
+
+export type Slot = { z0: number, z1: number, kind: string, number: number? }
+
+-- The block's lane slots and exit, pure. `approachZ` is the centre line of the
+-- path the fans walk up; the lanes nearest it open first.
+function GroundEnvelope.blockSlots(g: Gate, approachZ: number, lanes: number): { Slot }
+	local zi0, zi1 = g.a0 + END_PIER, g.a1 - END_PIER
+	local laneW = ((zi1 - zi0) - EXIT_W - DIVIDER * GroundEnvelope.LANE_SLOTS) / GroundEnvelope.LANE_SLOTS
+	-- the exit is at the end nearer halfway (z = 0)
+	local exitHigh = math.abs(g.a1) < math.abs(g.a0)
+	local slots: { Slot } = {}
+	local z = if exitHigh then zi0 else zi1
+	local dir = if exitHigh then 1 else -1
+	for _ = 1, GroundEnvelope.LANE_SLOTS do
+		local a, b = z, z + dir * laneW
+		table.insert(slots, { z0 = math.min(a, b), z1 = math.max(a, b), kind = "shut" })
+		z = b + dir * DIVIDER
+	end
+	local a, b = z, z + dir * EXIT_W
+	local order = table.clone(slots)
+	table.sort(order, function(p, q)
+		return math.abs((p.z0 + p.z1) / 2 - approachZ) < math.abs((q.z0 + q.z1) / 2 - approachZ)
+	end)
+	for i = 1, math.min(lanes, #order) do
+		order[i].kind = "lane"
+	end
+	-- numbered along the block, north to south
+	table.sort(slots, function(p, q)
+		return p.z0 < q.z0
+	end)
+	for i, slot in slots do
+		slot.number = i
+	end
+	table.insert(slots, { z0 = math.min(a, b), z1 = math.max(a, b), kind = "exit" })
+	return slots
+end
+
+-- the paths the fans walk up to each block (PlotGrounds / MatchdayRoutes)
+GroundEnvelope.APPROACH_Z = { NWTurnstiles = -187, SWTurnstiles = 187 }
+GroundEnvelope.SLOGANS = { "PRIDE\nPEOPLE\nRIVERMERE", "MATCH DAYS\nBRING PEOPLE\nTOGETHER" }
+
+function GroundEnvelope.gate(name: string): Gate
+	for _, g in GroundEnvelope.GATES do
+		if g.name == name then
+			return g
+		end
+	end
+	error("no gate " .. name)
+end
+
+local function clubName(): string
+	local state = PlotContext.findStateFolder()
+	local name = state and state:GetAttribute("ClubName")
+	return string.upper(if type(name) == "string" then name else Config.ClubName)
+end
+
+local function buildLamp(parent: Instance, x: number, z: number, banner: number)
+	local black = Color3.fromRGB(24, 26, 30)
+	extents("LampBase", x - 0.6, x + 0.6, 0, 1.2, z - 0.6, z + 0.6, black, Enum.Material.Metal, parent)
+	extents("LampPost", x - 0.25, x + 0.25, 1.2, 16.6, z - 0.25, z + 0.25, black, Enum.Material.Metal, parent)
+	extents("Lantern", x - 0.5, x + 0.5, 16.6, 18.2, z - 0.5, z + 0.5, Color3.fromRGB(250, 236, 196), Enum.Material.Glass, parent)
+	extents("LanternCap", x - 0.7, x + 0.7, 18.2, 18.6, z - 0.7, z + 0.7, black, Enum.Material.Metal, parent)
+	-- the arm reaches away from the block so the banner hangs clear of the post
+	local armEnd = z + banner * 3.85
+	extents("BannerArm", x - 0.125, x + 0.125, 14.3, 14.55, math.min(z, armEnd), math.max(z, armEnd), black, Enum.Material.Metal, parent).CanCollide = false
+	local bz = z + banner * 2.3
+	local flag = clubPaint(extents("LampBanner", x - 0.075, x + 0.075, 7.3, 14.3, bz - 1.5, bz + 1.5, Config.HomeKit, Enum.Material.Fabric, parent))
+	flag.CanCollide = false
+	flag.CastShadow = false
+	for _, face in { Enum.NormalId.Left, Enum.NormalId.Right } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.LightInfluence = 0.25
+		gui.Parent = flag
+		local name = Instance.new("TextLabel")
+		name.Name = "ClubName" -- WorldBuilder.setClubName repaints it
+		name.Size = UDim2.fromScale(0.86, 0.3)
+		name.Position = UDim2.fromScale(0.07, 0.06)
+		name.BackgroundTransparency = 1
+		name.Font = Enum.Font.GothamBlack
+		name.TextScaled = true
+		name.TextColor3 = Color3.new(1, 1, 1)
+		name.Text = clubName()
+		name.Parent = gui
+		local motto = Instance.new("TextLabel")
+		motto.Name = "Motto"
+		motto.Size = UDim2.fromScale(0.8, 0.26)
+		motto.Position = UDim2.fromScale(0.1, 0.62)
+		motto.BackgroundTransparency = 1
+		motto.Font = Enum.Font.GothamBold
+		motto.TextScaled = true
+		motto.TextColor3 = Color3.new(1, 1, 1)
+		motto.Text = "OUR TOWN\nOUR GAME"
+		motto.Parent = gui
+		ClubCrest.badge(gui, crest(), UDim2.fromScale(0.5, 0.21), UDim2.fromScale(0.5, 0.49))
+	end
+end
+
+local function buildBlock(parent: Instance, g: Gate, lanes: number)
+	local E = GroundEnvelope
+	local block = Instance.new("Model")
+	block.Name = g.name
+	block.Parent = parent
+	local bx0, bx1 = E.X0 - E.BLOCK_D / 2, E.X0 + E.BLOCK_D / 2
+	local zi0, zi1 = g.a0 + END_PIER, g.a1 - END_PIER
+	local signDark = Config.HomeKit:Lerp(Color3.new(0, 0, 0), 0.45) -- repainted: clubPaint(x, "kit", 0.45)
+	local slots = E.blockSlots(g, E.APPROACH_Z[g.name] or (g.a0 + g.a1) / 2, lanes)
+	block:SetAttribute("Lanes", lanes)
+
+	-- the concrete threshold the lanes stand on, level with the paths
+	extents("Threshold", bx0 - E.BLOCK_APRON, bx1 + E.BLOCK_APRON, 0, 0.34, zi0, zi1, Color3.fromRGB(150, 148, 142), Enum.Material.Concrete, block)
+	for _, z in { { g.a0, zi0 }, { zi1, g.a1 } } do
+		extents("EndPier", bx0, bx1, 0, BLOCK_H, z[1], z[2], PIER, Enum.Material.Brick, block)
+	end
+	extents("Lintel", bx0, bx1, BLOCK_OPEN_H, BLOCK_H, zi0, zi1, BRICK, Enum.Material.Brick, block)
+	extents("Roof", bx0 - 1, bx1 + 1, BLOCK_H, BLOCK_H + 0.5, g.a0 - 0.5, g.a1 + 0.5, Color3.fromRGB(60, 60, 65), Enum.Material.Metal, block)
+	-- dividers between the slots
+	table.sort(slots, function(p, q)
+		return p.z0 < q.z0
+	end)
+	for i = 1, #slots - 1 do
+		extents("Divider", bx0, bx1, 0.34, BLOCK_OPEN_H, slots[i].z1, slots[i + 1].z0, BRICK, Enum.Material.Brick, block)
+	end
+	for _, slot in slots do
+		if slot.kind == "lane" then
+			-- a waist-high drum on one side of the lane and its arm across it
+			local drum = extents("Drum", E.X0 - 0.4, E.X0 + 0.4, 0.34, 3.5, slot.z0 + 0.05, slot.z0 + 0.75, Color3.fromRGB(150, 150, 155), Enum.Material.Metal, block)
+			drum.CanCollide = false
+			local arm = extents("Arm", E.X0 - 0.06, E.X0 + 0.06, 3.0, 3.12, slot.z0 + 0.75, slot.z1 - 0.1, Color3.fromRGB(190, 190, 195), Enum.Material.Metal, block)
+			arm.CanCollide = false
+		elseif slot.kind == "shut" then
+			extents("Shutter", bx0 - 0.2, bx0, 0.34, BLOCK_OPEN_H, slot.z0, slot.z1, Color3.fromRGB(96, 98, 104), Enum.Material.DiamondPlate, block)
+		end
+	end
+
+	-- the fascia over the lanes: the club's name between two crests, and a strip
+	-- of lane numbers under it (closed lanes blank, the exit marked)
+	local fascia = clubPaint(extents("Fascia", bx0 - 0.4, bx0, BLOCK_OPEN_H + 0.2, BLOCK_H - 0.2, zi0, zi1, Config.HomeKit, Enum.Material.SmoothPlastic, block))
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Left -- -X, the street side; GUI +x runs along +Z
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 30
+	gui.LightInfluence = 0.25
+	gui.Parent = fascia
+	local label = Instance.new("TextLabel")
+	label.Name = "ClubName"
+	label.Size = UDim2.new(1, -110, 0.6, 0)
+	label.Position = UDim2.new(0, 55, 0.04, 0)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.GothamBlack
+	label.TextScaled = true
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.Text = clubName()
+	label.Parent = gui
+	for _, anchorX in { 0, 1 } do
+		ClubCrest.badge(gui, crest(), UDim2.fromOffset(40, 40), UDim2.new(anchorX, if anchorX == 0 then 8 else -8, 0.34, 0), Vector2.new(anchorX, 0.5))
+	end
+	local span = zi1 - zi0
+	for _, slot in slots do
+		local cell = Instance.new("TextLabel")
+		cell.Name = "Lane"
+		cell.AnchorPoint = Vector2.new(0.5, 0)
+		cell.Position = UDim2.fromScale(((slot.z0 + slot.z1) / 2 - zi0) / span, 0.66)
+		cell.Size = UDim2.fromScale((slot.z1 - slot.z0) / span * 0.9, 0.3)
+		cell.BackgroundTransparency = 1
+		cell.Font = Enum.Font.GothamBold
+		cell.TextScaled = true
+		cell.TextColor3 = Color3.fromRGB(240, 240, 240)
+		cell.Text = if slot.kind == "lane" then tostring(slot.number) elseif slot.kind == "exit" then "EXIT ONLY" else ""
+		cell.Parent = gui
+	end
+	-- and "EXIT" over the way out on the ground side
+	local exitSlot = if slots[1].kind == "exit" then slots[1] else slots[#slots]
+	local exitSign = clubPaint(extents("ExitSign", bx1, bx1 + 0.2, BLOCK_OPEN_H + 0.3, BLOCK_OPEN_H + 2, exitSlot.z0, exitSlot.z1, signDark, Enum.Material.SmoothPlastic, block), "kit", 0.45)
+	sign(exitSign, Enum.NormalId.Right, "EXIT")
+
+	-- slogan plaques on the street-side end faces of the end piers (X84)
+	for i, slogan in E.SLOGANS do
+		local z = if i == 1 then g.a0 else g.a1
+		local out = if i == 1 then -1 else 1
+		local plaque = clubPaint(extents("Plaque", bx0 + 0.1, bx0 + 3.1, 3, 6.4, math.min(z, z + out * 0.15), math.max(z, z + out * 0.15), signDark, Enum.Material.SmoothPlastic, block), "kit", 0.45)
+		plaque.CanCollide = false
+		local pg = Instance.new("SurfaceGui")
+		pg.Face = if out < 0 then Enum.NormalId.Front else Enum.NormalId.Back
+		pg.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		pg.PixelsPerStud = 50
+		pg.Parent = plaque
+		local t = Instance.new("TextLabel")
+		t.Size = UDim2.fromScale(0.86, 0.6)
+		t.Position = UDim2.fromScale(0.07, 0.06)
+		t.BackgroundTransparency = 1
+		t.Font = Enum.Font.GothamBold
+		t.TextScaled = true
+		t.TextColor3 = Color3.fromRGB(240, 240, 240)
+		t.Text = slogan
+		t.Parent = pg
+		ClubCrest.badge(pg, crest(), UDim2.fromScale(0.5, 0.26), UDim2.fromScale(0.5, 0.68), Vector2.new(0.5, 0))
+	end
+	-- a lamp post outside the far end, flying the club banner (X53)
+	local farZ = if math.abs(g.a0) > math.abs(g.a1) then g.a0 - 4 else g.a1 + 4
+	buildLamp(block, bx0 - 4, farZ, if farZ < 0 then -1 else 1)
+end
+
+-- -------------------------------------------------------------- tier fittings
+
+-- The ground tier from the club's stand levels (Config.groundTier), 1 without a club.
+local function currentTier(): number
+	local state = PlotContext.findStateFolder()
+	if not state then
+		return 1
+	end
+	local levels: { [string]: number } = {}
+	for _, plot in Config.StandPlots do
+		levels[plot.key] = (state:GetAttribute("Stand_" .. plot.key) :: number?) or 0
+	end
+	return Config.groundTier(levels)
+end
+
+-- Everything that grows with the ground tier for free (spec s1.5). Rebuilt
+-- whenever the tier changes.
+local function buildTiered(envelope: Instance, tier: number, place: boolean)
+	local old = envelope:FindFirstChild("TierFittings")
+	if old then
+		old:Destroy()
+	end
+	local model = Instance.new("Model")
+	model.Name = "TierFittings"
+	local lanes = Config.TurnstileLanes[math.clamp(tier, 1, #Config.TurnstileLanes)]
+	for _, name in { "NWTurnstiles", "SWTurnstiles" } do
+		buildBlock(model, GroundEnvelope.gate(name), lanes)
+	end
+	envelope:SetAttribute("GroundTier", tier)
+	if place then
+		PlotContext.place(model)
+	end
+	model.Parent = envelope
+end
+
+local tierConnections: { RBXScriptConnection } = {}
+
+local function bindTier(envelope: Instance)
+	for _, c in tierConnections do
+		c:Disconnect()
+	end
+	table.clear(tierConnections)
+	local state = PlotContext.findStateFolder()
+	if not state then
+		return
+	end
+	local function refresh()
+		if not envelope.Parent then
+			return
+		end
+		local tier = currentTier()
+		if envelope:GetAttribute("GroundTier") ~= tier then
+			buildTiered(envelope, tier, true)
+		end
+	end
+	for _, plot in Config.StandPlots do
+		table.insert(tierConnections, state:GetAttributeChangedSignal("Stand_" .. plot.key):Connect(refresh))
+	end
+end
+
+-- Builds the envelope in pitch-local coordinates under `grounds`; the caller
+-- places the whole Grounds model into the plot afterwards.
 function GroundEnvelope.build(grounds: Instance): Model
 	local envelope = Instance.new("Model")
 	envelope.Name = "GroundEnvelope"
 	envelope.Parent = grounds
 	buildWall(envelope)
+	buildTiered(envelope, currentTier(), false)
+	bindTier(envelope)
 	return envelope
 end
 

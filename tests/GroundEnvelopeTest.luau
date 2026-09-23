@@ -92,6 +92,39 @@ function T.keepOutCoversTheWalledGround()
 	assert(ground.x0 < -201 and ground.x1 > 201 and ground.z0 < -259 and ground.z1 > 259, "reaches past the wall")
 end
 
+-- Six lane slots and an exit in each block, the exit at the end nearer
+-- halfway, the open lanes the ones facing the approach path.
+function T.turnstileBlocksOpenLanesByTier()
+	for _, name in { "NWTurnstiles", "SWTurnstiles" } do
+		local g = GroundEnvelope.gate(name)
+		local approach = GroundEnvelope.APPROACH_Z[name]
+		for tier, lanes in Config.TurnstileLanes do
+			local slots = GroundEnvelope.blockSlots(g, approach, lanes)
+			assert(#slots == GroundEnvelope.LANE_SLOTS + 1, "six slots and an exit")
+			local open, exit = 0, nil
+			for i, s in slots do
+				assert(s.z0 >= g.a0 and s.z1 <= g.a1 and s.z1 - s.z0 > 2, name .. " slot " .. i .. " inside the block, wide enough")
+				for j = i + 1, #slots do
+					assert(s.z1 <= slots[j].z0 + 1e-6 or slots[j].z1 <= s.z0 + 1e-6, "slots overlap")
+				end
+				if s.kind == "lane" then
+					open += 1
+				elseif s.kind == "exit" then
+					exit = s
+				end
+			end
+			assert(open == lanes, ("%s tier %d: %d lanes open, want %d"):format(name, tier, open, lanes))
+			assert(exit and math.abs((exit.z0 + exit.z1) / 2) < math.abs(approach), name .. " exit at the halfway end")
+		end
+		-- at two lanes, both face the 8-wide approach path
+		for _, s in GroundEnvelope.blockSlots(g, approach, 2) do
+			if s.kind == "lane" then
+				assert(math.abs((s.z0 + s.z1) / 2 - approach) < 4, name .. " first lanes face the path")
+			end
+		end
+	end
+end
+
 function T.groundTierFollowsTheBestStand()
 	assert(Config.groundTier({ East = 1 }) == 1, "spawn is tier 1")
 	assert(Config.groundTier({ East = 1, West = 2 }) == 2, "a main stand makes tier 2")

@@ -8,18 +8,20 @@
 --
 -- Coordinates come from PlotGrounds.luau's layout comment (pedestrian gate at
 -- x=-380 z -20..-4, footpath along z=-12 from x=-379 to x=-265, then north
--- along x=-265 to z=-187, then east along z=-187 to the forecourt edge
--- x=-190; car park x -350..-250, z 40..190) and WorldBuilder's turnstile
--- constants (SIDE_EDGE=121, END_EDGE=179, CORNER_Z=155,
--- TURNSTILE_Z = -(CORNER_Z + END_EDGE)/2 = -167, turnstile lanes at
--- x = -SIDE_EDGE = -121).
+-- along x=-265 to z=-187, then east along z=-187 to the NW turnstile block;
+-- car park x -350..-250, z 40..190, path along z=187 to the SW block) and
+-- GroundEnvelope (#15, ground plan spec s2): turnstile blocks in the west
+-- ground wall (x -201) at z -200..-175 and 175..200, lanes on z -187 / 187.
+-- Fans stop just outside the block's street face (x -205) and go in.
+-- Lane A2 (#14/#10) replaces these with proper queues and exit routes.
 
 local MatchdayRoutes = {}
 
 local ROUTE_Y = 0.3
 
-local TURNSTILE_X = -121
-local TURNSTILE_Z = -167 -- -(CORNER_Z + END_EDGE) / 2, CORNER_Z = 155, END_EDGE = 179
+local TURNSTILE_X = -206
+local TURNSTILE_Z = -187 -- GroundEnvelope.APPROACH_Z.NWTurnstiles
+local SW_TURNSTILE_Z = 187
 
 local function pt(x: number, z: number): Vector3
 	return Vector3.new(x, ROUTE_Y, z)
@@ -27,12 +29,12 @@ end
 
 export type Route = { Vector3 }
 
--- Shared with both routes: the footpath from the pedestrian gate meets the
--- leg coming up from the car park here, then both continue north and east
--- onto the forecourt together (PlotGrounds.luau footpath comment).
+-- The footpath from the pedestrian gate turns north here, then east along
+-- z -187 to the NW turnstiles (PlotGrounds.luau footpath comment).
 local JOIN = pt(-265, -12)
 local NORTH_TURN = pt(-265, -187)
-local FORECOURT_EDGE = pt(-190, -187)
+-- where the barriered approach to the NW block starts (was the old forecourt's edge)
+local FORECOURT_EDGE = NORTH_TURN
 local TURNSTILE = pt(TURNSTILE_X, TURNSTILE_Z)
 
 MatchdayRoutes.ROUTES = {
@@ -40,16 +42,12 @@ MatchdayRoutes.ROUTES = {
 		pt(-380, -12), -- pedestrian gate
 		JOIN,
 		NORTH_TURN,
-		FORECOURT_EDGE,
 		TURNSTILE,
 	} :: Route,
 	fromCarPark = {
 		pt(-300, 115), -- car park centre
-		pt(-350, 40), -- north-west corner of the car park
-		JOIN,
-		NORTH_TURN,
-		FORECOURT_EDGE,
-		TURNSTILE,
+		pt(-255, SW_TURNSTILE_Z), -- the car park's south-east corner
+		pt(TURNSTILE_X, SW_TURNSTILE_Z), -- the SW turnstile block
 	} :: Route,
 }
 
