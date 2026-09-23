@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="537" height="855" viewBox="0 0 537 855" font-family="Segoe UI, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+<polygon points="0.0,0.0 537.5,0.0 537.5,855.5 0.0,855.5" fill="#f6f4ee" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="0.0,134.0 537.5,134.0 537.5,821.5 0.0,821.5" fill="#cfe3b6" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="10.0" y="18.0" font-size="15" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" font-weight="bold">CONCOURSE — L3 Undercroft Bars</text>
+<text x="10.0" y="42.0" font-size="10" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >TEMP £6,000 (was Merch Stand) · needs a stand at Double-tier or bigger</text>
+<text x="10.0" y="57.0" font-size="10" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >perFan 4, demand +20% · bars under every map tier 3+ stand</text>
+<polygon points="409.5,8.0 529.5,8.0 529.5,116.6 409.5,116.6" fill="#ffffff" stroke="#999" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="410.9,8.0 416.9,8.0 416.9,116.6 410.9,116.6" fill="#6d6f72" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="418.1,8.0 526.6,8.0 526.6,116.6 418.1,116.6" fill="#cfe3b6" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="443.6,25.3 501.1,25.3 501.1,99.3 443.6,99.3" fill="#c9c3b3" stroke="#4a3b32" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="457.6,40.4 487.1,40.4 487.1,84.1 457.6,84.1" fill="#5fae4f" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="449.9,56.6 455.1,56.6 455.1,68.0 449.9,68.0" fill="#a0553d" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="504.1,36.9 520.6,36.9 520.6,87.7 504.1,87.7" fill="none" stroke="#7a7a7a" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="422.4,68.0 436.6,68.0 436.6,105.1 422.4,105.1" fill="none" stroke="#777" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="443.6,25.3 501.1,25.3 501.1,99.3 443.6,99.3" fill="none" stroke="#d9342b" stroke-width="1.6"  opacity="1.0"/>
+<text x="469.5" y="124.6" font-size="8" fill="#555" text-anchor="middle" dominant-baseline="middle" >where on the plot</text>
+<polyline points="10.0,838.5 22.5,838.5" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-linejoin="round"   opacity="1.0"/>
+<text x="28.5" y="838.5" font-size="9" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >10 studs (~3.6 m)   ·   1.25 px/stud (ground plan: 1.25)</text>
+<polyline points="521.5,847.5 521.5,829.5" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"  marker-end="url(#arr)" opacity="1.0"/>
+<text x="511.5" y="838.5" font-size="10" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">N</text>
+<polygon points="17.5,154.0 520.0,154.0 520.0,801.5 17.5,801.5" fill="#c9c3b3" stroke="#4a3b32" stroke-width="2"  opacity="1.0"/>
+<polygon points="117.5,254.0 420.0,254.0 420.0,701.5 117.5,701.5" fill="#c9c3b3" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="140.0,286.5 397.5,286.5 397.5,669.0 140.0,669.0" fill="#5fae4f" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="150.0,296.5 387.5,296.5 387.5,659.0 150.0,659.0" fill="none" stroke="#eef7e6" stroke-width="1.2"  opacity="1.0"/>
+<polyline points="150.0,477.8 387.5,477.8" fill="none" stroke="#eef7e6" stroke-width="1.2" stroke-linejoin="round"   opacity="1.0"/>
+<circle cx="268.8" cy="477.8" r="31.2" fill="none" stroke="#eef7e6" stroke-width="1.2"/>
+<polygon points="199.4,296.5 338.1,296.5 338.1,352.8 199.4,352.8" fill="none" stroke="#eef7e6" stroke-width="1.2"  opacity="1.0"/>
+<polygon points="237.5,296.5 300.0,296.5 300.0,315.2 237.5,315.2" fill="none" stroke="#eef7e6" stroke-width="1.2"  opacity="1.0"/>
+<polygon points="256.2,296.5 281.2,296.5 281.2,289.0 256.2,289.0" fill="#ffffff" stroke="#777" stroke-width="0.8"  opacity="1.0"/>
+<polygon points="199.4,659.0 338.1,659.0 338.1,602.8 199.4,602.8" fill="none" stroke="#eef7e6" stroke-width="1.2"  opacity="1.0"/>
+<polygon points="237.5,659.0 300.0,659.0 300.0,640.2 237.5,640.2" fill="none" stroke="#eef7e6" stroke-width="1.2"  opacity="1.0"/>
+<polygon points="256.2,659.0 281.2,659.0 281.2,666.5 256.2,666.5" fill="#ffffff" stroke="#777" stroke-width="0.8"  opacity="1.0"/>
+<text x="268.8" y="477.8" font-size="10" fill="#e8f5e2" text-anchor="middle" dominant-baseline="middle" font-weight="bold">PITCH 190 × 290</text>
+<polyline points="138.1,286.5 138.1,409.0" fill="none" stroke="#f0e6a8" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="138.1,461.5 138.1,494.0" fill="none" stroke="#f0e6a8" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="138.1,546.5 138.1,669.0" fill="none" stroke="#f0e6a8" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="140.0,284.6 397.5,284.6" fill="none" stroke="#f0e6a8" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="399.4,286.5 399.4,669.0" fill="none" stroke="#f0e6a8" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="140.0,670.9 397.5,670.9" fill="none" stroke="#f0e6a8" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
+<polygon points="420.0,295.9 482.0,295.9 482.0,659.6 420.0,659.6" fill="#b08a78" stroke="#4a3b32" stroke-width="0.8"  opacity="1.0"/>
+<polygon points="117.5,426.5 55.5,426.5 55.5,284.0 117.5,284.0" fill="#b08a78" stroke="#4a3b32" stroke-width="0.8"  opacity="1.0"/>
+<polygon points="117.5,529.0 55.5,529.0 55.5,671.5 117.5,671.5" fill="#b08a78" stroke="#4a3b32" stroke-width="0.8"  opacity="1.0"/>
+<polygon points="145.6,254.0 145.6,192.0 391.9,192.0 391.9,254.0" fill="#b08a78" stroke="#4a3b32" stroke-width="0.8"  opacity="1.0"/>
+<polygon points="145.6,701.5 145.6,763.5 391.9,763.5 391.9,701.5" fill="#b08a78" stroke="#4a3b32" stroke-width="0.8"  opacity="1.0"/>
+<polygon points="72.5,427.8 117.5,427.8 117.5,527.8 72.5,527.8" fill="#a0553d" stroke="#4a3b32" stroke-width="0.8"  opacity="1.0"/>
+<circle cx="93.8" cy="227.8" r="3.8" fill="#222" stroke="none" stroke-width="1"/>
+<polyline points="87.5,221.5 100.0,234.0" fill="none" stroke="#222" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="87.5,234.0 100.0,221.5" fill="none" stroke="#222" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<circle cx="93.8" cy="727.8" r="3.8" fill="#222" stroke="none" stroke-width="1"/>
+<polyline points="87.5,721.5 100.0,734.0" fill="none" stroke="#222" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="87.5,734.0 100.0,721.5" fill="none" stroke="#222" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<circle cx="443.8" cy="227.8" r="3.8" fill="#222" stroke="none" stroke-width="1"/>
+<polyline points="437.5,221.5 450.0,234.0" fill="none" stroke="#222" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="437.5,234.0 450.0,221.5" fill="none" stroke="#222" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<circle cx="443.8" cy="727.8" r="3.8" fill="#222" stroke="none" stroke-width="1"/>
+<polyline points="437.5,721.5 450.0,734.0" fill="none" stroke="#222" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="437.5,734.0 450.0,721.5" fill="none" stroke="#222" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<polygon points="422.5,298.4 479.5,298.4 479.5,657.1 422.5,657.1" fill="none" stroke="#fff" stroke-width="1.4" stroke-dasharray="3,2" opacity="1.0"/>
+<polygon points="58.0,286.5 115.0,286.5 115.0,424.0 58.0,424.0" fill="none" stroke="#fff" stroke-width="1.4" stroke-dasharray="3,2" opacity="1.0"/>
+<polygon points="58.0,531.5 115.0,531.5 115.0,669.0 58.0,669.0" fill="none" stroke="#fff" stroke-width="1.4" stroke-dasharray="3,2" opacity="1.0"/>
+<polygon points="148.1,194.5 389.4,194.5 389.4,251.5 148.1,251.5" fill="none" stroke="#fff" stroke-width="1.4" stroke-dasharray="3,2" opacity="1.0"/>
+<polygon points="148.1,704.0 389.4,704.0 389.4,761.0 148.1,761.0" fill="none" stroke="#fff" stroke-width="1.4" stroke-dasharray="3,2" opacity="1.0"/>
+<text x="451.2" y="477.8" font-size="9" fill="#fff" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(90 451.2 477.8)">bars under every stand</text>
+<text x="268.8" y="777.8" font-size="9" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >kiosks stay behind any stand still below tier 3</text>
+</svg>

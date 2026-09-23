@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="430" height="1068" viewBox="0 0 430 1068" font-family="Segoe UI, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+<polygon points="0.0,0.0 430.0,0.0 430.0,1068.0 0.0,1068.0" fill="#f6f4ee" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="0.0,134.0 430.0,134.0 430.0,1034.0 0.0,1034.0" fill="#cfe3b6" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="10.0" y="18.0" font-size="15" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" font-weight="bold">ACADEMY — L3 Academy Building</text>
+<text x="10.0" y="42.0" font-size="10" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >TEMP £12,000 · needs Regional Premier</text>
+<text x="10.0" y="57.0" font-size="10" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >+1 graduate, potential +2,</text>
+<text x="10.0" y="72.0" font-size="10" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >wonderkid headroom +1</text>
+<polygon points="302.0,8.0 422.0,8.0 422.0,116.6 302.0,116.6" fill="#ffffff" stroke="#999" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="303.4,8.0 309.4,8.0 309.4,116.6 303.4,116.6" fill="#6d6f72" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="310.6,8.0 419.1,8.0 419.1,116.6 310.6,116.6" fill="#cfe3b6" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="336.1,25.3 393.6,25.3 393.6,99.3 336.1,99.3" fill="#c9c3b3" stroke="#4a3b32" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="350.1,40.4 379.6,40.4 379.6,84.1 350.1,84.1" fill="#5fae4f" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="342.4,56.6 347.6,56.6 347.6,68.0 342.4,68.0" fill="#a0553d" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="396.6,36.9 413.1,36.9 413.1,87.7 396.6,87.7" fill="none" stroke="#7a7a7a" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="314.9,68.0 329.1,68.0 329.1,105.1 314.9,105.1" fill="none" stroke="#777" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="413.4,53.7 418.6,53.7 418.6,76.0 413.4,76.0" fill="none" stroke="#d9342b" stroke-width="1.6"  opacity="1.0"/>
+<text x="362.0" y="124.6" font-size="8" fill="#555" text-anchor="middle" dominant-baseline="middle" >where on the plot</text>
+<polyline points="10.0,1051.0 60.0,1051.0" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-linejoin="round"   opacity="1.0"/>
+<text x="66.0" y="1051.0" font-size="9" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >10 studs (~3.6 m)   ·   5 px/stud (ground plan: 1.25)</text>
+<polyline points="414.0,1060.0 414.0,1042.0" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"  marker-end="url(#arr)" opacity="1.0"/>
+<text x="404.0" y="1051.0" font-size="10" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">N</text>
+<polygon points="0.0,134.0 190.0,134.0 190.0,1034.0 0.0,1034.0" fill="#cfe3b6" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="0.0,594.0 150.0,594.0 150.0,1034.0 0.0,1034.0" fill="#5fae4f" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="0.0,134.0 150.0,134.0 150.0,394.0 0.0,394.0" fill="#5fae4f" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="75.0" y="808.6" font-size="9" fill="#fff" text-anchor="middle" dominant-baseline="middle" font-weight="bold">training</text>
+<text x="75.0" y="819.4" font-size="9" fill="#fff" text-anchor="middle" dominant-baseline="middle" font-weight="bold">pitch 2</text>
+<text x="75.0" y="258.6" font-size="9" fill="#fff" text-anchor="middle" dominant-baseline="middle" font-weight="bold">training</text>
+<text x="75.0" y="269.4" font-size="9" fill="#fff" text-anchor="middle" dominant-baseline="middle" font-weight="bold">pitch 1</text>
+<polyline points="190.0,134.0 190.0,1034.0" fill="none" stroke="#7a7a7a" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="4,2"  opacity="1.0"/>
+<text x="180.0" y="494.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(-90 180.0 494.0)">training fence</text>
+<polygon points="210.0,194.0 380.0,194.0 380.0,794.0 210.0,794.0" fill="none" stroke="#8a6000" stroke-width="1" stroke-dasharray="2,3" opacity="1.0"/>
+<text x="295.0" y="174.0" font-size="8" fill="#8a6000" text-anchor="middle" dominant-baseline="middle" >ground plan reserved slot</text>
+<polygon points="200.0,194.0 380.0,194.0 380.0,974.0 200.0,974.0" fill="none" stroke="#7a7a7a" stroke-width="1.5" stroke-dasharray="5,3" opacity="1.0"/>
+<text x="290.0" y="994.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >proposed fixed shell 36 x 156 (Q3)</text>
+<polygon points="200.0,914.0 280.0,914.0 280.0,974.0 200.0,974.0" fill="#c4c0b6" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="205.0,919.0 275.0,919.0 275.0,969.0 205.0,969.0" fill="#efece2" stroke="#4a3b32" stroke-width="1.2"  opacity="1.0"/>
+<polygon points="203.0,936.5 207.0,936.5 207.0,951.5 203.0,951.5" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="200.5,924.0 202.5,924.0 202.5,964.0 200.5,964.0" fill="#1c3c28" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="240.0" y="939.2" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >youth hut</text>
+<text x="240.0" y="948.8" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >14 x 10</text>
+<polygon points="205.0,839.0 275.0,839.0 275.0,909.0 205.0,909.0" fill="#efece2" stroke="#4a3b32" stroke-width="1.2"  opacity="1.0"/>
+<text x="240.0" y="869.2" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >classroom</text>
+<text x="240.0" y="878.8" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >cabin</text>
+<polygon points="230.0,514.0 370.0,514.0 370.0,774.0 230.0,774.0" fill="#4f9a44" stroke="#333" stroke-width="1"  opacity="1.0"/>
+<polygon points="240.0,524.0 360.0,524.0 360.0,764.0 240.0,764.0" fill="none" stroke="#eef7e6" stroke-width="0.8"  opacity="1.0"/>
+<text x="300.0" y="639.2" font-size="8" fill="#fff" text-anchor="middle" dominant-baseline="middle" >small-sided</text>
+<text x="300.0" y="648.8" font-size="8" fill="#fff" text-anchor="middle" dominant-baseline="middle" >cage 28 x 52</text>
+<circle cx="230.0" cy="514.0" r="6.0" fill="#222" stroke="none" stroke-width="1"/>
+<circle cx="370.0" cy="514.0" r="6.0" fill="#222" stroke="none" stroke-width="1"/>
+<circle cx="230.0" cy="774.0" r="6.0" fill="#222" stroke="none" stroke-width="1"/>
+<circle cx="370.0" cy="774.0" r="6.0" fill="#222" stroke="none" stroke-width="1"/>
+<polygon points="290.0,804.0 380.0,804.0 380.0,974.0 290.0,974.0" fill="#efece2" stroke="#4a3b32" stroke-width="1.2"  opacity="1.0"/>
+<text x="335.0" y="869.8" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >academy</text>
+<text x="335.0" y="879.4" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >building</text>
+<text x="335.0" y="889.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >(2 storeys)</text>
+<text x="335.0" y="898.6" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >classrooms</text>
+<text x="335.0" y="908.2" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >coach's office</text>
+<polygon points="287.5,801.5 382.5,801.5 382.5,976.5 287.5,976.5" fill="none" stroke="#d9342b" stroke-width="1.4" stroke-dasharray="3,2" opacity="1.0"/>
+<text x="300.0" y="794.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >cage floodlit</text>
+</svg>

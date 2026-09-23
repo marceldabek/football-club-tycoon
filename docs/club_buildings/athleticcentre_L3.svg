@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="696" height="600" viewBox="0 0 696 600" font-family="Segoe UI, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+<polygon points="0.0,0.0 696.0,0.0 696.0,600.0 0.0,600.0" fill="#f6f4ee" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="0.0,134.0 696.0,134.0 696.0,566.0 0.0,566.0" fill="#cfe3b6" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="10.0" y="18.0" font-size="15" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" font-weight="bold">COACH'S CABIN → ATHLETIC CENTRE — L3 Athletic Centre</text>
+<text x="10.0" y="42.0" font-size="10" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >TEMP £9,000 · needs training pitch 1 · walk-in</text>
+<text x="10.0" y="57.0" font-size="10" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >development +15% of base chance, added after the coach</text>
+<polygon points="568.0,8.0 688.0,8.0 688.0,116.6 568.0,116.6" fill="#ffffff" stroke="#999" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="569.4,8.0 575.4,8.0 575.4,116.6 569.4,116.6" fill="#6d6f72" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="576.6,8.0 685.1,8.0 685.1,116.6 576.6,116.6" fill="#cfe3b6" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="602.1,25.3 659.6,25.3 659.6,99.3 602.1,99.3" fill="#c9c3b3" stroke="#4a3b32" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="616.1,40.4 645.6,40.4 645.6,84.1 616.1,84.1" fill="#5fae4f" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="608.4,56.6 613.6,56.6 613.6,68.0 608.4,68.0" fill="#a0553d" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="662.6,36.9 679.1,36.9 679.1,87.7 662.6,87.7" fill="none" stroke="#7a7a7a" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="580.9,68.0 595.1,68.0 595.1,105.1 580.9,105.1" fill="none" stroke="#777" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="665.1,60.0 676.6,60.0 676.6,64.6 665.1,64.6" fill="none" stroke="#d9342b" stroke-width="1.6"  opacity="1.0"/>
+<text x="628.0" y="124.6" font-size="8" fill="#555" text-anchor="middle" dominant-baseline="middle" >where on the plot</text>
+<polyline points="10.0,583.0 70.0,583.0" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-linejoin="round"   opacity="1.0"/>
+<text x="76.0" y="583.0" font-size="9" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >10 studs (~3.6 m)   ·   6 px/stud (ground plan: 1.25)</text>
+<polyline points="680.0,592.0 680.0,574.0" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"  marker-end="url(#arr)" opacity="1.0"/>
+<text x="670.0" y="583.0" font-size="10" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">N</text>
+<polygon points="0.0,134.0 696.0,134.0 696.0,566.0 0.0,566.0" fill="#cfe3b6" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="48.0,134.0 648.0,134.0 648.0,194.0 48.0,194.0" fill="#5fae4f" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="348.0" y="164.0" font-size="9" fill="#fff" text-anchor="middle" dominant-baseline="middle" >training pitch 1</text>
+<polygon points="48.0,434.0 648.0,434.0 648.0,494.0 48.0,494.0" fill="none" stroke="#7a7a7a" stroke-width="1" stroke-dasharray="3,2" opacity="1.0"/>
+<text x="180.0" y="464.0" font-size="9" fill="#2d5a1e" text-anchor="middle" dominant-baseline="middle" >pitch 2 (for sale)</text>
+<polygon points="324.0,410.0 372.0,410.0 372.0,566.0 324.0,566.0" fill="#e9e4d4" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="390.0" y="536.0" font-size="8" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >#23a path from the south gate</text>
+<polygon points="108.0,218.0 588.0,218.0 588.0,410.0 108.0,410.0" fill="none" stroke="#4a3b32" stroke-width="2.5"  opacity="1.0"/>
+<polygon points="108.0,218.0 588.0,218.0 588.0,410.0 108.0,410.0" fill="#efece2" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polyline points="204.0,218.0 204.0,410.0" fill="none" stroke="#4a3b32" stroke-width="1.2" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="300.0,218.0 300.0,410.0" fill="none" stroke="#4a3b32" stroke-width="1.2" stroke-linejoin="round"   opacity="1.0"/>
+<polyline points="396.0,218.0 396.0,410.0" fill="none" stroke="#4a3b32" stroke-width="1.2" stroke-linejoin="round"   opacity="1.0"/>
+<polygon points="300.0,284.0 396.0,284.0 396.0,344.0 300.0,344.0" fill="none" stroke="#999" stroke-width="0.8" stroke-dasharray="2,2" opacity="1.0"/>
+<polygon points="324.0,407.0 372.0,407.0 372.0,413.0 324.0,413.0" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="348.0" y="255.2" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >reception</text>
+<text x="348.0" y="264.8" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >(was the cabin)</text>
+<text x="252.0" y="254.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >coach's office</text>
+<polygon points="216.0,302.0 240.0,302.0 240.0,350.0 216.0,350.0" fill="#7a5534" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="296.4,266.0 298.8,266.0 298.8,338.0 296.4,338.0" fill="#1c4628" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="492.0" y="254.0" font-size="9" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">gym</text>
+<polygon points="420.0,326.0 444.0,326.0 444.0,362.0 420.0,362.0" fill="#5a6472" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="456.0,326.0 480.0,326.0 480.0,362.0 456.0,362.0" fill="#5a6472" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="492.0,326.0 516.0,326.0 516.0,362.0 492.0,362.0" fill="#5a6472" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="528.0,326.0 552.0,326.0 552.0,362.0 528.0,362.0" fill="#5a6472" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="492.0" y="380.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >bikes · weights · treadmills</text>
+<text x="156.0" y="309.2" font-size="8" fill="#777" text-anchor="middle" dominant-baseline="middle" >shell only,</text>
+<text x="156.0" y="318.8" font-size="8" fill="#777" text-anchor="middle" dominant-baseline="middle" >fitted at L4</text>
+<polygon points="108.0,218.0 588.0,218.0 588.0,410.0 108.0,410.0" fill="none" stroke="#4a3b32" stroke-width="2.5"  opacity="1.0"/>
+<polygon points="108.0,218.0 300.0,218.0 300.0,410.0 108.0,410.0" fill="none" stroke="#d9342b" stroke-width="1.4" stroke-dasharray="3,2" opacity="1.0"/>
+<polygon points="396.0,218.0 588.0,218.0 588.0,410.0 396.0,410.0" fill="none" stroke="#d9342b" stroke-width="1.4" stroke-dasharray="3,2" opacity="1.0"/>
+</svg>

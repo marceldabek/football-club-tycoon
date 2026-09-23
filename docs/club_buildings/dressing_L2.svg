@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="924" height="784" viewBox="0 0 924 784" font-family="Segoe UI, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+<polygon points="0.0,0.0 924.0,0.0 924.0,784.0 0.0,784.0" fill="#f6f4ee" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="0.0,134.0 924.0,134.0 924.0,750.0 0.0,750.0" fill="#d8d4ca" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="10.0" y="18.0" font-size="15" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" font-weight="bold">DRESSING ROOMS — L2 Lockers + Showers</text>
+<text x="10.0" y="42.0" font-size="10" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >TEMP £2,000 · home room only</text>
+<text x="10.0" y="57.0" font-size="10" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >home strength +1 at home matches</text>
+<polygon points="796.0,8.0 916.0,8.0 916.0,116.6 796.0,116.6" fill="#ffffff" stroke="#999" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="797.4,8.0 803.4,8.0 803.4,116.6 797.4,116.6" fill="#6d6f72" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="804.6,8.0 913.1,8.0 913.1,116.6 804.6,116.6" fill="#cfe3b6" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="830.1,25.3 887.6,25.3 887.6,99.3 830.1,99.3" fill="#c9c3b3" stroke="#4a3b32" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="844.1,40.4 873.6,40.4 873.6,84.1 844.1,84.1" fill="#5fae4f" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="836.4,56.6 841.6,56.6 841.6,68.0 836.4,68.0" fill="#a0553d" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="890.6,36.9 907.1,36.9 907.1,87.7 890.6,87.7" fill="none" stroke="#7a7a7a" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="808.9,68.0 823.1,68.0 823.1,105.1 808.9,105.1" fill="none" stroke="#777" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="837.7,60.0 841.6,60.0 841.6,64.6 837.7,64.6" fill="none" stroke="#d9342b" stroke-width="1.6"  opacity="1.0"/>
+<text x="856.0" y="124.6" font-size="8" fill="#555" text-anchor="middle" dominant-baseline="middle" >where on the plot</text>
+<polyline points="10.0,767.0 150.0,767.0" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-linejoin="round"   opacity="1.0"/>
+<text x="156.0" y="767.0" font-size="9" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >10 studs (~3.6 m)   ·   14 px/stud (ground plan: 1.25)</text>
+<polyline points="908.0,776.0 908.0,758.0" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"  marker-end="url(#arr)" opacity="1.0"/>
+<text x="898.0" y="767.0" font-size="10" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">N</text>
+<polygon points="190.4,212.4 574.0,212.4 574.0,671.6 190.4,671.6" fill="#a0553d" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="201.6,386.0 560.0,386.0 560.0,498.0 201.6,498.0" fill="#e9e4d4" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="190.4,386.0 201.6,386.0 201.6,498.0 190.4,498.0" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="565.6,386.0 574.0,386.0 574.0,498.0 565.6,498.0" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="168.0" y="442.0" font-size="9" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >lobby</text>
+<text x="595.0" y="442.0" font-size="9" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >players' door → tunnel</text>
+<text x="380.8" y="442.0" font-size="9" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >corridor</text>
+<polygon points="201.6,509.2 560.0,509.2 560.0,660.4 201.6,660.4" fill="#efece2" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="229.6,615.6 469.0,615.6 469.0,660.4 229.6,660.4" fill="#78553a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="229.6,509.2 308.0,509.2 308.0,554.0 229.6,554.0" fill="#78553a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="406.0,509.2 532.0,509.2 532.0,554.0 406.0,554.0" fill="#78553a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="229.6,647.8 469.0,647.8 469.0,660.4 229.6,660.4" fill="#5a6472" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="476.0,590.4 560.0,590.4 560.0,660.4 476.0,660.4" fill="#8fbfe0" stroke="#777" stroke-width="0.6"  opacity="1.0"/>
+<text x="518.0" y="625.4" font-size="7" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >showers</text>
+<polygon points="201.6,556.8 207.2,556.8 207.2,612.8 201.6,612.8" fill="#1c4628" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="565.6,561.0 574.0,561.0 574.0,617.0 565.6,617.0" fill="#8fd3f4" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="322.0,498.0 392.0,498.0 392.0,509.2 322.0,509.2" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="308.0" y="584.8" font-size="9" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">HOME (L2)</text>
+<polygon points="201.6,223.6 560.0,223.6 560.0,374.8 201.6,374.8" fill="#efece2" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="229.6,223.6 532.0,223.6 532.0,268.4 229.6,268.4" fill="#78553a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="229.6,330.0 308.0,330.0 308.0,374.8 229.6,374.8" fill="#78553a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="406.0,330.0 532.0,330.0 532.0,374.8 406.0,374.8" fill="#78553a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="201.6,271.2 207.2,271.2 207.2,327.2 201.6,327.2" fill="#1c4628" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="565.6,267.0 574.0,267.0 574.0,323.0 565.6,323.0" fill="#8fd3f4" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="322.0,374.8 392.0,374.8 392.0,386.0 322.0,386.0" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="308.0" y="299.2" font-size="9" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">AWAY (L1)</text>
+<polygon points="190.4,212.4 574.0,212.4 574.0,671.6 190.4,671.6" fill="none" stroke="#4a3b32" stroke-width="2.5"  opacity="1.0"/>
+<polygon points="225.4,586.2 564.2,586.2 564.2,664.6 225.4,664.6" fill="none" stroke="#d9342b" stroke-width="1.4" stroke-dasharray="3,2" opacity="1.0"/>
+</svg>
