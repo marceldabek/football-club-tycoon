@@ -13,6 +13,7 @@ local RoadTiles = require(ReplicatedStorage.Shared.RoadTiles)
 local PavingStrips = require(ReplicatedStorage.Shared.PavingStrips)
 local RoadCarve = require(ReplicatedStorage.Shared.RoadCarve)
 local KitPlacer = require(script.Parent.KitPlacer)
+local TreeKit = require(script.Parent.TreeKit)
 
 local RoadTiler = {}
 
@@ -363,6 +364,24 @@ function RoadTiler.build(parent: Instance, origin: CFrame, filter: { district: s
 		end
 		model:SetAttribute("RoundaboutProp", true)
 		counts.props = (counts.props or 0) + 1
+	end
+
+	-- a single oak on each big roundabout's centre island (#29); mini
+	-- roundabouts (painted dome, vehicles can straddle it) get nothing
+	local grassTop = RoadTiles.SURFACE_Y + RoadTiles.RB_DISC_TOP + 0.9
+	local treeRng = Random.new(1918)
+	for _, rb in TownLayout.ROUNDABOUTS do
+		if rb.radius < RoadTiles.BIG_ROUNDABOUT then
+			continue
+		end
+		local district = nearestDistrict(plan.tiles, rb.centre)
+		if want and district ~= want then
+			continue
+		end
+		local at = (origin * CFrame.new(rb.centre.X, grassTop, rb.centre.Z)).Position
+		if TreeKit.tree(districtModel(parent, models, district), at, { height = 20, rng = treeRng, name = "RoundaboutOak", collide = false }) then
+			counts.roundaboutTrees = (counts.roundaboutTrees or 0) + 1
+		end
 	end
 
 	for _, model in models do
