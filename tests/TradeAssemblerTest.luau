@@ -120,7 +120,6 @@ function T.districtFilterBuildsOnlyThatDistrictWithinBudget()
 		for _, group in folder:GetChildren() do
 			assert(group.Name == "Trade_Industrial Estate", "unexpected district " .. group.Name)
 			assert((group :: Model).ModelStreamingMode == Enum.ModelStreamingMode.Default, "district group must not be Atomic")
-			assert((group :: Model).LevelOfDetail == Enum.ModelLevelOfDetail.StreamingMesh, "district group needs a streaming-mesh stand-in (#27)")
 		end
 		assert(V3Perf.withinBudget(V3Perf.count(folder), TradeAssembler.PART_BUDGET), "over budget")
 	end)

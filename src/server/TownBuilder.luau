@@ -38,7 +38,6 @@ local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local TownCrest = require(ReplicatedStorage.Shared.TownCrest)
 local TradeRecipes = require(ReplicatedStorage.Shared.TradeRecipes)
 local TradeAssembler = require(script.Parent.TradeAssembler)
-local V3Perf = require(script.Parent.V3Perf)
 
 local TownBuilder = {}
 
@@ -641,9 +640,6 @@ end
 local function buildDistricts(parent: Instance)
 	for _, district in TownLayout.DISTRICTS do
 		local m = model(district.name, parent)
-		-- Lane I (#27): whole-block grouping model gets a low-detail stand-in
-		-- (best-effort, see V3Perf).
-		V3Perf.trySetStreamingMesh(m)
 		m:SetAttribute("DistrictKind", district.kind)
 		for _, block in district.blocks do
 			-- v3 (Lane I): TradeAssembler builds these specials from the kit, so they get

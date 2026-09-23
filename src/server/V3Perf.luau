@@ -128,20 +128,6 @@ function V3Perf.count(root: Instance, opts: CountOpts?): Counts
 	return c
 end
 
--- Lane I (#27): mark a whole-block grouping model for a low-detail streaming
--- stand-in. Measured 2026-09-23: writing Model.LevelOfDetail throws "cannot
--- write 'LevelOfDetail' (lacking capability Plugin)" from an ordinary Script
--- (it worked from the Studio command bar / MCP thread, but crashed the real
--- Main.server.luau build). Roblox reserves this property for Studio/plugin
--- tooling, so this pcalls it and degrades to no stand-in rather than taking
--- the whole town build down. Returns whether it was actually set.
-function V3Perf.trySetStreamingMesh(model: Instance): boolean
-	local ok = pcall(function()
-		(model :: any).LevelOfDetail = Enum.ModelLevelOfDetail.StreamingMesh
-	end)
-	return ok
-end
-
 -- One stable string for `[FCT]` lines so Lane P can grep and compare them.
 function V3Perf.format(c: Counts): string
 	local s = ("meshParts=%d uniqueMeshIds=%d instances=%d parts=%d textures=%d shadows=%d preciseCollision=%d kitMissing=%d"):format(

@@ -14,7 +14,6 @@ local PavingStrips = require(ReplicatedStorage.Shared.PavingStrips)
 local RoadCarve = require(ReplicatedStorage.Shared.RoadCarve)
 local KitPlacer = require(script.Parent.KitPlacer)
 local TreeKit = require(script.Parent.TreeKit)
-local V3Perf = require(script.Parent.V3Perf)
 
 local RoadTiler = {}
 
@@ -271,9 +270,6 @@ local function districtModel(parent: Instance, cache: { [string]: Model }, distr
 		model.Name = "Roads_" .. district
 		-- TOWN_V3_BUILD.md s9 rule 1: a district is a grouping model, never Atomic
 		model.ModelStreamingMode = Enum.ModelStreamingMode.Default
-		-- Lane I (#27): low-detail stand-in for the whole block while it streams
-		-- (best-effort, see V3Perf).
-		V3Perf.trySetStreamingMesh(model)
 		model:SetAttribute("District", district)
 		model.Parent = parent
 		cache[district] = model
@@ -440,9 +436,6 @@ function RoadTiler.buildPavements(parent: Instance, origin: CFrame): number
 			holder = Instance.new("Model")
 			holder.Name = "Pavements_" .. district
 			holder.ModelStreamingMode = Enum.ModelStreamingMode.Default
-			-- Lane I (#27): low-detail stand-in for the whole block while it streams
-			-- (best-effort, see V3Perf).
-			V3Perf.trySetStreamingMesh(holder)
 			holder.Parent = parent
 			models[district] = holder
 		end

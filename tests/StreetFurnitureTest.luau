@@ -81,7 +81,6 @@ T["one non-atomic Model per district, props carry Kit and Road, decor is tagged"
 		for _, child in folder:GetChildren() do
 			assert(child:IsA("Model"), child.Name .. " is not a Model")
 			assert((child :: Model).ModelStreamingMode == Enum.ModelStreamingMode.Default, child.Name .. " must not be Atomic (section 9 rule 1)")
-			assert((child :: Model).LevelOfDetail == Enum.ModelLevelOfDetail.StreamingMesh, child.Name .. " needs a streaming-mesh stand-in (#27)")
 			names[child.Name] = true
 			for _, prop in child:GetChildren() do
 				assert(prop:GetAttribute("Kit") ~= nil and prop:GetAttribute("Road") ~= nil, prop.Name .. " lacks Kit/Road attributes")

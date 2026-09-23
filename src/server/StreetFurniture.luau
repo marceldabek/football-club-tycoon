@@ -108,9 +108,6 @@ function StreetFurniture.buildFrom(input: FurniturePlan.Input, parent: Instance,
 			model.Name = "Furniture_" .. name
 			-- section 9 rule 1: furniture is a plain grouping model, never Atomic
 			model.ModelStreamingMode = Enum.ModelStreamingMode.Default
-			-- Lane I (#27): low-detail stand-in for the whole block while it streams
-			-- (best-effort, see V3Perf).
-			V3Perf.trySetStreamingMesh(model)
 			model.Parent = parent
 			models[name] = model
 		end
