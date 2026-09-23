@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="363" viewBox="0 0 300 363" font-family="Segoe UI, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+<polygon points="0.0,0.0 300.0,0.0 300.0,363.6 0.0,363.6" fill="#f4f2ea" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="48.0,144.0 252.0,144.0 252.0,279.6 48.0,279.6" fill="#eef0e9" stroke="#4a3b32" stroke-width="2"  opacity="1.0"/>
+<text x="150.0" y="36.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">FOOTBALL OPS -- L2 Scouting Room</text>
+<text x="150.0" y="84.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >TEMP GBP3,000</text>
+<polyline points="96.0,339.6 156.0,339.6" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<text x="126.0" y="318.6" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >10 studs (~3.6 m)</text>
+<polygon points="48.0,144.0 252.0,144.0 252.0,279.6 48.0,279.6" fill="#efece2" stroke="#4a3b32" stroke-width="1.5"  opacity="1.0"/>
+<polygon points="60.0,276.0 90.0,276.0 90.0,283.2 60.0,283.2" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="75.0" y="297.6" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >to lobby</text>
+<polygon points="51.6,156.0 144.0,156.0 144.0,204.0 51.6,204.0" fill="#2c4c3a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="96.0" y="138.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >world map pinboard</text>
+<polygon points="216.0,231.6 248.4,231.6 248.4,267.6 216.0,267.6" fill="#6e4e32" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="234.0" y="219.6" font-size="4" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >desk + shortlist tray</text>
+<polygon points="72.0,231.6 96.0,231.6 96.0,267.6 72.0,267.6" fill="#5a6472" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="84.0" y="217.2" font-size="4" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >filing</text>
+<text x="84.0" y="222.0" font-size="4" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >cabinet</text>
+<text x="150.0" y="235.8" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">SCOUTING ROOM</text>
+</svg>

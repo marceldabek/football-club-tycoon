@@ -347,6 +347,41 @@ plan("athleticcentre_L3", GYM_SHELL, 10, "ATHLETIC CENTRE -- L3", "TEMP GBP9,000
 plan("athleticcentre_L4", GYM_SHELL, 10, "ATHLETIC CENTRE -- L4 + Physio", "TEMP GBP20,000, training pitch 2", gym_L4)
 
 
+# ============================================================ SCOUTING ROOM
+# Clubhouse.ROOMS.Store (mirrors Office across the corridor): x -156..-122,
+# z -39..-16.4. Today it is lined but empty (Clubhouse.buildLobby's `store`
+# model). Ground plan §5's table has only two states for this row ("store" /
+# "clubhouse store refits into the scouting room"), so this track is
+# deliberately short -- see Q8 on whether it needs a cosmetic L3.
+SCOUT_SHELL = dict(x0=-156, x1=-122, z0=-39, z1=-16.4)
+
+
+def scout_L1(c):
+    s = SCOUT_SHELL
+    c.rect(s["x0"], s["z0"], s["x1"], s["z1"], fill="#efece2", stroke=CB["wall"], sw=1.5)
+    door(c, s["x0"] + 2, s["x0"] + 7, s["z1"] - 0.6, s["z1"] + 0.6)
+    c.text(s["x0"] + 4.5, s["z1"] + 3, "to lobby", 5)
+    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2, "empty concession store\n(as built)", 6)
+
+
+def scout_L2(c):
+    s = SCOUT_SHELL
+    c.rect(s["x0"], s["z0"], s["x1"], s["z1"], fill="#efece2", stroke=CB["wall"], sw=1.5)
+    door(c, s["x0"] + 2, s["x0"] + 7, s["z1"] - 0.6, s["z1"] + 0.6)
+    c.text(s["x0"] + 4.5, s["z1"] + 3, "to lobby", 5)
+    c.rect(s["x0"] + 0.6, s["z0"] + 2, s["x0"] + 16, s["z0"] + 10, fill="#2c4c3a")
+    c.text(s["x0"] + 8, s["z0"] - 1, "world map pinboard", 5)
+    c.rect(s["x1"] - 6, s["z1"] - 8, s["x1"] - 0.6, s["z1"] - 2, fill=CB["wood"])
+    c.text(s["x1"] - 3, s["z1"] - 10, "desk + shortlist tray", 4, anchor="r")
+    c.rect(s["x0"] + 4, s["z1"] - 8, s["x0"] + 8, s["z1"] - 2, fill=CB["locker"])
+    c.text(s["x0"] + 6, s["z1"] - 10, "filing\ncabinet", 4)
+    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2 + 4, "SCOUTING ROOM", 6, bold=True)
+
+
+plan("scoutroom_L1", SCOUT_SHELL, 8, "FOOTBALL OPS -- L1 Store", "exists today (empty)", scout_L1)
+plan("scoutroom_L2", SCOUT_SHELL, 8, "FOOTBALL OPS -- L2 Scouting Room", "TEMP GBP3,000", scout_L2)
+
+
 # ---------------------------------------------------------------------- main
 def main(names=None):
     OUT.mkdir(parents=True, exist_ok=True)

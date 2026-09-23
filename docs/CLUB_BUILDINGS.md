@@ -82,6 +82,16 @@ Add them here as the draft finds them. Don't decide them silently.
    development entirely. **Recommendation:** make the building's bonus additive on top of the
    coach's multiplier (`finalRate = base * coachMultiplier + buildingFlatBonus`), not another
    multiplier, so the two tracks feel complementary rather than compounding.
+8. **Does the scouting room need more than 2 levels?** Every other track in this doc has 4;
+   `Config.ScoutLevels` itself has 5 staff tiers (Local Scout up to Continental Network), all
+   hireable the moment the room exists. **Recommendation:** keep the room at 2 (it only needs
+   to gate *whether* a scout can be hired, not how good one is — that's `ScoutLevels`' job) and
+   only add a cosmetic L3 "Scouting Hub" later if a National/Continental Network scout feels odd
+   working out of the same small room as a Local Scout.
+9. **What gates the Scouting Room appearing on the Club Map** (§6's progressive disclosure)?
+   It has no obvious physical prerequisite like the others (no training pitch, no division).
+   **Recommendation:** show it from spawn, same as Club Shop and the Coach's Cabin — three
+   "football ops" rows visible immediately reads better than an arbitrary shop-tier gate.
 
 ## Draft (P9): level tables and floor plans
 
@@ -173,3 +183,19 @@ Part budget: L2 ~10, L3 ~35 (coach's office + gym fixtures), L4 ~45 (+ physio ta
 Club Map: "Coach's Cabin" is one of the three rows visible from spawn (ground plan §6), alongside
 one more stand and Club Shop. Athletic Centre/+ Physio only appear once their training-pitch
 prerequisite exists.
+
+### Scouting room (clubhouse store refit)
+
+Shell (fixed — it already is, `Clubhouse.ROOMS.Store`, mirroring the office across the
+corridor): plot-local x −156…−122, z −39…−16.4. Ground plan §5's table gives this row only two
+states, so this track is deliberately short — two levels, not four (see Q8).
+
+| Level | Name | TEMP price | Prerequisite | Inside | Mechanic |
+|---|---|---|---|---|---|
+| 1 | Store | £0 (exists) | none | empty concession store, as built — [`scoutroom_L1.svg`](club_buildings/scoutroom_L1.svg) | no scout can be hired |
+| 2 | Scouting Room | TEMP £3,000 | Store | world map pinboard, desk + shortlist tray, filing cabinet — [`scoutroom_L2.svg`](club_buildings/scoutroom_L2.svg) | **unlocks hiring a scout** (`Config.ScoutLevels`) |
+
+Part budget: L1 0 (unfurnished, as built), L2 ~10.
+
+Club Map: visible from spawn alongside Club Shop and the Coach's Cabin (see Q9 — it has no
+physical prerequisite to gate on).
