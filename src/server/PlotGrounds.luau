@@ -39,9 +39,9 @@
 --     paved apron at its front doors (x -169..-157, z -16..16) and one at the
 --     office side door (x -157..-147, z 40..46). The car park never reaches
 --     x > -250, so it clears them; two paths here join them up.
---   * forecourt + turnstiles x -190..-121, z -225..-150 (the NORTH-west corner,
---     north = -Z). The shop at z -150 sits 97 studs west of it, so it keeps the
---     requested spot and ends up on the walk from the pedestrian gate to the
+--   * the ground wall (GroundEnvelope, #15) x -201..201, z -259..259, with its
+--     huts and turnstile blocks just outside the west side (to x -223). The shop
+--     at z -150 ends up on the walk from the pedestrian gate to the NW
 --     turnstiles, like the reference photo.
 --   * deepest stand: STEP_DEPTH is 3 in WorldBuilder (16 rows = 48 studs + roof),
 --     so the east stand ends near x 175. The training fence starts at x 222,
