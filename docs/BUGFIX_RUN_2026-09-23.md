@@ -31,13 +31,11 @@ the Club Map GUI.
 
 ## Must do before this ships
 
-1. **Assets live in the station place files, not the main place.** Generated meshes were installed into
-   each station's local `.rbxl`: the concourse props (st1, `tools/kit/install_concourse.luau`); the
-   coach, satellite dish, train carriage and ClientKit van (st3, ids in `assets/kit/_export`); the church
-   (st4, `install_church.luau`); and the merged flats/parade units (st4, `install_house_units.luau`).
-   Without them the code falls back to primitives. **Save all four station Studios now (Ctrl+S, local files).**
-   Then install them into the published place: run the install scripts in Edit, or copy the Kit folders
-   across Studio windows.
+1. **Install the generated meshes into the published place** (Edit mode, then save the place). Each script
+   rebuilds its meshes from asset ids in the repo, so the station place files don't need saving:
+   `tools/kit/install_house_units.luau` (flats/parade units + changed house meshes),
+   `tools/kit/install_church.luau`, `tools/kit/install_concourse.luau`, `tools/kit/install_vehicles.luau`
+   (coach, TV van dish, train carriage). Without them the code falls back to primitives.
 2. **Turn "Enable Studio Access to API Services" back on** (Game Settings → Security). It was switched off
    so the stations' Play tests couldn't kick each other through the save lock.
 3. **Streaming stand-ins (#27)** only prove themselves on the published game: from Plot 1's car park,
