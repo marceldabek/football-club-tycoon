@@ -20,7 +20,7 @@
 --
 --   ClientKit.Van     X393 (playtest #8): the 71-part Kit.Vehicles.VanWhite,
 --                    whole model like Cruiser/Bicycle below (not a one-mesh
---                    car). MatchdayLife's broadcast van; front is -X unrotated.
+--                    car). MatchdayLife's broadcast van; front is -Z unrotated.
 --
 --   ClientKit.Dish    X393: a generated satellite dish (single mesh) for the
 --                    same broadcast van. Pivot is the mesh's own CFrame.
@@ -59,7 +59,7 @@ ClientKit.VAN = "VanWhite"
 ClientKit.DISH = "SatelliteDish"
 
 -- X394 (playtest #36): a generated train carriage, reused for all 3 of the
--- town train's carriages. Single mesh, unrotated front is local +X.
+-- town train's carriages. Single mesh, length along its Z, a cab at each end.
 ClientKit.TRAIN_CARRIAGE = "TrainCarriage"
 
 function ClientKit.publish(): string

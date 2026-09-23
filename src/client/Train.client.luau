@@ -74,37 +74,21 @@ type Piece = { part: BasePart, offset: CFrame }
 local carriages: { { Piece } } = {}
 
 -- X394 (playtest #36): reuse one generated carriage mesh for all 3 carriages
--- if ClientKit published it; unrotated front is local +X, so turn +90 about
--- Y to face the frame's forward (-Z, TrainMath.carriageFrames). The old
--- 4-piece primitive stays as the fallback (also used for the night window
--- glow, which the kit mesh's baked windows don't need).
-local clientKit = ReplicatedStorage:WaitForChild("ClientKit", 5)
-local carriageTemplate = clientKit and clientKit:WaitForChild("TrainCarriage", 5)
-local carriageMesh = carriageTemplate and carriageTemplate:FindFirstChildWhichIsA("BasePart", true) :: BasePart?
-
-for _ = 1, CARRIAGES do
-	local pieces: { Piece } = {}
-	local function add(name: string, size: Vector3, offset: CFrame, colour: Color3, material: Enum.Material)
-		table.insert(pieces, { part = newPart(name, size, colour, material), offset = offset })
-	end
-	if carriageMesh then
-		local mesh = carriageMesh:Clone()
-		mesh.Name = "Body"
-		mesh.CastShadow = true
-		mesh.Parent = folder
-		table.insert(pieces, { part = mesh, offset = CFrame.new(0, mesh.Size.Y / 2, 0) * CFrame.Angles(0, math.pi / 2, 0) })
-	else
-		add("Underframe", Vector3.new(WIDTH - 1.4, 1.4, LENGTH - 3), CFrame.new(0, 0.9, 0), UNDER, Enum.Material.Metal)
-		add("Body", Vector3.new(WIDTH, 6.4, LENGTH), CFrame.new(0, 1.6 + 3.2, 0), BODY, Enum.Material.SmoothPlastic)
-		add("Windows", Vector3.new(WIDTH + 0.1, 1.8, LENGTH - 4), CFrame.new(0, 5.4, 0), WINDOWS, Enum.Material.Glass)
-		add("Stripe", Vector3.new(WIDTH + 0.12, 0.7, LENGTH - 0.2), CFrame.new(0, 3.2, 0), STRIPE, Enum.Material.SmoothPlastic)
-	end
-	table.insert(carriages, pieces)
-end
-for _, pieces in carriages do
-	for _, piece in pieces do
-		piece.part.CastShadow = piece.part.Name == "Body"
-	end
+-- if ClientKit published it. Its length already runs along its Z with a cab
+-- at both ends, so it takes the frame as it is (TrainMath.carriageFrames:
+-- -Z forward); the first cut turned it 90 degrees, running every carriage
+-- sideways down the line. The old 4-piece primitive stays as the fallback.
+-- Night glow (X158): the mesh's windows are baked into its texture, so a thin
+-- band over them is shown only after dark. KIT_WINDOWS_Y/H were measured off
+-- the mesh side-on with marker bars (window glass 3.45..5.1 above the rails).
+local KIT_WINDOWS_Y, KIT_WINDOWS_H, KIT_WINDOWS_LENGTH = 4.3, 1.4, LENGTH - 6
+-- The server publishes ClientKit after the town build, which can be well after
+-- this script starts (the first cut waited 5 s and then kept the primitive for
+-- the whole session): build with what is there now, rebuild when it lands.
+local clientKit: Instance? = ReplicatedStorage:FindFirstChild("ClientKit")
+local function kitCarriageMesh(): BasePart?
+	local template = clientKit and clientKit:FindFirstChild("TrainCarriage")
+	return template and template:FindFirstChildWhichIsA("BasePart", true) :: BasePart?
 end
 
 -- X172: a rolling rumble on the middle carriage while the train moves (Pro
@@ -126,7 +110,43 @@ rumble.Volume = 0
 rumble.RollOffMode = Enum.RollOffMode.InverseTapered
 rumble.RollOffMinDistance = 40
 rumble.RollOffMaxDistance = 400
-rumble.Parent = pieceNamed(carriages[math.ceil(CARRIAGES / 2)], "Body")
+
+local function buildCarriages(carriageMesh: BasePart?)
+	rumble.Parent = nil
+	for _, pieces in carriages do
+		for _, piece in pieces do
+			piece.part:Destroy()
+		end
+	end
+	table.clear(carriages)
+	for _ = 1, CARRIAGES do
+		local pieces: { Piece } = {}
+		local function add(name: string, size: Vector3, offset: CFrame, colour: Color3, material: Enum.Material)
+			table.insert(pieces, { part = newPart(name, size, colour, material), offset = offset })
+		end
+		if carriageMesh then
+			local mesh = carriageMesh:Clone()
+			mesh.Name = "Body"
+			mesh.Parent = folder
+			table.insert(pieces, { part = mesh, offset = CFrame.new(0, mesh.Size.Y / 2, 0) })
+			add("Windows", Vector3.new(mesh.Size.X + 0.1, KIT_WINDOWS_H, KIT_WINDOWS_LENGTH), CFrame.new(0, KIT_WINDOWS_Y, 0), WINDOWS, Enum.Material.Glass)
+			local band = pieces[#pieces].part
+			band.Transparency = 1
+			band:SetAttribute("NightOnly", true)
+		else
+			add("Underframe", Vector3.new(WIDTH - 1.4, 1.4, LENGTH - 3), CFrame.new(0, 0.9, 0), UNDER, Enum.Material.Metal)
+			add("Body", Vector3.new(WIDTH, 6.4, LENGTH), CFrame.new(0, 1.6 + 3.2, 0), BODY, Enum.Material.SmoothPlastic)
+			add("Windows", Vector3.new(WIDTH + 0.1, 1.8, LENGTH - 4), CFrame.new(0, 5.4, 0), WINDOWS, Enum.Material.Glass)
+			add("Stripe", Vector3.new(WIDTH + 0.12, 0.7, LENGTH - 0.2), CFrame.new(0, 3.2, 0), STRIPE, Enum.Material.SmoothPlastic)
+		end
+		for _, piece in pieces do
+			piece.part.CastShadow = piece.part.Name == "Body"
+		end
+		table.insert(carriages, pieces)
+	end
+	rumble.Parent = pieceNamed(carriages[math.ceil(CARRIAGES / 2)], "Body")
+end
+buildCarriages(kitCarriageMesh())
 rumble:Play()
 local RUMBLE_VOLUME = 0.6
 
@@ -162,12 +182,35 @@ local function refreshWindows()
 			if piece.part.Name == "Windows" then
 				piece.part.Color = if dark then LIT_WINDOWS else WINDOWS
 				piece.part.Material = if dark then Enum.Material.Neon else Enum.Material.Glass
+				if piece.part:GetAttribute("NightOnly") then
+					piece.part.Transparency = if dark then 0 else 1
+				end
 			end
 		end
 	end
 end
 player:GetAttributeChangedSignal("SkyDark"):Connect(refreshWindows)
 refreshWindows()
+
+-- the kit carriage published after this script started: swap it in
+local function swapInKit()
+	local mesh = kitCarriageMesh()
+	if mesh and not carriages[1][1].part:IsA("MeshPart") then
+		buildCarriages(mesh)
+		windowsLit = nil
+		refreshWindows()
+	end
+end
+task.spawn(function()
+	local kit = ReplicatedStorage:WaitForChild("ClientKit")
+	clientKit = kit
+	kit.ChildAdded:Connect(function(child: Instance)
+		if child.Name == "TrainCarriage" then
+			task.defer(swapInKit)
+		end
+	end)
+	swapInKit()
+end)
 
 RunService.Heartbeat:Connect(function(dt: number)
 	local wantVolume = if wait > 0 then 0 else RUMBLE_VOLUME
