@@ -192,10 +192,18 @@ local activeBannerCount = 0
 -- ("post top at ~13.8, arm toward local -Z"), so this rebuilds from the post
 -- directly rather than trusting the model's pivot.
 --
--- Kit lamps (attribute Kit == "LampVictorian") are placed by
--- KitPlacer.place, which ends with model:PivotTo(target * offset:Inverse())
--- where `target` keeps the placement CFrame's rotation -- so their pivot can
--- be used directly.
+-- Kit lamps (attribute Kit == "LampVictorian", from SquareDresser, or named
+-- "StreetLightNN_Node", the town-wide lamp FurniturePlan/StreetFurniture
+-- place -- X37 follow-up: this used to only match "TerraceLamp"/LampVictorian,
+-- built by a pre-v3 dresser that no longer runs, so the 1,390 real street
+-- lamps the town actually has were never registered and never got real
+-- light or a banner) are placed by KitPlacer.place, which ends with
+-- model:PivotTo(target * offset:Inverse()) where `target` keeps the
+-- placement CFrame's rotation -- so their pivot can be used directly.
+local function isKitLampName(name: string): boolean
+	return name:match("^StreetLight%d+_Node$") ~= nil
+end
+
 local function lampPlacement(model: Model): (Vector3?, Vector3?)
 	if model.Name == "TerraceLamp" then
 		local post = model:FindFirstChild("Post")
@@ -205,7 +213,7 @@ local function lampPlacement(model: Model): (Vector3?, Vector3?)
 		local ground = post.Position - Vector3.new(0, 7.5, 0)
 		local roadDir = post.CFrame:VectorToWorldSpace(Vector3.new(0, 0, -1))
 		return ground, roadDir
-	elseif model:GetAttribute("Kit") == "LampVictorian" then
+	elseif model:GetAttribute("Kit") == "LampVictorian" or isKitLampName(model.Name) then
 		local pivot = model:GetPivot()
 		return pivot.Position, pivot:VectorToWorldSpace(Vector3.new(0, 0, -1))
 	end
@@ -225,7 +233,7 @@ local function registerLamp(inst: Instance)
 	if seenLamps[model] then
 		return
 	end
-	local isLamp = model.Name == "TerraceLamp" or model:GetAttribute("Kit") == "LampVictorian"
+	local isLamp = model.Name == "TerraceLamp" or model:GetAttribute("Kit") == "LampVictorian" or isKitLampName(model.Name)
 	if not isLamp then
 		return
 	end
@@ -238,21 +246,28 @@ local function registerLamp(inst: Instance)
 	table.insert(allLamps, { model = model, ground = ground :: Vector3, roadDir = roadDir :: Vector3, index = lampCounter })
 end
 
+-- X37 follow-up: the lamps aren't under one "Dressing" folder any more (that
+-- was the pre-v3 dresser's own output folder, renamed to "TerraceStreets" and
+-- never rebuilt town-wide since); the town-wide kit lamps live under each
+-- district's model inside V3Furniture, and the market square's under Square.
+-- Watching those two roots instead of the whole Town model keeps the initial
+-- scan cheap.
+local function watchLampRoot(town: Model, name: string)
+	local root = town:WaitForChild(name, math.huge)
+	for _, d in root:GetDescendants() do
+		registerLamp(d)
+	end
+	root.DescendantAdded:Connect(registerLamp)
+end
+
 local function watchLampDressing()
 	local town = workspace:FindFirstChild("Town")
 	while not town do
 		task.wait(2)
 		town = workspace:FindFirstChild("Town")
 	end
-	local dressing = town:FindFirstChild("Dressing")
-	while not dressing do
-		task.wait(2)
-		dressing = town:FindFirstChild("Dressing")
-	end
-	for _, d in dressing:GetDescendants() do
-		registerLamp(d)
-	end
-	dressing.DescendantAdded:Connect(registerLamp)
+	task.spawn(watchLampRoot, town, "V3Furniture")
+	task.spawn(watchLampRoot, town, "Square")
 end
 task.spawn(watchLampDressing)
 
