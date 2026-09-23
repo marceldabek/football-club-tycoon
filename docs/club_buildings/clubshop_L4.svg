@@ -1,31 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="276" height="432" viewBox="0 0 276 432" font-family="Segoe UI, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="726" height="652" viewBox="0 0 726 652" font-family="Segoe UI, Arial, sans-serif">
 <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
-<polygon points="0.0,0.0 276.0,0.0 276.0,432.0 0.0,432.0" fill="#f4f2ea" stroke="none" stroke-width="1"  opacity="1.0"/>
-<polygon points="60.0,156.0 216.0,156.0 216.0,336.0 60.0,336.0" fill="#eef0e9" stroke="#4a3b32" stroke-width="2"  opacity="1.0"/>
-<text x="138.0" y="36.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">CLUB SHOP -- L4 Flagship Store</text>
-<text x="138.0" y="84.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >TEMP GBP24,000</text>
-<polyline points="72.0,408.0 132.0,408.0" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
-<text x="102.0" y="387.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >10 studs (~3.6 m)</text>
-<polygon points="60.0,156.0 216.0,156.0 216.0,336.0 60.0,336.0" fill="#efece2" stroke="#4a3b32" stroke-width="1.5"  opacity="1.0"/>
-<polygon points="212.4,288.0 216.0,288.0 216.0,324.0 212.4,324.0" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
-<polygon points="212.4,-576.0 966.0,-576.0 966.0,258.0 212.4,258.0" fill="#8fd3f4" stroke="none" stroke-width="1"  opacity="1.0"/>
-<text x="234.0" y="216.0" font-size="5" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >window</text>
-<text x="234.0" y="306.0" font-size="5" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >door</text>
-<polygon points="63.6,174.0 75.6,174.0 75.6,318.0 63.6,318.0" fill="#3b5fa8" stroke="none" stroke-width="1"  opacity="1.0"/>
-<polygon points="63.6,174.0 75.6,174.0 75.6,192.0 63.6,192.0" fill="#151515" stroke="none" stroke-width="1"  opacity="1.0"/>
-<text x="69.6" y="156.0" font-size="5" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle"  transform="rotate(90 69.6 156.0)">KIT WALL + digital screen</text>
-<polygon points="108.0,180.0 126.0,180.0 126.0,228.0 108.0,228.0" fill="#6e4e32" stroke="none" stroke-width="1"  opacity="1.0"/>
-<polygon points="108.0,264.0 126.0,264.0 126.0,312.0 108.0,312.0" fill="#6e4e32" stroke="none" stroke-width="1"  opacity="1.0"/>
-<text x="117.0" y="204.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(90 117.0 204.0)">till 1</text>
-<text x="117.0" y="288.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(90 117.0 288.0)">till 2</text>
-<polygon points="132.0,186.0 180.0,186.0 180.0,198.0 132.0,198.0" fill="#9a9a9a" stroke="none" stroke-width="1"  opacity="1.0"/>
-<polygon points="132.0,234.0 180.0,234.0 180.0,246.0 132.0,246.0" fill="#9a9a9a" stroke="none" stroke-width="1"  opacity="1.0"/>
-<polygon points="132.0,282.0 180.0,282.0 180.0,294.0 132.0,294.0" fill="#9a9a9a" stroke="none" stroke-width="1"  opacity="1.0"/>
-<polygon points="132.0,318.0 180.0,318.0 180.0,330.0 132.0,330.0" fill="#9a9a9a" stroke="none" stroke-width="1"  opacity="1.0"/>
-<polygon points="186.0,300.0 210.0,300.0 210.0,330.0 186.0,330.0" fill="#d8c98a" stroke="#4a3b32" stroke-width="0.6"  opacity="1.0"/>
-<text x="198.0" y="315.6" font-size="4" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >trophy</text>
-<text x="198.0" y="320.4" font-size="4" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >cabinet</text>
-<text x="138.0" y="166.8" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">FLAGSHIP STORE</text>
-<text x="138.0" y="174.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">mannequins in window</text>
-<text x="138.0" y="181.2" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">~65 parts</text>
+<polygon points="0.0,0.0 726.0,0.0 726.0,652.0 0.0,652.0" fill="#f6f4ee" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="0.0,134.0 726.0,134.0 726.0,618.0 0.0,618.0" fill="#cfe3b6" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="10.0" y="18.0" font-size="15" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" font-weight="bold">CLUB SHOP — L4 Flagship Store</text>
+<text x="10.0" y="42.0" font-size="10" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >TEMP £24,000 · needs Regional Premier · merchPerFan 3.4</text>
+<text x="10.0" y="57.0" font-size="10" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >screen on the kit wall, 2 tills, 3 gondolas, trophy replica, mannequins</text>
+<polygon points="598.0,8.0 718.0,8.0 718.0,116.6 598.0,116.6" fill="#ffffff" stroke="#999" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="599.4,8.0 605.4,8.0 605.4,116.6 599.4,116.6" fill="#6d6f72" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="606.6,8.0 715.1,8.0 715.1,116.6 606.6,116.6" fill="#cfe3b6" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="632.1,25.3 689.6,25.3 689.6,99.3 632.1,99.3" fill="#c9c3b3" stroke="#4a3b32" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="646.1,40.4 675.6,40.4 675.6,84.1 646.1,84.1" fill="#5fae4f" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="638.4,56.6 643.6,56.6 643.6,68.0 638.4,68.0" fill="#a0553d" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="692.6,36.9 709.1,36.9 709.1,87.7 692.6,87.7" fill="none" stroke="#7a7a7a" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="610.9,68.0 625.1,68.0 625.1,105.1 610.9,105.1" fill="none" stroke="#777" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="616.1,38.7 619.9,38.7 619.9,43.0 616.1,43.0" fill="none" stroke="#d9342b" stroke-width="1.6"  opacity="1.0"/>
+<text x="658.0" y="124.6" font-size="8" fill="#555" text-anchor="middle" dominant-baseline="middle" >where on the plot</text>
+<polyline points="10.0,635.0 120.0,635.0" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-linejoin="round"   opacity="1.0"/>
+<text x="126.0" y="635.0" font-size="9" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >10 studs (~3.6 m)   ·   11 px/stud (ground plan: 1.25)</text>
+<polyline points="710.0,644.0 710.0,626.0" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"  marker-end="url(#arr)" opacity="1.0"/>
+<text x="700.0" y="635.0" font-size="10" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">N</text>
+<polygon points="583.0,134.0 671.0,134.0 671.0,618.0 583.0,618.0" fill="#e9e4d4" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="627.0" y="728.0" font-size="9" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(-90 627.0 728.0)">footpath (north leg)</text>
+<polygon points="385.0,420.0 583.0,420.0 583.0,530.0 385.0,530.0" fill="#c4c0b6" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="99.0,211.0 385.0,211.0 385.0,541.0 99.0,541.0" fill="#a0553d" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="110.0,222.0 374.0,222.0 374.0,530.0 110.0,530.0" fill="#efece2" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="374.0,244.0 385.0,244.0 385.0,398.0 374.0,398.0" fill="#8fd3f4" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="374.0,442.0 385.0,442.0 385.0,508.0 374.0,508.0" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="385.0,211.0 390.5,211.0 390.5,541.0 385.0,541.0" fill="#c8323c" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="429.0" y="321.0" font-size="9" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >window</text>
+<text x="429.0" y="475.0" font-size="9" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >door</text>
+<text x="242.0" y="563.0" font-size="9" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >fixed shell 26 x 30 (as built)</text>
+<polygon points="99.0,211.0 385.0,211.0 385.0,541.0 99.0,541.0" fill="none" stroke="#4a3b32" stroke-width="2.5"  opacity="1.0"/>
+<polygon points="198.0,266.0 220.0,266.0 220.0,420.0 198.0,420.0" fill="#7a5534" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="203.5,292.4 214.5,292.4 214.5,305.6 203.5,305.6" fill="#2c2c30" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="203.5,380.4 214.5,380.4 214.5,393.6 203.5,393.6" fill="#2c2c30" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="235.4" y="343.0" font-size="9" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(-90 235.4 343.0)">till counter</text>
+<polygon points="110.0,233.0 123.2,233.0 123.2,519.0 110.0,519.0" fill="#3b5fa8" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="110.0,321.0 123.2,321.0 123.2,431.0 110.0,431.0" fill="#151515" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="140.8" y="321.0" font-size="9" fill="#3b5fa8" text-anchor="middle" dominant-baseline="middle"  transform="rotate(-90 140.8 321.0)">kit wall + LED screen</text>
+<polygon points="106.7,317.7 126.5,317.7 126.5,434.3 106.7,434.3" fill="none" stroke="#d9342b" stroke-width="1.4" stroke-dasharray="3,2" opacity="1.0"/>
+<polygon points="121.0,431.0 176.0,431.0 176.0,508.0 121.0,508.0" fill="#5a6472" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="148.5" y="469.5" font-size="7" fill="#fff" text-anchor="middle" dominant-baseline="middle" >printing</text>
+<polygon points="255.2,244.0 272.8,244.0 272.8,376.0 255.2,376.0" fill="#8d8d8d" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="293.7,244.0 311.3,244.0 311.3,376.0 293.7,376.0" fill="#8d8d8d" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="332.2,244.0 341.0,244.0 341.0,310.0 332.2,310.0" fill="#8d8d8d" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="327.8,239.6 345.4,239.6 345.4,314.4 327.8,314.4" fill="none" stroke="#d9342b" stroke-width="1.4" stroke-dasharray="3,2" opacity="1.0"/>
+<polygon points="242.0,516.8 308.0,516.8 308.0,530.0 242.0,530.0" fill="#c9a94a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="238.7,512.4 311.3,512.4 311.3,532.2 238.7,532.2" fill="none" stroke="#d9342b" stroke-width="1.4" stroke-dasharray="3,2" opacity="1.0"/>
+<text x="275.0" y="501.4" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >trophy replica cabinet</text>
+<circle cx="359.7" cy="277.0" r="8.8" fill="#c8323c" stroke="#333" stroke-width="0.6"/>
+<circle cx="359.7" cy="365.0" r="8.8" fill="#c8323c" stroke="#333" stroke-width="0.6"/>
+<polygon points="348.7,266.0 370.7,266.0 370.7,376.0 348.7,376.0" fill="none" stroke="#d9342b" stroke-width="1.4" stroke-dasharray="3,2" opacity="1.0"/>
+<text x="429.0" y="271.5" font-size="8" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >mannequins</text>
+<polygon points="385.0,233.0 418.0,233.0 418.0,519.0 385.0,519.0" fill="#7c7f86" stroke="none" stroke-width="1"  opacity="0.5"/>
 </svg>

@@ -1,20 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="300" height="363" viewBox="0 0 300 363" font-family="Segoe UI, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="658" viewBox="0 0 840 658" font-family="Segoe UI, Arial, sans-serif">
 <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
-<polygon points="0.0,0.0 300.0,0.0 300.0,363.6 0.0,363.6" fill="#f4f2ea" stroke="none" stroke-width="1"  opacity="1.0"/>
-<polygon points="48.0,144.0 252.0,144.0 252.0,279.6 48.0,279.6" fill="#eef0e9" stroke="#4a3b32" stroke-width="2"  opacity="1.0"/>
-<text x="150.0" y="36.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">FOOTBALL OPS -- L2 Scouting Room</text>
-<text x="150.0" y="84.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >TEMP GBP3,000</text>
-<polyline points="96.0,339.6 156.0,339.6" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
-<text x="126.0" y="318.6" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >10 studs (~3.6 m)</text>
-<polygon points="48.0,144.0 252.0,144.0 252.0,279.6 48.0,279.6" fill="#efece2" stroke="#4a3b32" stroke-width="1.5"  opacity="1.0"/>
-<polygon points="60.0,276.0 90.0,276.0 90.0,283.2 60.0,283.2" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
-<text x="75.0" y="297.6" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >to lobby</text>
-<polygon points="51.6,156.0 144.0,156.0 144.0,204.0 51.6,204.0" fill="#2c4c3a" stroke="none" stroke-width="1"  opacity="1.0"/>
-<text x="96.0" y="138.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >world map pinboard</text>
-<polygon points="216.0,231.6 248.4,231.6 248.4,267.6 216.0,267.6" fill="#6e4e32" stroke="none" stroke-width="1"  opacity="1.0"/>
-<text x="234.0" y="219.6" font-size="4" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >desk + shortlist tray</text>
-<polygon points="72.0,231.6 96.0,231.6 96.0,267.6 72.0,267.6" fill="#5a6472" stroke="none" stroke-width="1"  opacity="1.0"/>
-<text x="84.0" y="217.2" font-size="4" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >filing</text>
-<text x="84.0" y="222.0" font-size="4" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >cabinet</text>
-<text x="150.0" y="235.8" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">SCOUTING ROOM</text>
+<polygon points="0.0,0.0 840.0,0.0 840.0,658.0 0.0,658.0" fill="#f6f4ee" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="0.0,134.0 840.0,134.0 840.0,624.0 0.0,624.0" fill="#d8d4ca" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="10.0" y="18.0" font-size="15" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" font-weight="bold">SCOUTING ROOM — L2 Scouting Room</text>
+<text x="10.0" y="42.0" font-size="10" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >TEMP £1,500 · unlocks hiring a scout (Config.ScoutLevels) · walk-in</text>
+<text x="10.0" y="57.0" font-size="10" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >map wall, desk with the scout's laptop, shortlist board, cabinet</text>
+<polygon points="712.0,8.0 832.0,8.0 832.0,116.6 712.0,116.6" fill="#ffffff" stroke="#999" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="713.4,8.0 719.4,8.0 719.4,116.6 713.4,116.6" fill="#6d6f72" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="720.6,8.0 829.1,8.0 829.1,116.6 720.6,116.6" fill="#cfe3b6" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="746.1,25.3 803.6,25.3 803.6,99.3 746.1,99.3" fill="#c9c3b3" stroke="#4a3b32" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="760.1,40.4 789.6,40.4 789.6,84.1 760.1,84.1" fill="#5fae4f" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="752.4,56.6 757.6,56.6 757.6,68.0 752.4,68.0" fill="#a0553d" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="806.6,36.9 823.1,36.9 823.1,87.7 806.6,87.7" fill="none" stroke="#7a7a7a" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="724.9,68.0 739.1,68.0 739.1,105.1 724.9,105.1" fill="none" stroke="#777" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="752.6,56.7 757.4,56.7 757.4,59.9 752.6,59.9" fill="none" stroke="#d9342b" stroke-width="1.6"  opacity="1.0"/>
+<text x="772.0" y="124.6" font-size="8" fill="#555" text-anchor="middle" dominant-baseline="middle" >where on the plot</text>
+<polyline points="10.0,641.0 150.0,641.0" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-linejoin="round"   opacity="1.0"/>
+<text x="156.0" y="641.0" font-size="9" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >10 studs (~3.6 m)   ·   14 px/stud (ground plan: 1.25)</text>
+<polyline points="824.0,650.0 824.0,632.0" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"  marker-end="url(#arr)" opacity="1.0"/>
+<text x="814.0" y="641.0" font-size="10" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">N</text>
+<polygon points="266.0,204.0 770.0,204.0 770.0,545.6 266.0,545.6" fill="#a0553d" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="280.0,218.0 756.0,218.0 756.0,534.4 280.0,534.4" fill="#efece2" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="308.0,526.0 378.0,526.0 378.0,545.6 308.0,545.6" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="343.0" y="570.8" font-size="9" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >to lobby</text>
+<polygon points="268.8,288.0 291.2,288.0 291.2,400.0 268.8,400.0" fill="#999" stroke="#666" stroke-width="0.6" stroke-dasharray="2,2" opacity="1.0"/>
+<text x="254.8" y="339.2" font-size="8" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >hatch gone</text>
+<text x="254.8" y="348.8" font-size="8" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >(#12)</text>
+<polygon points="266.0,204.0 770.0,204.0 770.0,545.6 266.0,545.6" fill="none" stroke="#4a3b32" stroke-width="2.5"  opacity="1.0"/>
+<polygon points="364.0,218.0 644.0,218.0 644.0,226.4 364.0,226.4" fill="#2c4c3a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="504.0" y="246.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >map wall: pins where the scout has been</text>
+<polygon points="359.8,213.8 648.2,213.8 648.2,230.6 359.8,230.6" fill="none" stroke="#d9342b" stroke-width="1.4" stroke-dasharray="3,2" opacity="1.0"/>
+<polygon points="658.0,344.0 700.0,344.0 700.0,428.0 658.0,428.0" fill="#7a5534" stroke="none" stroke-width="1"  opacity="1.0"/>
+<circle cx="725.2" cy="386.0" r="16.8" fill="#78553a" stroke="none" stroke-width="1"/>
+<text x="630.0" y="386.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(-90 630.0 386.0)">desk + laptop</text>
+<polygon points="653.8,339.8 744.8,339.8 744.8,432.2 653.8,432.2" fill="none" stroke="#d9342b" stroke-width="1.4" stroke-dasharray="3,2" opacity="1.0"/>
+<polygon points="747.6,246.0 756.0,246.0 756.0,316.0 747.6,316.0" fill="#ece4c8" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="733.6" y="276.8" font-size="7" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >shortlist board</text>
+<text x="733.6" y="285.2" font-size="7" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >(this week's 3 cards)</text>
+<polygon points="743.4,241.8 758.8,241.8 758.8,320.2 743.4,320.2" fill="none" stroke="#d9342b" stroke-width="1.4" stroke-dasharray="3,2" opacity="1.0"/>
+<polygon points="280.0,428.0 299.6,428.0 299.6,484.0 280.0,484.0" fill="#5a6472" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="310.8" y="456.0" font-size="8" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >filing cabinet</text>
+<polygon points="277.2,423.8 303.8,423.8 303.8,488.2 277.2,488.2" fill="none" stroke="#d9342b" stroke-width="1.4" stroke-dasharray="3,2" opacity="1.0"/>
 </svg>

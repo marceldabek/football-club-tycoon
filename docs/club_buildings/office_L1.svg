@@ -1,25 +1,54 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="300" height="363" viewBox="0 0 300 363" font-family="Segoe UI, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="644" height="658" viewBox="0 0 644 658" font-family="Segoe UI, Arial, sans-serif">
 <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
-<polygon points="0.0,0.0 300.0,0.0 300.0,363.6 0.0,363.6" fill="#f4f2ea" stroke="none" stroke-width="1"  opacity="1.0"/>
-<polygon points="48.0,144.0 252.0,144.0 252.0,279.6 48.0,279.6" fill="#eef0e9" stroke="#4a3b32" stroke-width="2"  opacity="1.0"/>
-<text x="150.0" y="36.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">OFFICE -- L1 Rundown</text>
-<text x="150.0" y="84.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >exists today (tier 1 look)</text>
-<polyline points="96.0,339.6 156.0,339.6" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
-<text x="126.0" y="318.6" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >10 studs (~3.6 m)</text>
-<polygon points="48.0,144.0 252.0,144.0 252.0,279.6 48.0,279.6" fill="#aaa087" stroke="#4a3b32" stroke-width="1.5"  opacity="1.0"/>
-<polygon points="60.0,140.4 90.0,140.4 90.0,147.6 60.0,147.6" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
-<text x="75.0" y="126.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >to lobby</text>
-<polygon points="54.0,276.0 84.0,276.0 84.0,283.2 54.0,283.2" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
-<text x="69.0" y="297.6" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >side door (spawn)</text>
-<polygon points="44.4,189.6 51.6,189.6 51.6,249.6 44.4,249.6" fill="#8fd3f4" stroke="none" stroke-width="1"  opacity="1.0"/>
-<text x="30.0" y="219.6" font-size="5" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >window</text>
-<polygon points="207.0,195.3 225.0,195.3 225.0,228.3 207.0,228.3" fill="#6e4e32" stroke="none" stroke-width="1"  opacity="1.0"/>
-<text x="216.0" y="187.8" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >desk + laptop</text>
-<circle cx="235.2" cy="211.8" r="7.2" fill="#78553a" stroke="none" stroke-width="1"/>
-<text x="235.2" y="229.8" font-size="4" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >chair</text>
-<polygon points="249.6,198.0 252.0,198.0 252.0,234.0 249.6,234.0" fill="#ece4c8" stroke="none" stroke-width="1"  opacity="1.0"/>
-<text x="234.0" y="183.6" font-size="4" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >fixtures</text>
-<text x="234.0" y="188.4" font-size="4" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >notice</text>
-<text x="150.0" y="261.6" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >damp stains - dim light - green-screen terminal</text>
-<text x="150.0" y="162.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">RUNDOWN OFFICE</text>
+<polygon points="0.0,0.0 644.0,0.0 644.0,658.0 0.0,658.0" fill="#f6f4ee" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="0.0,134.0 644.0,134.0 644.0,624.0 0.0,624.0" fill="#d8d4ca" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="10.0" y="18.0" font-size="15" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" font-weight="bold">OFFICE — L1 Rundown</text>
+<text x="10.0" y="42.0" font-size="10" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >exists today · spawn room · walk-in</text>
+<text x="10.0" y="57.0" font-size="10" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >damp stains, green-screen laptop, bare bulb 1.2</text>
+<polygon points="516.0,8.0 636.0,8.0 636.0,116.6 516.0,116.6" fill="#ffffff" stroke="#999" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="517.4,8.0 523.4,8.0 523.4,116.6 517.4,116.6" fill="#6d6f72" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="524.6,8.0 633.1,8.0 633.1,116.6 524.6,116.6" fill="#cfe3b6" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="550.1,25.3 607.6,25.3 607.6,99.3 550.1,99.3" fill="#c9c3b3" stroke="#4a3b32" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="564.1,40.4 593.6,40.4 593.6,84.1 564.1,84.1" fill="#5fae4f" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="556.4,56.6 561.6,56.6 561.6,68.0 556.4,68.0" fill="#a0553d" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="610.6,36.9 627.1,36.9 627.1,87.7 610.6,87.7" fill="none" stroke="#7a7a7a" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="528.9,68.0 543.1,68.0 543.1,105.1 528.9,105.1" fill="none" stroke="#777" stroke-width="0.6"  opacity="1.0"/>
+<polygon points="556.6,64.6 561.4,64.6 561.4,67.9 556.6,67.9" fill="none" stroke="#d9342b" stroke-width="1.6"  opacity="1.0"/>
+<text x="576.0" y="124.6" font-size="8" fill="#555" text-anchor="middle" dominant-baseline="middle" >where on the plot</text>
+<polyline points="10.0,641.0 150.0,641.0" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-linejoin="round"   opacity="1.0"/>
+<text x="156.0" y="641.0" font-size="9" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >10 studs (~3.6 m)   ·   14 px/stud (ground plan: 1.25)</text>
+<polyline points="628.0,650.0 628.0,632.0" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"  marker-end="url(#arr)" opacity="1.0"/>
+<text x="618.0" y="641.0" font-size="10" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">N</text>
+<polygon points="70.0,212.4 574.0,212.4 574.0,554.0 70.0,554.0" fill="#a0553d" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="84.0,223.6 560.0,223.6 560.0,540.0 84.0,540.0" fill="#aaa087" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="72.8,330.0 95.2,330.0 95.2,470.0 72.8,470.0" fill="#8fd3f4" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="58.8" y="400.0" font-size="9" fill="#1e1e1e" text-anchor="end" dominant-baseline="middle" >window</text>
+<polygon points="112.0,212.4 182.0,212.4 182.0,232.0 112.0,232.0" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="147.0" y="187.2" font-size="9" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >to lobby</text>
+<polygon points="98.0,531.6 168.0,531.6 168.0,554.0 98.0,554.0" fill="#f2c14e" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="133.0" y="579.2" font-size="9" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >side door (spawn)</text>
+<circle cx="133.0" cy="470.0" r="11.2" fill="#2c4c9c" stroke="none" stroke-width="1"/>
+<polygon points="455.7,337.7 496.3,337.7 496.3,425.9 455.7,425.9" fill="#7a5534" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="467.6,373.4 484.4,373.4 484.4,391.6 467.6,391.6" fill="#151515" stroke="none" stroke-width="1"  opacity="1.0"/>
+<circle cx="529.2" cy="381.8" r="16.8" fill="#78553a" stroke="none" stroke-width="1"/>
+<text x="434.0" y="381.8" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(-90 434.0 381.8)">desk + laptop</text>
+<text x="529.2" y="428.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >chair</text>
+<polygon points="84.0,227.8 106.4,227.8 106.4,281.0 84.0,281.0" fill="#7a5534" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="84.0,284.5 102.2,284.5 102.2,327.9 84.0,327.9" fill="#5a6472" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="114.8" y="278.2" font-size="8" fill="#1e1e1e" text-anchor="start" dominant-baseline="middle" >shelf · cabinet + telly</text>
+<polygon points="390.6,520.4 435.4,520.4 435.4,540.0 390.6,540.0" fill="#78553a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="413.0" y="503.6" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >bench</text>
+<polygon points="408.8,229.2 501.2,229.2 501.2,254.4 408.8,254.4" fill="#a08a6a" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="455.0" y="271.2" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >boxes · tyre</text>
+<polygon points="533.4,230.6 553.0,230.6 553.0,250.2 533.4,250.2" fill="#9a7a50" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="529.2,510.6 557.2,510.6 557.2,537.2 529.2,537.2" fill="#555" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="557.2,351.0 560.0,351.0 560.0,414.0 557.2,414.0" fill="#ece4c8" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="576.8" y="381.8" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle"  transform="rotate(-90 576.8 381.8)">fixtures notice</text>
+<polygon points="259.0,223.6 539.0,223.6 539.0,234.8 259.0,234.8" fill="#7a5534" stroke="none" stroke-width="1"  opacity="0.6"/>
+<text x="336.0" y="248.8" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >trophy shelf + pennants (honours)</text>
+<polygon points="70.0,212.4 574.0,212.4 574.0,554.0 70.0,554.0" fill="none" stroke="#4a3b32" stroke-width="2.5"  opacity="1.0"/>
+<circle cx="210.0" cy="234.8" r="12.6" fill="#6f6650" stroke="none" stroke-width="1"/>
+<circle cx="308.0" cy="234.8" r="12.6" fill="#6f6650" stroke="none" stroke-width="1"/>
+<circle cx="548.8" cy="470.0" r="12.6" fill="#6f6650" stroke="none" stroke-width="1"/>
+<text x="280.0" y="302.0" font-size="9" fill="#5a5040" text-anchor="middle" dominant-baseline="middle" >damp stains</text>
 </svg>

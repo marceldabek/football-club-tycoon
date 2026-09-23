@@ -3,536 +3,797 @@
     python tools/club_buildings_plan.py            # writes docs/club_buildings/*.svg and *.png
     python tools/club_buildings_plan.py NAME ...    # only the named plans (e.g. clubshop_L2)
 
-Same coordinate frame and drawing conventions as tools/ground_plan.py (plot-local
-studs, origin pitch centre, +X east, -Z north, north drawn up): this module
-imports that one's `Canvas` and palette rather than duplicating them.
+Same coordinate frame as tools/ground_plan.py (plot-local studs, origin = pitch
+centre, +X east, -Z north, drawn north up with the street on the left) and the
+same `Canvas`, palette and helpers, imported rather than copied.
 
-Every building keeps ONE fixed shell (its top-level footprint, `CLAUDE.md`/
-`docs/CLUB_BUILDINGS.md` decision 5) across all its levels; a level only
-refits what is drawn *inside* the dashed/solid outline, so nothing here ever
-implies moving a wall that a later level would have to move back.
+Scale: the ground plan is drawn at 1.25 px/stud, which makes a 26 x 30 shop 32 px
+across. Rooms are therefore zoomed (the px/stud is printed on every sheet next
+to a 10-stud bar), and every sheet carries a locator: the whole plot drawn at a
+fixed small scale with the building marked in red, so it can be found on
+docs/ground_plan/proposed_L*.png. The concourse is a club-wide track, so its
+sheets ARE the ground at the ground plan's own 1.25 px/stud.
 
-Coordinates for shells that already exist in code are read from the source
-named in each comment (SHOP_CX/SHOP_W etc. in PlotGrounds.luau, Clubhouse.ROOMS
-in Clubhouse.luau); shells that do not exist yet use the reserved footprint
-from docs/superpowers/specs/2026-09-22-ground-plan-design.md.
+Every building keeps ONE fixed shell across its levels (decision 5 in the doc).
+It is drawn on every level: solid when built, dashed while it is still a
+"for sale" outline. Geometry that exists in code is read from the source named
+beside it (PlotGrounds.luau, Clubhouse.luau, WorldBuilder.luau); if code and
+this file disagree, the code wins and this file is fixed. New geometry is TEMP
+and belongs to the proposal.
 """
 
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ground_plan import Canvas, C, draw_tree, draw_hedge, legend  # noqa: E402
+from ground_plan import (  # noqa: E402
+    C, Canvas, SIDE_EDGE, END_EDGE, TIERS, stand_rects, draw_pitch, draw_ad_boards,
+    draw_floodlight, MAST, ENV_W, ENV_E, ENV_N, ENV_S, CH_W, CH_E, CH_N, CH_S,
+)
 
 OUT = Path(__file__).resolve().parent.parent / "docs" / "club_buildings"
 
-# a few extra colours the ground plan palette doesn't need
 CB = dict(C)
 CB.update(
-    wood="#6e4e32", till="#2c2c30", tile="#cfd6da", counter="#8a6a48",
-    kitwall="#3b5fa8", rack="#9a9a9a", bench="#78553a", locker="#5a6472",
-    screen="#151515", turfgreen="#5fae4f", gravel="#b9ab8c", grass="#cfe3b6",
-    future="#eef0e9",
+    wood="#7a5534", till="#2c2c30", tile="#cfd6da", rack="#8d8d8d", bench="#78553a",
+    locker="#5a6472", screen="#151515", gravel="#b9ab8c", grass="#cfe3b6", floor="#efece2",
+    kit="#c8323c", kitwall="#3b5fa8", gold="#c9a94a", sale="#2d5a1e", new="#d9342b",
+    damp="#aaa087", paint="#e2ded2", bg="#f6f4ee", physio="#e7a0a0", concrete="#c4c0b6",
 )
 
+# plot-wide outline for the locator inset, plot-local studs
+PLOT_X0, PLOT_X1, PLOT_Z0, PLOT_Z1 = -440, 400, -380, 380
+LOCATOR_PX = 120  # locator width in pixels
+HEAD_PX, FOOT_PX = 134, 34
 
-# ---------------------------------------------------------------- shared frame
-def frame_building(shell, margin, title, subtitle, built=True, scale=6):
-    """A Canvas sized to `shell` (dict x0/x1/z0/z1) plus `margin` studs, with
-    the fixed shell outline (dashed = not built yet at this level, solid brick
-    = built) and a title/scale bar in the ground_plan.py house style."""
-    x0, x1, z0, z1 = shell["x0"] - margin, shell["x1"] + margin, shell["z0"] - margin, shell["z1"] + margin
-    top_margin = 16
-    c = Canvas(x0, x1, z0 - top_margin, z1 + 6, scale=scale)
-    c.rect(x0, z0 - top_margin, x1, z1 + 6, fill="#f4f2ea")
-    if built:
-        c.rect(shell["x0"], shell["z0"], shell["x1"], shell["z1"], fill=CB["future"], stroke=CB["wall"], sw=2)
-    else:
-        c.rect(shell["x0"], shell["z0"], shell["x1"], shell["z1"], fill=CB["grass"], stroke=CB["fence"], sw=1.5, dash="3,2")
-    c.text((x0 + x1) / 2, z0 - top_margin + 6, title, 8, bold=True)
-    c.text((x0 + x1) / 2, z0 - top_margin + 14, subtitle, 6)
-    # scale bar: 10 studs (~3.6 m)
-    bx0 = x1 - 34
-    c.line([(bx0, z1 + 2), (bx0 + 10, z1 + 2)], CB["text"], 1.5)
-    c.text(bx0 + 5, z1 - 1.5, "10 studs (~3.6 m)", 5)
+
+# ---------------------------------------------------------------- the sheet
+def px(c, n):
+    """n screen pixels in this sheet's stud units."""
+    return n / c.s
+
+
+def locator(c, where):
+    """The whole plot, small, top right; `where` (x0, z0, x1, z1) in red."""
+    k = px(c, LOCATOR_PX) / (PLOT_X1 - PLOT_X0)
+    ox = c.x1 - px(c, LOCATOR_PX + 8)
+    oz = c.z0 + px(c, 8)
+
+    def P(x, z):
+        return ox + (x - PLOT_X0) * k, oz + (z - PLOT_Z0) * k
+
+    def box(x0, z0, x1, z1, **kw):
+        a, b = P(x0, z0), P(x1, z1)
+        c.rect(a[0], a[1], b[0], b[1], **kw)
+
+    box(PLOT_X0, PLOT_Z0, PLOT_X1, PLOT_Z1, fill="#ffffff", stroke="#999", sw=0.6)
+    box(-430, PLOT_Z0, -388, PLOT_Z1, fill=C["street"])
+    box(-380, PLOT_Z0, 380, PLOT_Z1, fill=C["lawn"])
+    box(ENV_W, ENV_N, ENV_E, ENV_S, fill=C["hard"], stroke=C["wall"], sw=0.6)
+    box(-103, -153, 103, 153, fill=C["turf"])
+    box(CH_W, CH_N, CH_E, CH_S, fill=C["brick"])
+    box(222, -178, 338, 178, stroke=C["fence"], sw=0.6)
+    box(-350, 40, -250, 300, stroke="#777", sw=0.6)
+    x0, z0, x1, z1 = where
+    cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
+    half = max((x1 - x0) / 2, 9), max((z1 - z0) / 2, 9)   # never smaller than a few px
+    box(cx - half[0], cz - half[1], cx + half[0], cz + half[1], stroke=CB["new"], sw=1.6)
+    a = P(PLOT_X0, PLOT_Z1)
+    c.text(a[0] + px(c, LOCATOR_PX / 2), a[1] + px(c, 8), "where on the plot", 8, fill="#555")
+
+
+def sheet(bounds, scale, title, subtitle, where, ground=None):
+    """A Canvas over `bounds` (x0, x1, z0, z1) with a header (title, subtitle,
+    locator) above and a footer (scale bar, north) below."""
+    x0, x1, z0, z1 = bounds
+    head, foot = HEAD_PX / scale, FOOT_PX / scale
+    c = Canvas(x0, x1, z0 - head, z1 + foot, scale=scale)
+    c.rect(c.x0, c.z0, c.x1, c.z1, fill=CB["bg"])
+    c.rect(x0, z0, x1, z1, fill=ground or CB["grass"])
+    c.text(x0 + px(c, 10), c.z0 + px(c, 18), title, 15, bold=True, anchor="l")
+    for i, line in enumerate(subtitle.split("\n")):
+        c.text(x0 + px(c, 10), c.z0 + px(c, 42 + 15 * i), line, 10, anchor="l")
+    locator(c, where)
+    # footer: a 10-stud bar, the zoom, north
+    fz = z1 + px(c, 17)
+    bx = x0 + px(c, 10)
+    c.line([(bx, fz), (bx + 10, fz)], CB["text"], 2)
+    c.text(bx + 10 + px(c, 6), fz, f"10 studs (~3.6 m)   ·   {scale:g} px/stud (ground plan: 1.25)", 9, anchor="l")
+    nx = x1 - px(c, 16)
+    c.line([(nx, fz + px(c, 9)), (nx, fz - px(c, 9))], CB["text"], 1.5, arrow=True)
+    c.text(nx - px(c, 10), fz, "N", 10, bold=True)
     return c
 
 
-def door(c, x0, x1, z0, z1):
-    c.rect(x0, z0, x1, z1, fill=CB["door"])
+def shell_outline(c, s, built):
+    """The fixed shell: solid brick when built, dashed for-sale outline if not."""
+    if built:
+        c.rect(s[0], s[1], s[2], s[3], stroke=C["wall"], sw=2.5)
+    else:
+        c.rect(s[0], s[1], s[2], s[3], stroke=C["fence"], sw=1.5, dash="5,3")
 
 
-def label_shell(c, shell, text):
-    c.text((shell["x0"] + shell["x1"]) / 2, shell["z1"] + 4, text, 6)
+def new(c, x0, z0, x1, z1):
+    """Red outline around what this level adds."""
+    c.rect(x0, z0, x1, z1, stroke=CB["new"], sw=1.4, dash="3,2")
 
 
 PLANS = {}
 
 
-def plan(name, shell, margin, title, subtitle, draw_fn, built=True, scale=6):
-    """Registers `name` -> a zero-arg function building one Canvas: the shared
-    frame plus `draw_fn(c)` for that level's interior."""
-
-    def build():
-        c = frame_building(shell, margin, title, subtitle, built=built, scale=scale)
-        draw_fn(c)
-        return c
-
-    PLANS[name] = build
+def plan(name):
+    def reg(fn):
+        PLANS[name] = fn
+        return fn
+    return reg
 
 
 # =================================================================== CLUB SHOP
-# PlotGrounds.luau: SHOP_CX,SHOP_CZ = -300,-150; SHOP_W,SHOP_D = 26,30. Door +
-# window face +X (the footpath). This is the fixed shell at every level
-# (docs/CLUB_BUILDINGS.md decision 5) -- the shop never gets bigger outside.
-SHOP_SHELL = dict(x0=-313, x1=-287, z0=-165, z1=-135)
+# PlotGrounds.buildShop: SHOP_CX/CZ = -300, -150, SHOP_W/D = 26 x 30, walls 1
+# thick. Shell x -313..-287, z -165..-135. Front (east, +X) wall from north to
+# south: pier 3 | window 14 (z -162..-148) | pier 4 | door 6 (z -144..-138) | pier 3.
+# Club-coloured fascia 0.5 proud of the front; apron out to the footpath leg
+# x -269..-261 (PATH_X = -265, PATH_W = 8).
+SHOP = (-313, -165, -287, -135)
+SHOP_IN = (-312, -164, -288, -136)
 
 
-def _shop_shell(c):
-    s = SHOP_SHELL
-    c.rect(s["x0"], s["z0"], s["x1"], s["z1"], fill="#efece2", stroke=CB["wall"], sw=1.5)
-    # window (north) + door (south) on the east (+X) wall, as built today
-    door(c, s["x1"] - 0.6, s["x1"], s["z0"] + 22, s["z0"] + 28)
-    c.rect(s["x1"] - 0.6, s["x1"], s["z0"] + 3, s["z0"] + 17, fill=CB["glass"])
-    c.text(s["x1"] + 3, s["z0"] + 10, "window", 5, anchor="l")
-    c.text(s["x1"] + 3, s["z0"] + 25, "door", 5, anchor="l")
+def shop_base(c):
+    x0, z0, x1, z1 = SHOP
+    c.rect(-269, c.z0 + px(c, HEAD_PX), -261, c.z1 - px(c, FOOT_PX), fill=C["path"])
+    c.text(-265, -118, "footpath (north leg)", 9, rot=-90)
+    c.rect(-287, -146, -269, -136, fill=CB["concrete"])        # apron, doorZ0-2..doorZ1+2
+    c.rect(x0, z0, x1, z1, fill=C["brick"])
+    c.rect(*SHOP_IN, fill=CB["floor"])
+    c.rect(-288, -162, -287, -148, fill=C["glass"])             # window
+    c.rect(-288, -144, -287, -138, fill=C["door"])              # door
+    c.rect(-287, z0, -286.5, z1, fill=CB["kit"])                # fascia, proud
+    c.text(-283, -155, "window", 9, anchor="l")
+    c.text(-283, -141, "door", 9, anchor="l")
+    c.text(-300, -133, "fixed shell 26 x 30 (as built)", 9)
+    shell_outline(c, SHOP, True)
 
 
-def shop_L1(c):
-    _shop_shell(c)
-    s = SHOP_SHELL
-    # X179 (PlotGrounds.buildShop, as built): counter+till facing the door,
-    # a shelf of folded shirts on the back (west) wall, a scarf rail north end
-    c.rect(s["x0"] + 8.6, s["z0"] + 6.6, s["x0"] + 10.6, s["z0"] + 16.6, fill=CB["wood"])
-    c.text(s["x0"] + 9.6, s["z0"] + 11.6, "till", 5, rot=90)
-    c.rect(s["x0"] + 0.6, s["z0"] + 6.6, s["x0"] + 2, s["z1"] - 6.6, fill=CB["wood"])
-    c.text(s["x0"] + 1.3, s["z0"] + 3, "shelf: folded shirts", 5, rot=90, anchor="l")
-    c.rect(s["x0"] + 12.6, s["z0"] + 0.6, s["x0"] + 20.6, s["z0"] + 1.6, fill=CB["rack"])
-    c.text(s["x0"] + 16.6, s["z0"] - 2, "scarf rail", 5)
-    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2 + 9, "KIOSK\n~8 parts", 6, bold=True)
+def shop_counter(c, z0=-158, z1=-148, tills=(-150.4,)):
+    c.rect(-304, z0, -302, z1, fill=CB["wood"])                # counter, x0+t+8..10
+    for tz in tills:
+        c.rect(-303.5, tz - 0.6, -302.5, tz + 0.6, fill=CB["till"])
+    c.text(-300.6, (z0 + z1) / 2, "till counter", 9, rot=-90)
 
 
-def shop_L2(c):
-    _shop_shell(c)
-    s = SHOP_SHELL
-    c.rect(s["x0"] + 8, s["z0"] + 5, s["x0"] + 11, s["z0"] + 20, fill=CB["wood"])
-    c.text(s["x0"] + 9.5, s["z0"] + 12.5, "till\ncounter", 5, rot=90)
-    c.rect(s["x0"] + 0.6, s["z0"] + 4, s["x0"] + 2, s["z1"] - 4, fill=CB["rack"])
-    c.text(s["x0"] + 1.3, s["z0"] + 1, "kit rail", 5, rot=90, anchor="l")
-    for zc in (s["z0"] + 12, s["z0"] + 20):
-        c.rect(s["x0"] + 4, zc - 1, s["x0"] + 12, zc + 1, fill=CB["rack"])
-    c.text(s["x0"] + 8, s["z0"] + 24, "clothing rails", 5)
-    c.rect(s["x1"] - 8, s["z0"] + 2, s["x1"] - 0.6, s["z0"] + 2.2, fill=CB["counter"])
-    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2 + 12, "SHOP UNIT\nbigger sign + window\n~20 parts", 6, bold=True)
+def shop_sheet(level, name, sub):
+    return sheet((-322, -256, -172, -128), 11, f"CLUB SHOP — L{level} {name}", sub, SHOP)
 
 
-def shop_L3(c):
-    _shop_shell(c)
-    s = SHOP_SHELL
-    c.rect(s["x0"] + 0.6, s["z0"] + 3, s["x0"] + 2.6, s["z1"] - 3, fill=CB["kitwall"])
-    c.text(s["x0"] + 1.6, s["z0"] + 0, "KIT WALL (numbered shirts)", 5, rot=90, anchor="l")
-    c.rect(s["x0"] + 8, s["z0"] + 5, s["x0"] + 11, s["z0"] + 22, fill=CB["wood"])
-    c.text(s["x0"] + 9.5, s["z0"] + 13.5, "till", 5, rot=90)
-    for i, zc in enumerate((s["z0"] + 8, s["z0"] + 16, s["z0"] + 24)):
-        c.rect(s["x0"] + 12, zc - 1, s["x0"] + 20, zc + 1, fill=CB["rack"])
-    c.text(s["x0"] + 16, s["z0"] + 28, "3 aisles: leisurewear, scarves, kids'", 5)
-    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2 - 12, "MEGASTORE\n~45 parts", 6, bold=True)
+@plan("clubshop_L1")
+def shop_L1():
+    c = shop_sheet(1, "Kiosk", "exists today (PlotGrounds.buildShop, X179 stock)\nmerchPerFan 0.6 · walk-in")
+    shop_base(c)
+    shop_counter(c)
+    c.rect(-312, -158, -310.6, -142, fill=CB["wood"])          # shelf on the back wall
+    for zc in (-154, -150, -146):
+        c.rect(-311.9, zc - 1.2, -310.7, zc + 1.2, fill=CB["kit"])
+    c.text(-309.2, -150, "shelf: folded shirts", 9, rot=-90)
+    c.rect(-300, -163.7, -292, -163.3, fill=CB["rack"])          # scarf rail, north wall
+    c.text(-296, -161.8, "scarf rail", 9)
+    c.rect(-289.6, -161, -289.4, -149, fill=CB["rack"])          # window display rail
+    for zc in (-158.5, -155, -151.5):
+        c.rect(-290.2, zc - 1.1, -288.8, zc + 1.1, fill=CB["kit"])
+    c.text(-292, -155, "3 shirts\nin window", 8, anchor="r")
+    return c
 
 
-def shop_L4(c):
-    _shop_shell(c)
-    s = SHOP_SHELL
-    c.rect(s["x0"] + 0.6, s["z0"] + 3, s["x0"] + 2.6, s["z1"] - 3, fill=CB["kitwall"])
-    c.rect(s["x0"] + 0.6, s["z0"] + 3, s["x0"] + 2.6, s["z0"] + 6, fill=CB["screen"])
-    c.text(s["x0"] + 1.6, s["z0"] + 0, "KIT WALL + digital screen", 5, rot=90, anchor="l")
-    c.rect(s["x0"] + 8, s["z0"] + 4, s["x0"] + 11, s["z0"] + 12, fill=CB["wood"])
-    c.rect(s["x0"] + 8, s["z0"] + 18, s["x0"] + 11, s["z0"] + 26, fill=CB["wood"])
-    c.text(s["x0"] + 9.5, s["z0"] + 8, "till 1", 5, rot=90)
-    c.text(s["x0"] + 9.5, s["z0"] + 22, "till 2", 5, rot=90)
-    for i, zc in enumerate((s["z0"] + 6, s["z0"] + 14, s["z0"] + 22, s["z0"] + 28)):
-        c.rect(s["x0"] + 12, zc - 1, s["x0"] + 20, zc + 1, fill=CB["rack"])
-    c.rect(s["x1"] - 5, s["z0"] + 24, s["x1"] - 1, s["z1"] - 1, fill="#d8c98a", stroke=CB["wall"], sw=0.6)
-    c.text(s["x1"] - 3, s["z1"] - 3, "trophy\ncabinet", 4)
-    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2 - 12, "FLAGSHIP STORE\nmannequins in window\n~65 parts", 6, bold=True)
+@plan("clubshop_L2")
+def shop_L2():
+    c = shop_sheet(2, "Shop Unit", "TEMP £3,500 · merchPerFan 1.4\nshirt wall, two rails, lit fascia + projecting sign")
+    shop_base(c)
+    shop_counter(c)
+    c.rect(-312, -163, -310.8, -137, fill=CB["kit"])            # full-length shirt wall
+    c.text(-309.2, -150, "shirt wall", 9, rot=-90)
+    new(c, -312.3, -163.3, -310.5, -136.7)
+    for x in (-298, -294):                                       # two N-S clothing rails
+        c.rect(x - 0.3, -161, x + 0.3, -151, fill=CB["rack"])
+    new(c, -299, -162, -293, -150)
+    c.text(-296, -163, "2 clothing rails", 9)
+    c.rect(-286.5, -167, -285, -163, fill=CB["kit"])             # projecting sign
+    new(c, -287, -167.5, -284.5, -162.5)
+    c.text(-284, -168.5, "projecting sign", 8, anchor="l")
+    c.text(-296, -141, "lane kept clear: door → till", 8, fill="#555")
+    return c
 
 
-plan("clubshop_L1", SHOP_SHELL, 10, "CLUB SHOP -- L1 Kiosk", "exists today (PlotGrounds.buildShop)", shop_L1)
-plan("clubshop_L2", SHOP_SHELL, 10, "CLUB SHOP -- L2 Shop Unit", "TEMP GBP3,500", shop_L2)
-plan("clubshop_L3", SHOP_SHELL, 10, "CLUB SHOP -- L3 Megastore", "TEMP GBP10,000, kit wall", shop_L3)
-plan("clubshop_L4", SHOP_SHELL, 10, "CLUB SHOP -- L4 Flagship Store", "TEMP GBP24,000", shop_L4)
+@plan("clubshop_L3")
+def shop_L3():
+    c = shop_sheet(3, "Megastore", "TEMP £10,000 · needs County League · merchPerFan 2.4\nkit wall + printing, 2 gondolas, awning outside")
+    shop_base(c)
+    shop_counter(c, tills=(-155, -150.4))
+    c.rect(-312, -163, -310.8, -137, fill=CB["kitwall"])
+    c.text(-309.2, -155, "KIT WALL: numbered shirts", 9, rot=-90, fill=CB["kitwall"])
+    c.rect(-311, -145, -306, -138, fill=CB["locker"])            # printing station
+    c.text(-308.5, -141.5, "name +\nnumber\nprinting", 7, fill="#fff")
+    new(c, -312.3, -163.3, -310.5, -136.7)
+    new(c, -311.3, -145.3, -305.7, -137.7)
+    for x in (-298, -294):                                       # gondola units, double-sided
+        c.rect(x - 0.8, -162, x + 0.8, -150, fill=CB["rack"])
+    new(c, -299.2, -162.5, -292.8, -149.5)
+    c.text(-296, -163.6, "2 gondolas", 9)
+    c.rect(-287, -163, -284, -137, fill=C["roof"], alpha=0.5)    # awning over window + door
+    new(c, -287, -163, -284, -137)
+    c.text(-283, -151.5, "awning", 8, anchor="l")
+    c.text(-296, -141, "lane kept clear: door → till", 8, fill="#555")
+    return c
+
+
+@plan("clubshop_L4")
+def shop_L4():
+    c = shop_sheet(4, "Flagship Store", "TEMP £24,000 · needs Regional Premier · merchPerFan 3.4\nscreen on the kit wall, 2 tills, 3 gondolas, trophy replica, mannequins")
+    shop_base(c)
+    shop_counter(c, z0=-160, z1=-146, tills=(-157, -149))
+    c.rect(-312, -163, -310.8, -137, fill=CB["kitwall"])
+    c.rect(-312, -155, -310.8, -145, fill=CB["screen"])          # digital screen in the kit wall
+    c.text(-309.2, -155, "kit wall + LED screen", 9, rot=-90, fill=CB["kitwall"])
+    new(c, -312.3, -155.3, -310.5, -144.7)
+    c.rect(-311, -145, -306, -138, fill=CB["locker"])
+    c.text(-308.5, -141.5, "printing", 7, fill="#fff")
+    for x in (-298, -294.5):
+        c.rect(x - 0.8, -162, x + 0.8, -150, fill=CB["rack"])
+    c.rect(-291.8, -162, -291, -156, fill=CB["rack"])            # third, short gondola by the window
+    new(c, -292.2, -162.4, -290.6, -155.6)
+    c.rect(-300, -137.2, -294, -136, fill=CB["gold"])            # trophy replica cabinet, south wall
+    new(c, -300.3, -137.6, -293.7, -135.8)
+    c.text(-297, -138.6, "trophy replica cabinet", 8)
+    for zc in (-159, -151):                                      # mannequins in the window
+        c.circle(-289.3, zc, 0.8, fill=CB["kit"], stroke="#333", sw=0.6)
+    new(c, -290.3, -160, -288.3, -150)
+    c.text(-283, -159.5, "mannequins", 8, anchor="l")
+    c.rect(-287, -163, -284, -137, fill=C["roof"], alpha=0.5)
+    return c
 
 
 # ===================================================================== ACADEMY
-# Reserved footprint from the ground plan spec (S5): x 342..376, z -60..60 --
-# not the current code's youth hut, which sits outside this reserved slot at
-# ACADEMY_CX/CZ = 348,90 (PlotGrounds.luau, next to training pitch 2). Treating
-# the reserved slot as the fixed top-level shell from L1 (decision 5) means the
-# hut needs to move here when the track is implemented -- flagged as Q3 below.
-# Seen through the training fence, not walked into (decision 4).
-ACADEMY_SHELL = dict(x0=342, x1=376, z0=-60, z1=60)
+# PlotGrounds.buildAcademy (X289): a 14 x 10 x 8 cabin at ACADEMY_CX/CZ =
+# TRAIN_CX + TRAIN_W/2 + 18, TRAIN_CZ[2] = (348, 90): walls x 341..355,
+# z 85..95, slab 1 wider; doorway in the west face (z 88.5..91.5), intake board
+# on the west face. Training fence x 222..338 (ground plan §5), pitch 2 grass
+# x 230..330, z 20..170 (it exists at spawn in code today; at training level 3
+# in the plan).
+# The ground plan reserves x 342..376, z -60..60 for the academy; the hut is
+# 25 studs south of that. Proposed fixed shell (Q3): the reserved slot run
+# south to take in the hut, x 340..376, z -60..96, so decision 3 ("level 1 is
+# today's hut at pitch 2; it grows into the reserved spot") and decision 5
+# (nothing moves) both hold.
+ACADEMY = (340, -60, 376, 96)
+RESERVED = (342, -60, 376, 60)
 
 
-def _academy_shell(c):
-    s = ACADEMY_SHELL
-    c.rect(s["x0"], s["z0"], s["x1"], s["z1"], stroke=CB["fence"], sw=1, dash="3,2")
-    c.text(s["x0"] - 3, s["z0"] - 2, "reserved academy plot (34 x 120)", 5, anchor="l")
+def academy_base(c, built):
+    c.rect(300, -72, 338, 108, fill=CB["grass"])
+    c.rect(300, 20, 330, 108, fill=C["turf"])
+    c.rect(300, -72, 330, -20, fill=C["turf"])
+    c.text(315, 64, "training\npitch 2", 9, fill="#fff", bold=True)
+    c.text(315, -46, "training\npitch 1", 9, fill="#fff", bold=True)
+    c.line([(338, -72), (338, 108)], C["fence"], 1.5, dash="4,2")
+    c.text(336, 0, "training fence", 8, rot=-90)
+    c.rect(*RESERVED, stroke="#8a6000", sw=1, dash="2,3")
+    c.text(359, -64, "ground plan reserved slot", 8, fill="#8a6000")
+    shell_outline(c, ACADEMY, built)
+    c.text(358, 100, "proposed fixed shell 36 x 156 (Q3)", 8)
+    # the hut, as built, at every level
+    c.rect(340, 84, 356, 96, fill=CB["concrete"])
+    c.rect(341, 85, 355, 95, fill=CB["floor"], stroke=C["wall"], sw=1.2)
+    c.rect(340.6, 88.5, 341.4, 91.5, fill=C["door"])
+    c.rect(340.1, 86, 340.5, 94, fill="#1c3c28")
+    c.text(348, 90, "youth hut\n14 x 10", 8)
 
 
-def academy_L1(c):
-    _academy_shell(c)
-    s = ACADEMY_SHELL
-    hx0, hx1, hz0, hz1 = s["x0"] + 2, s["x0"] + 16, s["z1"] - 20, s["z1"] - 2
-    c.rect(hx0, hz0, hx1, hz1, fill=CB["building"], stroke=CB["wall"], sw=1)
-    c.text((hx0 + hx1) / 2, hz0 - 3, "youth hut 14x10\n(today's, moved here)", 5)
-    c.rect(hx0 - 1.5, hz0 + 1, hx0 - 0.3, hz1 - 1, fill="#28503c")
-    c.text(hx0 - 3, (hz0 + hz1) / 2, "intake\nboard", 4, anchor="r")
-    c.text((s["x0"] + s["x1"]) / 2, s["z0"] + 20, "rest of plot: grass, for sale", 6, fill="#2d5a1e")
+def academy_sheet(level, name, sub):
+    return sheet((300, 386, -72, 108), 5, f"ACADEMY — L{level} {name}", sub, ACADEMY)
 
 
-def academy_L2(c):
-    _academy_shell(c)
-    s = ACADEMY_SHELL
-    hx0, hx1, hz0, hz1 = s["x0"] + 2, s["x1"] - 2, s["z1"] - 34, s["z1"] - 2
-    c.rect(hx0, hz0, hx1, hz1, fill=CB["building"], stroke=CB["wall"], sw=1)
-    c.text((hx0 + hx1) / 2, hz0 - 3, "youth centre: hut + classroom", 5)
-    c.rect(s["x0"] + 6, s["z0"] + 4, s["x1"] - 6, hz0 - 6, fill=CB["turfgreen"], stroke=CB["turfline"], sw=0.8)
-    c.text((s["x0"] + s["x1"]) / 2, s["z0"] + 20, "five-a-side marking", 5, fill="#e8f5e2")
+def classroom(c):
+    c.rect(341, 69, 355, 83, fill=CB["floor"], stroke=C["wall"], sw=1.2)
+    c.text(348, 76, "classroom\ncabin", 8)
 
 
-def academy_L3(c):
-    _academy_shell(c)
-    s = ACADEMY_SHELL
-    hx0, hx1, hz0, hz1 = s["x0"] + 2, s["x1"] - 2, s["z1"] - 46, s["z1"] - 2
-    c.rect(hx0, hz0, hx1, hz1, fill=CB["building"], stroke=CB["wall"], sw=1)
-    c.text((hx0 + hx1) / 2, hz0 - 3, "academy building: classrooms + coach's office", 5)
-    c.rect(s["x0"] + 4, s["z0"] + 4, s["x1"] - 4, hz0 - 4, fill=CB["turfgreen"], stroke=CB["turfline"], sw=0.8)
-    c.rect(s["x0"] + 20, s["z0"] + 16, s["x1"] - 20, hz0 - 16, stroke=CB["turfline"], sw=0.8)
-    c.text((s["x0"] + s["x1"]) / 2, s["z0"] + 24, "mini pitch (marked)", 5, fill="#e8f5e2")
+def cage(c, lit=False):
+    c.rect(346, 4, 374, 56, fill="#4f9a44", stroke="#333", sw=1)
+    c.rect(348, 6, 372, 54, stroke="#eef7e6", sw=0.8)
+    c.text(360, 30, "small-sided\ncage 28 x 52", 8, fill="#fff")
+    if lit:
+        for x, z in ((346, 4), (374, 4), (346, 56), (374, 56)):
+            c.circle(x, z, 1.2, fill=C["mast"])
 
 
-def academy_L4(c):
-    s = ACADEMY_SHELL
-    c.rect(s["x0"], s["z0"], s["x1"], s["z1"], fill=CB["building"], stroke=CB["wall"], sw=1.5)
-    c.rect(s["x0"] + 4, s["z0"] + 40, s["x1"] - 4, s["z1"] - 4, fill=CB["turfgreen"], stroke=CB["turfline"], sw=0.8)
-    c.rect(s["x0"] + 12, s["z0"] + 48, s["x1"] - 12, s["z1"] - 12, stroke=CB["turfline"], sw=0.8)
-    c.text((s["x0"] + s["x1"]) / 2, s["z0"] + 24, "classrooms - dorms - gym", 5, fill="#fff")
-    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2 + 10, "full-size mini pitch (marked)", 5, fill="#e8f5e2")
+def academy_block(c):
+    c.rect(358, 62, 376, 96, fill=CB["floor"], stroke=C["wall"], sw=1.2)
+    c.text(367, 79, "academy\nbuilding\n(2 storeys)\nclassrooms\ncoach's office", 8)
 
 
-plan("academy_L1", ACADEMY_SHELL, 10, "ACADEMY -- L1 Youth Hut", "exists today, relocated onto this plot (see Q3)", academy_L1, built=False)
-plan("academy_L2", ACADEMY_SHELL, 10, "ACADEMY -- L2 Youth Centre", "TEMP GBP4,000", academy_L2, built=False)
-plan("academy_L3", ACADEMY_SHELL, 10, "ACADEMY -- L3 Academy Building", "TEMP GBP12,000, ground tier 3", academy_L3, built=False)
-plan("academy_L4", ACADEMY_SHELL, 10, "ACADEMY -- L4 Elite Academy", "TEMP GBP28,000", academy_L4, built=True)
+@plan("academy_L1")
+def academy_L1():
+    c = academy_sheet(1, "Youth Hut", "exists today (X289), free\nseen from outside, not walk-in\ntoday's intake, unchanged")
+    academy_base(c, built=False)
+    c.text(358, 20, "rest of the shell:\ngrass, for sale", 9, fill=CB["sale"])
+    return c
+
+
+@plan("academy_L2")
+def academy_L2():
+    c = academy_sheet(2, "Youth Centre", "TEMP £4,000\n+1 graduate a season\npotential +1")
+    academy_base(c, built=False)
+    classroom(c)
+    new(c, 340.5, 68.5, 355.5, 83.5)
+    cage(c)
+    new(c, 345.5, 3.5, 374.5, 56.5)
+    return c
+
+
+@plan("academy_L3")
+def academy_L3():
+    c = academy_sheet(3, "Academy Building", "TEMP £12,000 · needs Regional Premier\n+1 graduate, potential +2,\nwonderkid headroom +1")
+    academy_base(c, built=False)
+    classroom(c)
+    cage(c, lit=True)
+    academy_block(c)
+    new(c, 357.5, 61.5, 376.5, 96.5)
+    c.text(360, 60, "cage floodlit", 8)
+    return c
+
+
+@plan("academy_L4")
+def academy_L4():
+    c = academy_sheet(4, "Elite Academy", "TEMP £28,000 · needs National League\n+2 graduates, potential +3,\nwonderkid headroom +2")
+    academy_base(c, built=True)
+    classroom(c)
+    cage(c, lit=True)
+    academy_block(c)
+    c.rect(344, -58, 376, -8, fill=CB["floor"], stroke=C["wall"], sw=1.2)
+    c.line([(344, -33), (376, -33)], C["wall"], 1)
+    c.text(360, -45.5, "dorms", 9)
+    c.text(360, -20.5, "gym + canteen", 9)
+    new(c, 343.5, -58.5, 376.5, -7.5)
+    return c
 
 
 # ====================================================================== OFFICE
-# Clubhouse.luau: Clubhouse.ROOMS.Office, x -156..-122, z 16.4..39 -- one fixed
-# room at every level (it already is: WorldBuilder.dressOffice re-skins it for
-# free on promotion today; decision 1 turns that into a bought track and keeps
-# the top levels also needing a higher division). Layout below matches
-# buildOffice as built: lobby door (north wall, west end), side/spawn door
-# (south wall, west end), window (west wall), desk+chair at the east end,
-# fixtures notice on the east wall, trophy shelf on the north wall.
-OFFICE_SHELL = dict(x0=-156, x1=-122, z0=16.4, z1=39)
+# Clubhouse.ROOMS.Office: x -156..-122, z 16.4..39 (clear floor). Openings:
+# lobby door on the north partition x -154..-149, side door on the south wall
+# x -155..-150 (spawn at -152.5, 34, looking out of it), window in the west
+# wall z 24..34. Furniture from Clubhouse.buildOffice (P5, 2026-09-23): desk at
+# the east end (-128, 27.7) along Z with the chair east of it, bookshelf and
+# drawer cabinet + telly on the west wall, bench on the south wall, ladder NE,
+# boxes + tyre on the north wall, bin SE, fixtures notice on the east wall.
+# Trophy shelf (buildTrophies) on the north wall x -143.5..-123.5. The level
+# fittings are exactly WorldBuilder.dressOffice's tiers 2/3/4, made bought.
+OFFICE = (-156, 16.4, -122, 39)
 
 
-def _office_base(c, painted):
-    s = OFFICE_SHELL
-    wall = "#e2ded2" if painted else "#aaa087"
-    c.rect(s["x0"], s["z0"], s["x1"], s["z1"], fill=wall, stroke=CB["wall"], sw=1.5)
-    door(c, s["x0"] + 2, s["x0"] + 7, s["z0"] - 0.6, s["z0"] + 0.6)          # OfficeLobbyDoor (north)
-    c.text(s["x0"] + 4.5, s["z0"] - 3, "to lobby", 5)
-    door(c, s["x0"] + 1, s["x0"] + 6, s["z1"] - 0.6, s["z1"] + 0.6)          # OfficeSideDoor (south, spawn)
-    c.text(s["x0"] + 3.5, s["z1"] + 3, "side door (spawn)", 5)
-    c.rect(s["x0"] - 0.6, s["z0"] + 7.6, s["x0"] + 0.6, s["z0"] + 17.6, fill=CB["glass"])  # window (west)
-    c.text(s["x0"] - 3, s["z0"] + 12.6, "window", 5, anchor="r")
-    # desk + chair, east end (P5 #24b/#24e): desk at east-6, chair between it and the wall
-    deskZ = (s["z0"] + s["z1"]) / 2
-    c.rect(s["x1"] - 7.5, deskZ - 2.75, s["x1"] - 4.5, deskZ + 2.75, fill=CB["wood"])
-    c.text(s["x1"] - 6, deskZ - 4, "desk + laptop", 5)
-    c.circle(s["x1"] - 2.8, deskZ, 1.2, fill=CB["bench"])
-    c.text(s["x1"] - 2.8, deskZ + 3, "chair", 4)
-    c.rect(s["x1"] - 0.4, s["z0"] + 9, s["x1"], s["z0"] + 15, fill="#ece4c8")  # fixtures notice, east wall
-    c.text(s["x1"] - 3, s["z0"] + 7, "fixtures\nnotice", 4, anchor="r")
+def office_base(c, painted):
+    x0, z0, x1, z1 = OFFICE
+    c.rect(-157, 15.6, -121, 40, fill=C["brick"])
+    c.rect(x0, z0, x1, z1, fill=CB["paint"] if painted else CB["damp"])
+    c.rect(-156.8, 24, -155.2, 34, fill=C["glass"])              # window, west wall
+    c.text(-157.8, 29, "window", 9, anchor="r")
+    c.rect(-154, 15.6, -149, 17, fill=C["door"])                 # lobby door
+    c.text(-151.5, 13.8, "to lobby", 9)
+    c.rect(-155, 38.4, -150, 40, fill=C["door"])                 # side door
+    c.text(-152.5, 41.8, "side door (spawn)", 9)
+    c.circle(-152.5, 34, 0.8, fill="#2c4c9c")
+    # desk + laptop + chair (desk 2.9 x 6.3 at DESK_SCALE 1.15)
+    c.rect(-129.45, 24.55, -126.55, 30.85, fill=CB["wood"])
+    c.rect(-128.6, 27.1, -127.4, 28.4, fill=CB["screen"])
+    c.circle(-124.2, 27.7, 1.2, fill=CB["bench"])
+    c.text(-131, 27.7, "desk + laptop", 8, rot=-90)
+    c.text(-124.2, 31, "chair", 8)
+    c.rect(-156, 16.7, -154.4, 20.5, fill=CB["wood"])            # bookshelf
+    c.rect(-156, 20.75, -154.7, 23.85, fill=CB["locker"])        # drawer cabinet + telly
+    c.text(-153.8, 20.3, "shelf · cabinet + telly", 8, anchor="l")
+    c.rect(-134.1, 37.6, -130.9, 39, fill=CB["bench"])           # bench, south wall
+    c.text(-132.5, 36.4, "bench", 8)
+    c.rect(-132.8, 16.8, -126.2, 18.6, fill="#a08a6a")           # boxes + tyre
+    c.text(-129.5, 19.8, "boxes · tyre", 8)
+    c.rect(-123.9, 16.9, -122.5, 18.3, fill="#9a7a50")           # ladder
+    c.rect(-124.2, 36.9, -122.2, 38.8, fill="#555")              # bin
+    c.rect(-122.2, 25.5, -122, 30, fill="#ece4c8")               # fixtures notice, east wall
+    c.text(-120.8, 27.7, "fixtures notice", 8, rot=-90)
+    c.rect(-143.5, 16.4, -123.5, 17.2, fill=CB["wood"], alpha=0.6)  # trophy shelf (with trophies)
+    c.text(-138, 18.2, "trophy shelf + pennants (honours)", 8)
+    shell_outline(c, (-157, 15.6, -121, 40), True)
 
 
-def office_L1(c):
-    _office_base(c, painted=False)
-    s = OFFICE_SHELL
-    c.text((s["x0"] + s["x1"]) / 2, s["z1"] - 3, "damp stains - dim light - green-screen terminal", 5)
-    c.text((s["x0"] + s["x1"]) / 2, s["z0"] + 3, "RUNDOWN OFFICE", 6, bold=True)
+def office_sheet(level, name, sub):
+    return sheet((-162, -116, 10, 45), 14, f"OFFICE — L{level} {name}", sub, OFFICE, ground="#d8d4ca")
 
 
-def office_L2(c):
-    _office_base(c, painted=True)
-    s = OFFICE_SHELL
-    c.text((s["x0"] + s["x1"]) / 2, s["z1"] - 3, "walls painted - notice board tidied", 5)
-    c.text((s["x0"] + s["x1"]) / 2, s["z0"] + 3, "PAINTED OFFICE", 6, bold=True)
+@plan("office_L1")
+def office_L1():
+    c = office_sheet(1, "Rundown", "exists today · spawn room · walk-in\ndamp stains, green-screen laptop, bare bulb 1.2")
+    office_base(c, painted=False)
+    for x, z in ((-147, 17.2), (-140, 17.2), (-122.8, 34)):
+        c.circle(x, z, 0.9, fill="#6f6650")
+    c.text(-142, 22, "damp stains", 9, fill="#5a5040")
+    return c
 
 
-def office_L3(c):
-    _office_base(c, painted=True)
-    s = OFFICE_SHELL
-    c.rect(s["x0"] + 3, s["z0"] + 2, s["x0"] + 9, s["z0"] + 6, fill="#8a6a48", stroke=CB["wall"], sw=0.6)
-    c.text(s["x0"] + 6, s["z0"] - 1, "rug", 4)
-    c.text((s["x0"] + s["x1"]) / 2, s["z1"] - 3, "flat-screen computer - brighter light", 5)
-    c.text((s["x0"] + s["x1"]) / 2, s["z0"] + 3, "MODERN OFFICE", 6, bold=True)
+def office_cabinet(c):
+    c.rect(-125, 19.4, -122, 23.4, fill=CB["rack"])
 
 
-def office_L4(c):
-    _office_base(c, painted=True)
-    s = OFFICE_SHELL
-    c.rect(s["x0"] + 3, s["z0"] + 2, s["x0"] + 9, s["z0"] + 6, fill="#8a6a48", stroke=CB["wall"], sw=0.6)
-    c.rect(s["x0"] + 11, s["z0"] + 0.6, s["x0"] + 22, s["z0"] + 2.2, fill="#c9a94a")  # trophy shelf, north wall
-    c.text(s["x0"] + 16, s["z0"] - 2, "trophy shelf", 4)
-    c.text((s["x0"] + s["x1"]) / 2, s["z1"] - 3, "flat-screen computer - branded lighting + crest", 5)
-    c.text((s["x0"] + s["x1"]) / 2, s["z0"] + 3, "BRANDED OFFICE", 6, bold=True)
+def office_board(c):
+    c.rect(-149, 38.4, -139, 39, fill="#1c4628")
+    c.text(-144, 36.8, "tactics board", 8)
 
 
-plan("office_L1", OFFICE_SHELL, 8, "OFFICE -- L1 Rundown", "exists today (tier 1 look)", office_L1)
-plan("office_L2", OFFICE_SHELL, 8, "OFFICE -- L2 Painted", "TEMP GBP1,000", office_L2)
-plan("office_L3", OFFICE_SHELL, 8, "OFFICE -- L3 Modern", "TEMP GBP5,000, division 2+", office_L3)
-plan("office_L4", OFFICE_SHELL, 8, "OFFICE -- L4 Branded", "TEMP GBP15,000, division 1", office_L4)
+@plan("office_L2")
+def office_L2():
+    c = office_sheet(2, "Painted", "TEMP £1,000 · sponsor +2%\npainted over the damp, filing cabinet, bulb 1.8")
+    office_base(c, painted=True)
+    office_cabinet(c)
+    new(c, -125.3, 19.1, -121.8, 23.7)
+    c.text(-125.6, 21.4, "filing cabinet", 8, anchor="r")
+    return c
+
+
+@plan("office_L3")
+def office_L3():
+    c = office_sheet(3, "Modern", "TEMP £5,000 · needs Regional Premier · sponsor +4%\nflat screen (SQUAD / TRANSFERS / FINANCE), tactics board")
+    office_base(c, painted=True)
+    office_cabinet(c)
+    office_board(c)
+    new(c, -149.3, 38.1, -138.7, 39.3)
+    new(c, -128.9, 26.8, -127.1, 28.7)
+    return c
+
+
+@plan("office_L4")
+def office_L4():
+    c = office_sheet(4, "Branded", "TEMP £15,000 · needs National League · sponsor +7%\ncrest + club name panel, plant, bright cool light 2.4")
+    office_base(c, painted=True)
+    office_cabinet(c)
+    office_board(c)
+    c.rect(-138.5, 38.4, -124.5, 39, fill=CB["kit"])
+    c.text(-127, 36.9, "crest + name panel", 8)
+    new(c, -138.8, 38.1, -124.2, 39.3)
+    c.circle(-128, 22.2, 1.2, fill="#3c783c")
+    new(c, -129.4, 20.8, -126.6, 23.6)
+    c.text(-130, 22.2, "plant", 8, anchor="r")
+    return c
 
 
 # ===================================================== COACH'S CABIN / ATHLETIC CENTRE
-# Ground plan spec S5's own table already gives the per-level content; the
-# fixed shell (decision 5) is the athletic centre's full footprint, x 240..320,
-# z -16..16 (80 x 32), matching tools/ground_plan.py's `proposed_common`. The
-# cabin (L2) is a small building inside that shell, not a separate site.
-GYM_SHELL = dict(x0=240, x1=320, z0=-16, z1=16)
+# Ground plan §5 + tools/ground_plan.py: shell x 240..320, z -16..16 (80 x 32)
+# inside the training fence, between training pitch 1 (z -170..-20) and pitch 2
+# (z 20..170). The #23a path (x 276..284) comes up from the south to the
+# building door at z 16. The L2 cabin is 16 x 10 at (280, 0) and becomes the
+# L3 reception, so nothing is knocked down.
+GYM = (240, -16, 320, 16)
 
 
-def gym_L1(c):
-    s = GYM_SHELL
-    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2, "nothing yet -- for sale", 6, fill="#2d5a1e")
+def gym_base(c, built, pitch1, pitch2):
+    c.rect(222, -30, 338, 42, fill=CB["grass"])
+    if pitch1:
+        c.rect(230, -30, 330, -20, fill=C["turf"])
+        c.text(280, -25, "training pitch 1", 9, fill="#fff")
+    else:
+        c.rect(230, -30, 330, -20, stroke=C["fence"], sw=1, dash="3,2")
+        c.text(280, -25, "pitch 1 (for sale)", 9, fill=CB["sale"])
+    if pitch2:
+        c.rect(230, 20, 330, 30, fill=C["turf"])
+        c.text(252, 25, "training pitch 2", 9, fill="#fff")
+    else:
+        c.rect(230, 20, 330, 30, stroke=C["fence"], sw=1, dash="3,2")
+        c.text(252, 25, "pitch 2 (for sale)", 9, fill=CB["sale"])
+    c.rect(276, 16, 284, 42, fill=C["path"])
+    c.text(287, 37, "#23a path from the south gate", 8, anchor="l")
+    shell_outline(c, GYM, built)
 
 
-def gym_L2(c):
-    s = GYM_SHELL
-    cx, cz = 280, 0
-    c.rect(cx - 8, cz - 5, cx + 8, cz + 5, fill=CB["building"], stroke=CB["wall"], sw=1)
-    door(c, cx - 1, cx + 1, cz + 4.4, cz + 5)
-    c.text(cx, cz - 7, "COACH'S CABIN 16x10", 5, bold=True)
-    c.text(cx, cz + 8, "unlocks hiring a coach", 5)
-    c.text((s["x0"] + s["x1"]) / 2, s["z0"] + 4, "rest of plot: for sale", 6, fill="#2d5a1e")
+def gym_sheet(level, name, sub):
+    return sheet((222, 338, -30, 42), 6, f"COACH'S CABIN → ATHLETIC CENTRE — L{level} {name}", sub, GYM)
 
 
-def _gym_shell(c, extra_label):
-    s = GYM_SHELL
-    c.rect(s["x0"], s["z0"], s["x1"], s["z1"], fill=CB["building"], stroke=CB["wall"], sw=1.5)
-    door(c, 279, 281, s["z1"] - 0.5, s["z1"] + 0.5)
-    c.text(280, s["z1"] + 3, "training-ground door", 5)
-    mid = (s["x0"] + s["x1"]) / 2
-    c.line([(mid, s["z0"]), (mid, s["z1"])], CB["wall"], 1)
-    c.text(mid - 20, 0, "COACH'S OFFICE", 6, bold=True, fill="#fff")
-    c.text(mid + 20, 0, "GYM" + extra_label, 6, bold=True, fill="#fff")
+def cabin(c):
+    c.rect(272, -5, 288, 5, fill=CB["floor"], stroke=C["wall"], sw=1.2)
+    c.rect(278, 4.5, 282, 5.5, fill=C["door"])
+    c.rect(276, 5, 284, 16, fill=C["path"])
 
 
-def gym_L3(c):
-    _gym_shell(c, "")
-    c.text(280, -12, "ATHLETIC CENTRE 80x32 -- training bonus", 5, fill="#fff")
+@plan("coachcabin_L1")
+def gym_L1():
+    c = gym_sheet(1, "nothing", "for-sale outline and board · no coach can be hired\nvisible at spawn (ground plan §6)")
+    gym_base(c, built=False, pitch1=False, pitch2=False)
+    c.text(280, 0, "for sale", 11, fill=CB["sale"], bold=True)
+    c.rect(283, 12, 286, 13, fill=CB["wood"])
+    c.text(290, 11, "board", 8, anchor="l")
+    return c
 
 
-def gym_L4(c):
-    _gym_shell(c, " + PHYSIO")
-    c.rect(GYM_SHELL["x1"] - 18, -6, GYM_SHELL["x1"] - 2, 6, fill="#ef9a9a", stroke=CB["wall"], sw=0.6)
-    c.text(GYM_SHELL["x1"] - 10, 0, "physio", 4)
-    c.text(280, -12, "+ physio -- injury recovery bonus", 5, fill="#fff")
+@plan("coachcabin_L2")
+def gym_L2():
+    c = gym_sheet(2, "Coach's Cabin", "TEMP £1,000 · unlocks hiring a coach (Config.CoachLevels)\nseen from outside")
+    gym_base(c, built=False, pitch1=False, pitch2=False)
+    cabin(c)
+    new(c, 271.5, -5.5, 288.5, 16)
+    c.text(280, 0, "cabin 16 x 10", 9)
+    c.text(258, 0, "rest: for sale", 9, fill=CB["sale"])
+    return c
 
 
-plan("coachcabin_L1", GYM_SHELL, 10, "COACH'S CABIN -- L1 (nothing)", "for-sale outline only", gym_L1, built=False)
-plan("coachcabin_L2", GYM_SHELL, 10, "COACH'S CABIN -- L2 Cabin", "TEMP GBP2,500", gym_L2, built=False)
-plan("athleticcentre_L3", GYM_SHELL, 10, "ATHLETIC CENTRE -- L3", "TEMP GBP9,000, training pitch 1", gym_L3)
-plan("athleticcentre_L4", GYM_SHELL, 10, "ATHLETIC CENTRE -- L4 + Physio", "TEMP GBP20,000, training pitch 2", gym_L4)
+def centre(c, physio):
+    x0, z0, x1, z1 = GYM
+    c.rect(x0, z0, x1, z1, fill=CB["floor"])
+    for x in (256, 272, 288):
+        c.line([(x, z0), (x, z1)], C["wall"], 1.2)
+    c.rect(272, -5, 288, 5, stroke="#999", sw=0.8, dash="2,2")   # the old cabin
+    c.rect(276, 15.5, 284, 16.5, fill=C["door"])
+    c.text(280, -9, "reception\n(was the cabin)", 8)
+    c.text(264, -10, "coach's office", 8)
+    c.rect(258, -2, 262, 6, fill=CB["wood"])
+    c.rect(271.4, -8, 271.8, 4, fill="#1c4628")
+    c.text(304, -10, "gym", 9, bold=True)
+    for i in range(4):
+        c.rect(292 + i * 6, 2, 296 + i * 6, 8, fill=CB["locker"])
+    c.text(304, 11, "bikes · weights · treadmills", 8)
+    if physio:
+        c.rect(242, -12, 254, -8, fill=CB["physio"])
+        c.rect(242, -3, 254, 1, fill=CB["physio"])
+        c.circle(248, 9, 2.5, fill=C["water"], stroke="#555", sw=0.6)
+        c.text(248, -14.5, "physio", 8, bold=True)
+        c.text(248, 4.5, "2 treatment tables", 7)
+        c.text(248, 13, "ice bath", 7)
+    else:
+        c.text(248, 0, "shell only,\nfitted at L4", 8, fill="#777")
+    shell_outline(c, GYM, True)
+
+
+@plan("athleticcentre_L3")
+def gym_L3():
+    c = gym_sheet(3, "Athletic Centre", "TEMP £9,000 · needs training pitch 1 · walk-in\ndevelopment +15% of base chance, added after the coach")
+    gym_base(c, built=True, pitch1=True, pitch2=False)
+    centre(c, physio=False)
+    new(c, 240, -16, 272, 16)
+    new(c, 288, -16, 320, 16)
+    return c
+
+
+@plan("athleticcentre_L4")
+def gym_L4():
+    c = gym_sheet(4, "+ Physio", "TEMP £20,000 · needs training pitch 2 · walk-in\ninjuries last one match less (never under 1)")
+    gym_base(c, built=True, pitch1=True, pitch2=True)
+    centre(c, physio=True)
+    new(c, 240.5, -15.5, 255.5, 15.5)
+    return c
 
 
 # ============================================================ SCOUTING ROOM
-# Clubhouse.ROOMS.Store (mirrors Office across the corridor): x -156..-122,
-# z -39..-16.4. Today it is lined but empty (Clubhouse.buildLobby's `store`
-# model). Ground plan §5's table has only two states for this row ("store" /
-# "clubhouse store refits into the scouting room"), so this track is
-# deliberately short -- see Q8 on whether it needs a cosmetic L3.
-SCOUT_SHELL = dict(x0=-156, x1=-122, z0=-39, z1=-16.4)
+# Clubhouse.ROOMS.Store: x -156..-122, z -39..-16.4, the office's mirror across
+# the lobby. Lobby door in its south partition x -154..-149. Kiosk hatch in the
+# west wall z -34..-26 (ground plan §2 removes it, #12, station 1's job). As
+# built: three boxes by (-127, -36.5), a ladder at (-123.2, -20), a bulb.
+STORE = (-156, -39, -122, -16.4)
 
 
-def scout_L1(c):
-    s = SCOUT_SHELL
-    c.rect(s["x0"], s["z0"], s["x1"], s["z1"], fill="#efece2", stroke=CB["wall"], sw=1.5)
-    door(c, s["x0"] + 2, s["x0"] + 7, s["z1"] - 0.6, s["z1"] + 0.6)
-    c.text(s["x0"] + 4.5, s["z1"] + 3, "to lobby", 5)
-    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2, "empty concession store\n(as built)", 6)
+def store_base(c, hatch_note):
+    x0, z0, x1, z1 = STORE
+    c.rect(-157, -40, -121, -15.6, fill=C["brick"])
+    c.rect(x0, z0, x1, z1, fill=CB["floor"])
+    c.rect(-154, -17, -149, -15.6, fill=C["door"])
+    c.text(-151.5, -13.8, "to lobby", 9)
+    c.rect(-156.8, -34, -155.2, -26, fill="#999", stroke="#666", sw=0.6, dash="2,2")
+    c.text(-157.8, -30, hatch_note, 8, anchor="r")
+    shell_outline(c, (-157, -40, -121, -15.6), True)
 
 
-def scout_L2(c):
-    s = SCOUT_SHELL
-    c.rect(s["x0"], s["z0"], s["x1"], s["z1"], fill="#efece2", stroke=CB["wall"], sw=1.5)
-    door(c, s["x0"] + 2, s["x0"] + 7, s["z1"] - 0.6, s["z1"] + 0.6)
-    c.text(s["x0"] + 4.5, s["z1"] + 3, "to lobby", 5)
-    c.rect(s["x0"] + 0.6, s["z0"] + 2, s["x0"] + 16, s["z0"] + 10, fill="#2c4c3a")
-    c.text(s["x0"] + 8, s["z0"] - 1, "world map pinboard", 5)
-    c.rect(s["x1"] - 6, s["z1"] - 8, s["x1"] - 0.6, s["z1"] - 2, fill=CB["wood"])
-    c.text(s["x1"] - 3, s["z1"] - 10, "desk + shortlist tray", 4, anchor="r")
-    c.rect(s["x0"] + 4, s["z1"] - 8, s["x0"] + 8, s["z1"] - 2, fill=CB["locker"])
-    c.text(s["x0"] + 6, s["z1"] - 10, "filing\ncabinet", 4)
-    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2 + 4, "SCOUTING ROOM", 6, bold=True)
+def store_sheet(level, name, sub):
+    return sheet((-176, -116, -45, -10), 14, f"SCOUTING ROOM — L{level} {name}", sub, STORE, ground="#d8d4ca")
 
 
-plan("scoutroom_L1", SCOUT_SHELL, 8, "FOOTBALL OPS -- L1 Store", "exists today (empty)", scout_L1)
-plan("scoutroom_L2", SCOUT_SHELL, 8, "FOOTBALL OPS -- L2 Scouting Room", "TEMP GBP3,000", scout_L2)
+@plan("scoutroom_L1")
+def scout_L1():
+    c = store_sheet(1, "Store", "exists today (Clubhouse.buildLobby) · no scout can be hired\npacks still come after every match (walk-in trialists)")
+    store_base(c, "kiosk hatch\n(#12 removes it)")
+    c.rect(-128.4, -37.8, -125.6, -35.2, fill="#a08a6a")
+    c.text(-127, -33.6, "boxes", 8)
+    c.rect(-123.9, -21, -122.5, -19, fill="#9a7a50")
+    c.text(-125, -20, "ladder", 8, anchor="r")
+    c.text(-139, -27.7, "empty store", 11, fill="#777")
+    return c
+
+
+@plan("scoutroom_L2")
+def scout_L2():
+    c = store_sheet(2, "Scouting Room", "TEMP £1,500 · unlocks hiring a scout (Config.ScoutLevels) · walk-in\nmap wall, desk with the scout's laptop, shortlist board, cabinet")
+    store_base(c, "hatch gone\n(#12)")
+    c.rect(-150, -39, -130, -38.4, fill="#2c4c3a")               # world map, north wall
+    c.text(-140, -37, "map wall: pins where the scout has been", 8)
+    new(c, -150.3, -39.3, -129.7, -38.1)
+    c.rect(-129, -30, -126, -24, fill=CB["wood"])                # desk at the east end
+    c.circle(-124.2, -27, 1.2, fill=CB["bench"])
+    c.text(-131, -27, "desk + laptop", 8, rot=-90)
+    new(c, -129.3, -30.3, -122.8, -23.7)
+    c.rect(-122.6, -37, -122, -32, fill="#ece4c8")               # shortlist board, east wall
+    c.text(-123.6, -34.5, "shortlist board\n(this week's 3 cards)", 7, anchor="r")
+    new(c, -122.9, -37.3, -121.8, -31.7)
+    c.rect(-156, -24, -154.6, -20, fill=CB["locker"])            # filing cabinet
+    c.text(-153.8, -22, "filing cabinet", 8, anchor="l")
+    new(c, -156.2, -24.3, -154.3, -19.7)
+    return c
 
 
 # ==================================================== CONCOURSE UNDERCROFT
-# "One club-wide track" (ground plan §4), not one building: it repeats behind
-# every qualifying stand. This plan draws ONE representative bay -- the East
-# stand's kiosk point (188, 60) from the ground plan's own catering table --
-# not a single fixed room. See Q10/Q11 below (a 4th tier and the merchPerFan
-# split from Config.AmenityLevels are both new, not yet in the ground plan).
-BAY_SHELL = dict(x0=176, x1=200, z0=50, z1=74)
+# One club-wide track (ground plan §4), so each level is the whole ground at the
+# ground plan's own 1.25 px/stud. The four levels are Config.AmenityLevels'
+# four rows (Nothing / Snack Bar / Merch Stand / Fan Zone) mapped onto the plan:
+# its catering tier 3 (undercroft + fan zone) is split in two (Q10).
+KIOSKS = ((0, -232), (0, 232), (188, -60), (188, 60), (-185, -110), (-185, 110))
 
 
-def _bay_shell(c, paved):
-    s = BAY_SHELL
-    c.rect(s["x0"], s["z0"], s["x1"], s["z1"], fill=CB["hard"] if paved else CB["gravel"])
-    c.text((s["x0"] + s["x1"]) / 2, s["z1"] + 4, "one bay behind the stand -- repeats club-wide", 5)
+def ground(c, tier, surface):
+    c.rect(ENV_W, ENV_N, ENV_E, ENV_S, fill=surface, stroke=C["wall"], sw=2)
+    draw_pitch(c)
+    draw_ad_boards(c)
+    t = TIERS[tier]
+    fill = C["standL4"] if t["roof"] else C["stand"]
+    for side, poly in stand_rects(tier):
+        if tier == 1 and side != "E":
+            c.poly(poly, stroke=C["wall"], sw=0.8, dash="3,2")
+            continue
+        c.poly(poly, fill=fill, stroke=C["wall"], sw=0.8)
+    c.rect(CH_W, CH_N, CH_E, CH_S, fill=C["brick"], stroke=C["wall"], sw=0.8)
+    for x, z in MAST:
+        draw_floodlight(c, x, z, label=False)
 
 
-def bay_L1(c):
-    _bay_shell(c, paved=False)
-    s = BAY_SHELL
-    c.rect(s["x0"] + 2, s["z0"] + 8, s["x0"] + 8, s["z0"] + 14, fill=CB["van"], stroke="#888", sw=0.6)
-    c.text(s["x0"] + 5, s["z0"] + 6, "burger van\n(portable)", 4)
-    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2 + 6, "GRAVEL + BURGER VAN", 5, bold=True)
+def conc_sheet(level, name, sub):
+    return sheet((-215, 215, -275, 275), 1.25, f"CONCOURSE — L{level} {name}", sub, (ENV_W, ENV_N, ENV_E, ENV_S))
 
 
-def bay_L2(c):
-    _bay_shell(c, paved=True)
-    s = BAY_SHELL
-    c.rect(s["x0"] + 8, s["z0"] + 6, s["x0"] + 16, s["z0"] + 14, fill=CB["building"], stroke=CB["wall"], sw=1)
-    c.text(s["x0"] + 12, s["z0"] + 4, "kiosk", 5)
-    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2 + 6, "PAVED + KIOSK", 5, bold=True)
+def undercroft(c):
+    for side, poly in stand_rects(3):
+        xs, zs = [p[0] for p in poly], [p[1] for p in poly]
+        c.rect(min(xs) + 2, min(zs) + 2, max(xs) - 2, max(zs) - 2, stroke="#fff", sw=1.4, dash="3,2")
+    c.text(146, 0, "bars under every stand", 9, fill="#fff", bold=True, rot=90)
 
 
-def bay_L3(c):
-    _bay_shell(c, paved=True)
-    s = BAY_SHELL
-    c.rect(s["x0"] + 1, s["z1"] - 10, s["x1"] - 1, s["z1"] - 1, fill=CB["stand"])
-    c.text((s["x0"] + s["x1"]) / 2, s["z1"] - 5, "undercroft catering (under the stand)", 4, fill="#fff")
-    c.rect(s["x0"] + 2, s["z0"] + 2, s["x0"] + 8, s["z0"] + 6, fill=CB["bench"])
-    c.text(s["x0"] + 5, s["z0"] + 0, "picnic\nbenches", 3)
-    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2 - 2, "UNDERCROFT + FAN ZONE", 5, bold=True)
+@plan("concourse_L1")
+def conc_L1():
+    c = conc_sheet(1, "Burger Van", "exists today (AmenityLevels 'Nothing') · perFan 0\ngrass, gravel strip, one van, portaloos · stands shown at map tier 1")
+    ground(c, 1, CB["grass"])
+    c.rect(121 + 9.6, -40, 121 + 15, 40, fill=CB["gravel"])
+    c.rect(-160, -110, -146, -100, fill=C["van"], stroke="#888", sw=0.8)
+    c.text(-153, -118, "burger van", 9)
+    c.rect(-160, 100, -148, 112, fill="#7fb3c9", stroke="#555", sw=0.8)
+    c.text(-154, 120, "portaloos", 9)
+    c.text(146, 0, "gravel strip behind the stand", 9, rot=90)
+    return c
 
 
-def bay_L4(c):
-    _bay_shell(c, paved=True)
-    s = BAY_SHELL
-    c.rect(s["x0"] + 1, s["z1"] - 10, s["x1"] - 1, s["z1"] - 1, fill=CB["stand"])
-    c.text((s["x0"] + s["x1"]) / 2, s["z1"] - 5, "hospitality catering (under the stand)", 4, fill="#fff")
-    c.rect(s["x0"] + 2, s["z0"] + 2, s["x0"] + 10, s["z0"] + 8, fill="#c9a94a")
-    c.text(s["x0"] + 6, s["z0"] - 1, "premium\nlounge", 3)
-    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2 - 2, "FULL HOSPITALITY (TEMP L4)", 5, bold=True)
+@plan("concourse_L2")
+def conc_L2():
+    c = conc_sheet(2, "Kiosks", "TEMP £1,200 (was Snack Bar) · needs a stand at Main Stand or bigger\nperFan 2, demand +10% · paved; a kiosk behind every stand at map tier 2+")
+    ground(c, 2, C["hard"])
+    for x, z in KIOSKS:
+        c.rect(x - 7, z - 5, x + 7, z + 5, fill=C["building"], stroke=C["wall"], sw=0.8)
+        new(c, x - 9, z - 7, x + 9, z + 7)
+    c.text(0, -218, "kiosk", 9)
+    return c
 
 
-plan("concourse_L1", BAY_SHELL, 8, "CONCOURSE -- L1", "exists today", bay_L1)
-plan("concourse_L2", BAY_SHELL, 8, "CONCOURSE -- L2", "TEMP GBP1,200/bay", bay_L2)
-plan("concourse_L3", BAY_SHELL, 8, "CONCOURSE -- L3 Undercroft", "TEMP GBP6,000/bay", bay_L3)
-plan("concourse_L4", BAY_SHELL, 8, "CONCOURSE -- L4 (proposed)", "TEMP GBP15,000/bay -- see Q10", bay_L4)
+@plan("concourse_L3")
+def conc_L3():
+    c = conc_sheet(3, "Undercroft Bars", "TEMP £6,000 (was Merch Stand) · needs a stand at Double-tier or bigger\nperFan 4, demand +20% · bars under every map tier 3+ stand")
+    ground(c, 3, C["hard"])
+    undercroft(c)
+    c.text(0, 240, "kiosks stay behind any stand still below tier 3", 9)
+    return c
+
+
+@plan("concourse_L4")
+def conc_L4():
+    c = conc_sheet(4, "Fan Zone", "TEMP £15,000 (was Fan Zone) · needs Undercroft Bars\nperFan 6, demand +35% · picnic benches north of the west wing")
+    ground(c, 3, C["hard"])
+    undercroft(c)
+    c.rect(-198, -150, -176, -70, fill="#f6e7b2", stroke="#bbb", sw=0.8)
+    for z in range(-144, -74, 12):
+        c.rect(-194, z, -180, z + 4, fill=CB["bench"])
+    new(c, -199, -151, -175, -69)
+    c.text(-187, -160, "fan zone", 10, bold=True)
+    return c
 
 
 # ============================================================ DRESSING ROOMS
-# Clubhouse.ROOMS.Home/Away: x -147.6..-122, z 4.8..15.6 (Home) and
-# z -15.6..-4.8 (Away, the mirror image). Built after the others (decision 6).
-# One drawing shows both fixed rooms plus the corridor between them, since
-# they are one symmetric pair, not two independent shells to track.
-DRESS_SHELL = dict(x0=-147.6, x1=-122, z0=-15.6, z1=15.6)
-DOOR_X0, DOOR_X1 = -148 + 1, -148 + 6  # HomeDoor/AwayDoor opening, corridor wall
+# Clubhouse.ROOMS.Home: x -147.6..-122, z 4.8..15.6 (south of the corridor);
+# Away mirrors it at z -15.6..-4.8 (north). Corridor z -4..4 from the lobby
+# mouth (x -148) to the players' door (x -121, the tunnel). Doors in the
+# corridor walls at x -139..-134. Clubhouse.buildDressingRooms, per room:
+# benches 3.2 deep down both long walls (inner run broken at the door), peg rail
+# + hung shirts above (WorldBuilder.dressDressingRooms names the home XI on the
+# "Shirt" parts, so an upgrade must keep >= 11 of them), tactics board on the
+# west end wall, a high slot window in the east wall, one bulb. Only the HOME
+# room upgrades (Q13); the away room stays at level 1.
+DRESS = (-148, -16, -121, 16)
 
 
-def _dress_shell(c):
-    s = DRESS_SHELL
-    c.rect(s["x0"], 4.8, s["x1"], s["z1"], fill="#efece2", stroke=CB["wall"], sw=1.5)   # Home
-    c.rect(s["x0"], s["z0"], s["x1"], -4.8, fill="#efece2", stroke=CB["wall"], sw=1.5)  # Away
-    c.rect(s["x0"], -4, s["x1"], 4, fill=CB["path"])                                    # corridor
-    c.text(s["x0"] - 3, 0, "corridor\n(to tunnel)", 4, anchor="r")
-    door(c, DOOR_X0, DOOR_X1, 4, 4.8)
-    door(c, DOOR_X0, DOOR_X1, -4.8, -4)
-    c.text((s["x0"] + s["x1"]) / 2, s["z0"] - 3, "HOME (north)  /  AWAY (south, mirror)", 5)
+def dress_room(c, zs, level):
+    """zs = +1 home (south), -1 away (north). `level` = what this room shows."""
+    inner, outer = 4.8, 15.6
+
+    def box(xa, a, xb, b, **kw):          # a, b: distances from the corridor axis
+        za, zb = zs * a, zs * b
+        c.rect(xa, min(za, zb), xb, max(za, zb), **kw)
+
+    box(-147.6, inner, -122, outer, fill=CB["tile"] if level >= 3 else CB["floor"])
+    if level >= 3:                                              # cubicles on both long walls
+        runs = ((-145.6, -128.5, outer - 3.2, outer), (-145.6, -140, inner, inner + 3.2), (-133, -124, inner, inner + 3.2))
+        for xa, xb, a, b in runs:
+            n = max(1, int((xb - xa) // 2.8))
+            w = (xb - xa) / n
+            for i in range(n):
+                box(xa + i * w + 0.1, a, xa + (i + 1) * w - 0.1, b, fill=CB["kit"] if level >= 4 else CB["locker"])
+    else:
+        box(-145.6, outer - 3.2, -128.5 if level >= 2 else -124, outer, fill=CB["bench"])
+        box(-145.6, inner, -140, inner + 3.2, fill=CB["bench"])
+        box(-133, inner, -124, inner + 3.2, fill=CB["bench"])
+        if level >= 2:                                          # lockers along the outer wall
+            box(-145.6, outer - 0.9, -128.5, outer, fill=CB["locker"])
+    if level >= 2:                                              # shower bay, outer-east corner
+        box(-128, outer - 5, -122, outer, fill=C["water"], stroke="#777", sw=0.6)
+        c.text(-125, zs * (outer - 2.5), "showers\n+ ice bath" if level >= 3 else "showers", 7)
+    box(-147.6, 8.2, -147.2, 12.2, fill="#151515" if level >= 4 else "#1c4628")   # board -> screen at L4
+    box(-121.6, 8.5, -121, 12.5, fill=C["glass"])                                  # high slot window
+    if level >= 4:
+        c.circle(-131, zs * 10.2, 2, fill=CB["gold"])
+        c.text(-131, zs * 10.2, "crest", 7)
+    box(-139, 4, -134, 4.8, fill=C["door"])
+    c.text(-140, zs * 10.2, ("HOME" if zs > 0 else "AWAY") + f" (L{level})", 9, bold=True)
 
 
-def _both_rooms(c, fn):
-    for zSign in (1, -1):
-        fn(c, zSign)
+def dress_base(c, home_level):
+    c.rect(-148.4, -16.4, -121, 16.4, fill=C["brick"])
+    c.rect(-147.6, -4, -122, 4, fill=C["path"])
+    c.rect(-148.4, -4, -147.6, 4, fill=C["door"])
+    c.rect(-121.6, -4, -121, 4, fill=C["door"])
+    c.text(-150, 0, "lobby", 9, anchor="r")
+    c.text(-119.5, 0, "players' door → tunnel", 9, anchor="l")
+    c.text(-134.8, 0, "corridor", 9)
+    dress_room(c, 1, home_level)
+    dress_room(c, -1, 1)
+    shell_outline(c, (-148.4, -16.4, -121, 16.4), True)
 
 
-def dress_L1(c, zSign):
-    inner, outer = 4.8 * zSign, 15.6 * zSign
-    z0, z1 = min(inner, outer), max(inner, outer)
-    x0, x1 = DRESS_SHELL["x0"], DRESS_SHELL["x1"]
-    # benches down both long (x-running) walls; door break in the corridor-side wall
-    near = z0 if zSign > 0 else z1  # the corridor-facing wall
-    far = z1 if zSign > 0 else z0
-    d = 1.4 if zSign > 0 else -1.4
-    c.rect(x0 + 2, near, x1 - 2, near + d, fill=CB["bench"])
-    c.rect(x0 + 2, far, x1 - 2, far - d, fill=CB["bench"])
-    c.rect(x0 + 0.2, (z0 + z1) / 2 - 2.5, x0 + 1, (z0 + z1) / 2 + 2.5, fill="#2c4a34")  # tactics board, far (west) wall
-    c.text(x0 + 3, (z0 + z1) / 2, "benches + pegs", 4, rot=90)
+def dress_sheet(level, name, sub):
+    return sheet((-162, -96, -22, 22), 14, f"DRESSING ROOMS — L{level} {name}", sub, DRESS, ground="#d8d4ca")
 
 
-def dress_L2(c, zSign):
-    dress_L1(c, zSign)
-    x1 = DRESS_SHELL["x1"]
-    z0, z1 = (4.8, 15.6) if zSign > 0 else (-15.6, -4.8)
-    corner = z1 - 4 if zSign > 0 else z0 + 4
-    c.rect(x1 - 6, min(corner, corner + 4 * zSign), x1 - 1, max(corner, corner + 4 * zSign), fill=CB["tile"], stroke="#888", sw=0.5)
-    c.text(x1 - 3.5, (corner + corner + 4 * zSign) / 2, "showers", 3)
+@plan("dressing_L1")
+def dress_L1():
+    c = dress_sheet(1, "Benches", "exists today · walk-in · both rooms\nbenches + peg rail, shirts named for the XI, tactics board")
+    dress_base(c, 1)
+    return c
 
 
-def dress_L3(c, zSign):
-    dress_L2(c, zSign)
-    x0 = DRESS_SHELL["x0"]
-    z0, z1 = (4.8, 15.6) if zSign > 0 else (-15.6, -4.8)
-    mid = (z0 + z1) / 2
-    c.rect(x0 + 8, mid - 1.6, x0 + 14, mid + 1.6, fill=CB["locker"])
-    c.text(x0 + 11, mid - 3, "physio\ntable", 3)
+@plan("dressing_L2")
+def dress_L2():
+    c = dress_sheet(2, "Lockers + Showers", "TEMP £2,000 · home room only\nhome strength +1 at home matches")
+    dress_base(c, 2)
+    new(c, -145.9, 10.3, -121.7, 15.9)
+    return c
 
 
-def dress_L4(c, zSign):
-    dress_L3(c, zSign)
-    x0 = DRESS_SHELL["x0"]
-    z0, z1 = (4.8, 15.6) if zSign > 0 else (-15.6, -4.8)
-    near = z0 if zSign > 0 else z1
-    c.rect(x0 + 2, near, x0 + 8, near + 2.2 * (1 if zSign > 0 else -1), fill="#c9a94a")
-    c.text(x0 + 5, near + 3.6 * (1 if zSign > 0 else -1), "player\nlounge", 3)
+@plan("dressing_L3")
+def dress_L3():
+    c = dress_sheet(3, "Cubicles", "TEMP £6,000 · needs Regional Premier · home room only\nhome strength +2 · tiled floor, ice bath")
+    dress_base(c, 3)
+    new(c, -145.9, 4.6, -121.7, 15.9)
+    return c
 
 
-def dressing_L1(c):
-    _dress_shell(c)
-    _both_rooms(c, dress_L1)
-    c.text((DRESS_SHELL["x0"] + DRESS_SHELL["x1"]) / 2, DRESS_SHELL["z0"] - 8, "DRESSING ROOMS -- benches + pegs (as built)", 6, bold=True)
-
-
-def dressing_L2(c):
-    _dress_shell(c)
-    _both_rooms(c, dress_L2)
-    c.text((DRESS_SHELL["x0"] + DRESS_SHELL["x1"]) / 2, DRESS_SHELL["z0"] - 8, "DRESSING ROOMS -- lockers + showers", 6, bold=True)
-
-
-def dressing_L3(c):
-    _dress_shell(c)
-    _both_rooms(c, dress_L3)
-    c.text((DRESS_SHELL["x0"] + DRESS_SHELL["x1"]) / 2, DRESS_SHELL["z0"] - 8, "DRESSING ROOMS -- cubicles + physio table", 6, bold=True)
-
-
-def dressing_L4(c):
-    _dress_shell(c)
-    _both_rooms(c, dress_L4)
-    c.text((DRESS_SHELL["x0"] + DRESS_SHELL["x1"]) / 2, DRESS_SHELL["z0"] - 8, "DRESSING ROOMS -- hospitality fit-out + player lounge", 6, bold=True)
-
-
-plan("dressing_L1", DRESS_SHELL, 10, "DRESSING ROOMS -- L1", "exists today", dressing_L1)
-plan("dressing_L2", DRESS_SHELL, 10, "DRESSING ROOMS -- L2", "TEMP GBP2,000", dressing_L2)
-plan("dressing_L3", DRESS_SHELL, 10, "DRESSING ROOMS -- L3", "TEMP GBP6,000, division 2+", dressing_L3)
-plan("dressing_L4", DRESS_SHELL, 10, "DRESSING ROOMS -- L4", "TEMP GBP14,000, division 1", dressing_L4)
+@plan("dressing_L4")
+def dress_L4():
+    c = dress_sheet(4, "Pro Dressing Room", "TEMP £14,000 · needs National League · home room only\nhome strength +3 · club-colour cubicles, crest, screen")
+    dress_base(c, 4)
+    new(c, -147.9, 4.6, -121.7, 15.9)
+    return c
 
 
 # ---------------------------------------------------------------------- main
