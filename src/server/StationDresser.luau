@@ -655,6 +655,8 @@ function StationDresser.build(): string
 	end
 	local m = Instance.new("Model")
 	m.Name = "StationFront"
+	-- Lane I (#33): part of the same landmark as the greybox station, always loaded.
+	m.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 	local f = StationDresser.frontFrame()
 	local halfLen = station.size.X / 2
 

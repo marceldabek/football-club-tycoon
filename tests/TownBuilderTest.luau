@@ -95,6 +95,15 @@ function T.yLevelsAreOrderedAndDistinct()
 	assert(TownBuilder.roadTop("unknown") == lane, "fallback kind")
 end
 
+-- Lane I (#33): only the two river crossings are landmarks; the other road
+-- bridges stream normally.
+function T.persistentBridgesAreTheRiverCrossings()
+	for _, bridge in TownLayout.BRIDGES do
+		local want = bridge.name == "Lune Viaduct" or bridge.name == "Lune Bridge"
+		assert(TownBuilder.isPersistentBridge(bridge.name) == want, bridge.name)
+	end
+end
+
 -- X149: one timetable line per route number on the stop's flag
 function T.timetableHasALinePerRoute()
 	for _, name in { "Market Square", "Station", "Weir Road", "Northfields Estate" } do
