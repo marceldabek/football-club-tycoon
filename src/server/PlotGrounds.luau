@@ -1358,7 +1358,9 @@ function PlotGrounds.build(club: Model): Model
 	buildPathside(grounds)
 	buildKiosk(grounds)
 	buildBorders(grounds)
-	buildSupportersBar(grounds)
+	-- #16: the Supporters' Bar moved off the plot onto town land, opposite the
+	-- pedestrian gate (TownLayout.DISTRICTS "pub" blocks near each plot); the
+	-- old site here is bare lawn until another lane's PlotGrounds rewrite plants it
 	buildAcademy(grounds) -- X289
 	-- oaks, hedges, bushes and boulders everywhere else; the seed varies the groves per plot
 	GroundsPlanting.build(grounds, PlotGrounds.plantingKeepOut(), (PlotContext.index or 0) + 1)
