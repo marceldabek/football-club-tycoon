@@ -196,7 +196,8 @@ T["cars park only in front of housing, along the kerb"] = function()
 		assert(pl.road == "Side Street", "car on " .. pl.road)
 		assert(math.abs(math.abs(p.X) - FurniturePlan.parkingOffset({ kind = "residential" })) < 0.01, "car is not against the kerb")
 		assert(math.abs(p.X) + FurniturePlan.CAR_HALF_WIDTH < RoadTiles.carriagewayWidth("residential") / 2, "car hangs over the kerb")
-		assert(pl.scale == FurniturePlan.CAR_SCALE, "parked cars are traffic sized")
+		-- playtest #38: each kit car gets its own corrective scale (RoadTiles.carScale), not one flat number
+		assert(pl.scale == RoadTiles.carScale(pl.name), "parked cars are traffic sized")
 		local z = p.Z
 		assert((z > 110 - 66 and z < 110 + 66) or (z > 250 - 66 and z < 250 + 66), ("car at z=%.0f is not in front of a terrace"):format(z))
 		assert(math.abs(pl.cframe.LookVector.Z) > 0.99, "car is not parked along the street")
