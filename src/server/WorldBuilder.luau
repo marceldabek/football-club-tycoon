@@ -29,6 +29,7 @@ local Assets = require(script.Parent.Assets)
 local PlotContext = require(script.Parent.PlotContext)
 local KitPlacer = require(script.Parent.KitPlacer)
 local Clubhouse = require(script.Parent.Clubhouse)
+local StandAccess = require(ReplicatedStorage.Shared.StandAccess) -- #13: end stairs, rear gates, vomitories
 
 -- Crest builder: the club's colours come from its crest. Everything painted in
 -- them goes through clubPaint(), which tags it so applyCrest can repaint the club
@@ -1636,6 +1637,14 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 	local rail = Color3.fromRGB(205, 208, 212)
 	local RAIL_H = 3.4 -- waist height on a standing character
 	local aisles: { number } = {} -- z of each aisle, collected on the first row
+	-- #13/#15: rear gates (level 2) and vomitories (3+), StandAccess: 6-wide
+	-- openings through the back rows, ramped up to the middle row. Rows over
+	-- the ramp are carried across as slabs where there is head room, cut open
+	-- where there is not.
+	local openings: { { number } } = {}
+	for _, c in StandAccess.openingCentres(plot.key, level, geo.spans) do
+		table.insert(openings, { c - StandAccess.OPENING_W / 2, c + StandAccess.OPENING_W / 2 })
+	end
 
 	for i = 1, rows do
 		local height = stepHeight * i
@@ -1652,24 +1661,88 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 			local secLen = (runLen - (sections - 1) * aisleW) / sections
 			local startZ = z0
 
-			lbox(("Row%d"):format(i), Vector3.new(STEP_DEPTH, top - under, runLen),
-				Vector3.new(rowX, (under + top) / 2, zc), stepColor, stepMat)
+			local mode, slabUnder = "none", nil
+			local cuts: { { number } } = {}
+			if #openings > 0 then
+				mode, slabUnder = StandAccess.rowOverOpening(i, rows, STEP_DEPTH, stepHeight, STAND_X0, DECK_Y)
+				if mode ~= "none" then
+					for _, o in openings do
+						if o[2] > z0 and o[1] < z1 then
+							table.insert(cuts, { math.max(o[1], z0), math.min(o[2], z1) })
+						end
+					end
+					table.sort(cuts, function(a, b)
+						return a[1] < b[1]
+					end)
+				end
+			end
+			local function rowPiece(a: number, b: number, from: number)
+				lbox(("Row%d"):format(i), Vector3.new(STEP_DEPTH, top - from, b - a),
+					Vector3.new(rowX, (from + top) / 2, (a + b) / 2), stepColor, stepMat)
+			end
+			local at = z0
+			for _, c in cuts do
+				if c[1] > at then
+					rowPiece(at, c[1], under)
+				end
+				if mode == "carried" and slabUnder then
+					rowPiece(c[1], c[2], slabUnder)
+				end
+				at = c[2]
+			end
+			if z1 > at then
+				rowPiece(at, z1, under)
+			end
+			-- what is left of a z range once a cut row's gaps are taken out
+			local function clear(a: number, b: number): { { number } }
+				local pieces = { { a, b } }
+				if mode ~= "cut" then
+					return pieces
+				end
+				for _, c in cuts do
+					local kept = {}
+					for _, piece in pieces do
+						if c[2] <= piece[1] or c[1] >= piece[2] then
+							table.insert(kept, piece)
+						else
+							if c[1] > piece[1] then
+								table.insert(kept, { piece[1], c[1] })
+							end
+							if c[2] < piece[2] then
+								table.insert(kept, { c[2], piece[2] })
+							end
+						end
+					end
+					pieces = kept
+				end
+				return pieces
+			end
 			if spec.seats then
 				-- seat blocks per section; an alternate shade every other section so the
 				-- seating reads as blocks rather than one long strip
 				for s = 1, sections do
 					local z = startZ + (s - 1) * (secLen + aisleW) + secLen / 2
 					local colour = if s % 2 == 0 then Config.SeatColor:Lerp(Color3.new(1, 1, 1), 0.25) else Config.SeatColor
-					local seat = lbox(("Seats%d_%d"):format(i, s), Vector3.new(1.6, 1.1, secLen),
-						Vector3.new(stepBack - 0.8, top + 0.55, z), colour, Enum.Material.Plastic)
-					seat.CanCollide = false
-					local back = lbox(("SeatBack%d_%d"):format(i, s), Vector3.new(0.3, 1.6, secLen),
-						Vector3.new(stepBack - 0.15, top + 0.8, z), colour, Enum.Material.Plastic)
-					back.CanCollide = false
+					for _, piece in clear(z - secLen / 2, z + secLen / 2) do
+						local len, mid = piece[2] - piece[1], (piece[1] + piece[2]) / 2
+						if len < 0.5 then
+							continue
+						end
+						local seat = lbox(("Seats%d_%d"):format(i, s), Vector3.new(1.6, 1.1, len),
+							Vector3.new(stepBack - 0.8, top + 0.55, mid), colour, Enum.Material.Plastic)
+						seat.CanCollide = false
+						local back = lbox(("SeatBack%d_%d"):format(i, s), Vector3.new(0.3, 1.6, len),
+							Vector3.new(stepBack - 0.15, top + 0.8, mid), colour, Enum.Material.Plastic)
+						back.CanCollide = false
+					end
 				end
 				-- aisle treads between sections, lighter so they read as steps
 				for s = 1, sections - 1 do
 					local z = startZ + s * (secLen + aisleW) - aisleW / 2
+					local whole = clear(z - aisleW / 2, z + aisleW / 2)
+					if #whole ~= 1 or whole[1][2] - whole[1][1] < aisleW - 1e-6 then
+						continue -- over a vomitory's open mouth
+					end
 					local tread = lbox(("Aisle%d_%d"):format(i, s), Vector3.new(STEP_DEPTH, 0.2, aisleW),
 						Vector3.new(rowX, top + 0.1, z), Color3.fromRGB(215, 215, 210), Enum.Material.Concrete)
 					tread.CanCollide = false
@@ -1755,6 +1828,71 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 		end
 	end
 
+	-- #13: an end stair beside every open end of the terrace, climbing from the
+	-- front to the back row, with a railing along its open side (from the third
+	-- step, so fans can step on from the concourse) and across its top. A west
+	-- wing's clubhouse end has the clubhouse there, so it gets a railing along
+	-- the terrace end instead.
+	local steps = StandAccess.stairSteps(rows, STEP_DEPTH, stepHeight, STAND_X0, DECK_Y)
+	local topY = DECK_Y + stepHeight * rows
+	local backEdge = STAND_X0 + depth
+	local function solidRail(name: string, x0: number, y0: number, x1: number, y1: number, z: number)
+		railBar(name, x0, y0, x1, y1, z).CanCollide = true
+	end
+	local function post(name: string, x: number, y: number, z: number)
+		lbox(name, Vector3.new(0.25, RAIL_H, 0.25), Vector3.new(x, y + RAIL_H / 2, z), rail, Enum.Material.Metal).CanCollide = false
+	end
+	for _, e in StandAccess.ends(plot.key, geo.spans) do
+		if e.kind == "stair" then
+			local zIn = e.z + e.dir * 0.4 -- the end wall's outer face
+			local zOut = zIn + e.dir * StandAccess.STAIR_W
+			local za, zb = math.min(zIn, zOut), math.max(zIn, zOut)
+			for _, st in steps do
+				lbox("EndStair", Vector3.new(st.x1 - st.x0, st.top, zb - za), Vector3.new((st.x0 + st.x1) / 2, st.top / 2, (za + zb) / 2), stepColor, stepMat)
+			end
+			local zr = zOut - e.dir * 0.15
+			local first = steps[StandAccess.RAIL_FROM_STEP]
+			local fx = (first.x0 + first.x1) / 2
+			for _, h in { RAIL_H, RAIL_H / 2 } do
+				solidRail("StairRail", fx, first.top + h, backEdge - 0.15, topY + h, zr)
+				lbox("StairTopRail", Vector3.new(0.25, 0.25, zb - za), Vector3.new(backEdge - 0.15, topY + h, (za + zb) / 2), rail, Enum.Material.Metal)
+			end
+			for k = StandAccess.RAIL_FROM_STEP, #steps, 6 do
+				local st = steps[k]
+				post("StairPost", (st.x0 + st.x1) / 2, st.top, zr)
+			end
+			post("StairPost", backEdge - 0.15, topY, zr)
+			post("StairPost", backEdge - 0.15, topY, zIn + e.dir * 0.15)
+		else
+			local zr = e.z - e.dir * 0.3 -- on the terrace, just inside the end wall
+			for _, h in { RAIL_H, RAIL_H / 2 } do
+				solidRail("EndRail", STAND_X0, DECK_Y + stepHeight + h, backEdge - 0.15, topY + h, zr)
+			end
+			for r = 1, rows, 3 do
+				post("EndPost", STAND_X0 + STEP_DEPTH * (r - 0.5), DECK_Y + stepHeight * r, zr)
+			end
+		end
+	end
+
+	-- the ramps up through the rear gates / vomitories, from the foot of the
+	-- back wall to the back edge of the middle row. A WedgePart is full height
+	-- at its local +Z: yaw -90 points that at the pitch (-X), so it rises
+	-- toward the mouth.
+	if #openings > 0 then
+		local r = StandAccess.ramp(rows, STEP_DEPTH, stepHeight, STAND_X0, DECK_Y)
+		local len = r.xBack - r.xMouth
+		for _, o in openings do
+			local ramp = Instance.new("WedgePart")
+			ramp.Name = "VomitoryRamp"
+			ramp.Anchored = true
+			ramp.Size = Vector3.new(o[2] - o[1], r.hMouth, len)
+			ramp.CFrame = frame * CFrame.new(r.xMouth + len / 2, r.hMouth / 2, (o[1] + o[2]) / 2) * CFrame.Angles(0, -math.pi / 2, 0)
+			ramp.Color = stepColor
+			ramp.Material = stepMat
+			ramp.Parent = stand
+		end
+	end
+
 	if level >= 2 then
 		local wallH = stepHeight * rows + 3
 		local backX = STAND_X0 + depth + 0.5
@@ -1769,8 +1907,31 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 			-- roof pillars along the back wall, about as far apart as a full
 			-- stand's six bays
 			local bays = math.max(1, math.floor(length / (geo.length / 6) + 0.5))
-			local backWall = lbox("BackWall", Vector3.new(1, wallH, run[2] - run[1]), Vector3.new(backX, DECK_Y + wallH / 2, (run[1] + run[2]) / 2),
-				brick, Enum.Material.Brick)
+			-- #13: the rear gates / vomitories go through the foot of the wall, so
+			-- it is full-height segments between them with a lintel over each
+			local holes: { { number } } = {}
+			for _, o in openings do
+				if o[1] >= run[1] and o[2] <= run[2] then
+					table.insert(holes, o)
+				end
+			end
+			table.sort(holes, function(a, b)
+				return a[1] < b[1]
+			end)
+			local segments: { { number } } = {}
+			local segAt = run[1]
+			for _, h in holes do
+				table.insert(segments, { segAt, h[1] })
+				lbox("BackWallLintel", Vector3.new(1, DECK_Y + wallH - StandAccess.CLEAR_H, h[2] - h[1]),
+					Vector3.new(backX, (StandAccess.CLEAR_H + DECK_Y + wallH) / 2, (h[1] + h[2]) / 2), brick, Enum.Material.Brick)
+				segAt = h[2]
+			end
+			table.insert(segments, { segAt, run[2] })
+			local segParts: { Part } = {}
+			for _, seg in segments do
+				table.insert(segParts, lbox("BackWall", Vector3.new(1, wallH, seg[2] - seg[1]), Vector3.new(backX, DECK_Y + wallH / 2, (seg[1] + seg[2]) / 2),
+					brick, Enum.Material.Brick))
+			end
 			-- X242: the club's name and a TEMP slogan painted on a board on the
 			-- street side, under the colour band (RivermereTurnstileEntrance.png).
 			-- GUI only, no parts; skipped on runs too short or low to read.
@@ -1785,7 +1946,6 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 				wallGui.PixelsPerStud = 20
 				wallGui.LightInfluence = 0.25 -- X270: near-unlit, so it still reads at an evening fixture
 				wallGui.MaxDistance = 300
-				wallGui.Parent = backWall
 				-- between two roof pillars (one per bay, see the roof below): the
 				-- bay nearest the middle of this run. Looking at the Right face
 				-- from outside, the GUI's +x runs along local -Z.
@@ -1804,10 +1964,30 @@ function WorldBuilder.buildPlot(plotIndex: number, level: number)
 					end
 					boardW = math.min(length / bays - 3, boardW)
 				end
+				-- #13: on one wall segment, clear of the openings
+				local segIndex = 0
+				for k, seg in segments do
+					if gapMid >= seg[1] and gapMid <= seg[2] then
+						segIndex = k
+					end
+				end
+				if segIndex == 0 then
+					for k, seg in segments do
+						if segIndex == 0 or seg[2] - seg[1] > segments[segIndex][2] - segments[segIndex][1] then
+							segIndex = k
+						end
+					end
+					gapMid = (segments[segIndex][1] + segments[segIndex][2]) / 2
+				end
+				local seg = segments[segIndex]
+				boardW = math.min(boardW, seg[2] - seg[1] - 4)
+				gapMid = math.clamp(gapMid, seg[1] + 2 + boardW / 2, seg[2] - 2 - boardW / 2)
+				local segMid = (seg[1] + seg[2]) / 2
+				wallGui.Parent = segParts[segIndex]
 				local board = Instance.new("Frame")
 				board.Name = "Board"
 				board.AnchorPoint = Vector2.new(0.5, 0)
-				board.Position = UDim2.new(0.5, -(gapMid - runMid) * 20, 0, 3.0 * 20)
+				board.Position = UDim2.new(0.5, -(gapMid - segMid) * 20, 0, 3.0 * 20)
 				board.Size = UDim2.fromOffset(boardW * 20, (nameH + 0.3 + mottoH + 0.4) * 20)
 				clubPaint(board, "kit", 0.45)
 				board.BorderSizePixel = 0
@@ -2080,8 +2260,12 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 		-- X297: the away end, so the client knows whose goal to hop for
 		local awayEnd = awayKey ~= nil and plot.key == awayKey
 		crowd:SetAttribute("AwayEnd", awayEnd)
+		-- #13: nobody sits over a vomitory's open mouth
+		local plotLevel = levels[plot.key] or 0
+		local mouths: { number } = StandAccess.openingCentres(plot.key, plotLevel, geo.spans)
 		for row = 1, geo.rows do
 			local top = DECK_Y + geo.stepHeight * row
+			local rowMouths = if #mouths > 0 and StandAccess.rowOverOpening(row, geo.rows, STEP_DEPTH, geo.stepHeight, STAND_X0, DECK_Y) == "cut" then mouths else {}
 			-- sit toward the front of the step so knees clear the row in front
 			local x = STAND_X0 + STEP_DEPTH * (row - 1) + STEP_DEPTH / 2 + 0.3
 			-- the good seats near the pitch fill first, the back rows thin out;
@@ -2101,6 +2285,15 @@ function WorldBuilder.buildCrowd(levels: { [string]: number }, attendance: numbe
 						continue
 					end
 					local z = run[1] + 1 + nudge + spacing * (i - 0.5)
+					local inMouth = false
+					for _, c in rowMouths do
+						if math.abs(z - c) < StandAccess.OPENING_W / 2 + 1 then
+							inMouth = true
+						end
+					end
+					if inMouth then
+						continue
+					end
 					-- yaw so the fan's front faces the pitch (local -X)
 					buildFan(PlotContext.cframe * geo.frame * CFrame.new(x, top, z) * CFrame.Angles(0, math.pi / 2, 0), Random.new(seat), crowd, row <= FAN_LEG_ROWS, if awayEnd then awayColours else homeColours)
 					placed += 1

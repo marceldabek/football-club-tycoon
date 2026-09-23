@@ -750,14 +750,20 @@ def plan_proposed(tier):
         xs, zs = [p[0] for p in poly], [p[1] for p in poly]
         x0, x1, z0, z1 = min(xs), max(xs), min(zs), max(zs)
         st = "#ffe082"
+        # end stairs run the full depth of the terrace, front to back row
+        # (src/shared/StandAccess.luau); a west wing's clubhouse end has a side
+        # railing along the terrace end instead of a stair
         if side in ("E", "W"):
             for z in (z0, z1):
+                if side == "W" and abs(z) < 50:
+                    c.line([(x0, z), (x1, z)], "#555", 1.2)
+                    continue
                 zz = (z - 6, z) if z == z0 else (z, z + 6)
-                c.rect(x0 if side == "E" else x1 - min(d, 12), zz[0], (x0 + min(d, 12)) if side == "E" else x1, zz[1], fill=st, stroke="#555", sw=0.5)
+                c.rect(x0, zz[0], x1, zz[1], fill=st, stroke="#555", sw=0.5)
         else:
             for x in (x0, x1):
                 xx = (x - 6, x) if x == x0 else (x, x + 6)
-                c.rect(xx[0], z0 if z0 > 0 else z1 - min(d, 12), xx[1], (z0 + min(d, 12)) if z0 > 0 else z1, fill=st, stroke="#555", sw=0.5)
+                c.rect(xx[0], z0, xx[1], z1, fill=st, stroke="#555", sw=0.5)
         if tier >= 2:                                        # rear gates (L2) / vomitories (L3+) in the back wall
             if side == "E":
                 for z in (-70, 70):
