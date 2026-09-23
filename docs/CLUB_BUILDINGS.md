@@ -92,6 +92,15 @@ Add them here as the draft finds them. Don't decide them silently.
    It has no obvious physical prerequisite like the others (no training pitch, no division).
    **Recommendation:** show it from spawn, same as Club Shop and the Coach's Cabin — three
    "football ops" rows visible immediately reads better than an arbitrary shop-tier gate.
+10. **Should the concourse really get a 4th "Full Hospitality" tier?** The ground plan (§4) only
+    defines 3 catering tiers, and CLAUDE.md §11 lists "premium/hospitality revenue" as a later
+    idea, not an MVP one. **Recommendation:** keep it on the list as the natural cap (every other
+    track has 4) but leave it unpriced/greyed until the ground plan itself grows a 4th catering
+    tier — don't build it before Marcel actually asks for hospitality revenue.
+11. **Removing `merchPerFan` from `Config.AmenityLevels` changes its numbers, not just the
+    Club Shop's.** The concourse table above already excludes it (Q1); double-check the
+    implementing agent updates `AmenityLevels` in the same change it adds `Config.ShopLevels`,
+    or a club will earn merch money from both tracks until someone notices.
 
 ## Draft (P9): level tables and floor plans
 
@@ -199,3 +208,27 @@ Part budget: L1 0 (unfurnished, as built), L2 ~10.
 
 Club Map: visible from spawn alongside Club Shop and the Coach's Cabin (see Q9 — it has no
 physical prerequisite to gate on).
+
+### Concourse undercroft
+
+Not one building: ground plan §4 calls catering "one club-wide track" that repeats behind every
+stand at or above the qualifying tier. This draft draws **one representative bay** — a stand
+section behind a kiosk point from the ground plan's own list (188, 60), not a single fixed room
+— and reuses `Config.AmenityLevels`, minus `merchPerFan` (that moved to the Club Shop, decision 2).
+
+| Level | Name | TEMP price | Prerequisite | Look | Mechanic (was `AmenityLevels`) |
+|---|---|---|---|---|---|
+| 1 | Gravel + Burger Van | £0 (exists) | none | grass + gravel strip, portable burger van — [`concourse_L1.svg`](club_buildings/concourse_L1.svg) | `perFan` 0, `demandBonus` 0 |
+| 2 | Paved + Kiosk | TEMP £1,200 / bay | ground tier 2 | fully paved, kiosk box behind each qualifying stand — [`concourse_L2.svg`](club_buildings/concourse_L2.svg) | `perFan` 2, `demandBonus` 0.1 |
+| 3 | Undercroft + Fan Zone | TEMP £6,000 / bay | ground tier 3 | catering under the stand, picnic benches — [`concourse_L3.svg`](club_buildings/concourse_L3.svg) | `perFan` 4, `demandBonus` 0.2 |
+| 4 | Full Hospitality (proposed) | TEMP £15,000 / bay | Undercroft + Fan Zone | premium lounge added under the stand — [`concourse_L4.svg`](club_buildings/concourse_L4.svg) | `perFan` 6, `demandBonus` 0.35 |
+
+L4 is **not in the ground plan's own table** (§4 only defines 3 catering tiers) — added here purely
+so this track has 4 levels like the others (see Q10).
+
+Part budget: per bay, L1 ~1 (van), L2 ~4 (kiosk box), L3 ~8 (undercroft counter + benches),
+L4 ~12 (+ lounge furniture) — multiplied by however many qualifying stand sections exist, so keep
+each bay's part count low (memory `dresser-part-budgets`).
+
+Club Map: one row ("Concourse"), not one per bay — buying it upgrades every qualifying bay at
+once, same as `Config.AmenityLevels` does today.

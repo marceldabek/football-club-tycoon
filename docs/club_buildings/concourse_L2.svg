@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="372" viewBox="0 0 240 372" font-family="Segoe UI, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+<polygon points="0.0,0.0 240.0,0.0 240.0,372.0 0.0,372.0" fill="#f4f2ea" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="48.0,144.0 192.0,144.0 192.0,288.0 48.0,288.0" fill="#eef0e9" stroke="#4a3b32" stroke-width="2"  opacity="1.0"/>
+<text x="120.0" y="36.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">CONCOURSE -- L2</text>
+<text x="120.0" y="84.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >TEMP GBP1,200/bay</text>
+<polyline points="36.0,348.0 96.0,348.0" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<text x="66.0" y="327.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >10 studs (~3.6 m)</text>
+<polygon points="48.0,144.0 192.0,144.0 192.0,288.0 48.0,288.0" fill="#c9c3b3" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="120.0" y="312.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >one bay behind the stand -- repeats club-wide</text>
+<polygon points="96.0,180.0 144.0,180.0 144.0,228.0 96.0,228.0" fill="#b9a48a" stroke="#4a3b32" stroke-width="1"  opacity="1.0"/>
+<text x="120.0" y="168.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >kiosk</text>
+<text x="120.0" y="252.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">PAVED + KIOSK</text>
+</svg>

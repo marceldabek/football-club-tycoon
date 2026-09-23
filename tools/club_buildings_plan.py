@@ -382,6 +382,63 @@ plan("scoutroom_L1", SCOUT_SHELL, 8, "FOOTBALL OPS -- L1 Store", "exists today (
 plan("scoutroom_L2", SCOUT_SHELL, 8, "FOOTBALL OPS -- L2 Scouting Room", "TEMP GBP3,000", scout_L2)
 
 
+# ==================================================== CONCOURSE UNDERCROFT
+# "One club-wide track" (ground plan §4), not one building: it repeats behind
+# every qualifying stand. This plan draws ONE representative bay -- the East
+# stand's kiosk point (188, 60) from the ground plan's own catering table --
+# not a single fixed room. See Q10/Q11 below (a 4th tier and the merchPerFan
+# split from Config.AmenityLevels are both new, not yet in the ground plan).
+BAY_SHELL = dict(x0=176, x1=200, z0=50, z1=74)
+
+
+def _bay_shell(c, paved):
+    s = BAY_SHELL
+    c.rect(s["x0"], s["z0"], s["x1"], s["z1"], fill=CB["hard"] if paved else CB["gravel"])
+    c.text((s["x0"] + s["x1"]) / 2, s["z1"] + 4, "one bay behind the stand -- repeats club-wide", 5)
+
+
+def bay_L1(c):
+    _bay_shell(c, paved=False)
+    s = BAY_SHELL
+    c.rect(s["x0"] + 2, s["z0"] + 8, s["x0"] + 8, s["z0"] + 14, fill=CB["van"], stroke="#888", sw=0.6)
+    c.text(s["x0"] + 5, s["z0"] + 6, "burger van\n(portable)", 4)
+    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2 + 6, "GRAVEL + BURGER VAN", 5, bold=True)
+
+
+def bay_L2(c):
+    _bay_shell(c, paved=True)
+    s = BAY_SHELL
+    c.rect(s["x0"] + 8, s["z0"] + 6, s["x0"] + 16, s["z0"] + 14, fill=CB["building"], stroke=CB["wall"], sw=1)
+    c.text(s["x0"] + 12, s["z0"] + 4, "kiosk", 5)
+    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2 + 6, "PAVED + KIOSK", 5, bold=True)
+
+
+def bay_L3(c):
+    _bay_shell(c, paved=True)
+    s = BAY_SHELL
+    c.rect(s["x0"] + 1, s["z1"] - 10, s["x1"] - 1, s["z1"] - 1, fill=CB["stand"])
+    c.text((s["x0"] + s["x1"]) / 2, s["z1"] - 5, "undercroft catering (under the stand)", 4, fill="#fff")
+    c.rect(s["x0"] + 2, s["z0"] + 2, s["x0"] + 8, s["z0"] + 6, fill=CB["bench"])
+    c.text(s["x0"] + 5, s["z0"] + 0, "picnic\nbenches", 3)
+    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2 - 2, "UNDERCROFT + FAN ZONE", 5, bold=True)
+
+
+def bay_L4(c):
+    _bay_shell(c, paved=True)
+    s = BAY_SHELL
+    c.rect(s["x0"] + 1, s["z1"] - 10, s["x1"] - 1, s["z1"] - 1, fill=CB["stand"])
+    c.text((s["x0"] + s["x1"]) / 2, s["z1"] - 5, "hospitality catering (under the stand)", 4, fill="#fff")
+    c.rect(s["x0"] + 2, s["z0"] + 2, s["x0"] + 10, s["z0"] + 8, fill="#c9a94a")
+    c.text(s["x0"] + 6, s["z0"] - 1, "premium\nlounge", 3)
+    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2 - 2, "FULL HOSPITALITY (TEMP L4)", 5, bold=True)
+
+
+plan("concourse_L1", BAY_SHELL, 8, "CONCOURSE -- L1", "exists today", bay_L1)
+plan("concourse_L2", BAY_SHELL, 8, "CONCOURSE -- L2", "TEMP GBP1,200/bay", bay_L2)
+plan("concourse_L3", BAY_SHELL, 8, "CONCOURSE -- L3 Undercroft", "TEMP GBP6,000/bay", bay_L3)
+plan("concourse_L4", BAY_SHELL, 8, "CONCOURSE -- L4 (proposed)", "TEMP GBP15,000/bay -- see Q10", bay_L4)
+
+
 # ---------------------------------------------------------------------- main
 def main(names=None):
     OUT.mkdir(parents=True, exist_ok=True)
