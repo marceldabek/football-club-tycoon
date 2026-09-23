@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="324" height="972" viewBox="0 0 324 972" font-family="Segoe UI, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+<polygon points="0.0,0.0 324.0,0.0 324.0,972.0 0.0,972.0" fill="#f4f2ea" stroke="none" stroke-width="1"  opacity="1.0"/>
+<polygon points="60.0,156.0 264.0,156.0 264.0,876.0 60.0,876.0" fill="#eef0e9" stroke="#4a3b32" stroke-width="2"  opacity="1.0"/>
+<text x="162.0" y="36.0" font-size="8" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" font-weight="bold">ACADEMY -- L4 Elite Academy</text>
+<text x="162.0" y="84.0" font-size="6" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >TEMP GBP28,000</text>
+<polyline points="120.0,948.0 180.0,948.0" fill="none" stroke="#1e1e1e" stroke-width="1.5" stroke-linejoin="round"   opacity="1.0"/>
+<text x="150.0" y="927.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >10 studs (~3.6 m)</text>
+<polygon points="60.0,156.0 264.0,156.0 264.0,876.0 60.0,876.0" fill="#b9a48a" stroke="#4a3b32" stroke-width="1.5"  opacity="1.0"/>
+<polygon points="84.0,396.0 240.0,396.0 240.0,852.0 84.0,852.0" fill="#5fae4f" stroke="#eef7e6" stroke-width="0.8"  opacity="1.0"/>
+<polygon points="132.0,444.0 192.0,444.0 192.0,804.0 132.0,804.0" fill="none" stroke="#eef7e6" stroke-width="0.8"  opacity="1.0"/>
+<text x="162.0" y="300.0" font-size="5" fill="#fff" text-anchor="middle" dominant-baseline="middle" >classrooms - dorms - gym</text>
+<text x="162.0" y="576.0" font-size="5" fill="#e8f5e2" text-anchor="middle" dominant-baseline="middle" >full-size mini pitch (marked)</text>
+</svg>

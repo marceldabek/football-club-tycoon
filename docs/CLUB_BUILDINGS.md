@@ -52,6 +52,19 @@ Add them here as the draft finds them. Don't decide them silently.
    **Recommendation:** keep the existing footprint (it's a Roblox prototype, not a real
    megastore) and let "flagship" mean denser fixtures and better dressing, not square footage;
    revisit only if playtesting says the shop feels claustrophobic at L4.
+3. **The academy's *reserved* plot (ground plan §5: x 342…376, z −60…60) is not where today's
+   free youth hut actually stands** (`ACADEMY_CX/CZ = 348,90` in `PlotGrounds.luau`, next to
+   training pitch 2 — outside the reserved slot entirely). Decision 3 says the academy "grows
+   from pitch 2 into the reserved spot", which reads as a move, not a decision-5 fixed shell.
+   **Recommendation:** make the reserved slot the fixed shell from L1 (so nothing has to move
+   again later) and treat relocating the existing hut onto that slot as part of implementing L1
+   of this track, not a design change. Flag if Marcel wants the hut to visibly stay by the
+   pitches instead.
+4. **Academy levels need real intake/potential/wonderkid numbers.** None exist in `Config` yet
+   (`Squad.promoteYouth` takes no level). **Recommendation:** add `Config.AcademyLevels` shaped
+   like `CoachLevels`/`ScoutLevels` — TEMP `{ name, cost, intakeBonus, potentialBonus,
+   wonderkidChance }`, e.g. `0 / +1 / +2 / +3` intake and `0% / 0% / 3% / 8%` wonderkid chance —
+   balanced once the loop is playable, same as everything else in that file.
 
 ## Draft (P9): level tables and floor plans
 
@@ -79,3 +92,23 @@ dresser's usual budget (memory `dresser-part-budgets`).
 Club Map: "Club Shop" row is visible from spawn (L1 already exists) and shows the L2 price
 immediately, so there is something to buy here in the first session (ground plan §6, "dense
 early ladder").
+
+### Academy
+
+Shell (fixed at every level, per decision 5 — see Q3 above about where today's hut actually is):
+the ground plan's reserved slot, plot-local x 342…376, z −60…60 (34 × 120). Seen through the
+training fence, not walked into (decision 4). Levels change `Squad.promoteYouth`'s intake size,
+its potential and a wonderkid chance (Q4).
+
+| Level | Name | TEMP price | Prerequisite | Outside | Mechanic |
+|---|---|---|---|---|---|
+| 1 | Youth Hut | £0 (exists, relocated — Q3) | ground tier 1 | 14×10 cabin + intake board — [`academy_L1.svg`](club_buildings/academy_L1.svg) | intake +0, wonderkid 0% |
+| 2 | Youth Centre | TEMP £4,000 | Youth Hut | hut grows into a classroom block, five-a-side marking — [`academy_L2.svg`](club_buildings/academy_L2.svg) | intake +1, wonderkid 0% |
+| 3 | Academy Building | TEMP £12,000 | Youth Centre, ground tier 3 | classrooms + coach's office, marked mini pitch — [`academy_L3.svg`](club_buildings/academy_L3.svg) | intake +2, wonderkid 3% |
+| 4 | Elite Academy | TEMP £28,000 | Academy Building | fills the reserved plot: classrooms, dorms, gym, full-size marked mini pitch — [`academy_L4.svg`](club_buildings/academy_L4.svg) | intake +3, wonderkid 8% |
+
+Part budget: L1 ~10 (as built today), L2 ~18, L3 ~28, L4 ~40 (mostly ground marking, not full
+meshes — this is a windows-only building, decision 4).
+
+Club Map: "Academy" row appears once training pitch 2 exists (ground plan §5 tier 3), greyed
+with "needs training pitch 2" until then — a long-term row, not part of the dense early ladder.

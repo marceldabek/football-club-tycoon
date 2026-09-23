@@ -162,6 +162,69 @@ plan("clubshop_L3", SHOP_SHELL, 10, "CLUB SHOP -- L3 Megastore", "TEMP GBP10,000
 plan("clubshop_L4", SHOP_SHELL, 10, "CLUB SHOP -- L4 Flagship Store", "TEMP GBP24,000", shop_L4)
 
 
+# ===================================================================== ACADEMY
+# Reserved footprint from the ground plan spec (S5): x 342..376, z -60..60 --
+# not the current code's youth hut, which sits outside this reserved slot at
+# ACADEMY_CX/CZ = 348,90 (PlotGrounds.luau, next to training pitch 2). Treating
+# the reserved slot as the fixed top-level shell from L1 (decision 5) means the
+# hut needs to move here when the track is implemented -- flagged as Q3 below.
+# Seen through the training fence, not walked into (decision 4).
+ACADEMY_SHELL = dict(x0=342, x1=376, z0=-60, z1=60)
+
+
+def _academy_shell(c):
+    s = ACADEMY_SHELL
+    c.rect(s["x0"], s["z0"], s["x1"], s["z1"], stroke=CB["fence"], sw=1, dash="3,2")
+    c.text(s["x0"] - 3, s["z0"] - 2, "reserved academy plot (34 x 120)", 5, anchor="l")
+
+
+def academy_L1(c):
+    _academy_shell(c)
+    s = ACADEMY_SHELL
+    hx0, hx1, hz0, hz1 = s["x0"] + 2, s["x0"] + 16, s["z1"] - 20, s["z1"] - 2
+    c.rect(hx0, hz0, hx1, hz1, fill=CB["building"], stroke=CB["wall"], sw=1)
+    c.text((hx0 + hx1) / 2, hz0 - 3, "youth hut 14x10\n(today's, moved here)", 5)
+    c.rect(hx0 - 1.5, hz0 + 1, hx0 - 0.3, hz1 - 1, fill="#28503c")
+    c.text(hx0 - 3, (hz0 + hz1) / 2, "intake\nboard", 4, anchor="r")
+    c.text((s["x0"] + s["x1"]) / 2, s["z0"] + 20, "rest of plot: grass, for sale", 6, fill="#2d5a1e")
+
+
+def academy_L2(c):
+    _academy_shell(c)
+    s = ACADEMY_SHELL
+    hx0, hx1, hz0, hz1 = s["x0"] + 2, s["x1"] - 2, s["z1"] - 34, s["z1"] - 2
+    c.rect(hx0, hz0, hx1, hz1, fill=CB["building"], stroke=CB["wall"], sw=1)
+    c.text((hx0 + hx1) / 2, hz0 - 3, "youth centre: hut + classroom", 5)
+    c.rect(s["x0"] + 6, s["z0"] + 4, s["x1"] - 6, hz0 - 6, fill=CB["turfgreen"], stroke=CB["turfline"], sw=0.8)
+    c.text((s["x0"] + s["x1"]) / 2, s["z0"] + 20, "five-a-side marking", 5, fill="#e8f5e2")
+
+
+def academy_L3(c):
+    _academy_shell(c)
+    s = ACADEMY_SHELL
+    hx0, hx1, hz0, hz1 = s["x0"] + 2, s["x1"] - 2, s["z1"] - 46, s["z1"] - 2
+    c.rect(hx0, hz0, hx1, hz1, fill=CB["building"], stroke=CB["wall"], sw=1)
+    c.text((hx0 + hx1) / 2, hz0 - 3, "academy building: classrooms + coach's office", 5)
+    c.rect(s["x0"] + 4, s["z0"] + 4, s["x1"] - 4, hz0 - 4, fill=CB["turfgreen"], stroke=CB["turfline"], sw=0.8)
+    c.rect(s["x0"] + 20, s["z0"] + 16, s["x1"] - 20, hz0 - 16, stroke=CB["turfline"], sw=0.8)
+    c.text((s["x0"] + s["x1"]) / 2, s["z0"] + 24, "mini pitch (marked)", 5, fill="#e8f5e2")
+
+
+def academy_L4(c):
+    s = ACADEMY_SHELL
+    c.rect(s["x0"], s["z0"], s["x1"], s["z1"], fill=CB["building"], stroke=CB["wall"], sw=1.5)
+    c.rect(s["x0"] + 4, s["z0"] + 40, s["x1"] - 4, s["z1"] - 4, fill=CB["turfgreen"], stroke=CB["turfline"], sw=0.8)
+    c.rect(s["x0"] + 12, s["z0"] + 48, s["x1"] - 12, s["z1"] - 12, stroke=CB["turfline"], sw=0.8)
+    c.text((s["x0"] + s["x1"]) / 2, s["z0"] + 24, "classrooms - dorms - gym", 5, fill="#fff")
+    c.text((s["x0"] + s["x1"]) / 2, (s["z0"] + s["z1"]) / 2 + 10, "full-size mini pitch (marked)", 5, fill="#e8f5e2")
+
+
+plan("academy_L1", ACADEMY_SHELL, 10, "ACADEMY -- L1 Youth Hut", "exists today, relocated onto this plot (see Q3)", academy_L1, built=False)
+plan("academy_L2", ACADEMY_SHELL, 10, "ACADEMY -- L2 Youth Centre", "TEMP GBP4,000", academy_L2, built=False)
+plan("academy_L3", ACADEMY_SHELL, 10, "ACADEMY -- L3 Academy Building", "TEMP GBP12,000, ground tier 3", academy_L3, built=False)
+plan("academy_L4", ACADEMY_SHELL, 10, "ACADEMY -- L4 Elite Academy", "TEMP GBP28,000", academy_L4, built=True)
+
+
 # ---------------------------------------------------------------------- main
 def main(names=None):
     OUT.mkdir(parents=True, exist_ok=True)
