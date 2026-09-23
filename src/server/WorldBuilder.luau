@@ -1561,11 +1561,12 @@ function WorldBuilder.dressOffice(tier: number)
 		label.TextColor3 = Color3.fromRGB(240, 242, 248)
 		label.Text = string.upper(name)
 		label.Parent = gui
-		-- and something alive in the corner
-		-- the far corner: the near one is where the framed shirt hangs (X291)
-		box("PlantPot", Vector3.new(2, 2, 2), Vector3.new(OFFICE.x1 - 1.3, OFFICE_Y + 1, south - 1.3),
+		-- and something alive by the desk's north end. P5: the south-east corner
+		-- is the bin's now, and the plant there ran into the framed shirt (X291)
+		local plantX, plantZ = OFFICE.x1 - 6, OFFICE.z0 + 5.8
+		box("PlantPot", Vector3.new(2, 2, 2), Vector3.new(plantX, OFFICE_Y + 1, plantZ),
 			Color3.fromRGB(150, 90, 60), Enum.Material.Slate, fittings)
-		box("Plant", Vector3.new(2.4, 5, 2.4), Vector3.new(OFFICE.x1 - 1.3, OFFICE_Y + 4.5, south - 1.3),
+		box("Plant", Vector3.new(2.4, 5, 2.4), Vector3.new(plantX, OFFICE_Y + 4.5, plantZ),
 			Color3.fromRGB(60, 120, 60), Enum.Material.Grass, fittings)
 	end
 

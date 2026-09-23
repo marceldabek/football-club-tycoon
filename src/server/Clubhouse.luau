@@ -1004,9 +1004,8 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 	-- the laptop IS the club computer: it carries the screen and the prompt.
 	-- Named so dressOffice and the HUD's hint beacon can find it (it had no name
 	-- after X373 and both looked for "Computer" in vain). The kit laptop's
-	-- screen faces its -Z; Marcel (2026-09-23) turned it to face the doors (-X),
-	-- so whoever walks in sees the green screen.
-	local laptopAt = CFrame.new(deskX, DESK_TOP, deskZ) * CFrame.Angles(0, math.pi / 2, 0)
+	-- screen faces its -Z, turned to the chair at +X (Marcel, 2026-09-23).
+	local laptopAt = CFrame.new(deskX, DESK_TOP, deskZ) * CFrame.Angles(0, -math.pi / 2, 0)
 	-- P5 (#24a): placeKit hinges the lid back on (KIT_OFFSETS)
 	local laptop = placeKit("PH__classic_laptop", laptopAt, office, {
 		fallbackSize = Vector3.new(1.8, 1.3, 1.3),
@@ -1052,7 +1051,9 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 	local cabinet = prop("drawer_cabinet", Vector3.new(west + 1.1, floor, 22.3), math.pi / 2, Vector3.new(1.3, 5.2, 3.1))
 	if cabinet then
 		-- a small telly on top of the cabinet, turned into the room
-		prop("Television_01", Vector3.new(west + 1.1, floor + 5.2, 22.3), math.pi / 2, Vector3.new(1.3, 1.3, 1.6))
+		-- on the unit's top shelf: its corner posts stand 0.34 proud of it, and
+		-- at the posts' height (5.2) the telly floated (measured in Studio)
+		prop("Television_01", Vector3.new(west + 1.1, floor + 4.83, 22.3), math.pi / 2, Vector3.new(1.3, 1.3, 1.6))
 	end
 
 	-- the odds and ends of a rundown grassroots office: for a club this size a
@@ -1060,7 +1061,9 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 	prop("painted_wooden_bench", Vector3.new(-132.5, floor, r.z1 - 1), math.pi, Vector3.new(3.2, 2.4, 1.4))
 	prop("korean_fire_extinguisher_01", Vector3.new(east - 0.8, floor, 25), 0, Vector3.new(0.8, 1.8, 1.0), CLUTTER_SCALE)
 	prop("wooden_ladder", Vector3.new(east - 1.2, floor, r.z0 + 1.2), math.pi / 2, Vector3.new(1.4, 6.0, 0.6))
-	prop("rubber_boots", Vector3.new(east - 1.6, floor, 31), -0.5, Vector3.new(1.2, 1.2, 1.6), CLUTTER_SCALE)
+	-- the wellies stand against the desk's south end (Marcel, 2026-09-23)
+	local deskHalfLength = 5.5 * DESK_SCALE / 2
+	prop("rubber_boots", Vector3.new(deskX + 0.4, floor, deskZ + deskHalfLength + 0.42), 0, Vector3.new(1.2, 1.2, 1.6), CLUTTER_SCALE)
 	prop("cardboard_box_01", Vector3.new(-127.5, floor, r.z1 - 1.6), 0.6, Vector3.new(1.1, 0.9, 1.4), CLUTTER_SCALE)
 	prop("football", Vector3.new(-129.2, floor, r.z1 - 1), 0, Vector3.new(0.6, 0.6, 0.6), CLUTTER_SCALE)
 	prop("dirty_football", Vector3.new(-128.6, floor, r.z1 - 2.2), 0, Vector3.new(0.6, 0.6, 0.6), CLUTTER_SCALE)
@@ -1073,11 +1076,11 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 		fallbackColor = Color3.fromRGB(30, 30, 32),
 		scale = CLUTTER_SCALE,
 	})
-	-- a bin beside the desk, from the street kit (base and lid are separate meshes).
-	-- P5 (#24d): at the desk's south end, out of the walkway; deskX + 3.4 had
+	-- a bin from the street kit (base and lid are separate meshes). P5 (#24d):
+	-- pushed into the south-east corner (Marcel, 2026-09-23); deskX + 3.4 had
 	-- put it in the middle of the floor. Not scaled up with the clutter (#24f):
 	-- a street litter bin already stands a metre tall.
-	local binX, binZ = deskX + 1.5, deskZ + 4.8
+	local binX, binZ = east - 1.2, r.z1 - 1.1
 	KitPlacer.place("UKSP__TrachCan__TrashcanBase", CFrame.new(binX, floor, binZ), office, {
 		fallbackSize = Vector3.new(2.1, 2.8, 1.9),
 		fallbackColor = Color3.fromRGB(60, 62, 66),
