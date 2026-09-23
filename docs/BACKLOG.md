@@ -490,7 +490,7 @@
 
 Numbers in brackets are `docs/PLAYTEST_NOTES_2026-09-21.md` items. Ground plan = `docs/superpowers/specs/2026-09-22-ground-plan-design.md`.
 
-- [ ] P1 Free-globals checker: `tools/free_globals.py` lists every identifier a `src/**/*.luau` file reads that is never declared (local, param, for var, function) and is not a Roblox/Luau global - the class of bug behind X369. Run it, fix every real hit, add it to the workflow notes `[disk]` M
+- [x] P1 (12:16 done, 0 real hits in the current tree; catches X369 and X349 in history, 87/88 in a mutation run) Free-globals checker: `tools/free_globals.py` lists every identifier a `src/**/*.luau` file reads that is never declared (local, param, for var, function) and is not a Roblox/Luau global - the class of bug behind X369. Run it, fix every real hit, add it to the workflow notes `[disk]` M
 - [ ] P2 X367 injuries heal at the season rollover (TEMP: clear `injured`), names listed on the season-end card, test in SquadTest/ClubService tests `[disk]` S
 - [ ] P3 (#40) Play Match away from your ground takes you home first (same move as "go to my club"), then the fade + walkout `[studio]` S
 - [ ] P4 (#45) Goal nets get a back frame: rear uprights + stanchions; posts stay on the goal line (9b01ff8) `[studio]` S

@@ -29,7 +29,8 @@ answer before morning. Tonight is a **short, focused list**, not an open-ended p
 
 - **Studio is one shared resource.** Only you, the lead, touch Studio. Subagents never call Studio tools.
 - **Disk is the source of truth.** Build from code in `src/`. Studio-only edits count as lost work.
-- **Test before commit.** `RunAll` in Edit mode after code changes. Commit small, one backlog item per
+- **Test before commit.** `python tools/free_globals.py` after any `.luau` edit (exit 0 = no undeclared
+  names), then `RunAll` in Edit mode after code changes. Commit small, one backlog item per
   commit where possible, message ending in the Co-Authored-By line. Tick the item with a time.
 - **Don't break the loop.** Play Match → earn → upgrade must still work, and a club must still load.
   After any server change, claim a plot in Play mode (`DebugRun "claim|1"`) and check the console for
