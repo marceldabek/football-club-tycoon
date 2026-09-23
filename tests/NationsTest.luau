@@ -1,5 +1,6 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local FlagImages = require(ReplicatedStorage.Shared.FlagImages)
 local Nations = require(ReplicatedStorage.Shared.Nations)
 
 local T = {}
@@ -16,6 +17,19 @@ function T.everyNationIsComplete()
 		assert(n.weight > 0, n.code .. " can never be picked")
 		assert(#n.flag.colors >= 1, n.code .. " has no flag colours")
 		assert(Nations.get(n.code) == n, "get() does not find " .. n.code)
+	end
+end
+
+-- #18a: every nation has an uploaded flag icon, and no icon is orphaned
+function T.everyNationHasAFlagIcon()
+	local codes = {}
+	for _, n in Nations.LIST do
+		codes[n.code] = true
+		local id = (FlagImages :: any)[n.code]
+		assert(type(id) == "string" and id:match("^rbxassetid://%d+$"), n.code .. " has no flag icon")
+	end
+	for code in FlagImages :: any do
+		assert(codes[code], "flag icon for unknown nation " .. tostring(code))
 	end
 end
 
