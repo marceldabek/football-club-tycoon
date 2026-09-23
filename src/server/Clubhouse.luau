@@ -242,6 +242,85 @@ local function bulb(parent: Instance, x: number, z: number, sx: number, sz: numb
 	return b
 end
 
+-- ------------------------------------------------------------ kit props
+
+-- P5 (#24f), see buildOffice's prop helper
+local DESK_SCALE = 1.15
+local CLUTTER_SCALE = 1.3
+
+-- P5 (#24a, desk drawers): the kit export centred every piece of a Poly Haven
+-- model on the model's origin, so the laptop's lid stood in the middle of its
+-- keyboard and the desk's six drawers and two pull-out trays lay stacked on
+-- the floor under it. Each piece's offset from where the upload left it, in
+-- the model's own frame (studs at scale 1), by sub-model name. Measured from
+-- the source FBXs in assets/kit/_raw/PolyHaven (metres x 2.75; the source's
+-- -Y is the model's -Z, the front: the desk's drawer side, the laptop's
+-- screen side).
+local KIT_OFFSETS: { [string]: { [string]: Vector3 } } = {
+	PH__metal_office_desk = {
+		metal_office_desk_drawer_01 = Vector3.new(1.975, 1.513, -0.275),
+		metal_office_desk_drawer_02 = Vector3.new(1.977, 1.065, -0.270),
+		metal_office_desk_drawer_03 = Vector3.new(1.975, 0.611, -0.261),
+		metal_office_desk_drawer_04 = Vector3.new(-1.975, 1.505, -0.270),
+		metal_office_desk_drawer_05 = Vector3.new(-1.975, 1.057, -0.261),
+		metal_office_desk_drawer_06 = Vector3.new(-1.975, 0.611, -0.261),
+		metal_office_desk_tray_01 = Vector3.new(-1.975, 2.001, -0.478),
+		metal_office_desk_tray_02 = Vector3.new(1.975, 2.001, -0.473),
+	},
+	PH__classic_laptop = {
+		classic_laptop_screen = Vector3.new(0, 0.209, 0.558), -- lid and screen, hinged at the back
+		classic_laptop_stand = Vector3.new(0, 0, 0.580), -- the flip-down foot behind it
+	},
+	-- four drawers were piled in the bottom of the carcass
+	PH__drawer_cabinet = {
+		drawer_cabinet_drawer_01 = Vector3.new(0.005, 2.623, -0.083),
+		drawer_cabinet_drawer_02 = Vector3.new(0.005, 2.142, -0.083),
+		drawer_cabinet_drawer_03 = Vector3.new(0.005, 1.661, -0.083),
+		drawer_cabinet_drawer_04 = Vector3.new(0.005, 1.180, -0.083),
+	},
+	-- the two halves of the step ladder crossed like an X
+	PH__wooden_ladder = {
+		wooden_ladder_steps = Vector3.new(0.525, 0, 0),
+		wooden_ladder_supports = Vector3.new(-0.652, 0, 0),
+	},
+	-- the source is a row of four boots (a clean pair and a dirty pair), all
+	-- four stood in one spot: the dirty pair side by side, the clean pair goes
+	PH__rubber_boots = {
+		rubber_boots_dirt_r_LOD0 = Vector3.new(0.275, 0, 0),
+		rubber_boots_dirty_l_LOD0 = Vector3.new(-0.275, 0, 0),
+	},
+}
+local KIT_DROP: { [string]: { [string]: boolean } } = {
+	PH__rubber_boots = { rubber_boots_l_LOD0 = true, rubber_boots_r_LOD0 = true },
+}
+
+-- Puts a placed kit model's pieces back where the source had them. `at` is
+-- the CFrame it was placed at; a grey fallback block has no pieces to move.
+local function reassemble(kit: string, model: Model, at: CFrame, scale: number?)
+	local offsets = KIT_OFFSETS[kit]
+	if not offsets then
+		return
+	end
+	local drop = KIT_DROP[kit] or {}
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and d.Parent then
+			local o = offsets[d.Parent.Name]
+			if drop[d.Parent.Name] then
+				d:Destroy()
+			elseif o then
+				d.CFrame = at * CFrame.new(o * (scale or 1)) * at:Inverse() * d.CFrame
+			end
+		end
+	end
+end
+
+-- KitPlacer.place, then the pieces put back where the source had them
+local function placeKit(kit: string, at: CFrame, parent: Instance, opts: KitPlacer.PlaceOpts): Model
+	local m = KitPlacer.place(kit, at, parent, opts)
+	reassemble(kit, m, at, opts.scale)
+	return m
+end
+
 -- ------------------------------------------------------------ fixtures notice
 
 -- P5 (#24g): the office's fixtures sheet, 3.6 x 4.8 studs at 80 px/stud
@@ -712,7 +791,7 @@ local function buildLobby(parent: Instance, addSign: (BasePart, string, { Enum.N
 
 	-- a few things in the store so the hatch has something behind it
 	local function prop(name: string, at: Vector3, yaw: number, size: Vector3)
-		KitPlacer.place("PH__" .. name, CFrame.new(at) * CFrame.Angles(0, yaw, 0), store, {
+		placeKit("PH__" .. name, CFrame.new(at) * CFrame.Angles(0, yaw, 0), store, {
 			fallbackSize = size,
 			fallbackColor = Color3.fromRGB(120, 110, 100),
 		})
@@ -799,49 +878,6 @@ local function buildDressingRooms(parent: Instance, addSign: (BasePart, string, 
 end
 
 -- ------------------------------------------------------------------- office
-
--- P5 (#24f), see buildOffice's prop helper
-local DESK_SCALE = 1.15
-local CLUTTER_SCALE = 1.3
-
--- P5 (#24a, desk drawers): the kit export centred every piece of a Poly Haven
--- model on the model's origin, so the laptop's lid stood in the middle of its
--- keyboard and the desk's six drawers and two pull-out trays lay stacked on
--- the floor under it. Each piece's offset from where the upload left it, in
--- the model's own frame (studs at scale 1), by sub-model name. Measured from
--- the source FBXs in assets/kit/_raw/PolyHaven (metres x 2.75; the source's
--- -Y is the model's -Z, the front: the desk's drawer side, the laptop's
--- screen side).
-local KIT_OFFSETS: { [string]: { [string]: Vector3 } } = {
-	PH__metal_office_desk = {
-		metal_office_desk_drawer_01 = Vector3.new(1.975, 1.513, -0.275),
-		metal_office_desk_drawer_02 = Vector3.new(1.977, 1.065, -0.270),
-		metal_office_desk_drawer_03 = Vector3.new(1.975, 0.611, -0.261),
-		metal_office_desk_drawer_04 = Vector3.new(-1.975, 1.505, -0.270),
-		metal_office_desk_drawer_05 = Vector3.new(-1.975, 1.057, -0.261),
-		metal_office_desk_drawer_06 = Vector3.new(-1.975, 0.611, -0.261),
-		metal_office_desk_tray_01 = Vector3.new(-1.975, 2.001, -0.478),
-		metal_office_desk_tray_02 = Vector3.new(1.975, 2.001, -0.473),
-	},
-	PH__classic_laptop = {
-		classic_laptop_screen = Vector3.new(0, 0.209, 0.558), -- lid and screen, hinged at the back
-		classic_laptop_stand = Vector3.new(0, 0, 0.580), -- the flip-down foot behind it
-	},
-}
-
--- Puts a placed kit model's pieces back where the source had them. `at` is
--- the CFrame it was placed at; a grey fallback block has no pieces to move.
-local function reassemble(kit: string, model: Model, at: CFrame, scale: number?)
-	local offsets = KIT_OFFSETS[kit]
-	for _, d in model:GetDescendants() do
-		if d:IsA("BasePart") and d.Parent then
-			local o = offsets[d.Parent.Name]
-			if o then
-				d.CFrame = at * CFrame.new(o * (scale or 1)) * at:Inverse() * d.CFrame
-			end
-		end
-	end
-end
 
 local function buildOffice(parent: Instance, addPrompt: (BasePart, string, string) -> ProximityPrompt)
 	local office = model("Office", parent)
@@ -936,7 +972,7 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 	-- Marcel's call (2026-09-23): clutter x1.3 and the desk x1.15; the chair,
 	-- shelves and cabinet stay true so the avatar still fits them.
 	local function prop(name: string, at: Vector3, yaw: number, size: Vector3, scale: number?): BasePart?
-		local m = KitPlacer.place("PH__" .. name, CFrame.new(at) * CFrame.Angles(0, yaw, 0), office, {
+		local m = placeKit("PH__" .. name, CFrame.new(at) * CFrame.Angles(0, yaw, 0), office, {
 			fallbackSize = size * (scale or 1),
 			fallbackColor = Color3.fromRGB(120, 110, 100),
 			scale = scale,
@@ -953,12 +989,11 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 	local deskX, deskZ = east - 6, (r.z0 + r.z1) / 2
 	-- drawer side (the model's -Z) to the chair at +X
 	local deskAt = CFrame.new(deskX, floor, deskZ) * CFrame.Angles(0, -math.pi / 2, 0)
-	local desk = KitPlacer.place("PH__metal_office_desk", deskAt, office, {
+	local desk = placeKit("PH__metal_office_desk", deskAt, office, {
 		fallbackSize = Vector3.new(2.5, 2.2, 5.5) * DESK_SCALE,
 		fallbackColor = Color3.fromRGB(120, 110, 100),
 		scale = DESK_SCALE,
 	})
-	reassemble("PH__metal_office_desk", desk, deskAt, DESK_SCALE)
 	-- the top from the placed desk itself, so the laptop and folder sit on it
 	local deskBox, deskSize = desk:GetBoundingBox()
 	local DESK_TOP = deskBox.Position.Y + deskSize.Y / 2
@@ -972,12 +1007,11 @@ local function buildOffice(parent: Instance, addPrompt: (BasePart, string, strin
 	-- screen faces its -Z; Marcel (2026-09-23) turned it to face the doors (-X),
 	-- so whoever walks in sees the green screen.
 	local laptopAt = CFrame.new(deskX, DESK_TOP, deskZ) * CFrame.Angles(0, math.pi / 2, 0)
-	local laptop = KitPlacer.place("PH__classic_laptop", laptopAt, office, {
+	-- P5 (#24a): placeKit hinges the lid back on (KIT_OFFSETS)
+	local laptop = placeKit("PH__classic_laptop", laptopAt, office, {
 		fallbackSize = Vector3.new(1.8, 1.3, 1.3),
 		fallbackColor = Color3.fromRGB(120, 110, 100),
 	})
-	-- P5 (#24a): the lid stood up in the middle of the keyboard (KIT_OFFSETS)
-	reassemble("PH__classic_laptop", laptop, laptopAt)
 	local keyboard = laptop:FindFirstChild("keyboard_low", true)
 	-- the base carries the name and the prompt: the first part found was
 	-- cover_low, a 0.03-stud sliver the display was drawn on
