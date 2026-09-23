@@ -95,7 +95,7 @@ local function planted(plan: Plan)
 	hedge(-353.5, 114, -353.5, 193.5, 4.5) -- west, south of the sign
 	hedge(-350, 193.5, -306, 193.5, 4.5) -- south, with a gap
 	hedge(-294, 193.5, -246.5, 193.5, 4.5)
-	hedge(-246.5, 50, -246.5, 190, 4.5) -- east, from the office path down
+	hedge(-246.5, 50, -246.5, 178, 4.5) -- east, from the car park link down to the SW turnstile path's gap
 
 	-- club building (x -157..-121, z -40..40; front doors' apron z -16..16, side
 	-- door apron z 40..46): bushes against the front wall either side of the doors,
@@ -103,8 +103,9 @@ local function planted(plan: Plan)
 	for _, z in { -35, -29.5, -24, 24, 29.5, 35 } do
 		table.insert(plan.foundation, { at = v(GroundsPlanting.FOUNDATION_X, z), width = 4.2 })
 	end
-	tree(-200, -34, 24, true)
-	tree(-200, 14, 24, true)
+	-- #15: framing the walk up to the main gate, outside the ground wall (x -201)
+	tree(-218, -32, 24, true)
+	tree(-218, 28, 24, true)
 	tree(-226, -62, 34, false)
 	tree(-222, 78, 36, false)
 	bush(-214, -58, 5.5)

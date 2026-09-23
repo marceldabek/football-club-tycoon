@@ -46,6 +46,7 @@ local PER_CLUB = {
 	"TreeKit", -- PlotGrounds' pathside oaks and bushes
 	"GroundsPlanting", -- PlotGrounds' hedges, groves and boulders
 	"Clubhouse", -- WorldBuilder builds the office and dressing rooms through it
+	"GroundEnvelope", -- PlotGrounds' perimeter wall, gates and turnstile blocks (#15)
 }
 
 -- exposed so PerClubModulesTest can check the list against what the cloned

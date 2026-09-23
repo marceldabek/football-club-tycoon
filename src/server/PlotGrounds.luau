@@ -24,10 +24,11 @@
 --   car park           -350..-250         40..190          kerb included (TEMP: halved, X9)
 --   club shop          -313..-287         -165..-135       front (door, window) faces +X;
 --                      (-313.5..-286)     (-165.5..-134.5) with fascia and roof overhang
---   footpath           -379..-261 / -269..-261 / -261..-190  along z -12, north, then east
---                                                          onto the forecourt at z -187
---   clubhouse spur     -261..-169         -16..-8          on east to the front doors' apron
---   office path        -250..-157         40..46           car park kerb to the office side door
+--   footpath           -379..-261 / -269..-261 / -261..-201.6  along z -12, north, then east
+--                                                          to the NW turnstile block at z -187
+--   clubhouse spur     -261..-169         -16..-8          on east through the main gate to the front doors
+--   car park link      -250..-226 / -234..-226  40..46 / -8..40   #11: car park kerb round to the spur
+--   ground wall        GroundEnvelope     x +-201, z +-259 the ground itself: stands, concourse, gates
 --   training pitch 1   230..330           -170..-10        centre (280, -90)
 --   training pitch 2   230..330           10..170          centre (280, 90)
 --   training fence     222..338           -178..178        gap at z -6..6 on the west side
@@ -54,6 +55,7 @@ local PlotContext = require(script.Parent.PlotContext)
 local KitPlacer = require(script.Parent.KitPlacer)
 local TreeKit = require(script.Parent.TreeKit)
 local GroundsPlanting = require(script.Parent.GroundsPlanting)
+local GroundEnvelope = require(script.Parent.GroundEnvelope) -- #15: the ground's own wall and gates
 
 -- Crest builder: club-coloured pieces are tagged so WorldBuilder.applyCrest
 -- can repaint them when the crest changes (ClubCrest.paint).
@@ -192,8 +194,13 @@ local PATH_X = -265 -- the north-running leg, past the shop front
 -- Clubhouse.luau's aprons, which the two clubhouse paths run up to
 local CLUBHOUSE_FRONT_APRON_X = -(121 + 36 + 12) -- west edge of the front doors' apron
 local CLUBHOUSE_SIDE_APRON = { x = -(121 + 36), z0 = 40, z1 = 46 } -- west edge, z range
-local FORECOURT_X0 = -(121 + 69) -- WorldBuilder FORECOURT_X0 (-(SIDE_EDGE + 69))
-local PATH_END_Z = -187 -- joins the forecourt's west edge about half-way along
+local PATH_END_Z = -187 -- #15: the walk to the NW turnstile block (GroundEnvelope)
+-- the ground's perimeter wall, outer face on the street side
+local GROUND_WALL_X = GroundEnvelope.X0 - GroundEnvelope.WALL_T / 2
+-- #11 (ground plan spec s2): the car park path now turns north outside the
+-- ground wall to meet the main-entrance path, instead of running on to the
+-- office side door (which opens onto the concourse inside the wall now)
+local LINK_X0, LINK_X1 = -234, -226
 
 -- colours
 local BRICK = Color3.fromRGB(150, 82, 62)
@@ -1065,13 +1072,14 @@ local function buildFootpath(parent: Instance)
 	ramp.Parent = path
 	-- north past the shop front (abuts the first leg, no overlap)
 	extents("Path", PATH_X - hw, PATH_X + hw, y0, y1, PATH_END_Z - hw, PATH_Z - hw, CONCRETE, Enum.Material.Concrete, path)
-	-- east onto the forecourt's west edge
-	extents("Path", PATH_X + hw, FORECOURT_X0, y0, y1, PATH_END_Z - hw, PATH_END_Z + hw, CONCRETE, Enum.Material.Concrete, path)
+	-- east to the NW turnstile block in the ground wall
+	extents("Path", PATH_X + hw, GROUND_WALL_X, y0, y1, PATH_END_Z - hw, PATH_END_Z + hw, CONCRETE, Enum.Material.Concrete, path)
 	-- straight on from the gate to the clubhouse's front doors (docs/CLUBHOUSE_PLAN.md)
 	extents("ClubhousePath", PATH_X + hw, CLUBHOUSE_FRONT_APRON_X, y0, y1, PATH_Z - hw, PATH_Z + hw, CONCRETE, Enum.Material.Concrete, path)
-	-- and from the car park's east kerb to the office side door
+	-- and from the car park's east kerb round to the main-entrance path (#11)
 	local side = CLUBHOUSE_SIDE_APRON
-	extents("OfficePath", PARK_X1, side.x, y0, y1, side.z0, side.z1, CONCRETE, Enum.Material.Concrete, path)
+	extents("CarParkLink", PARK_X1, LINK_X1, y0, y1, side.z0, side.z1, CONCRETE, Enum.Material.Concrete, path)
+	extents("CarParkLink", LINK_X0, LINK_X1, y0, y1, PATH_Z + hw, side.z0, CONCRETE, Enum.Material.Concrete, path)
 end
 
 -- ---------------------------------------------------------------------- build
@@ -1312,8 +1320,10 @@ function PlotGrounds.plantingKeepOut(): { GroundsPlanting.Rect }
 	for _, fp in PlotGrounds.footprints() do
 		add(fp.name, fp.min.X, fp.max.X, fp.min.Y, fp.max.Y, string.sub(fp.name, 1, 13) ~= "TrainingPitch")
 	end
-	add("Stadium", -195, 195, -255, 255, true)
-	add("Forecourt", FORECOURT_X0 - 1, -121, -225, -150, true)
+	-- #15: the walled ground (stands, concourse, huts) and the aprons at its gates
+	for _, r in GroundEnvelope.keepOut() do
+		add(r.name, r.x0, r.x1, r.z0, r.z1, r.solid)
+	end
 	local fx0, fx1 = TRAIN_CX - TRAIN_W / 2 - FENCE_MARGIN, TRAIN_CX + TRAIN_W / 2 + FENCE_MARGIN
 	local fz = TRAIN_CZ[2] + TRAIN_L / 2 + FENCE_MARGIN
 	add("TrainingFence", fx0 - 1, fx1 + 1, -fz - 1, fz + 1, true)
@@ -1322,8 +1332,9 @@ function PlotGrounds.plantingKeepOut(): { GroundsPlanting.Rect }
 	local hw = PATH_W / 2
 	add("PathGateLeg", -HALF, CLUBHOUSE_FRONT_APRON_X, PATH_Z - hw, PATH_Z + hw, false)
 	add("PathNorthLeg", PATH_X - hw, PATH_X + hw, PATH_END_Z - hw, PATH_Z, false)
-	add("PathEastLeg", PATH_X, FORECOURT_X0, PATH_END_Z - hw, PATH_END_Z + hw, false)
-	add("OfficePath", PARK_X1, CLUBHOUSE_SIDE_APRON.x, CLUBHOUSE_SIDE_APRON.z0, CLUBHOUSE_SIDE_APRON.z1, false)
+	add("PathEastLeg", PATH_X, GROUND_WALL_X, PATH_END_Z - hw, PATH_END_Z + hw, false)
+	add("CarParkLink", PARK_X1, LINK_X1, CLUBHOUSE_SIDE_APRON.z0, CLUBHOUSE_SIDE_APRON.z1, false)
+	add("CarParkLinkNorth", LINK_X0, LINK_X1, PATH_Z + hw, CLUBHOUSE_SIDE_APRON.z0, false)
 	add("ShopApron", SHOP_CX + SHOP_W / 2, PATH_X, SHOP_CZ - SHOP_D / 2 + 17, SHOP_CZ - SHOP_D / 2 + 31, false)
 	add("PatioPath", (PUB_X0 + PUB_X1) / 2 - 2, (PUB_X0 + PUB_X1) / 2 + 2, PUB_Z1, PATH_Z, false)
 	-- the pathside oaks, bushes and lamps already fill this strip
@@ -1347,6 +1358,7 @@ function PlotGrounds.build(club: Model): Model
 	grounds.Parent = club
 
 	buildBoundary(grounds)
+	GroundEnvelope.build(grounds) -- #15
 	buildRoad(grounds)
 	buildCarPark(grounds)
 	buildShop(grounds)

@@ -364,6 +364,28 @@ function Config.plotCapacity(plot: any, level: number): number
 	return math.floor(entry.capacity * plot.share + 0.5)
 end
 
+-- Ground plan (docs/superpowers/specs/2026-09-22-ground-plan-design.md): the
+-- map tier each StandLevels level reads as. TEMP: level 3 (double-tier) is
+-- treated as an early build of the tier-3 covered grandstand (spec s3), and
+-- map tier 4 needs the corner stands, which are not built yet.
+Config.StandMapTier = { 1, 2, 3, 3 }
+-- Free utilities per ground tier (spec s2): lanes in each turnstile block.
+Config.TurnstileLanes = { 2, 3, 5, 6 }
+Config.ToiletsFromTier = 2
+
+-- The ground's tier: its best-built stand's map tier, 1 at spawn. TEMP rule
+-- (the spec only says utilities come "with capacity/tier").
+function Config.groundTier(levels: { [string]: number }): number
+	local tier = 1
+	for _, plot in Config.StandPlots do
+		local level = levels[plot.key] or 0
+		if level >= 1 then
+			tier = math.max(tier, Config.StandMapTier[math.min(level, #Config.StandMapTier)])
+		end
+	end
+	return tier
+end
+
 -- Concourse amenities. Level 0 = nothing. Values are cumulative. TEMP.
 -- X353: `merchPerFan` is the club shop's take per fan through the gate.
 -- CLAUDE.md s11 lists merchandise third among revenues, and the shop X300
