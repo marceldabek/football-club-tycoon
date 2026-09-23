@@ -76,11 +76,11 @@ for i, tier in Config.Rarity do
 end
 local BUILD_UP_FROM = TIER_RANK.Rare
 
-local function sound(id: string, pitch: number?)
+local function sound(id: string, pitch: number?, volume: number?)
 	local s = Instance.new("Sound")
 	s.SoundId = id
 	s.PlaybackSpeed = pitch or 1
-	s.Volume = 0.6
+	s.Volume = volume or 0.6
 	s.Parent = SoundService
 	s.Ended:Once(function()
 		s:Destroy()
@@ -755,6 +755,7 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 					return
 				end
 				signing = true
+				sound(Config.PackAudio.pick) -- #18h: a tap on SIGN/PIN gets its own sound
 				-- a signing that lands redraws this card as SIGNED; if the server
 				-- refuses, its toast frees the button at once, and this is only
 				-- the backstop for a reply that never arrives
@@ -778,6 +779,7 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 			local confirms = pinned or now.pinned ~= nil
 			local armed = false
 			pin.Activated:Connect(function()
+				sound(Config.PackAudio.pick) -- #18h: every tap, arm or confirm alike
 				if armed or not confirms then
 					if pinned then
 						actionEvent:FireServer("unpin")
@@ -908,7 +910,11 @@ function PackOpening.open(getClub: () -> any?, actionEvent: RemoteEvent, opts: O
 			end
 			sound(Config.PackAudio.flip)
 			entry.card:flip()
-			sound(Config.PackAudio.sting, 0.9 + rank * 0.08)
+			-- #18h: a bigger sting for Gold and up -- louder as well as higher,
+			-- so Legend actually reads as a bigger moment than Bronze rather
+			-- than just a faster chipmunk version of the same beat.
+			local bigTier = math.max(0, rank - (TIER_RANK.Gold - 1))
+			sound(Config.PackAudio.sting, 0.9 + rank * 0.08, math.min(0.6 + bigTier * 0.12, 1))
 			headline.Text = ("%s  %d"):format(string.upper(entry.card.tier), entry.player.overall)
 		end
 		local function turnNext(quick: boolean)

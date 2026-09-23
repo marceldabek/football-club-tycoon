@@ -545,12 +545,15 @@ Config.ProspectKit = Color3.fromRGB(120, 126, 136)
 -- Recommendation: not for MVP, picking a kit is already two colours; revisit
 -- once shirt customization exists.
 Config.KeeperKit = Color3.fromRGB(60, 200, 90)
--- Pack-opening SFX. slide/flip are free Roblox Creator Store sound effects;
--- sting is a free APM Music riser (same catalog as Config.Music above).
+-- Pack-opening SFX. slide/flip/pick are free Roblox Creator Store sound
+-- effects; sting is a free APM Music riser (same catalog as Config.Music
+-- above). #18h: pick is the tap on SIGN/PIN, so choosing a card has its own
+-- small sound instead of landing silently.
 Config.PackAudio = {
 	slide = "rbxassetid://9117209855", -- "Paper Cup Lift Out Of A Stack 18": paper drawn from a stack
 	flip = "rbxassetid://4839809962", -- "cardPlace2": short card-on-card flip
 	sting = "rbxassetid://1843084040", -- "Speed Rise": pitched up for the better tiers
+	pick = "rbxassetid://72467819049463", -- "ClickUp": a light UI tap
 }
 
 return Config
