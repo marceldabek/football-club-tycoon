@@ -310,9 +310,10 @@ local floodHeads: { Part } = {}
 Scenery.FLOOD_HEAD_TAG = "FloodHead"
 local function setupFloodlights(parent: Instance)
 	table.clear(floodHeads)
-	-- clear of the corners even when every plot is a full-depth grandstand
-	local x = Pitch.SIDE_EDGE + 66
-	local z = Pitch.END_EDGE + 66
+	-- #21 (ground plan spec s2): in the open corners just behind the stands,
+	-- clear of every full-grown stand; at L4 they rise through the corner roofs
+	local x = 140
+	local z = 200
 	local mastH = 60
 	for _, sx in { -1, 1 } do
 		for _, sz in { -1, 1 } do

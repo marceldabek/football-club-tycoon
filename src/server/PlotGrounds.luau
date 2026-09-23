@@ -46,7 +46,7 @@
 --   * deepest stand: STEP_DEPTH is 3 in WorldBuilder (16 rows = 48 studs + roof),
 --     so the east stand ends near x 175. The training fence starts at x 222,
 --     which also clears the test's more cautious 4.5-per-row keep-out (x 203).
---   * floodlight masts at (+-187, +-245): outside every rectangle above.
+--   * floodlight masts at (+-140, +-200) (#21), inside the ground wall.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -1317,7 +1317,7 @@ end
 -- Everything GroundsPlanting's scattered groves have to stay off, pitch-local.
 -- `solid` pieces get a wide berth (a crown would reach them); the rest are
 -- ground-level and only need the trunk kept off them. The stadium rectangle is
--- the full-grown one (16-row stands to x +-175 / z +-233, masts at +-187, +-245).
+-- the walled ground (GroundEnvelope, #15), which holds the stands and the masts.
 function PlotGrounds.plantingKeepOut(): { GroundsPlanting.Rect }
 	local out: { GroundsPlanting.Rect } = {}
 	local function add(name: string, x0: number, x1: number, z0: number, z1: number, solid: boolean)
