@@ -11,8 +11,8 @@
 -- frame. X371: everyone here is a Townsfolk figure now, not blocks; walking
 -- fans are posed individually each frame (Townsfolk.pose sets CFrames
 -- appended to one workspace:BulkMoveTo per frame, shared with
--- BlockFootballer is gone. Static figures (stewards, queues, concourse,
--- bar/kiosk) are posed once at spawn and never touched again.
+-- BlockFootballer is gone. Static figures (stewards, queues, concourse, bar)
+-- are posed once at spawn and never touched again.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -90,7 +90,10 @@ root.Name = "MatchdayLife"
 root.Parent = workspace
 
 local crowds: { [Folder]: PlotCrowd } = {}
-local ROUTE_LIST = { MatchdayRoutes.ROUTES.fromTown, MatchdayRoutes.ROUTES.fromCarPark }
+-- Arriving fans only ever come from the street or the car park; leaving fans
+-- also take the north/east exit gates round the walk-round loop (#10).
+local ROUTE_LIST = MatchdayRoutes.ARRIVAL_ROUTES
+local LEAVE_ROUTE_LIST = MatchdayRoutes.LEAVE_ROUTES
 
 -- ------------------------------------------------------------------ helpers
 
@@ -407,29 +410,6 @@ local function buildBarDrinkers(crowd: PlotCrowd)
 	end
 end
 
--- X126: three fans queueing at the snack kiosk hatch (4 parts each)
-local KIOSK_QUEUE = 3
-local function buildKioskQueue(crowd: PlotCrowd)
-	for i, spot in MatchdayRoutes.kioskQueueSpots(KIOSK_QUEUE) do
-		local kit = if i == 2 then homeKit(crowd) else NEUTRAL_KITS[(i % #NEUTRAL_KITS) + 1]
-		local fig = Townsfolk.build(crowd.model, {
-			shirt = kit,
-			trousers = DARK_TROUSERS,
-			skin = SKIN_TONES[((i + 1) % #SKIN_TONES) + 1],
-		})
-		if fig then
-			fig.model.Name = "KioskFan" .. i
-			local base = crowd.plotCFrame * spot
-			Townsfolk.pose(fig, base)
-			if i ~= 2 then
-				local scarf = part("Scarf", SCARF, homeKit(crowd), fig.model)
-				scarf.CFrame = base * CFrame.new(0, CHEST_Y, 0.1)
-			end
-			table.insert(crowd.stewards, fig.model)
-		end
-	end
-end
-
 -- X318: the concourse. A short line at the amenity's serving hatch and a thin
 -- scatter of people stood about on the paving while the match is on, sized by
 -- the amenity and by how full the ground is. Off on Low, like the rest of the
@@ -483,7 +463,6 @@ local function spawnCrowd(crowd: PlotCrowd)
 	buildBarriers(crowd)
 	buildMediaVan(crowd)
 	buildBarDrinkers(crowd)
-	buildKioskQueue(crowd)
 	buildConcourse(crowd) -- X318
 	buildCars(crowd)
 	rebuildQueue(crowd)
@@ -529,7 +508,7 @@ local function startLeaving(crowd: PlotCrowd)
 	end
 	local total = math.min(targetFanCount(crowd.folder), MAX_FANS_PER_PLOT)
 	for i = 1, total do
-		local route = ROUTE_LIST[(i % 2) + 1]
+		local route = LEAVE_ROUTE_LIST[(i % #LEAVE_ROUTE_LIST) + 1]
 		local fan = makeFan(crowd.model, route, MatchdayRoutes.leavingStart(MatchdayRoutes.length(route), i, total), false, homeKit(crowd))
 		if fan then
 			fan.leaving = true

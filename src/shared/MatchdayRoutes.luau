@@ -13,7 +13,20 @@
 -- GroundEnvelope (#15, ground plan spec s2): turnstile blocks in the west
 -- ground wall (x -201) at z -200..-175 and 175..200, lanes on z -187 / 187.
 -- Fans stop just outside the block's street face (x -205) and go in.
--- Lane A2 (#14/#10) replaces these with proper queues and exit routes.
+--
+-- Lane A2 (#14/#10, ground plan spec s2 "Fan routes"): fromTown/fromCarPark
+-- now carry on past the turnstile a short way into the concourse, instead of
+-- vanishing right on the turnstile line, so arriving fans visibly pass
+-- through the block before they disperse (X318's hatch queue/milling crowd
+-- covers "found their spot"; a full walk to a specific stand's vomitory needs
+-- per-stand destinations this module doesn't have yet). toNorthExit and
+-- toEastExit are the spec's other way out: through the north/east exit gates
+-- (GroundEnvelope), round the outside walk-round loop (spec s2 Paths table:
+-- the loop's legs are at x -234..-226 west / 208..216 east / z -275..-267
+-- north / 267..275 south, gap in the west legs for the ground's own bulge),
+-- and back to the same street gate / car park points fromTown/fromCarPark
+-- start from -- so leavers who take the long way round still only ever
+-- despawn at a street gate or the car park (#10), never mid-plot.
 
 local MatchdayRoutes = {}
 
@@ -36,6 +49,16 @@ local NORTH_TURN = pt(-265, -187)
 -- where the barriered approach to the NW block starts (was the old forecourt's edge)
 local FORECOURT_EDGE = NORTH_TURN
 local TURNSTILE = pt(TURNSTILE_X, TURNSTILE_Z)
+local SW_TURNSTILE = pt(TURNSTILE_X, SW_TURNSTILE_Z)
+-- a few studs inside the ground wall (inner face ~-197) from each block: not
+-- a real stand destination, just enough for "crossed the concourse" (#14)
+local CONCOURSE_ENTRY_NW = pt(-188, -187)
+local CONCOURSE_ENTRY_SW = pt(-188, 187)
+-- where a leaver coming from the North terrace / East stand starts, deep
+-- enough in (29 / 21 studs off the wall) to always be clear of any stand's
+-- own footprint, whatever tier it has been built to
+local CONCOURSE_NORTH = pt(0, -230)
+local CONCOURSE_EAST = pt(180, 0)
 
 MatchdayRoutes.ROUTES = {
 	fromTown = {
@@ -43,12 +66,50 @@ MatchdayRoutes.ROUTES = {
 		JOIN,
 		NORTH_TURN,
 		TURNSTILE,
+		CONCOURSE_ENTRY_NW,
 	} :: Route,
 	fromCarPark = {
 		pt(-300, 115), -- car park centre
 		pt(-255, SW_TURNSTILE_Z), -- the car park's south-east corner
-		pt(TURNSTILE_X, SW_TURNSTILE_Z), -- the SW turnstile block
+		SW_TURNSTILE, -- the SW turnstile block
+		CONCOURSE_ENTRY_SW,
 	} :: Route,
+	-- #10: out through the north exit gate, along the loop's west-north leg,
+	-- and back onto the existing footpath to the street gate.
+	toNorthExit = {
+		CONCOURSE_NORTH,
+		pt(0, -251), -- concourse side of the gate opening
+		pt(0, -259), -- North exit gate (GroundEnvelope: north wall, x -20..20)
+		pt(0, -267), -- loop side of the gate
+		pt(-230, -271), -- loop's north leg
+		pt(-230, -183), -- foot of the loop's west-north leg
+		NORTH_TURN,
+		JOIN,
+		pt(-380, -12), -- street gate
+	} :: Route,
+	-- #10: out through the east exit gate, right round the loop's east and
+	-- south legs, and back to the car park via the existing SW turnstile path.
+	toEastExit = {
+		CONCOURSE_EAST,
+		pt(195, 0), -- concourse side of the gate opening
+		pt(201, 0), -- East exit gate (GroundEnvelope: east wall, z -20..20)
+		pt(208, 0), -- loop side of the gate
+		pt(212, 0), -- loop's east leg
+		pt(212, 271), -- loop's south-east corner
+		pt(-230, 271), -- loop's south leg
+		pt(-230, 199), -- head of the loop's west-south leg
+		pt(-255, SW_TURNSTILE_Z), -- back onto the SW turnstile / car park path
+		pt(-300, 115), -- car park centre
+	} :: Route,
+}
+-- Only fromTown/fromCarPark are for arriving; every route here is fair game
+-- for leaving (MatchdayLife.client.luau's LEAVE_ROUTE_LIST).
+MatchdayRoutes.ARRIVAL_ROUTES = { MatchdayRoutes.ROUTES.fromTown, MatchdayRoutes.ROUTES.fromCarPark }
+MatchdayRoutes.LEAVE_ROUTES = {
+	MatchdayRoutes.ROUTES.fromTown,
+	MatchdayRoutes.ROUTES.fromCarPark,
+	MatchdayRoutes.ROUTES.toNorthExit,
+	MatchdayRoutes.ROUTES.toEastExit,
 }
 
 -- Standing spots for stewards: pedestrian gate (both sides), turnstiles (2
@@ -140,22 +201,6 @@ function MatchdayRoutes.barDrinkerSpots(count: number): { CFrame }
 	end
 	return out
 end
-
--- X126: a short line at the matchday snack kiosk (PlotGrounds X95: kiosk
--- centred (-314, 8), 12 x 8, hatch and counter on its -Z face at z 4..2.8),
--- stretching back toward the footpath (z -8 edge) and facing the hatch.
-MatchdayRoutes.KIOSK_HATCH = Vector3.new(-314, 0, 2.8)
-MatchdayRoutes.KIOSK_QUEUE_GAP = 2.3
-function MatchdayRoutes.kioskQueueSpots(count: number): { CFrame }
-	local out = {}
-	local h = MatchdayRoutes.KIOSK_HATCH
-	for i = 1, count do
-		local p = Vector3.new(h.X + (if i % 2 == 0 then 0.4 else -0.3), 0.05, h.Z - 1.4 - (i - 1) * MatchdayRoutes.KIOSK_QUEUE_GAP)
-		table.insert(out, CFrame.lookAt(p, Vector3.new(p.X, p.Y, h.Z)))
-	end
-	return out
-end
-
 
 -- X318: the amenity the player buys builds a hut with a serving hatch on the
 -- concourse (WorldBuilder AMENITY_POS (-163, -172), hut 10 x 8 with the hatch

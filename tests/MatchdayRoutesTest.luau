@@ -102,8 +102,11 @@ end
 function T.barriersLineTheTurnstileApproachWithoutBlockingIt()
 	local sections = MatchdayRoutes.barrierSections()
 	assert(#sections >= 8 and #sections % 2 == 0, "pairs of sections, got " .. #sections)
+	-- fromTown now carries on past the turnstile into the concourse (#14), so
+	-- the barriered approach leg is fixed points 3 and 4 (NORTH_TURN, TURNSTILE),
+	-- not the route's end.
 	local route = MatchdayRoutes.ROUTES.fromTown
-	local a, b = route[#route - 1], route[#route]
+	local a, b = route[3], route[4]
 	for _, cf in sections do
 		local p = cf.Position
 		-- distance from the last leg of the walk
@@ -143,8 +146,9 @@ end
 function T.queueSpotsStandInTheBarrieredLaneFacingTheTurnstiles()
 	local spots = MatchdayRoutes.queueSpots(MatchdayRoutes.QUEUE_MAX)
 	assert(#spots == MatchdayRoutes.QUEUE_MAX, "count")
-	local turnstile = MatchdayRoutes.ROUTES.fromTown[#MatchdayRoutes.ROUTES.fromTown]
-	local edge = MatchdayRoutes.ROUTES.fromTown[#MatchdayRoutes.ROUTES.fromTown - 1]
+	-- fixed points 3 and 4 (NORTH_TURN, TURNSTILE): see the barrier test above
+	local turnstile = MatchdayRoutes.ROUTES.fromTown[4]
+	local edge = MatchdayRoutes.ROUTES.fromTown[3]
 	local a = Vector3.new(turnstile.X, 0, turnstile.Z)
 	local walk = Vector3.new(edge.X - a.X, 0, edge.Z - a.Z)
 	for i, cf in spots do
@@ -180,25 +184,6 @@ function T.barDrinkersStandOnThePatioClearOfBenches()
 		end
 		local toCentre = (MatchdayRoutes.BAR_HUDDLE - p) * Vector3.new(1, 0, 1)
 		assert(cf.LookVector:Dot(toCentre.Unit) > 0.99, "drinker " .. i .. " faces the huddle")
-	end
-end
-
--- X126: the kiosk queue stands in the grass between the hatch counter and the
--- footpath, clear of the pathside trees, facing the hatch.
-function T.kioskQueueStandsBetweenHatchAndPath()
-	local spots = MatchdayRoutes.kioskQueueSpots(3)
-	assert(#spots == 3, "three fans")
-	for i, cf in spots do
-		local p = cf.Position
-		assert(p.Z < 2.8 - 0.8, "fan " .. i .. " stands in the counter")
-		assert(p.Z > -8 + 0.8, "fan " .. i .. " stands on the footpath")
-		for _, tree in { Vector3.new(-326, 0, -2), Vector3.new(-302, 0, -2) } do
-			assert((Vector3.new(p.X, 0, p.Z) - tree).Magnitude > 3, "fan " .. i .. " in a pathside tree")
-		end
-		assert(cf.LookVector.Z > 0.99, "fan " .. i .. " faces the hatch")
-		if i > 1 then
-			assert((spots[i - 1].Position - p).Magnitude > 1.9, "fans too close")
-		end
 	end
 end
 
@@ -285,6 +270,31 @@ function T.theHatchQueueFacesTheHatch()
 	for i = 2, #spots do
 		assert(spots[i].Position.Z > spots[i - 1].Position.Z, "the queue should stretch back from the hatch")
 	end
+end
+
+-- #14: arriving fans should visibly cross a short stretch of concourse after
+-- the turnstile, not vanish right on the wall.
+function T.arrivalRoutesEndJustInsideTheWall()
+	for _, name in { "fromTown", "fromCarPark" } do
+		local route = MatchdayRoutes.ROUTES[name]
+		local last = route[#route]
+		assert(last.X > -197, name .. " should end inside the ground wall (inner face ~-197)")
+		assert(last.X < -150, name .. " should still be well short of the pitch")
+	end
+end
+
+-- #10: whichever gate a leaver goes out of, they only ever despawn at a
+-- street gate or the car park, never mid-plot.
+function T.exitRoutesDespawnAtAStreetGateOrTheCarPark()
+	local northExit = MatchdayRoutes.ROUTES.toNorthExit
+	local eastExit = MatchdayRoutes.ROUTES.toEastExit
+	assert((northExit[#northExit] - Vector3.new(-380, 0.3, -12)).Magnitude < 1e-3, "north exit route should end at the street gate")
+	assert((eastExit[#eastExit] - Vector3.new(-300, 0.3, 115)).Magnitude < 1e-3, "east exit route should end at the car park")
+end
+
+function T.leaveRouteListCoversEveryWayOut()
+	assert(#MatchdayRoutes.LEAVE_ROUTES == 4, "expected the two turnstile routes plus both exit-gate loops")
+	assert(#MatchdayRoutes.ARRIVAL_ROUTES == 2, "arriving fans only come from the street or the car park")
 end
 
 return T
