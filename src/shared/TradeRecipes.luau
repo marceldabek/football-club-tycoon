@@ -48,6 +48,7 @@ export type Lot = {
 	unitWidth: number,
 	closesStreet: boolean,
 	corner: boolean,
+	sign: string?, -- #16: a hanging pub sign with this name (TownLayout Box.sign)
 }
 
 local M = 8.25 -- MEH module, studs (measured)
@@ -399,50 +400,68 @@ local function shed(pieces: { Piece }, rng: Random, cx: number, cz: number, W: n
 	add(pieces, "PH__exterior_aircon_unit", cx - W / 2 - 0.9, 0, cz + D / 4, 90)
 end
 
-local YARD = {
-	"UKSP__Skips__Skip01",
-	"UKSP__WoodPallets__PalletA01",
-	"UKSP__dumpster__DumpsterRusted",
-	"UKSP__WoodPallets__PalletC03",
-	"UKSP__boxes__Box01",
-	"ForkliftYellow",
-	"UKSP__Skips__Skip02",
-	"UKSP__WoodPallets__PalletB02",
-	"UKSP__dumpster__DumpsterNew",
-	"UKSP__boxes__Box08",
-	"UKSP__ConcreteBarriers__BarrierA01",
-}
+-- #39b: a worked yard, not a row of props laid out along the front. Up to `count` loose clusters
+-- stand round the edges of the apron (its front corners, and its back corners when it is deep
+-- enough): a stack or two of pallets with boxes on top, a skip or a dumpster, a pile of boxes.
+-- Each is turned a little off square. The middle stays clear as the loading bay, where the
+-- forklift stands at work. Both lot sides get a clad fence only where a run of panels fits.
+local PALLETS = { "UKSP__WoodPallets__PalletA01", "UKSP__WoodPallets__PalletC03", "UKSP__WoodPallets__PalletB02" }
+local BOXES = { "UKSP__boxes__Box01", "UKSP__boxes__Box08" }
+local BINS = { "UKSP__Skips__Skip01", "UKSP__Skips__Skip02", "UKSP__dumpster__DumpsterRusted", "UKSP__dumpster__DumpsterNew" }
+local PALLET_H = 0.5 -- UKSP pallet height, studs
+local BOX_H = 1.6
+-- #39c: the kit forklift is 4 studs tall and 7 long: shorter than the townsfolk walking past
+-- and the skips beside it. A real one is ~2.1 m to the top of its guard (5.8 studs at 2.75 a
+-- metre), so it is scaled up. Its mesh also sits 135 degrees round from its pivot.
+TradeRecipes.FORKLIFT_SCALE = 1.45
+local FORKLIFT_YAW_FIX = -135
+local YARD_KINDS = { "pallets", "bin", "boxes", "pallets" }
 
--- Scatters `count` yard props over the forecourt rectangle in loose stacks, and fences both
--- lot sides. #39b: columns are capped so props wrap into more than one row/bay instead of
--- lining up in a single row along the front, and both axes jitter so they read as scattered
--- stacks rather than a placed grid.
 local function yard(pieces: { Piece }, rng: Random, lot: Lot, z0: number, z1: number, count: number)
 	local halfW = lot.size.X / 2
-	local cols = math.clamp(math.floor((lot.size.X - 16) / 14), 1, 3)
-	local start = rng:NextInteger(1, #YARD)
-	for i = 0, count - 1 do
-		local col = i % cols
-		local row = i // cols
-		local x = -halfW + 12 + col * 14 + rng:NextNumber(-1.8, 1.8)
-		local z = z0 + 7 + row * 11 + rng:NextNumber(-2, 2)
-		if z + 5 > z1 then
-			break
+	local spots = { Vector2.new(-halfW + 7, z0 + 6), Vector2.new(halfW - 7, z0 + 6) }
+	if z1 - z0 >= 24 then
+		table.insert(spots, Vector2.new(-halfW + 7, z1 - 7))
+		table.insert(spots, Vector2.new(halfW - 7, z1 - 7))
+	end
+	local first = rng:NextInteger(0, #YARD_KINDS - 1)
+	for i = 1, math.min(count, #spots) do
+		local at = spots[i]
+		local inward = if at.X < 0 then 1 else -1
+		local turn = rng:NextNumber(-12, 12)
+		local kind = YARD_KINDS[(first + i) % #YARD_KINDS + 1]
+		if kind == "pallets" then
+			for stack = 0, rng:NextInteger(0, 1) do
+				local h = rng:NextInteger(2, 4)
+				local x, z = at.X + inward * stack * 5.6, at.Y + rng:NextNumber(-1, 1)
+				local kit = PALLETS[rng:NextInteger(1, #PALLETS)]
+				for k = 0, h - 1 do
+					add(pieces, kit, x + rng:NextNumber(-0.15, 0.15), k * PALLET_H, z + rng:NextNumber(-0.15, 0.15), turn + rng:NextNumber(-4, 4))
+				end
+				if rng:NextNumber() < 0.5 then
+					add(pieces, BOXES[rng:NextInteger(1, #BOXES)], x, h * PALLET_H, z, turn + rng:NextNumber(-20, 20))
+				end
+			end
+		elseif kind == "bin" then
+			add(pieces, BINS[rng:NextInteger(1, #BINS)], at.X, 0, at.Y, 90 + turn)
+		else
+			for k = 0, 2 do
+				add(pieces, BOXES[rng:NextInteger(1, #BOXES)], at.X + inward * (k % 2) * 3, 0, at.Y + (k - 1) * 2.4, turn + rng:NextNumber(-15, 15))
+			end
+			add(pieces, BOXES[rng:NextInteger(1, #BOXES)], at.X, BOX_H, at.Y, turn + rng:NextNumber(-25, 25))
 		end
-		local kit = YARD[(start + i) % #YARD + 1]
-		local yaw = rng:NextInteger(0, 3) * 90
-		if kit == "ForkliftYellow" then
-			-- #39c: the kit mesh's pivot is baked 135 degrees off the chassis, so it was
-			-- rendering diagonally (a bigger, crooked-looking footprint than the real body)
-			yaw -= 135
-		end
-		add(pieces, kit, x, 0, z, yaw)
+	end
+	if count >= 3 then
+		-- at work in the loading bay, nose towards the doors
+		add(pieces, "ForkliftYellow", rng:NextNumber(-halfW * 0.25, halfW * 0.25), 0, z1 - 6, 90 + rng:NextNumber(-35, 35) + FORKLIFT_YAW_FIX, TradeRecipes.FORKLIFT_SCALE)
 	end
 	local panels = math.floor((z1 - z0) / 8.3)
-	for i = 0, panels - 1 do
-		local z = z0 + (i + 0.5) * 8.3
-		add(pieces, CLAD[1], -halfW + 0.4, 0, z, 90)
-		add(pieces, CLAD[1], halfW - 0.4, 0, z, -90)
+	if panels >= 2 then
+		for i = 0, panels - 1 do
+			local z = z0 + (i + 0.5) * 8.3
+			add(pieces, CLAD[1], -halfW + 0.4, 0, z, 90)
+			add(pieces, CLAD[1], halfW - 0.4, 0, z, -90)
+		end
 	end
 end
 
@@ -785,8 +804,9 @@ local function distToRoads(p: Vector3, roads: { any }): number
 	return best
 end
 
--- Special blocks carry no `front`. Keep the block's long axis and face whichever long side is
--- nearer a road, so pubs and schools do not turn their backs on the street.
+-- Special blocks usually carry no `front`. Keep the block's long axis and face whichever long side
+-- is nearer a road, so pubs and schools do not turn their backs on the street. A block that sets
+-- `front` (#16: each Supporters' Bar faces its plot's gate, not the nearest road) keeps it.
 local function specialLots(layout: any): { Lot }
 	local out: { Lot } = {}
 	local n = 0
@@ -797,7 +817,9 @@ local function specialLots(layout: any): { Lot }
 				local yaw = math.rad(block.yaw or 0)
 				local front = Vector3.new(-math.sin(yaw), 0, math.cos(yaw))
 				local centre = Vector3.new(block.centre.X, 0, block.centre.Z)
-				if layout.ROADS then
+				if block.front then
+					front = Vector3.new(block.front.X, 0, block.front.Z).Unit
+				elseif layout.ROADS then
 					local reach = front * (block.size.Z / 2)
 					if distToRoads(centre - reach, layout.ROADS) < distToRoads(centre + reach, layout.ROADS) then
 						front = -front
@@ -808,6 +830,7 @@ local function specialLots(layout: any): { Lot }
 					use = block.use, district = district.name, street = "",
 					centre = centre, size = Vector3.new(block.size.X, 40, block.size.Z), yaw = block.yaw or 0,
 					front = front, units = 1, unitWidth = block.size.X, closesStreet = false, corner = false,
+					sign = block.sign,
 				})
 			end
 		end

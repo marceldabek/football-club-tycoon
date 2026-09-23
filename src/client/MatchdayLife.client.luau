@@ -482,7 +482,8 @@ local function spawnCrowd(crowd: PlotCrowd)
 	buildStewards(crowd)
 	buildBarriers(crowd)
 	buildMediaVan(crowd)
-	buildBarDrinkers(crowd)
+	-- #16: no bar drinkers on the plot: the Supporters' Bar moved across the street, where
+	-- TownLife's pub drinkers fill it on the owner's screen only (CLAUDE.md s27)
 	buildKioskQueue(crowd)
 	buildConcourse(crowd) -- X318
 	buildCars(crowd)

@@ -168,4 +168,34 @@ function T.flatsAndParadeBacksAreMergedUnits()
 	assert(flats > 0 and parades > 0, "no flats or parades")
 end
 
+-- #16: every plot has its Supporters' Bar on town land across the street from its pedestrian
+-- gate, at the ground plan's footprint (plot-local x -482..-447, z -32..8), facing the plot.
+function T.everyPlotHasItsSupportersBarOppositeTheGate()
+	local layout = require(ReplicatedStorage.Shared.TownLayout)
+	local bars = {}
+	for _, lot in TradeRecipes.lots(nil, layout) do
+		if lot.sign then
+			table.insert(bars, lot)
+		end
+	end
+	assert(#bars == #layout.PLOTS, ("%d signed pubs for %d plots"):format(#bars, #layout.PLOTS))
+	for i = 1, #layout.PLOTS do
+		local plotCF = layout.plotCFrame(i)
+		local want = plotCF * Vector3.new((-482 - 447) / 2, 0, (-32 + 8) / 2)
+		local found = nil
+		for _, lot in bars do
+			if (Vector3.new(lot.centre.X, 0, lot.centre.Z) - Vector3.new(want.X, 0, want.Z)).Magnitude < 1.5 then
+				found = lot
+			end
+		end
+		assert(found, "no Supporters' Bar opposite Plot " .. i)
+		assert(found.use == "pub", "Plot " .. i .. "'s bar is not a pub lot")
+		-- faces back across the street at the plot (plot-local +X)
+		assert(found.front:Dot(plotCF.XVector) > 0.99, "Plot " .. i .. "'s bar does not face its plot")
+		-- 40 along the street, 35 deep
+		assert(math.abs(found.size.X - 40) < 0.01 and math.abs(found.size.Z - 35) < 0.01, "Plot " .. i .. "'s bar is not 40 x 35")
+		assert(not layout.pointInPlot(found.centre, i), "Plot " .. i .. "'s bar stands on the plot")
+	end
+end
+
 return T

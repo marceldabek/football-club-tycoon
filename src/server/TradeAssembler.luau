@@ -13,6 +13,9 @@ local Server = ServerScriptService:WaitForChild("Server")
 local TradeRecipes = require(Shared:WaitForChild("TradeRecipes"))
 local KitPlacer = require(Server:WaitForChild("KitPlacer"))
 local V3Perf = require(Server:WaitForChild("V3Perf"))
+local PubDressing = require(Server:WaitForChild("PubDressing"))
+local FrontPaths = require(Shared:WaitForChild("FrontPaths"))
+local TownFrontage = require(Shared:WaitForChild("TownFrontage"))
 
 local TradeAssembler = {}
 
@@ -98,6 +101,55 @@ local function kindOf(kit: string): "structure" | "prop"
 	return "structure"
 end
 
+-- #31: what joins a trade lot's front to the pavement across its front garden and the street's
+-- verge (Shared/FrontPaths): a path from a block of flats' door, a paved forecourt the width of
+-- a corner shop, a vehicle crossing into an industrial yard. Built as its own model beside the
+-- lot (it lies outside the lot's box), from the lot's own front edge outwards.
+local FRONT_FORECOURT = { ["corner shop"] = true }
+local FRONT_CROSSING = { workshop = 14, ["trade counter"] = 14, warehouse = 20 }
+local FLATS_PATH_WIDTH = 3.4
+local FLATS_SETBACK = 4 -- TradeRecipes: a block of flats stands this far behind its lot's front
+local function frontApron(parent: Instance, frame: CFrame, lot: TradeRecipes.Lot): Model?
+	local frontage = TownFrontage.TYPES[lot.use]
+	if not frontage or lot.street == "" then
+		return nil
+	end
+	local edge = lot.centre + lot.front * (lot.size.Z / 2 + frontage.garden)
+	local reach = frontage.garden + FrontPaths.verge(lot.street, lot.closesStreet, edge, lot.front)
+	if reach <= 0.2 then
+		return nil
+	end
+	local z0 = -lot.size.Z / 2 - reach
+	local z1, width
+	if lot.use == "flats" then
+		z1, width = -lot.size.Z / 2 + FLATS_SETBACK, FLATS_PATH_WIDTH
+	elseif FRONT_FORECOURT[lot.use] then
+		z1, width = -lot.size.Z / 2 + 0.3, lot.size.X
+	elseif FRONT_CROSSING[lot.use] then
+		z1, width = -lot.size.Z / 2 + 0.3, FRONT_CROSSING[lot.use]
+	else
+		return nil
+	end
+	local model = Instance.new("Model")
+	model.Name = lot.id .. "|Front"
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	local slab = Instance.new("Part")
+	slab.Name = if lot.use == "flats" then "FrontPath" else "FrontApron"
+	slab.Anchored = true
+	slab.CanCollide = false
+	slab.CanQuery = false
+	slab.CanTouch = false
+	slab.CastShadow = false
+	slab.Material = if FRONT_CROSSING[lot.use] then Enum.Material.Asphalt else Enum.Material.Concrete
+	slab.Color = if FRONT_CROSSING[lot.use] then Color3.fromRGB(90, 90, 94) else FrontPaths.COLOR
+	slab.Size = Vector3.new(width, FrontPaths.THICKNESS, z1 - z0)
+	slab.CFrame = frame * CFrame.new(0, FrontPaths.TOP - FrontPaths.THICKNESS / 2, (z0 + z1) / 2)
+	slab:SetAttribute("V3Exempt", "EC2")
+	slab.Parent = model
+	model.Parent = parent
+	return model
+end
+
 -- Lot frame: +X along the street, -Z towards the street (see TradeRecipes).
 function TradeAssembler.lotFrame(origin: CFrame, lot: TradeRecipes.Lot): CFrame
 	local front = Vector3.new(lot.front.X, 0, lot.front.Z).Unit
@@ -166,7 +218,14 @@ function TradeAssembler.buildLot(parent: Instance, origin: CFrame, lot: TradeRec
 	end
 	for _, piece in pieces do
 		local target = frame * CFrame.new(piece.pos) * CFrame.Angles(0, math.rad(piece.yaw), 0)
-		local placed = KitPlacer.place(piece.kit, target, model, { scale = piece.scale })
+		-- a recipe's scale is relative to the kit piece as stored; KitPlacer's is absolute
+		-- (Model:ScaleTo), and a few kit models are stored pre-scaled (the forklift at 0.342)
+		local scale = piece.scale
+		local template = if scale then KitPlacer.find(piece.kit) else nil
+		if scale and template and template:IsA("Model") then
+			scale *= template:GetScale()
+		end
+		local placed = KitPlacer.place(piece.kit, target, model, { scale = scale })
 		if piece.fit and not placed:GetAttribute("KitMissing") then
 			fitTo(placed, target, piece.fit)
 		end
@@ -189,8 +248,110 @@ function TradeAssembler.buildLot(parent: Instance, origin: CFrame, lot: TradeRec
 			end
 		end
 	end
+	-- #16: pubs get the front TownLife hangs matchday drinkers on; a Supporters' Bar (lot.sign)
+	-- also gets its forecourt, path and hanging sign, as a model beside the lot
+	if lot.use == "pub" or lot.use == "pub and cafes" then
+		PubDressing.frontMarker(model, frame, pieces)
+	end
 	model.Parent = parent
+	if lot.sign then
+		PubDressing.forecourt(parent, origin, frame, lot, pieces)
+	end
+	frontApron(parent, frame, lot)
 	return model
+end
+
+-- #39a: an industrial estate is hardstanding, not lawn. The YardGround slab only covers a lot's
+-- own box, and the grass between the units, their front gardens and the backs stayed green, so
+-- the terrain round every industrial lot is repainted concrete (no parts: the terrain voxels
+-- change material, nothing is added). From each lot the paving runs sideways and back until it
+-- meets a street's corridor (road plus pavement), a lot that is not industrial, or the river,
+-- so a block between estate roads ends up paved kerb to kerb. Runs in the live town only
+-- (Main), never in tests: it edits workspace.Terrain.
+TradeAssembler.YARD_PAVE_FRONT = 2 -- past the front garden, under the street's verge
+TradeAssembler.YARD_PAVE_MAX = 320 -- furthest the paving looks for a street from a lot
+TradeAssembler.YARD_PAVE_OPEN = 24 -- how far it runs where no street closes the block (the estate's edge)
+TradeAssembler.YARD_PAVE_STEP = 4
+TradeAssembler.YARD_RIVER_CLEAR = 30 -- the river bank stays green
+
+-- Pure: how far from `from` (town coordinates) the paving may run along `dir`: up to a street
+-- corridor or a non-industrial lot (grown by 4) that closes the block; only YARD_PAVE_OPEN
+-- where nothing does (the estate's outer edge, or the river bank).
+function TradeAssembler.paveReach(from: Vector3, dir: Vector3, roads: { any }, others: { any }, layout: any): number
+	local step = TradeAssembler.YARD_PAVE_STEP
+	local t = 0
+	while t < TradeAssembler.YARD_PAVE_MAX do
+		local p = from + dir * (t + step)
+		for _, road in roads do
+			if layout.distanceToPolyline(p, road.points) < road.width / 2 + layout.PAVEMENT_WIDTH then
+				return t
+			end
+		end
+		for _, other in others do
+			local l = TownFrontage.lotCFrame(other):PointToObjectSpace(Vector3.new(p.X, other.centre.Y, p.Z))
+			if math.abs(l.X) <= other.size.X / 2 + 4 and math.abs(l.Z) <= other.size.Z / 2 + 4 then
+				return t
+			end
+		end
+		if layout.distanceToPolyline(p, layout.RIVER.points) < layout.RIVER.width / 2 + TradeAssembler.YARD_RIVER_CLEAR then
+			break
+		end
+		t += step
+	end
+	return math.min(t, TradeAssembler.YARD_PAVE_OPEN)
+end
+
+function TradeAssembler.paveYards(origin: CFrame): number
+	local layout = require(Shared:WaitForChild("TownLayout"))
+	local terrain = workspace.Terrain
+	local yards: { TradeRecipes.Lot } = {}
+	local lo, hi = Vector3.new(math.huge, 0, math.huge), Vector3.new(-math.huge, 0, -math.huge)
+	for _, lot in TradeRecipes.lots(TownFrontage, layout) do
+		if YARD_GROUND_USES[lot.use] then
+			table.insert(yards, lot)
+			local r = math.max(lot.size.X, lot.size.Z)
+			lo = lo:Min(lot.centre - Vector3.new(r, 0, r))
+			hi = hi:Max(lot.centre + Vector3.new(r, 0, r))
+		end
+	end
+	-- only what could stop the paving: roads and non-industrial lots near the estate
+	local reach = TradeAssembler.YARD_PAVE_MAX + 60
+	local function near(p: Vector3, pad: number): boolean
+		return p.X > lo.X - reach - pad and p.X < hi.X + reach + pad and p.Z > lo.Z - reach - pad and p.Z < hi.Z + reach + pad
+	end
+	local roads = {}
+	for _, road in layout.ROADS do
+		for _, q in road.points do
+			if near(q, 400) then
+				table.insert(roads, road)
+				break
+			end
+		end
+	end
+	local others = {}
+	for _, lot in TownFrontage.generate() do
+		if not YARD_GROUND_USES[lot.use] and near(lot.centre, 0) then
+			table.insert(others, lot)
+		end
+	end
+	for _, lot in yards do
+		local frontage = TownFrontage.TYPES[lot.use]
+		local frame = TradeAssembler.lotFrame(CFrame.identity, lot)
+		local hx, hz = lot.size.X / 2, lot.size.Z / 2
+		local left = TradeAssembler.paveReach(frame * Vector3.new(-hx, 0, 0), -frame.XVector, roads, others, layout)
+		local right = TradeAssembler.paveReach(frame * Vector3.new(hx, 0, 0), frame.XVector, roads, others, layout)
+		local back = TradeAssembler.paveReach(frame * Vector3.new(0, 0, hz), frame.ZVector, roads, others, layout)
+		local z0 = -hz - (if frontage then frontage.garden else 0) - TradeAssembler.YARD_PAVE_FRONT
+		local x0, x1, z1 = -hx - left, hx + right, hz + back
+		local a, b = Vector3.new(math.huge, -32, math.huge), Vector3.new(-math.huge, 8, -math.huge)
+		for _, corner in { Vector3.new(x0, 0, z0), Vector3.new(x1, 0, z0), Vector3.new(x0, 0, z1), Vector3.new(x1, 0, z1) } do
+			local p = origin * (frame * corner)
+			a = Vector3.new(math.min(a.X, p.X), a.Y, math.min(a.Z, p.Z))
+			b = Vector3.new(math.max(b.X, p.X), b.Y, math.max(b.Z, p.Z))
+		end
+		terrain:ReplaceMaterial(Region3.new(a, b):ExpandToGrid(4), 4, Enum.Material.LeafyGrass, Enum.Material.Concrete)
+	end
+	return #yards
 end
 
 -- Lane I: specials another module owns in the live town, so nothing is built twice. The church is

@@ -234,6 +234,7 @@ do
 	require(script.Parent.HouseAssembler).build(holder("V3Housing"), origin, nil)
 	task.wait()
 	require(script.Parent.TradeAssembler).build(holder("V3Trade"), origin, nil)
+	print(("[FCT] Trade: %d industrial yards paved"):format(require(script.Parent.TradeAssembler).paveYards(origin))) -- #39a
 	task.wait()
 	require(script.Parent.StreetFurniture).build(holder("V3Furniture"), origin, nil)
 	task.wait()
