@@ -65,10 +65,14 @@ local LOOKS: { [string]: Look } = {
 	},
 	EveningMatch = {
 		clock = 19.2,
-		brightness = 1.4,
+		-- #2: the real floodlight SpotLights (Scenery.addFloodLight) can't reach
+		-- every blade of grass from mast height at mast range, so this look also
+		-- carries a brighter ambient than a plain dusk would, standing in for all
+		-- the floodlit sky-glow a real ground would bounce back down onto the pitch.
+		brightness = 1.7,
 		exposure = 0.05,
-		ambient = Color3.fromRGB(45, 48, 60),
-		outdoorAmbient = Color3.fromRGB(60, 65, 85),
+		ambient = Color3.fromRGB(55, 58, 72),
+		outdoorAmbient = Color3.fromRGB(90, 95, 118),
 		atmosphereDensity = 0.3,
 		atmosphereOffset = 0.2,
 		atmosphereColor = Color3.fromRGB(140, 130, 160),

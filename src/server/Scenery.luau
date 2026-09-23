@@ -303,13 +303,53 @@ local function setupTown(parent: Instance)
 	spire.Parent = parent
 end
 
--- Four masts outside the corners. Heads are Neon so they read from anywhere;
--- real lights only reach 60 studs so the sun does the actual lighting.
+-- Four masts outside the corners. Heads are Neon so they read from anywhere.
+-- X2/#2: they used to be glow-only (real lights were assumed to only reach 60
+-- studs, so the pitch stayed almost black on evening matches) -- measured in
+-- Studio (2026-09-23) that Light.Range actually clamps to 120, not 60. Each
+-- head now also carries a real SpotLight on an Attachment aimed at the pitch
+-- centre, computed from the head's own position so it keeps working however
+-- far out the masts sit (Lane A1 is moving them to +-140/+-200; older/newer
+-- positions both just change `dist` below).
 local floodHeads: { Part } = {}
+local floodLights: { SpotLight } = {}
 -- Clients find the heads by this tag instead of scanning the workspace (X2).
 Scenery.FLOOD_HEAD_TAG = "FloodHead"
+
+local FLOOD_LIGHT_MAX_RANGE = 120 -- Roblox clamps Light.Range to this regardless of what's set
+local FLOOD_LIGHT_MIN_RANGE = 40
+local PITCH_CENTRE = Vector3.new(0, GROUND_Y, 0)
+
+local function floodRange(headPos: Vector3): number
+	local dist = (headPos - PITCH_CENTRE).Magnitude
+	return math.clamp(dist * 1.05, FLOOD_LIGHT_MIN_RANGE, FLOOD_LIGHT_MAX_RANGE)
+end
+
+-- One real light aimed at the pitch centre from `headPos`, parented to
+-- `headPart` through an Attachment so the aim doesn't depend on the head
+-- part's own facing (matters for the Creator Store StadiumLight parts, whose
+-- rotation belongs to the imported model, not to us).
+local function addFloodLight(headPart: BasePart, headPos: Vector3)
+	local aim = Instance.new("Attachment")
+	aim.Name = "FloodLightAim"
+	aim.Parent = headPart
+	aim.WorldCFrame = CFrame.lookAt(headPos, PITCH_CENTRE)
+
+	local light = Instance.new("SpotLight")
+	light.Name = "FloodLight"
+	light.Color = Color3.fromRGB(255, 250, 225)
+	light.Brightness = 3
+	light.Angle = 120 -- wide: four corner masts need to overlap, not spot one line
+	light.Range = floodRange(headPos)
+	light.Shadows = false
+	light.Enabled = false
+	light.Parent = aim
+	table.insert(floodLights, light)
+end
+
 local function setupFloodlights(parent: Instance)
 	table.clear(floodHeads)
+	table.clear(floodLights)
 	-- clear of the corners even when every plot is a full-depth grandstand
 	local x = Pitch.SIDE_EDGE + 66
 	local z = Pitch.END_EDGE + 66
@@ -320,8 +360,8 @@ local function setupFloodlights(parent: Instance)
 			-- Creator Store mast when the place has one: its lamp parts are named StadiumLight
 			local placed = Assets.place("Floodlight", base, parent, { height = mastH + 6, lookAt = Vector3.new(0, GROUND_Y, 0), name = "Floodlight" })
 			if placed then
-				-- lamps only. The store model ships with a light source in every lamp,
-				-- which washes the pole; real lights only reach 60 studs anyway.
+				-- lamps only; the store model's own baked-in lights get replaced by
+				-- addFloodLight below so every head is aimed and ranged the same way.
 				for _, d in placed.model:GetDescendants() do
 					if d:IsA("Light") then
 						d:Destroy()
@@ -329,6 +369,7 @@ local function setupFloodlights(parent: Instance)
 						d.CastShadow = false
 						CollectionService:AddTag(d, Scenery.FLOOD_HEAD_TAG)
 						table.insert(floodHeads, d)
+						addFloodLight(d, d.Position)
 					end
 				end
 				continue
@@ -343,7 +384,7 @@ local function setupFloodlights(parent: Instance)
 			})
 			-- head frame angled at the pitch centre
 			local headPos = base + Vector3.new(0, mastH + 2, 0)
-			local look = CFrame.lookAt(headPos, Vector3.new(0, GROUND_Y, 0))
+			local look = CFrame.lookAt(headPos, PITCH_CENTRE)
 			part({
 				Name = "HeadFrame",
 				Size = Vector3.new(14, 8, 1.2),
@@ -363,6 +404,7 @@ local function setupFloodlights(parent: Instance)
 			})
 			CollectionService:AddTag(head, Scenery.FLOOD_HEAD_TAG)
 			table.insert(floodHeads, head)
+			addFloodLight(head, headPos)
 		end
 	end
 end
@@ -371,6 +413,9 @@ function Scenery.setFloodlights(on: boolean)
 	for _, head in floodHeads do
 		head.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
 		head.Color = if on then Color3.fromRGB(255, 250, 225) else Color3.fromRGB(150, 145, 125)
+	end
+	for _, light in floodLights do
+		light.Enabled = on
 	end
 end
 
