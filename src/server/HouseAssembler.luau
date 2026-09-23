@@ -227,6 +227,35 @@ local function putCore(ctx: Ctx, lotCF: CFrame, x0: number, x1: number, zFront: 
 	ctx.counts.cores += 1
 end
 
+-- #31: a paved footpath from the door, through the front garden gate, to the
+-- pavement. The kit has no path/slab piece, so this is a plain Part like the
+-- core above (register row EH2). Runs along the gate opening's X, from the
+-- house's front wall (`zNear`, the door threshold) to the garden's outer edge
+-- at the pavement (`zFar`); nil when the garden is too shallow to show one.
+local PATH_COLOR = Color3.fromRGB(176, 172, 164)
+local PATH_WIDTH = 2.2
+local function putFrontPath(ctx: Ctx, lotCF: CFrame, gateX: number, zNear: number, zFar: number, s: number)
+	local length = math.abs(zFar - zNear)
+	if length <= 0.2 then
+		return
+	end
+	local path = Instance.new("Part")
+	path.Name = "FrontPath"
+	path.Anchored = true
+	path.CanCollide = false
+	path.CanQuery = false
+	path.CanTouch = false
+	path.CastShadow = false
+	path.Material = Enum.Material.Concrete
+	path.Color = PATH_COLOR
+	path.Size = Vector3.new(PATH_WIDTH * s, 0.15, length)
+	path.CFrame = lotCF * CFrame.new(gateX, 0.08, (zNear + zFar) / 2)
+	path:SetAttribute("V3Exempt", "EH2")
+	path:SetAttribute("Role", "path")
+	path.Parent = ctx.boundary
+	ctx.counts.pathParts = (ctx.counts.pathParts or 0) + 1
+end
+
 -- Merged units (Shared/HouseUnits, tools/kit/make_house_units.py): brick and slates sit on their
 -- own tileable textures, because on the shared trim sheet every module edge bled the quadrant
 -- beside it and showed as a line from across the street.
@@ -399,11 +428,18 @@ local function buildLot(ctx: Ctx, lot: Lot, origin: CFrame)
 			local styleIndex = if isTerrace then 0 else math.floor((i - 1) / 2) + 1
 			local style = HouseRecipes.gardenStyleFor(lot.id, styleIndex, detail.gardenStyles == "light")
 			local gardenType = TownFrontage.TYPES[lot.use]
-			local gz = -depth / 2 - (if gardenType then gardenType.garden else 6) + 0.6
+			local garden = if gardenType then gardenType.garden else 6
+			local gz = -depth / 2 - garden + 0.6
 			local gate = x + HouseRecipes.doorXFor(recipe, plan.mirrored) * s
 			local half = HouseRecipes.GATE_GAP / 2
 			boundaryRun(ctx, lotCF, x - width / 2, gate - half, gz, style, trim, "garden")
 			boundaryRun(ctx, lotCF, gate + half, x + width / 2, gz, style, trim, "garden")
+			-- #31: from the door, through the gate, to the pavement. Tier A only (gardenStyles
+			-- "all"): a path on every one of the ~2700 units town-wide would add a part apiece
+			-- on top of an already-tight boundary budget (register row EH2).
+			if detail.gardenStyles == "all" then
+				putFrontPath(ctx, lotCF, gate, -depth / 2, -depth / 2 - garden, s)
+			end
 		end
 
 		-- A terrace that backs onto a back alley gets a walled yard out to the alley's edge,
@@ -486,7 +522,7 @@ end
 
 -- Builds the given lots. `detail` overrides the per-tier presets (tests, reviews, Lane P trials).
 function HouseAssembler.buildLots(parent: Instance, origin: CFrame, lots: { Lot }, filter: { district: string? }?, detail: Detail?): { [string]: number }
-	local counts = { lots = 0, units = 0, houseParts = 0, boundaryParts = 0, meshParts = 0, missing = 0, districts = 0, tierA = 0, yards = 0, yardParts = 0, cores = 0 }
+	local counts = { lots = 0, units = 0, houseParts = 0, boundaryParts = 0, meshParts = 0, missing = 0, districts = 0, tierA = 0, yards = 0, yardParts = 0, cores = 0, pathParts = 0 }
 	local districtModels: { [string]: Model } = {}
 	local boundaryModels: { [string]: Model } = {}
 	local wantDistrict = filter and filter.district
@@ -535,9 +571,9 @@ function HouseAssembler.buildLots(parent: Instance, origin: CFrame, lots: { Lot 
 
 	local perUnit = if counts.units > 0 then counts.houseParts / counts.units else 0
 	local boundaryPerUnit = if counts.units > 0 then counts.boundaryParts / counts.units else 0
-	print(("[FCT] Housing: %d lots (%d tier A), %d units, houses %d MeshParts (%.1f/unit, town budget %d), boundaries %d (%.1f/unit, town budget %d), %d cores, %d KitMissing"):format(
+	print(("[FCT] Housing: %d lots (%d tier A), %d units, houses %d MeshParts (%.1f/unit, town budget %d), boundaries %d (%.1f/unit, town budget %d), %d cores, %d front paths, %d KitMissing"):format(
 		counts.lots, counts.tierA, counts.units, counts.houseParts, perUnit, HouseAssembler.PART_BUDGET,
-		counts.boundaryParts, boundaryPerUnit, HouseAssembler.BOUNDARY_BUDGET, counts.cores, counts.missing))
+		counts.boundaryParts, boundaryPerUnit, HouseAssembler.BOUNDARY_BUDGET, counts.cores, counts.pathParts, counts.missing))
 	for _, districtModel in districtModels do
 		print(("[FCT] Housing %s: %s"):format(districtModel.Name, V3Perf.format(V3Perf.count(districtModel))))
 	end
