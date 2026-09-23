@@ -329,6 +329,24 @@ function PlotService.sendHome(player: Player)
 	end
 end
 
+-- P3 (#40): PLAY MATCH works from anywhere in town, but the match happens at
+-- the owner's ground, so an owner who is off their own plot is brought home
+-- first (the same move as GO TO MY CLUB) before the fade and walkout. An owner
+-- already somewhere on the plot, in the stands say, stays where they are.
+function PlotService.bringHomeForMatch(player: Player)
+	local plot = registry:plotOf(player.UserId)
+	local character = player.Character
+	if not plot or not character then
+		return
+	end
+	local here = PlotService.plotCFrame(plot):PointToObjectSpace(character:GetPivot().Position)
+	local half = PLOT_SIZE / 2
+	if math.abs(here.X) <= half and math.abs(here.Z) <= half then
+		return
+	end
+	PlotService.sendHome(player)
+end
+
 function PlotService.claim(player: Player, plot: number): (boolean, string?)
 	local ok, why = registry:claim(player.UserId, plot)
 	if not ok then
@@ -361,6 +379,7 @@ function PlotService.claim(player: Player, plot: number): (boolean, string?)
 		local match = require(folder:FindFirstChild("MatchService") :: ModuleScript) :: any
 		local runtime: Runtime = { folder = folder, owner = player, session = session, match = match }
 		runtimes[plot] = runtime
+		session.beforeMatch = PlotService.bringHomeForMatch
 		return session.start(player)
 	end, debug.traceback)
 	if not loaded or not result then

@@ -116,6 +116,19 @@ if game:GetService("RunService"):IsStudio() then
 		elseif command == "cash" then
 			m.ClubState.addCash(a1 or 1000)
 			return true
+		elseif command == "requestMatch" then
+			-- P3: PLAY MATCH as the owner presses it, including the trip home
+			-- from town; "requestMatch|town" moves the owner to the town spawn first
+			local owner = game:GetService("Players"):GetPlayers()[1]
+			if not owner then
+				return false, "no player"
+			end
+			local townSpawn = workspace:FindFirstChild("TownSpawn", true)
+			if a1 == "town" and townSpawn and owner.Character then
+				owner.Character:PivotTo((townSpawn :: BasePart).CFrame + Vector3.new(0, 4, 0))
+			end
+			task.spawn(m.Session.requestMatch, owner)
+			return true
 		elseif command == "newSeason" then
 			-- X277: rolls the squad on a year so retirements can be checked without
 			-- playing out ten matches

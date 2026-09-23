@@ -153,7 +153,7 @@ def main() -> int:
         "\tlocal text = if crlf then string.gsub(src, '\\r\\n', '\\n') else src",
         "\tlocal ok = true",
         "\tfor k, e in edits do",
-        "\t\tif count(text, e[2]) == 1 and count(text, e[1]) == 0 then continue end -- already applied",
+        "\t\tif count(text, e[2]) == 1 then continue end -- already applied (an insertion's old block survives it)",
         "\t\tlocal n = count(text, e[1])",
         "\t\tif n ~= 1 then table.insert(report, ('%s: hunk %d found %d times'):format(rel, k, n)); ok = false; break end",
         "\t\tlocal i, j = string.find(text, e[1], 1, true)",

@@ -30,6 +30,10 @@ local PlotGrounds = require(script.Parent.PlotGrounds)
 
 local Session = {}
 
+-- PlotService sets this to bring an owner who is out in town back to their
+-- ground before a match starts (P3). Nil in tests and a place without plots.
+Session.beforeMatch = nil :: ((Player) -> ())?
+
 local saver: SaveService.Saver
 local locker: SaveLock.Locker? = nil
 local haveLock = false
@@ -119,11 +123,17 @@ local function requestMatch(player: Player)
 		toast(player, "Name your club first.")
 		return
 	end
+	if Session.beforeMatch then
+		Session.beforeMatch(player)
+	end
 	local started = MatchService.playMatch()
 	if not started then
 		toast(player, "A match is already in progress")
 	end
 end
+
+-- Studio's DebugRun "requestMatch" goes through the same checks as the button.
+Session.requestMatch = requestMatch
 
 local function wireWorld(w: WorldBuilder.World)
 	w.matchdayPrompt.Triggered:Connect(requestMatch)
