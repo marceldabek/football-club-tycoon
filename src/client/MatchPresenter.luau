@@ -252,6 +252,7 @@ function Presenter.buildOfficials(self: Presenter)
 		local side = if i == 1 then 1 else -1
 		local fb = Footballer.new(self.folder, OFFICIAL_HI, 0, "Assistant", Vector3.new(side * ASSISTANT_X, Pitch.SURFACE_Y, 0), 6 + i, false)
 		fb:setTagVisible(false)
+		fb:giveFlag() -- P8 (#4)
 		fb.speed = ASSISTANT_SPEED
 		fb:face(centre())
 		table.insert(assistants, { fb = fb, side = side, half = if i == 1 then -1 else 1 })
@@ -289,8 +290,29 @@ function Presenter.updateOfficials(self: Presenter)
 		local half = if self.swapped then -a.half else a.half
 		local lo = if half < 0 then -Pitch.LENGTH / 2 + 6 else -6
 		local hi = if half < 0 then 6 else Pitch.LENGTH / 2 - 6
-		a.fb:setTarget(Vector3.new(a.side * ASSISTANT_X, Pitch.SURFACE_Y, math.clamp(ball.Z, lo, hi)))
+		a.fb:setTarget(Vector3.new(a.side * ASSISTANT_X, Pitch.SURFACE_Y, math.clamp(self:offsideLine(half), lo, hi)))
 	end
+end
+
+-- P8 (#4): an assistant stays level with the offside line at his end, which is
+-- the last outfield defender of the side defending it, or the ball when the
+-- ball is nearer the goal line than he is. `half` is the end, -1 or 1.
+function Presenter.offsideLine(self: Presenter, half: number): number
+	local ballZ = self.ballPos.Z
+	local defending: Pitch.Team = if attackDir(self:geom("Home")) == -half then "Home" else "Away"
+	local deepest: number? = nil
+	for idx, fb in self.teams[defending].players do
+		if idx ~= 1 then -- the keeper is the last defender; offside is the next one
+			local depth = fb.position.Z * half
+			if not deepest or depth > deepest then
+				deepest = depth
+			end
+		end
+	end
+	if not deepest then
+		return ballZ
+	end
+	return math.max(deepest, ballZ * half) * half
 end
 
 -- Per-frame: move footballers, fly the ball, keep formation.

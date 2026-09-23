@@ -53,6 +53,7 @@ export type Footballer = typeof(setmetatable(
 		number: number,
 		name: string,
 		tagVisible: boolean,
+		flag: boolean, -- an assistant referee: carries a flag in his right hand
 	},
 	Footballer
 ))
@@ -94,12 +95,60 @@ local function numberFace(torso: BasePart, face: Enum.NormalId, number: number)
 	label.Parent = gui
 end
 
+-- P8 (#4): an assistant's flag, red and yellow quarters on a short stick,
+-- welded to the right hand so it swings with the run. Held down at his side,
+-- the cloth trailing behind the stick.
+local FLAG_RED = Color3.fromRGB(215, 40, 40)
+local FLAG_YELLOW = Color3.fromRGB(250, 215, 40)
+local function attachFlag(model: Model)
+	local hand = model:FindFirstChild("RightHand") :: BasePart?
+	if not hand or model:FindFirstChild("Flag") then
+		return
+	end
+	local flag = Instance.new("Model")
+	flag.Name = "Flag"
+	local function piece(name: string, size: Vector3, offset: CFrame, colour: Color3)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Size = size
+		p.Color = colour
+		p.Material = Enum.Material.SmoothPlastic
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.CastShadow = false
+		p.Massless = true
+		p.CFrame = hand.CFrame * offset
+		p.Parent = flag
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = hand
+		weld.Part1 = p
+		weld.Parent = p
+	end
+	-- real size: a ~50 cm stick and a 40 x 30 cm cloth, at ~2.8 studs a metre
+	piece("Stick", Vector3.new(0.1, 1.5, 0.1), CFrame.new(0, -0.6, 0), Color3.fromRGB(30, 30, 30))
+	-- 2 x 2 quarters, the cloth down the stick's lower end, trailing behind it
+	local QH, QW = 0.42, 0.55
+	for row = 0, 1 do
+		for col = 0, 1 do
+			local colour = if (row + col) % 2 == 0 then FLAG_RED else FLAG_YELLOW
+			piece(
+				"Cloth",
+				Vector3.new(0.04, QH, QW),
+				CFrame.new(0, -0.5 - QH / 2 - row * QH, 0.05 + QW / 2 + col * QW),
+				colour
+			)
+		end
+	end
+	flag.Parent = model
+end
+
 local function nameTag(head: BasePart, number: number, name: string): BillboardGui
 	local billboard = Instance.new("BillboardGui")
-	billboard.Size = UDim2.fromOffset(140, 22)
+	billboard.Size = BlockFootballer.TAG_SIZE
 	billboard.Name = "NameTag"
 	billboard.StudsOffset = Vector3.new(0, 1.9, 0)
-	billboard.MaxDistance = 60
+	billboard.MaxDistance = BlockFootballer.TAG_MAX_DISTANCE
 	billboard.AlwaysOnTop = false
 	billboard.Parent = head
 	local label = Instance.new("TextLabel")
@@ -200,6 +249,9 @@ local function buildRig(self: Footballer)
 	self.joints = joints
 	self.hipHeight = hum.HipHeight + root.Size.Y / 2
 	self.rigReady = true
+	if self.flag then
+		attachFlag(model)
+	end
 	self:update(0)
 end
 
@@ -234,6 +286,7 @@ function Footballer.new(parent: Instance, kit: Color3, number: number, name: str
 		number = number,
 		name = name,
 		tagVisible = true,
+		flag = false,
 	}, Footballer) :: any
 
 	live[self] = true
@@ -264,6 +317,18 @@ function Footballer.teleport(self: Footballer, position: Vector3)
 		self.fallback:teleport(position)
 	end
 	self:update(0)
+end
+
+-- P8 (#4): the rig builds asynchronously, so the flag goes on whichever comes
+-- second, this call or the finished rig. The block fallback carries none.
+function Footballer.giveFlag(self: Footballer)
+	if self.flag then
+		return
+	end
+	self.flag = true
+	if self.rigReady and self.model then
+		attachFlag(self.model)
+	end
 end
 
 function Footballer.setTagVisible(self: Footballer, visible: boolean)

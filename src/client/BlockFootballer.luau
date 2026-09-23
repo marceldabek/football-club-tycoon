@@ -9,6 +9,13 @@ local ClubRef = require(script.Parent.ClubRef)
 local BlockFootballer = {}
 BlockFootballer.__index = BlockFootballer
 
+-- P8 (#3): the name tag, shared with Footballer. It used to vanish past 60
+-- studs, which from a stand is most of a 290-stud pitch, so names showed only
+-- near the camera. Part pixels, part studs: readable from the far touchline,
+-- not a banner over the head up close (~22 px tall at 25 studs, ~14 at 150).
+BlockFootballer.TAG_SIZE = UDim2.new(2.7, 77, 0.42, 12)
+BlockFootballer.TAG_MAX_DISTANCE = 400
+
 local TORSO = Vector3.new(2, 2.2, 1)
 local HEAD = 1.2
 local LEG = Vector3.new(0.7, 2, 0.7)
@@ -80,10 +87,10 @@ end
 
 local function nameTag(head: Part, number: number, name: string)
 	local billboard = Instance.new("BillboardGui")
-	billboard.Size = UDim2.fromOffset(140, 22)
+	billboard.Size = BlockFootballer.TAG_SIZE
 	billboard.Name = "NameTag"
 	billboard.StudsOffset = Vector3.new(0, 1.6, 0)
-	billboard.MaxDistance = 60
+	billboard.MaxDistance = BlockFootballer.TAG_MAX_DISTANCE
 	billboard.AlwaysOnTop = false
 	billboard.Parent = head
 	local label = Instance.new("TextLabel")

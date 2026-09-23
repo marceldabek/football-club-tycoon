@@ -26,3 +26,13 @@ Previous nights: `docs/archive/OVERNIGHT_LOG_2026-09-17.md`.
   older-pin extra slot in Play.
 - MCP trap: `user_mouse_input` takes GUI coordinates (below the 58 px top bar), not screenshot pixels.
   Clicking at screenshot y hit CONTINUE and looked like the screen closing itself.
+
+## P8 (16:15–16:20, day session)
+
+- #3: the tags were already on all match; `MaxDistance = 60` hid them past 60 studs, i.e. most of a
+  290-stud pitch from any stand. Now 400, and the size is `UDim2.new(2.7, 77, 0.42, 12)` (shared as
+  `BlockFootballer.TAG_SIZE`) so far tags stay readable without a banner over nearby heads.
+- #4: `Presenter.offsideLine(half)`: deepest outfield player of the side defending that end, or the ball
+  if deeper. `Footballer:giveFlag()` welds a stick + 2x2 red/yellow cloth to the right hand (rig or call,
+  whichever lands second; block fallback carries none). Evening matches are still dark (#2).
+
