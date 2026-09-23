@@ -10,6 +10,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local CardStats = require(ReplicatedStorage.Shared.CardStats)
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -92,6 +93,49 @@ local function rule(parent: Instance, centre: Vector2, size: Vector2, ink: Color
 	f.ZIndex = 4
 	f.Parent = parent
 	return f
+end
+
+-- One quick sweep of light, the same shape as the wonderkid shine below but
+-- lighter and one-shot: hover (desktop) and press-release (touch) feedback,
+-- #18f. Built and thrown away per trigger, so a card nobody touches costs
+-- nothing beyond the two connections that wait for input.
+local function pulseShine(face: Instance)
+	local layer = Instance.new("CanvasGroup")
+	layer.Name = "HoverShine"
+	layer.BackgroundTransparency = 1
+	layer.ClipsDescendants = true
+	layer.AnchorPoint = Vector2.new(0.5, 0.5)
+	layer.Position = UDim2.fromScale(0.5, 0.48)
+	layer.Size = UDim2.fromScale(0.82, 0.78)
+	layer.ZIndex = 6
+	layer.Parent = face
+
+	local band = Instance.new("Frame")
+	band.Name = "Band"
+	band.BackgroundColor3 = Color3.new(1, 1, 1)
+	band.BackgroundTransparency = 0.55
+	band.BorderSizePixel = 0
+	band.AnchorPoint = Vector2.new(0.5, 0.5)
+	band.Position = UDim2.fromScale(-0.25, 0.5)
+	band.Size = UDim2.fromScale(0.2, 2)
+	band.Rotation = 20
+	band.ZIndex = 6
+	band.Parent = layer
+	local soft = Instance.new("UIGradient")
+	soft.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.5, 0),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	soft.Parent = band
+
+	local sweep = TweenService:Create(band, TweenInfo.new(0.45, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+		Position = UDim2.fromScale(1.25, 0.5),
+	})
+	sweep.Completed:Once(function()
+		layer:Destroy()
+	end)
+	sweep:Play()
 end
 
 function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
@@ -292,6 +336,8 @@ function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 	-- already turning is ignored, or the second flip would read `full` off a
 	-- half-squashed card and leave it that shape.
 	local flipping = false
+	-- #18f: a small twist alongside the squash reads as a spin rather than a
+	-- flat pinch, still just the two tweens the 2D spin already needed.
 	function card.flip(self: Card)
 		if flipping then
 			return
@@ -299,16 +345,66 @@ function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 		flipping = true
 		local full = frame.Size
 		aspect.Parent = nil -- or the constraint fights the squash
-		local shut = TweenService:Create(frame, HALF_FLIP, { Size = UDim2.new(0, 0, full.Y.Scale, full.Y.Offset) })
+		local shut = TweenService:Create(frame, HALF_FLIP, {
+			Size = UDim2.new(0, 0, full.Y.Scale, full.Y.Offset),
+			Rotation = -9,
+		})
 		shut:Play()
 		shut.Completed:Wait()
 		self:setFace(not self.faceUp)
-		local open = TweenService:Create(frame, OPEN_FLIP, { Size = full })
+		local open = TweenService:Create(frame, OPEN_FLIP, { Size = full, Rotation = 0 })
 		open:Play()
 		open.Completed:Wait()
 		aspect.Parent = frame
 		flipping = false
 	end
+
+	-- #18f: hover tilt/lift/shine on desktop; touch has no hover to trigger it,
+	-- so a quick press-and-release squash stands in there instead. Both just
+	-- tween a UIScale/Rotation already sitting on the card, so an idle card on
+	-- a squad board full of them costs nothing.
+	local lift = Instance.new("UIScale")
+	lift.Parent = frame
+	local hovering = false
+	local function setHover(on: boolean)
+		if hovering == on or flipping then
+			return
+		end
+		hovering = on
+		TweenService:Create(frame, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Rotation = if on then 3 else 0,
+		}):Play()
+		TweenService:Create(lift, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Scale = if on then 1.045 else 1,
+		}):Play()
+		if on and not p.wonderkid then
+			pulseShine(face)
+		end
+	end
+	frame.MouseEnter:Connect(function()
+		if UserInputService.MouseEnabled then
+			setHover(true)
+		end
+	end)
+	frame.MouseLeave:Connect(function()
+		setHover(false)
+	end)
+	-- InputBegan/InputEnded fire on every GuiObject under the touch, not just
+	-- a top-most Active one, so this never steals the tap the pack's full
+	-- screen shade is waiting for.
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch and not flipping then
+			TweenService:Create(lift, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = 0.96 }):Play()
+		end
+	end)
+	frame.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch then
+			TweenService:Create(lift, TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+			if not flipping and not p.wonderkid then
+				pulseShine(face)
+			end
+		end
+	end)
 
 	function card.destroy(self: Card)
 		if shine then
