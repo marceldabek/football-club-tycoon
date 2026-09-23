@@ -49,4 +49,43 @@ function Format.cardName(full: string): string
 	return (string.match(first, utf8.charpattern) or "") .. ". " .. rest
 end
 
+-- The capital of one lower-case code point in Latin-1 and Latin Extended-A
+-- (every accent the nations' name pools use), or the code point unchanged.
+local function upperCode(c: number): number
+	if c >= 0xE0 and c <= 0xFE and c ~= 0xF7 then -- à..þ, not ÷
+		return c - 0x20
+	elseif c == 0xFF then -- ÿ
+		return 0x178
+	elseif c == 0x131 then -- Turkish dotless ı
+		return 0x49
+	elseif c >= 0x100 and c <= 0x137 then -- Ā ā .. Ķ ķ: upper even, lower odd
+		return if c % 2 == 1 then c - 1 else c
+	elseif c >= 0x139 and c <= 0x148 then -- Ĺ ĺ .. Ň ň: upper odd, lower even
+		return if c % 2 == 0 then c - 1 else c
+	elseif c >= 0x14A and c <= 0x177 then -- Ŋ ŋ .. Ŷ ŷ
+		return if c % 2 == 1 then c - 1 else c
+	elseif c >= 0x179 and c <= 0x17E then -- Ź ź .. Ž ž
+		return if c % 2 == 0 then c - 1 else c
+	end
+	return c
+end
+
+-- P7 (#18c): string.upper only knows ASCII, so "Lefèvre" came out "LEFèVRE".
+-- Upper-cases accented letters too. Bytes that are not valid UTF-8 go through
+-- string.upper untouched rather than failing.
+function Format.upper(s: string): string
+	if not utf8.len(s) then
+		return string.upper(s)
+	end
+	local out = table.create(#s)
+	for _, c in utf8.codes(s) do
+		if c < 0x80 then
+			table.insert(out, string.upper(string.char(c)))
+		else
+			table.insert(out, utf8.char(upperCode(c)))
+		end
+	end
+	return table.concat(out)
+end
+
 return Format

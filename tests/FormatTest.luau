@@ -49,4 +49,25 @@ function T.cardNameIsAnInitialAndTheSurname()
 	assert(Format.cardName("") == "", "and nothing is nothing")
 end
 
+-- P7 (#18c): "Y. LEFèVRE" on a card
+function T.upperCapitalisesAccentedLetters()
+	local function check(input: string, want: string)
+		local got = Format.upper(input)
+		assert(got == want, ("%s -> %s, want %s"):format(input, got, want))
+	end
+	check("Y. Lefèvre", "Y. LEFÈVRE")
+	check("Á. Ortega-Núñez", "Á. ORTEGA-NÚÑEZ")
+	check("Françoise Müller", "FRANÇOISE MÜLLER")
+	check("Wiśniewski Dąbrowski", "WIŚNIEWSKI DĄBROWSKI")
+	check("Łukasz Żółć", "ŁUKASZ ŻÓŁĆ")
+	check("Kovačević Šimić", "KOVAČEVIĆ ŠIMIĆ")
+	check("Ødegaard Ærø", "ØDEGAARD ÆRØ")
+	check("Yıldız", "YILDIZ")
+	check("ALREADY UPPER 7", "ALREADY UPPER 7")
+	check("÷ stays", "÷ STAYS")
+	check("", "")
+	-- not valid UTF-8: falls back to string.upper instead of erroring
+	check("ab\255", string.upper("ab\255"))
+end
+
 return T

@@ -962,7 +962,7 @@ local function shirtLabel(shirt: BasePart, number: number?, name: string?, accen
 	who.Font = Enum.Font.GothamBold
 	who.TextScaled = true
 	who.TextColor3 = accent
-	who.Text = string.upper(tostring(name or ""))
+	who.Text = Format.upper(tostring(name or ""))
 	who.Parent = gui
 end
 
@@ -1237,7 +1237,7 @@ function WorldBuilder.buildStatue(servant: any?)
 	who.Font = Enum.Font.GothamBlack
 	who.TextScaled = true
 	who.TextColor3 = Color3.fromRGB(48, 36, 14)
-	who.Text = string.upper(tostring(servant.name or "CLUB SERVANT"))
+	who.Text = Format.upper(tostring(servant.name or "CLUB SERVANT"))
 	who.Parent = gui
 	local line = Instance.new("TextLabel")
 	line.Name = "Record"

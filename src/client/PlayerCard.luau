@@ -196,12 +196,18 @@ function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 	end
 
 	if opts ~= nil and opts.compact == true then
-		label(face, string.upper(Format.surname(p.name)), Vector2.new(0.5, 0.625), Vector2.new(0.78, 0.085), ink)
+		-- P7 (#18b): centred between the art's divider (0.589) and the rule, and
+		-- a touch below it, because capitals have no descenders and ride high in
+		-- their line box
+		label(face, Format.upper(Format.surname(p.name)), Vector2.new(0.5, 0.643), Vector2.new(0.78, 0.07), ink)
 		rule(face, Vector2.new(0.5, 0.69), Vector2.new(0.78, 0.004), ink)
 		local age = label(face, ("AGE %d"):format(p.age or 0), Vector2.new(0.5, 0.765), Vector2.new(0.7, 0.085), opts.ageInk or ink)
 		age.Name = "Age"
 	else
-		label(face, string.upper(Format.cardName(p.name)), Vector2.new(0.5, 0.608), Vector2.new(0.76, 0.06), ink)
+		-- P7 (#18b): the box ran 0.578-0.638 and poked above the art's divider at
+		-- 0.589. Now inside the band (divider to rule at 0.652), nudged low for
+		-- the same reason as the compact name.
+		label(face, Format.upper(Format.cardName(p.name)), Vector2.new(0.5, 0.623), Vector2.new(0.76, 0.05), ink)
 		rule(face, Vector2.new(0.5, 0.652), Vector2.new(0.78, 0.003), ink)
 		rule(face, Vector2.new(0.503, 0.758), Vector2.new(0.006, 0.19), ink)
 
