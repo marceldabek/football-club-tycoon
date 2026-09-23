@@ -528,4 +528,102 @@ function TownLifeMath.stickerHeight(height: number, bill: boolean): number
 	return eye
 end
 
+-- ============================================================= street lamps
+
+-- #41: the kit street lamps are one fused MeshPart each (no separate glass), so
+-- the night lens is a small Neon part TownLife hangs under the head. Measured in
+-- Studio (2026-09-23) by ray-scanning each mesh at its shipped size (`ref`):
+-- the pivot is the bounding-box centre, not the pole; the pole stands at local
+-- `poleX` and the arm reaches along local +X to the head at `headX`, whose
+-- underside is `lensY` above the base (the lens is centred there, half sunk into
+-- the head, so it reads from the side as well as from below). LampVictorian (market square) is the
+-- model's bounding box instead: the lantern sits over the pillar.
+export type KitLamp = {
+	ref: Vector3,
+	poleX: number,
+	headX: number,
+	lensY: number,
+	lensSize: Vector3,
+	round: boolean, -- a disc under a round bowl rather than a flat panel
+	bannerForward: number, -- pole radius plus half a banner: flush on the pole
+	armAxis: boolean, -- the arm (road side) is local +X; false = local -Z
+}
+TownLifeMath.KIT_LAMPS = {
+	StreetLight01 = {
+		ref = Vector3.new(2.253, 14.98, 0.404),
+		poleX = -0.92,
+		headX = 0.62,
+		lensY = 14.4,
+		lensSize = Vector3.new(0.6, 0.2, 0.3),
+		round = false,
+		bannerForward = 0.22,
+		armAxis = true,
+	},
+	StreetLight02 = {
+		ref = Vector3.new(4.52, 15.789, 0.672),
+		poleX = -1.93,
+		headX = 1.75,
+		lensY = 15.27,
+		lensSize = Vector3.new(0.95, 0.2, 0.5),
+		round = false,
+		bannerForward = 0.18,
+		armAxis = true,
+	},
+	StreetLight03 = {
+		ref = Vector3.new(3.801, 16.403, 0.731),
+		poleX = -1.63,
+		headX = 1.1,
+		lensY = 15.4,
+		lensSize = Vector3.new(0.2, 0.7, 0.7), -- Cylinder: X is the axis
+		round = true,
+		bannerForward = 0.24,
+		armAxis = true,
+	},
+	LampVictorian = {
+		ref = Vector3.new(4.496, 20.214, 3.0),
+		poleX = 0,
+		headX = 0,
+		lensY = 16.7,
+		lensSize = Vector3.new(1.2, 1.7, 1.0),
+		round = false,
+		bannerForward = 0.37,
+		armAxis = false,
+	},
+} :: { [string]: KitLamp }
+
+export type LampShape = {
+	ground: Vector3, -- where the pole meets the ground
+	roadDir: Vector3, -- horizontal unit vector, pole towards the road
+	lens: CFrame,
+	lensSize: Vector3,
+	round: boolean,
+	bannerForward: number,
+}
+
+-- `box` / `size` are the lamp MeshPart's CFrame and Size (or, for
+-- LampVictorian, the model's bounding box). Nil for an unknown kind.
+function TownLifeMath.kitLampShape(kind: string, box: CFrame, size: Vector3): LampShape?
+	local spec = TownLifeMath.KIT_LAMPS[kind]
+	if not spec then
+		return nil
+	end
+	local scale = Vector3.new(size.X / spec.ref.X, size.Y / spec.ref.Y, size.Z / spec.ref.Z)
+	local base = box * CFrame.new(0, -size.Y / 2, 0)
+	local arm = if spec.armAxis then box.RightVector else box.LookVector -- LookVector is local -Z
+	local flat = Vector3.new(arm.X, 0, arm.Z)
+	local roadDir = if flat.Magnitude > 1e-6 then flat.Unit else Vector3.new(0, 0, -1)
+	local lens = base * CFrame.new(spec.headX * scale.X, spec.lensY * scale.Y, 0)
+	if spec.round then
+		lens *= CFrame.Angles(0, 0, math.pi / 2) -- cylinder axis upright: a flat disc
+	end
+	return {
+		ground = (base * CFrame.new(spec.poleX * scale.X, 0, 0)).Position,
+		roadDir = roadDir,
+		lens = lens,
+		lensSize = spec.lensSize,
+		round = spec.round,
+		bannerForward = spec.bannerForward,
+	}
+end
+
 return TownLifeMath

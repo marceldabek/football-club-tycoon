@@ -32,6 +32,7 @@ export type Budget = {
 	banners: number, -- TownLife.client.luau lamp banners at once
 	buntingStrings: number, -- TownLife.client.luau matchday bunting crossings
 	pedestrians: number, -- reserved for a future pedestrians script
+	lampLights: number, -- TownLife.client.luau street lamps with a real light at night (#41)
 }
 
 local HIGH: Level = "High"
@@ -44,8 +45,8 @@ Quality.DEFAULT = HIGH
 -- TEMP numbers, tune on a real mid-range phone. High matches the values the
 -- scripts shipped with before this toggle existed.
 Quality.BUDGETS = {
-	High = { maxCars = 16, banners = 60, buntingStrings = 40, pedestrians = 30 },
-	Low = { maxCars = 6, banners = 20, buntingStrings = 12, pedestrians = 12 },
+	High = { maxCars = 16, banners = 60, buntingStrings = 40, pedestrians = 30, lampLights = 16 },
+	Low = { maxCars = 6, banners = 20, buntingStrings = 12, pedestrians = 12, lampLights = 6 },
 } :: { [Level]: Budget }
 
 -- Part names (after stripping trailing digits) that are pure decoration.

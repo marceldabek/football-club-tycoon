@@ -60,6 +60,13 @@ function T.lowBudgetNeverExceedsHigh()
 	assert(low.banners <= high.banners, "banners")
 	assert(low.buntingStrings <= high.buntingStrings, "bunting")
 	assert(low.pedestrians <= high.pedestrians, "pedestrians")
+	assert(low.lampLights <= high.lampLights, "lamp lights")
+end
+
+function T.lampLightsKeepTheShippedNumbers()
+	-- #41: TownLife's old LAMP_LIGHT_MAX 16 / LAMP_LIGHT_MAX_LOW 6
+	assert(Quality.budget("High").lampLights == 16, "High 16")
+	assert(Quality.budget("Low").lampLights == 6, "Low 6")
 end
 
 function T.highBudgetMatchesShippedScriptValues()
