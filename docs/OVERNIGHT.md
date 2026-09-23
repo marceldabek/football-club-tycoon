@@ -1,96 +1,88 @@
-# Overnight Agent Brief
+# Overnight Agent Brief — night of 2026-09-23
 
-> Start it in a fresh Claude Code session in this folder with (preferred):
-> `/goal Follow docs/OVERNIGHT.md and keep working through docs/BACKLOG.md. Done only when it is after 08:00 on Friday 2026-09-18 (local time), or Studio is unreachable and no [disk] work is left.`
+> Start it in a fresh Claude Code session in this folder with:
+> `/goal Follow docs/OVERNIGHT.md and work through Phase P in docs/BACKLOG.md. Done when Phase P is finished, or it is after 09:00 on Wednesday 2026-09-23 (local time), or Studio is unreachable and no [disk] item is left.`
 > Fallback if `/goal` isn't available: `/loop Follow docs/OVERNIGHT.md. Continue from docs/OVERNIGHT_LOG.md.`
-> Edit this file to steer future nights. Re-read it at the start of each backlog item.
+> Edit this file to steer future nights. The 2026-09-17 brief and log are in `docs/archive/`.
 
-You are the **lead agent** working unattended on Football Club Tycoon. **This run is long:** Marcel is
-away from the night of Wed 2026-09-16 until **Friday 2026-09-18 morning** (~32 hours). Nobody will read or
-answer anything before then. Pace yourself: keep committing small, keep the handoff current, and if you
-hit a usage limit or the session resumes after a break, re-read this file and the log and carry on.
-Your job is to get as much real, tested progress as you can on the Rivermere shared-town direction,
-so that in the morning he can walk around, list what's wrong, and fix it with you.
+You are the **lead agent** working unattended on Football Club Tycoon. Marcel is asleep and nobody will
+answer before morning. Tonight is a **short, focused list**, not an open-ended polish run: finish
+**Phase P** in `docs/BACKLOG.md` (P1–P11) in order, then stop.
 
-## 0. Read first (once per session, not every iteration)
+## 0. Read first (once)
 
-- `CLAUDE.md`, especially **section 27** (decided town/multiplayer direction) and section 21 (agent rules).
-- `docs/WORLD_ROADMAP.md` (sessions A–J; every question is DECIDED) and `docs/WORLD_VISION.md`.
-- `docs/SLICE_PLAN.md`, `docs/ASSET_KIT.md`, `assets/kit/MANIFEST.md`.
-- Every image in `assets/references/` (including `town/`). These are the look to aim for. Many say "Riverdale": the town is **Rivermere**. Never write Riverdale in signs, code or docs.
-- Your memory directory, especially the Roblox Studio workflow notes.
-- `docs/BACKLOG.md` and `docs/OVERNIGHT_LOG.md` if they exist.
+- `CLAUDE.md` (sections 21, 22 and 27) and your memory directory (Roblox Studio workflow notes first).
+- `docs/BACKLOG.md` → **Phase P** only. Each item names its playtest number.
+- `docs/PLAYTEST_NOTES_2026-09-21.md` for the full text of each playtest item.
+- For P9: `docs/CLUB_BUILDINGS.md` (decisions already taken) and the ground plan spec
+  `docs/superpowers/specs/2026-09-22-ground-plan-design.md` + `tools/ground_plan.py`.
+- For P10/P11: the ground plan spec and `docs/ground_plan/proposed_L1..L4.png`.
 
 ## 1. Setup (first iteration only)
 
-1. Work on a branch: `git switch -c overnight/<today's date>` (or switch to it if it already exists). Never commit to master, never push, never force anything.
-2. Check Studio is connected (`list_roblox_studios`, `get_studio_state`), Edit mode, and run the test suite. Record the baseline in the log.
-3. If `docs/BACKLOG.md` doesn't exist, build it (section 3).
+1. Stay on branch `overnight/2026-09-23` (already created). Never commit to master, never push, never force.
+2. Check Studio (`list_roblox_studios`, `get_studio_state`), Edit mode, run `RunAll`. Baseline at
+   01:50 was **879 passed, 0 failed**, with Rojo connected (port 34872) and syncing.
+3. Start `docs/OVERNIGHT_LOG.md` with a "Morning handoff" section at the top (section 6).
 
 ## 2. Hard rules
 
-- **Studio is one shared resource.** Only you, the lead, touch Roblox Studio through MCP. Subagents never call Studio tools.
-- **Disk is the source of truth.** MCP cannot save the place, and Studio can crash overnight. Build town geometry from **layout data + builder code in `src/`** (Q26), so everything can be rebuilt from git. Hand-placed Studio-only edits count as lost work unless they are captured as code or an `.rbxm`.
-- **Test before commit.** Run `RunAll` in Edit mode after code changes. Take a screenshot to check anything visual. Commit small and often, with clear messages ending in the Co-Authored-By line.
-- **Use the reference images whenever possible.** Before building or restyling any district, street, building, landmark or prop, open the matching images in `assets/references/` (for example `RivermereCenter.png`, `RiveremereWestdale.png`, `RivermereNorthfields.png`, `RivermereRiverside.png`, `RivermereStation.png`, `RivermereTurnstileEntrance.png`, `rivermer.industrialestate.png`, `RivermereAIMap.png`). Match their layout, materials, colours, signage style and props. In each log entry, name the image you worked from. When you finish a visual item, compare your screenshot against the image and list the biggest differences as follow-up backlog items. If no image fits, say so in the log and add "reference image needed for X" to Questions for Marcel.
-- **Don't break the loop.** Play Match → earn → upgrade must still work after every change. If a change breaks it and you can't fix it in about 20 minutes, revert it and log the problem.
-- **Assets:**
-  - Allowed: free Creator Store models (strip every script, log the id and creator in `assets/kit/MANIFEST.md`), free CC0 sources (Poly Haven, ambientCG, Kenney), `generate_mesh` for props, and uploading your own GLB exports with `tools/upload_kit.py`.
-  - **Actively look for free models that match the reference images.** Before building something from primitives, search `search_asset` (Creator Store, free only), Poly Haven, ambientCG and Kenney for a close match (terraced houses, shopfronts, lamp posts, bus shelters, benches, bins, planters, railings, trees, cars, station and industrial pieces), then download or insert it. Only use sources that don't need a login, since you can't sign in or create accounts. Check the licence (CC0 / free Creator Store), log it in `assets/kit/MANIFEST.md`, and remove scripts. If the best match needs a login or payment, add it to the buy list with a link instead. Use primitives only when nothing free fits well.
-  - Not allowed: buying anything (paid packs, Robux). Add them to a "Buy list for Marcel" section in the log with the price and why.
-  - Not allowed: executables or files from unknown sites.
-  - Prefer bought or downloaded buildings over generated ones (Q27).
-  - Never print or commit `.roblox_api_key`.
-- **Mobile budget.** The target is a mid-range phone (Q18). Keep StreamingEnabled-friendly structure, reuse meshes, and log part/triangle counts for each district.
-- **No online / 1v1 work** until the J0 design talk (Q35). No monetization.
-- **Don't decide open questions silently.** If something genuinely blocks, pick a clearly labelled TEMP value, log the question in the "Questions for Marcel" section with a recommendation, and move on to other work.
-- **Don't stop to ask.** Nobody will answer until morning. Keep choosing the next unblocked item.
+- **Studio is one shared resource.** Only you, the lead, touch Studio. Subagents never call Studio tools.
+- **Disk is the source of truth.** Build from code in `src/`. Studio-only edits count as lost work.
+- **Test before commit.** `RunAll` in Edit mode after code changes. Commit small, one backlog item per
+  commit where possible, message ending in the Co-Authored-By line. Tick the item with a time.
+- **Don't break the loop.** Play Match → earn → upgrade must still work, and a club must still load.
+  After any server change, claim a plot in Play mode (`DebugRun "claim|1"`) and check the console for
+  `failed to start` (that's how X369 was caught).
+- **Don't decide open questions.** If an item needs a design call, pick a clearly labelled TEMP value,
+  add a numbered question with a recommendation to the handoff, and move on.
+- **Not tonight:** online/1v1 work, monetization (#43/#44), away economy (#17), scooter (#42),
+  stadium capacity past 8,000 (X234), tactics effects (X360), town items #27–#39, the crowd avatar
+  swap (#6c/#9). Don't touch `git stash` entry `stash@{0}` (the old X368 wage-base attempt).
+- Assets: free only (see `docs/FREE_ASSETS.md`); `generate_mesh` is fine for props. Nothing paid.
 
-## 3. The backlog (`docs/BACKLOG.md`)
+## 3. Token budget (Marcel asked for this: don't burn tokens overnight)
 
-Turn CLAUDE.md s27, the roadmap phases A–J, the milestones, `docs/SLICE_PLAN.md` and the reference
-images into one ordered, very long checklist. Give each item:
+- **At most 2 subagents at a time**, and only for `[disk]` work that is clearly separable (P1's
+  checker script, P7, one building of P9 each). Use `model: "sonnet"` and `isolation: "worktree"`.
+  Give each a self-contained prompt. Review their diff yourself before merging.
+- **Two strikes per item.** If the same item has failed twice (two approaches, or ~45 minutes),
+  stop, write what you tried and why it failed in the log as a known bug, and move to the next item.
+  Never loop on one problem.
+- **When Phase P is done, stop.** Don't invent new polish items. Write the handoff and finish.
+- Screenshots only to verify a visual item, at `scale` 0.5, at most ~3 per item.
+- Keep `execute_luau` output short (counts, names, first error). Read only the part of a file you need.
+- If Studio stops responding: retry once after a minute. If it's still dead, do `[disk]` items only
+  (P1, P2, P7, P9) and note it in the handoff.
 
-- a one-line outcome that can be checked ("Terraced street 1: 12 houses, pavements, lamp posts, bins")
-- a tag: `[studio]` (needs Studio to build or verify) or `[disk]` (code, data, exports, docs, research)
-- a size: S (<30 min) / M (<2 h) / L (split it)
-- dependencies
+## 4. Item notes
 
-Suggested first stretch, in order:
+- **P1** first. X369 shipped because a local was removed and one use of it was missed. The checker only
+  has to be good enough to catch that class of bug: an identifier read in a file, never declared in any
+  scope that reaches it, and not a Luau/Roblox global. Some false positives are fine; list them in the
+  script's allowlist. Fix every real hit and name each one in the log.
+- **P3:** reuse the existing "go to my club" server move, then run the normal Play Match flow.
+- **P5:** check the room scale against the kit props before scaling anything up (#24f says the props
+  are "at real scale"). Fixtures notice: `src/server/Clubhouse.luau:792`, `src/server/SeasonService.luau:94`.
+- **P6:** Marcel's mockup is described in #19c. Use a pin, not a star.
+- **P9:** a **proposal document only**, draft per building in the order `docs/CLUB_BUILDINGS.md` gives.
+  Generate SVGs with a small Python script next to `tools/ground_plan.py` (same scale and coordinate
+  frame). Put every new question in that doc's question list, numbered, with a recommendation.
+- **P10/P11** are big. Split P10 into steps (wall + gates, then turnstile blocks, then huts + forecourt,
+  then end stairs), commit each, and playtest fan routes after each. Only start once P1–P8 are done.
 
-- **A1:** client-side hero-afternoon lighting and the post-match fast-forward.
-- **B1–B3:** the club becomes a plot, with 4 plots, the plot picker on load, the for-sale lot, and despawn on leave.
-- **C1–C2:** greybox Rivermere from the concept map: ring road, river + bridges, railway + viaduct + station, centre with a market square, the four ground sites on the edges.
-- **C3:** performance baseline.
-- **E:** the first district, terraced streets beside the centre, using the kit houses.
-- Then bus-stop fast travel, landmarks (church spire, bridge, viaduct), and so on.
+## 5. Each iteration
 
-When the backlog runs low, extend it: polish passes, bugs found while testing, missing props from the
-reference images. There is always more to do.
+1. Take the next unticked Phase P item. Split it if it's L.
+2. Hand separable `[disk]` work to a subagent (max 2 running), do the `[studio]` work yourself.
+3. Test, commit, tick with a time, add 2–4 lines to `docs/OVERNIGHT_LOG.md`.
+4. Next item.
 
-## 4. Each iteration
+## 6. Morning handoff (keep it current, top of `docs/OVERNIGHT_LOG.md`)
 
-1. Pick the top unblocked item. Break it down if it's L.
-2. **Parallelise the disk work.** Send independent `[disk]` items to subagents, several at once, each in an isolated git worktree (`isolation: "worktree"`), using the cheaper `sonnet` model for mechanical work: GLB export batches, layout data tables, pure-logic modules with tests, asset research lists. Give each one a self-contained prompt and tell it not to touch Studio. Review and merge their branches yourself, then verify in Studio.
-3. Do the `[studio]` item yourself: sync (Rojo or `tools/studio-sync.luau`), build, run tests, take a screenshot, fix.
-4. Commit, tick the item, and append 2–4 lines to `docs/OVERNIGHT_LOG.md`: what changed, how it was tested, known bugs.
-5. Next item. Don't finish your turn while unblocked work remains.
-
-## 5. Spend tokens carefully
-
-- Screenshots only to verify visual work, and at reduced `scale`. Don't take one after every small tweak.
-- Read only the part of a file you need. Don't re-read files you just edited.
-- Keep `execute_luau` output short (counts, names, first error), not whole dumps.
-- If the same approach has failed twice, stop, write down why, and move to a different item.
-- If Studio stops responding, wait, retry once, and if it's still dead switch to `[disk]` items only and log it.
-
-## 6. Morning handoff (keep it current all night)
-
-At the top of `docs/OVERNIGHT_LOG.md`, keep an up-to-date summary with:
-
-- **What to look at:** where to stand in Studio, and screenshots saved in `assets/screenshots/overnight/`.
-- **Done / half-done / reverted.**
-- **Known bugs** (numbered, so Marcel can answer by number).
-- **Questions for Marcel** (numbered, each with a recommendation).
-- **Buy list for Marcel.**
-- **Studio state:** remind Marcel to save the place (Ctrl+S / File → Save to Roblox) before trusting anything that only exists in Studio.
+- **What to look at:** where to stand in Studio, what to press.
+- **Done / half-done / reverted**, by Phase P number.
+- **Known bugs**, numbered.
+- **Questions for Marcel**, numbered, each with a recommendation.
+- **Studio state:** remind Marcel to save the place if anything exists only in Studio, and to publish
+  if a live-crash fix (like X369) landed.

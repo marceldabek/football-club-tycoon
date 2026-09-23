@@ -355,13 +355,14 @@ function PlotService.claim(player: Player, plot: number): (boolean, string?)
 	folder.Parent = runtimeRoot
 
 	-- a module error while loading must not leave the plot half-claimed
-	local loaded, result = pcall(function()
+	-- xpcall with a traceback, so the warning names the line that failed
+	local loaded, result = xpcall(function()
 		local session = require(folder:FindFirstChild("Session") :: ModuleScript) :: any
 		local match = require(folder:FindFirstChild("MatchService") :: ModuleScript) :: any
 		local runtime: Runtime = { folder = folder, owner = player, session = session, match = match }
 		runtimes[plot] = runtime
 		return session.start(player)
-	end)
+	end, debug.traceback)
 	if not loaded or not result then
 		warn(("[FCT] plot %d failed to start for %s: %s"):format(plot, player.Name, tostring(result)))
 		Telemetry.event(player, "ClubLoadFailed") -- SL25

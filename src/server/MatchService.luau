@@ -6,7 +6,7 @@
 -- Friendlies against another club on the server share the same matchday but
 -- skip the league, injuries and development (I3.1).
 --
--- Phases: Manage -> PreMatch (iris + walkout) -> Match (clock running) -> Manage
+-- Phases: Manage -> PreMatch (fade + walkout) -> Match (clock running) -> Manage
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")

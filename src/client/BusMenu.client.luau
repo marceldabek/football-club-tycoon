@@ -3,7 +3,7 @@
 -- player triggers a stop's ProximityPrompt; this shows one small card with the
 -- destinations it sent (already ordered: clubs first, then town stops,
 -- alphabetical within each group — see BusService.destinationsFor). Picking
--- one closes the iris, asks the server to teleport, then opens it again.
+-- one fades to black, asks the server to teleport, then opens it again.
 
 local Players = game:GetService("Players")
 local TextService = game:GetService("TextService")
@@ -11,7 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local Theme = require(script.Parent.Theme)
-local Iris = require(script.Parent.Iris)
+local Fade = require(script.Parent.Fade)
 local TownLayout = require(ReplicatedStorage.Shared.TownLayout)
 local TownPlan = require(ReplicatedStorage.Shared.TownPlan)
 
@@ -362,14 +362,14 @@ local function travelTo(destinationName: string)
 	lastTravel = os.clock()
 	traveling = true
 	setInteractive(false)
-	local ticket = Iris.close(0.35)
+	local ticket = Fade.close(0.35)
 	task.wait(0.4)
 	travelEvent:FireServer(destinationName)
 	task.wait(0.6)
-	-- re-checked here, not before the waits: a walkout can take the iris over
+	-- re-checked here, not before the waits: a walkout can take the fade over
 	-- during that second
-	if Iris.owns(ticket) then
-		Iris.open(0.5) -- X259: a walkout that took the iris over opens it itself
+	if Fade.owns(ticket) then
+		Fade.open(0.5) -- X259: a walkout that took the fade over opens it itself
 	end
 	traveling = false
 	closeCard()

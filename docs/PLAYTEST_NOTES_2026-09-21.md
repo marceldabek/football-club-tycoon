@@ -9,7 +9,7 @@ Numbers are stable so they can be referenced in commits and later notes.
 
 ## Match presentation
 
-1. **Iris transition gets stuck on ultrawide.** On an ultrawide screen, the iris zoom effect stays on screen for the whole match. There's a round black mask cutting off the left and right edges, so you only see the middle of the view. It looks like the iris is sized for a normal screen shape and never opens wide enough for a very wide one.
+1. **Iris transition gets stuck on ultrawide.** ✅ Done 2026-09-23 (X370): Marcel chose to remove the iris entirely; every transition is now a plain fade to black. On an ultrawide screen, the iris zoom effect stays on screen for the whole match. There's a round black mask cutting off the left and right edges, so you only see the middle of the view. It looks like the iris is sized for a normal screen shape and never opens wide enough for a very wide one.
 2. **Floodlights don't light the pitch at night.** In evening matches the floodlight heads glow, but the pitch is still almost black. You can barely see the players, the ball or the lines. Either the lights' range and brightness can't reach the grass, or they're pointed in the wrong direction. May be partly #21.
 3. **Player names should show more often.** Name labels over players' heads should stay visible the whole match, or at least appear much more often than they do now.
 4. **Assistant referees need flags and should follow the defensive line.** The linesmen should hold a flag. They should also move up and down the touchline level with the last defender, so it looks like they're watching for offside.

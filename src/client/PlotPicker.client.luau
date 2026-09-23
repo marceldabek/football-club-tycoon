@@ -22,7 +22,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Theme = require(script.Parent.Theme)
-local Iris = require(script.Parent.Iris)
+local Fade = require(script.Parent.Fade)
 
 local PLOT_COUNT = 4 -- matches PlotService.PLOT_COUNT
 -- SL16: a rejoin can wait Config.Save.lockMaxWaitSeconds (30) for the old
@@ -304,17 +304,17 @@ local function finish()
 		return
 	end
 	destroyed = true
-	-- close the iris over the picker, swap to the player's own camera behind
+	-- fade to black over the picker, swap to the player's own camera behind
 	-- it (they are already standing in their office), then open on the club
-	local ticket = Iris.close(0.4)
+	local ticket = Fade.close(0.4)
 	task.wait(0.45)
 	restoreCamera()
 	if hudGui then
 		hudGui.Enabled = true
 	end
 	gui:Destroy()
-	if Iris.owns(ticket) then
-		Iris.open(0.6) -- X259: something newer owns the iris, leave it alone
+	if Fade.owns(ticket) then
+		Fade.open(0.6) -- X259: something newer owns the fade, leave it alone
 	end
 end
 

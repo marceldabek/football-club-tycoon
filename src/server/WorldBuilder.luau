@@ -1127,7 +1127,7 @@ function WorldBuilder.buildHonours(promotions: number, servant: any?)
 	number.Position = UDim2.fromScale(0, 0.1)
 	number.Font = Enum.Font.GothamBlack
 	number.TextScaled = true
-	number.TextColor3 = accent
+	clubPaint(number, "accent", 0, "TextColor3")
 	-- a servant recorded before X291 has no shirt number (review)
 	number.Text = if servant.number then tostring(servant.number) else "-"
 	number.Parent = shirt

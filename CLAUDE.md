@@ -105,7 +105,7 @@ Flow:
 1. Player manages/upgrades club.
 2. Player presses **Play Match**.
 3. Club upgrades are locked during matchday.
-4. Screen performs an **iris-style fade/close transition**.
+4. Screen **fades to black** (replaced the iris transition, Marcel 2026-09-23).
 5. Short player walkout / matchday presentation.
 6. 90-second match begins.
 7. Player can walk around the stadium and watch from different positions.
@@ -787,7 +787,7 @@ without an explanation.
 
 Add:
 
-- iris transition
+- fade-to-black transition (was iris; changed 2026-09-23)
 - player walkout
 - generated teams
 - simple player movement

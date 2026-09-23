@@ -1,11 +1,11 @@
 --!strict
 -- Drives the matchday presentation from the replicated club state:
---   PreMatch -> iris close, walkout under a scripted camera, iris open
+--   PreMatch -> fade to black, walkout under a scripted camera, fade back in
 --   Match    -> presenter plays the timeline synced to KickoffAt
 --   Manage   -> presenter winds down
 -- Late joiners get a presenter built straight into the current phase.
 -- Spectators (I2.1): near another ground whose match is live, the same
--- presenter follows that club instead, without iris, camera or sky changes.
+-- presenter follows that club instead, without a fade, camera or sky changes.
 
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -13,7 +13,7 @@ local HttpService = game:GetService("HttpService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pitch = require(ReplicatedStorage.Shared.Pitch)
-local Iris = require(script.Parent.Iris)
+local Fade = require(script.Parent.Fade)
 local Presenter = require(script.Parent.MatchPresenter)
 local MatchAudio = require(script.Parent.MatchAudio)
 local Sky = require(script.Parent.Sky)
@@ -195,13 +195,13 @@ local function beginPreMatch()
 	local p = Presenter.new(timeline, get("MatchDuration") or Config.MatchDurationSeconds)
 	presenter = p
 
-	Iris.close(0.6)
+	Fade.close(0.6)
 	local walkout = Config.WalkoutSeconds - 1.4
 	task.spawn(cameraWalkout, walkout)
 	task.spawn(meetTheEleven, walkout)
 	task.spawn(function()
 		task.wait(0.25)
-		Iris.open(0.8)
+		Fade.open(0.8)
 	end)
 	p:walkout(walkout)
 end
@@ -237,7 +237,7 @@ end
 local function onPhase()
 	local phase = get("Phase")
 	if state ~= own then
-		-- watching someone else: no iris, walkout camera or sky change
+		-- watching someone else: no fade, walkout camera or sky change
 		if phase == "Match" then
 			beginMatch()
 		else
