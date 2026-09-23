@@ -153,6 +153,10 @@ local function buildQueued()
 			table.clear(queue) -- no avatar pipeline: no crowd, never blocks
 			return
 		end
+		if stand.fans[seat.seed] or not stand.crowd.Parent then
+			fig.model:Destroy() -- the first build waits for the avatar pool; somebody got here first
+			continue
+		end
 		fig.model.Name = "Fan"
 		for _, d in fig.model:GetDescendants() do
 			if d:IsA("BasePart") then

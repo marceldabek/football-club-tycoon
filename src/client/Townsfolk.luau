@@ -140,12 +140,17 @@ local function strip(m: Model)
 				j:Destroy()
 			end
 		end
-		handle.CFrame = head.CFrame * onHead.CFrame * att.CFrame:Inverse()
 		handle.Anchored = false
 		handle.CastShadow = false
-		local weld = Instance.new("WeldConstraint")
+		-- A Weld, not a WeldConstraint: callers pose a figure before parenting
+		-- it into the workspace, and a WeldConstraint freezes whatever offset
+		-- the parts have when it wakes up, which left the hair behind in the
+		-- sky. A Weld's C0 puts it back on the head whenever it activates.
+		local weld = Instance.new("Weld")
 		weld.Part0 = head
 		weld.Part1 = handle
+		weld.C0 = onHead.CFrame
+		weld.C1 = att.CFrame
 		weld.Parent = handle
 	end
 	-- HumanoidRootPart only exists to carry the Humanoid, which is gone. Left in
@@ -188,30 +193,45 @@ function Townsfolk.template(): Model?
 	return m
 end
 
--- Builds the variant pool in the background (idempotent). Called on first
--- require; the avatar service yields while it loads hair and faces, so nobody
--- waits on it -- build() uses whatever is ready.
+-- Builds the variant pool (idempotent), all variants at once in parallel.
+-- Called on first build; the avatar service yields while it loads hair and
+-- faces, so the first build waits for the pool (at most VARIANT_WAIT) rather
+-- than spawning bald default rigs that would stay on screen all session.
+local VARIANT_WAIT = 8 -- TEMP seconds; after this, build with what is ready
+local pending = 0
+local prewarmStarted = 0
+
 function Townsfolk.prewarm()
 	if prewarming then
 		return
 	end
 	prewarming = true
-	task.spawn(function()
-		local rng = Random.new(20260923)
-		for i = 1, Townsfolk.VARIANTS do
-			local desc = Instance.new("HumanoidDescription")
-			if #Appearance.HAIR > 0 and rng:NextNumber() < Townsfolk.HAIR_CHANCE then
-				desc.HairAccessory = tostring(Appearance.HAIR[(i - 1) % #Appearance.HAIR + 1])
-			end
-			if #Appearance.FACES > 0 then
-				desc.Face = Appearance.FACES[rng:NextInteger(1, #Appearance.FACES)]
-			end
+	prewarmStarted = os.clock()
+	local rng = Random.new(20260923)
+	for i = 1, Townsfolk.VARIANTS do
+		local desc = Instance.new("HumanoidDescription")
+		if #Appearance.HAIR > 0 and rng:NextNumber() < Townsfolk.HAIR_CHANCE then
+			desc.HairAccessory = tostring(Appearance.HAIR[(i - 1) % #Appearance.HAIR + 1])
+		end
+		if #Appearance.FACES > 0 then
+			desc.Face = Appearance.FACES[rng:NextInteger(1, #Appearance.FACES)]
+		end
+		pending += 1
+		task.spawn(function()
 			local m = fromDescription(desc)
 			if m then
 				table.insert(variants, m)
 			end
-		end
-	end)
+			pending -= 1
+		end)
+	end
+end
+
+local function waitForVariants()
+	Townsfolk.prewarm()
+	while pending > 0 and os.clock() - prewarmStarted < VARIANT_WAIT do
+		task.wait(0.1)
+	end
 end
 
 -- How many variant rigs are ready (for probes and tests).
@@ -245,7 +265,7 @@ export type Figure = {
 -- Returns nil when the rig could not be built; callers must skip spawning
 -- rather than falling back to blocks.
 function Townsfolk.build(parent: Instance, look: Look?): Figure?
-	Townsfolk.prewarm()
+	waitForVariants()
 	local o: Look = look or {}
 	local rng = o.rng
 	local base: Model? = if #variants > 0 then Townsfolk.pick(variants, rng) else Townsfolk.template()
