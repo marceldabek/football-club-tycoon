@@ -67,6 +67,7 @@ function tests.districtBuildHasNoMissingAndNoUntaggedPrimitives()
 			local model = holder:FindFirstChild("Roads_" .. district) :: Model
 			-- TOWN_V3_BUILD.md s9 rule 1 (Lane P): districts are grouping models, never Atomic
 			assert(model and model.ModelStreamingMode == Enum.ModelStreamingMode.Default, "district model must not be Atomic")
+			assert(model.LevelOfDetail == Enum.ModelLevelOfDetail.StreamingMesh, "district model needs a streaming-mesh stand-in (#27)")
 			for _, d in holder:GetDescendants() do
 				assert(d:GetAttribute("KitMissing") == nil, "KitMissing: " .. d.Name)
 				if d:IsA("BasePart") and not d:IsA("MeshPart") then

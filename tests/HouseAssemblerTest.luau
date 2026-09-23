@@ -440,8 +440,10 @@ function tests.lots_are_atomic_and_districts_are_not()
 	withBuild({ district = "Mapleford" }, nil, function(holder, _counts)
 		local district = holder:GetChildren()[1] :: Model
 		assert(district.ModelStreamingMode == Enum.ModelStreamingMode.Default, "district must not be Atomic (section 9 rule 1)")
+		assert(district.LevelOfDetail == Enum.ModelLevelOfDetail.StreamingMesh, "district needs a streaming-mesh stand-in (#27)")
 		local boundaries = district:FindFirstChild("Boundaries") :: Model
 		assert(boundaries and boundaries.ModelStreamingMode == Enum.ModelStreamingMode.Default)
+		assert(boundaries.LevelOfDetail == Enum.ModelLevelOfDetail.StreamingMesh, "boundaries need a streaming-mesh stand-in (#27)")
 		for _, child in district:GetChildren() do
 			if child:GetAttribute("LotId") ~= nil then
 				assert((child :: Model).ModelStreamingMode == Enum.ModelStreamingMode.Atomic, "each lot is one Atomic model")

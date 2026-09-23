@@ -270,6 +270,8 @@ local function districtModel(parent: Instance, cache: { [string]: Model }, distr
 		model.Name = "Roads_" .. district
 		-- TOWN_V3_BUILD.md s9 rule 1: a district is a grouping model, never Atomic
 		model.ModelStreamingMode = Enum.ModelStreamingMode.Default
+		-- Lane I (#27): low-detail stand-in for the whole block while it streams.
+		model.LevelOfDetail = Enum.ModelLevelOfDetail.StreamingMesh
 		model:SetAttribute("District", district)
 		model.Parent = parent
 		cache[district] = model
@@ -433,6 +435,8 @@ function RoadTiler.buildPavements(parent: Instance, origin: CFrame): number
 			holder = Instance.new("Model")
 			holder.Name = "Pavements_" .. district
 			holder.ModelStreamingMode = Enum.ModelStreamingMode.Default
+			-- Lane I (#27): low-detail stand-in for the whole block while it streams.
+			holder.LevelOfDetail = Enum.ModelLevelOfDetail.StreamingMesh
 			holder.Parent = parent
 			models[district] = holder
 		end

@@ -539,6 +539,11 @@ local function newModel(name: string, parent: Instance, atomic: boolean): Model
 	local model = Instance.new("Model")
 	model.Name = name
 	model.ModelStreamingMode = if atomic then Enum.ModelStreamingMode.Atomic else Enum.ModelStreamingMode.Default
+	if not atomic then
+		-- Lane I (#27): whole-block grouping models get a low-detail stand-in
+		-- while their lots stream in individually.
+		model.LevelOfDetail = Enum.ModelLevelOfDetail.StreamingMesh
+	end
 	model.Parent = parent
 	return model
 end
