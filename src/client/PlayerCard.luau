@@ -40,6 +40,7 @@ export type Card = {
 
 local HALF_FLIP = TweenInfo.new(0.16, Enum.EasingStyle.Sine, Enum.EasingDirection.In)
 local OPEN_FLIP = TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local SETTLE_FLIP = TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out) -- the lift lands after the turn
 
 -- the left column of the art: overall, role, flag, crest, each centred on this x
 local SPINE_X = 0.213
@@ -334,13 +335,47 @@ function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 		back.Visible = not up
 	end
 
-	-- 2D spin: the back is left-right symmetrical so the swap at zero width
-	-- does not jump (docs/CARD_BACKGROUND_PROMPTS.md s7). A tap while it is
-	-- already turning is ignored, or the second flip would read `full` off a
-	-- half-squashed card and leave it that shape.
+	-- #18f: hover tilt/lift/shine on desktop; touch has no hover to trigger it,
+	-- so a quick press-and-release squash stands in there instead. Both just
+	-- tween a UIScale/Rotation already sitting on the card, so an idle card on
+	-- a squad board full of them costs nothing. A card inside a CanvasGroup
+	-- (the pack's greyed SIGNED card) stays still: the group would clip it.
+	local lift = Instance.new("UIScale")
+	lift.Parent = frame
 	local flipping = false
-	-- #18f: a small twist alongside the squash reads as a spin rather than a
-	-- flat pinch, still just the two tweens the 2D spin already needed.
+	local hovering = false
+	local QUICK = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	local function rest(): (number, number) -- rotation, scale for the hover state
+		return if hovering then 3 else 0, if hovering then 1.045 else 1
+	end
+	local function still(): boolean
+		local parent = frame.Parent
+		return parent == nil or parent:IsA("CanvasGroup")
+	end
+	local function setHover(on: boolean)
+		if hovering == on or still() then
+			return
+		end
+		hovering = on
+		if flipping then
+			return -- the flip settles on whatever the hover state is by then
+		end
+		local rot, scale = rest()
+		TweenService:Create(frame, QUICK, { Rotation = rot }):Play()
+		TweenService:Create(lift, QUICK, { Scale = scale }):Play()
+		if on and not p.wonderkid then
+			pulseShine(face)
+		end
+	end
+
+	-- A 2D spin made to read as 3D (#18f): the card squashes to its edge while
+	-- it lifts toward you and leans, the art darkens as it turns away from the
+	-- light, then it opens with an overshoot and settles back. The back is
+	-- left-right symmetrical so the swap at zero width does not jump
+	-- (docs/CARD_BACKGROUND_PROMPTS.md s7). A tap while it is already turning
+	-- is ignored, or the second flip would read `full` off a half-squashed card
+	-- and leave it that shape.
+	local EDGE_DARK = Color3.fromRGB(110, 110, 120)
 	function card.flip(self: Card)
 		if flipping then
 			return
@@ -348,42 +383,29 @@ function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 		flipping = true
 		local full = frame.Size
 		aspect.Parent = nil -- or the constraint fights the squash
+		local leaving = if self.faceUp then face else back
+		local arriving = if self.faceUp then back else face
 		local shut = TweenService:Create(frame, HALF_FLIP, {
-			Size = UDim2.new(0, 0, full.Y.Scale, full.Y.Offset),
-			Rotation = -9,
+			Size = UDim2.new(0, 0, full.Y.Scale * 1.04, full.Y.Offset * 1.04),
+			Rotation = -6,
 		})
+		TweenService:Create(lift, HALF_FLIP, { Scale = 1.12 }):Play()
+		TweenService:Create(leaving, HALF_FLIP, { ImageColor3 = EDGE_DARK }):Play()
 		shut:Play()
 		shut.Completed:Wait()
+		leaving.ImageColor3 = Color3.new(1, 1, 1)
+		arriving.ImageColor3 = EDGE_DARK
 		self:setFace(not self.faceUp)
-		local open = TweenService:Create(frame, OPEN_FLIP, { Size = full, Rotation = 0 })
+		local rot, scale = rest()
+		local open = TweenService:Create(frame, OPEN_FLIP, { Size = full, Rotation = rot })
+		TweenService:Create(lift, SETTLE_FLIP, { Scale = scale }):Play()
+		TweenService:Create(arriving, OPEN_FLIP, { ImageColor3 = Color3.new(1, 1, 1) }):Play()
 		open:Play()
 		open.Completed:Wait()
 		aspect.Parent = frame
 		flipping = false
 	end
 
-	-- #18f: hover tilt/lift/shine on desktop; touch has no hover to trigger it,
-	-- so a quick press-and-release squash stands in there instead. Both just
-	-- tween a UIScale/Rotation already sitting on the card, so an idle card on
-	-- a squad board full of them costs nothing.
-	local lift = Instance.new("UIScale")
-	lift.Parent = frame
-	local hovering = false
-	local function setHover(on: boolean)
-		if hovering == on or flipping then
-			return
-		end
-		hovering = on
-		TweenService:Create(frame, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-			Rotation = if on then 3 else 0,
-		}):Play()
-		TweenService:Create(lift, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-			Scale = if on then 1.045 else 1,
-		}):Play()
-		if on and not p.wonderkid then
-			pulseShine(face)
-		end
-	end
 	frame.MouseEnter:Connect(function()
 		if UserInputService.MouseEnabled then
 			setHover(true)
@@ -396,14 +418,14 @@ function PlayerCard.new(parent: Instance, p: any, opts: Options?): Card
 	-- a top-most Active one, so this never steals the tap the pack's full
 	-- screen shade is waiting for.
 	frame.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.Touch and not flipping then
+		if input.UserInputType == Enum.UserInputType.Touch and not flipping and not still() then
 			TweenService:Create(lift, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = 0.96 }):Play()
 		end
 	end)
 	frame.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.Touch then
+		if input.UserInputType == Enum.UserInputType.Touch and not flipping and not still() then
 			TweenService:Create(lift, TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
-			if not flipping and not p.wonderkid then
+			if not p.wonderkid then
 				pulseShine(face)
 			end
 		end
