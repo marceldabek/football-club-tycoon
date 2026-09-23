@@ -28,7 +28,7 @@ local StandCrowd = {}
 local NEAR_RADIUS = 700 -- TEMP: build a ground's fans once the camera is this close to it
 local FAR_RADIUS = 800 -- ...and drop them past this (hysteresis)
 local SCAN_INTERVAL = 1 -- seconds between looks for new/changed Crowd folders
-local BUILD_PER_FRAME = 24 -- TEMP: figures cloned per frame while a ground fills
+local BUILD_PER_FRAME = 12 -- TEMP: figures cloned per frame while a ground fills (~0.28 ms each on a desktop, 2026-09-23)
 
 local HOP_PERIOD = 0.36 -- one up and down, as the old 0.18 s reversing tween
 local HOP_COUNT = 3
