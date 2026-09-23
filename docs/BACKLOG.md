@@ -492,8 +492,8 @@ Numbers in brackets are `docs/PLAYTEST_NOTES_2026-09-21.md` items. Ground plan =
 
 - [x] P1 (12:16 done, 0 real hits in the current tree; catches X369 and X349 in history, 87/88 in a mutation run) Free-globals checker: `tools/free_globals.py` lists every identifier a `src/**/*.luau` file reads that is never declared (local, param, for var, function) and is not a Roblox/Luau global - the class of bug behind X369. Run it, fix every real hit, add it to the workflow notes `[disk]` M
 - [x] P2 (12:33 done, 880 passed) X367 injuries heal at the season rollover (TEMP: clear `injured`), names listed on the season-end card, test in SquadTest/ClubService tests `[disk]` S
-- [ ] P3 (#40) Play Match away from your ground takes you home first (same move as "go to my club"), then the fade + walkout `[studio]` S
-- [ ] P4 (#45) Goal nets get a back frame: rear uprights + stanchions; posts stay on the goal line (9b01ff8) `[studio]` S
+- [x] P3 (12:40 done, tested from the town spawn and from the plot) (#40) Play Match away from your ground takes you home first (same move as "go to my club"), then the fade + walkout `[studio]` S
+- [x] P4 (12:40 done, stanchions meet the post centres on both goals) (#45) Goal nets get a back frame: rear uprights + stanchions; posts stay on the goal line (9b01ff8) `[studio]` S
 - [ ] P5 (#24 a-g) Office layout and scale pass: laptop screen at the back edge, bigger desk on the far wall, door clears the trophy shelf, bin by the desk, one chair facing the desk, check room vs prop scale before scaling, sharp fixtures notice with full opponent names `[studio]` M
 - [ ] P6 (#19) Signed card stays in its slot, greys out with a SIGNED stamp animation, Sign/Pin disabled; pack screen matches the mockup (SCOUT REPORT header, "3 PLAYERS DISCOVERED", green SIGN £X + pin button, "PIN UNTIL SEASON END", gold glow when pinned, CONTINUE >) `[studio]` M
 - [ ] P7 (#18 b, c) Card name centred in its band; accented letters upper-case properly (utf8-aware upper) `[disk]` S

@@ -276,6 +276,27 @@ local function buildPitch(parent: Instance)
 	-- goals: 7.32m x 2.44m -> ~20 x 7 studs, with a simple net box behind
 	local goalW, goalH = Pitch.GOAL_WIDTH, Pitch.GOAL_HEIGHT
 	local netDepth = 6
+	-- P4 (#45): a box net needs something holding its back up - two rear
+	-- uprights at the back corners, top stanchions from the crossbar back to
+	-- them, and a bar along the top of the back net. `frontZ`, `halfX` and
+	-- `topY` are the post and crossbar centres, `backZ` the back net's plane.
+	local function stanchions(goal: Instance, frontZ: number, backZ: number, halfX: number, topY: number, r: number)
+		local groundY = GROUND_Y + 1
+		local depth = math.abs(backZ - frontZ)
+		local midZ = (frontZ + backZ) / 2
+		local function bar(name: string, length: number, cf: CFrame)
+			local b = box(name, Vector3.new(length, r * 2, r * 2), Vector3.zero, white, nil, goal)
+			b.Shape = Enum.PartType.Cylinder -- the cylinder's axis is its X
+			b.CFrame = cf
+			b.CanCollide = false
+		end
+		for _, xSign in { -1, 1 } do
+			local x = xSign * halfX
+			bar("StanchionUpright", topY - groundY, CFrame.new(x, (groundY + topY) / 2, backZ) * CFrame.Angles(0, 0, math.pi / 2))
+			bar("StanchionTop", depth, CFrame.new(x, topY, midZ) * CFrame.Angles(0, math.pi / 2, 0))
+		end
+		bar("StanchionBack", halfX * 2, CFrame.new(0, topY, backZ))
+	end
 	for _, zSign in { -1, 1 } do
 		local z = zSign * (PITCH_L / 2)
 		local goalName = zSign < 0 and "GoalNorth" or "GoalSouth"
@@ -302,6 +323,13 @@ local function buildPitch(parent: Instance)
 					d.CanCollide = false
 				end
 			end
+			-- the model's box, now that it stands on the line: its outer edges are
+			-- the post and crossbar faces and the back net (0.2 thick unscaled)
+			local boxCf, boxSize = placed.model:GetBoundingBox()
+			local frontZ = boxCf.Position.Z - zSign * (boxSize.Z / 2 - postR)
+			local backZ = boxCf.Position.Z + zSign * (boxSize.Z / 2 - 0.1 * goalScale)
+			local topY = boxCf.Position.Y + boxSize.Y / 2 - postR
+			stanchions(placed.model, frontZ, backZ, boxSize.X / 2 - postR, topY, postR * 0.6)
 			continue
 		end
 		local goal = Instance.new("Model")
@@ -324,6 +352,7 @@ local function buildPitch(parent: Instance)
 		for _, xSign in { -1, 1 } do
 			net("NetSide", Vector3.new(0.2, goalH, netDepth), Vector3.new(xSign * goalW / 2, netY, netZ))
 		end
+		stanchions(goal, z, z + zSign * netDepth, goalW / 2, GROUND_Y + 1 + goalH, 0.2)
 	end
 end
 
@@ -1317,7 +1346,7 @@ function WorldBuilder.dressPitch(tier: number)
 	-- too, and the first version painted them white (review of X296).
 	local frame = if worn then Color3.fromRGB(232, 232, 226) else Color3.new(1, 1, 1)
 	for _, goal in pitch:GetDescendants() do
-		if goal:IsA("BasePart") and (goal.Name == "Crossbar" or goal.Name == "Post" or string.find(goal.Name, "Net", 1, true)) then
+		if goal:IsA("BasePart") and (goal.Name == "Crossbar" or goal.Name == "Post" or string.find(goal.Name, "Net", 1, true) or string.find(goal.Name, "Stanchion", 1, true)) then
 			goal.Color = frame
 		end
 	end
