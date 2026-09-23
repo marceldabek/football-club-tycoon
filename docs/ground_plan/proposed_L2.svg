@@ -239,8 +239,8 @@
 <polyline points="496.2,705.6 753.8,705.6" fill="none" stroke="#f0e6a8" stroke-width="3" stroke-linejoin="round"   opacity="1.0"/>
 <polygon points="487.5,532.5 495.0,532.5 495.0,562.5 487.5,562.5" fill="#555" stroke="none" stroke-width="1"  opacity="1.0"/>
 <polygon points="487.5,462.5 495.0,462.5 495.0,492.5 487.5,492.5" fill="#555" stroke="none" stroke-width="1"  opacity="1.0"/>
-<polygon points="745.0,305.0 755.0,305.0 755.0,315.0 745.0,315.0" fill="#333" stroke="none" stroke-width="1"  opacity="1.0"/>
-<text x="750.0" y="325.0" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >scoreboard</text>
+<polygon points="745.0,301.2 755.0,301.2 755.0,311.2 745.0,311.2" fill="#333" stroke="none" stroke-width="1"  opacity="1.0"/>
+<text x="750.0" y="293.8" font-size="5" fill="#1e1e1e" text-anchor="middle" dominant-baseline="middle" >scoreboard</text>
 <text x="297.5" y="573.8" font-size="5" fill="#eee" text-anchor="start" dominant-baseline="middle" >players' &amp; staff bays</text>
 <text x="200.0" y="635.0" font-size="5" fill="#eee" text-anchor="start" dominant-baseline="middle" >disabled bays · cycle racks</text>
 <polyline points="150.0,497.5 293.8,497.5 293.8,278.8 373.8,278.8" fill="none" stroke="#d9342b" stroke-width="2" stroke-linejoin="round"  marker-end="url(#arr)" opacity="1.0"/>

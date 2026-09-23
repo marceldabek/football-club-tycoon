@@ -692,8 +692,8 @@ def proposed_common(c, tier):
     c.rect(-110, 16, -104, 40, fill="#555")
     c.rect(-110, -40, -104, -16, fill="#555")
     if tier < 3:
-        c.rect(96, -166, 104, -158, fill="#333")
-        c.text(100, -150, "scoreboard", 5)
+        c.rect(96, -169, 104, -161, fill="#333")                  # 3 back from the spec's -162: clears the low wall
+        c.text(100, -175, "scoreboard", 5)
     else:
         c.rect(120, -248, 160, -240, fill="#111")
         c.text(140, -253, "BIG SCREEN", 6, bold=True)

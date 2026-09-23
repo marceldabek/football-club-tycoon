@@ -510,6 +510,40 @@ local function buildAdBoards(parent: Instance)
 	end
 end
 
+-- #20 (ground plan spec s2): a low wall round the pitch just behind the ad
+-- boards, between them and the stands, so the paved ring behind it is for
+-- spectators and the pitch-side strip is not. Continuous round the pitch but
+-- for the west side's middle (z -55..55): the tunnel mouth and the dugouts.
+local LOW_WALL_X, LOW_WALL_Z = 108, 158 -- centre lines
+local LOW_WALL_GAP = 55
+local LOW_WALL_T, LOW_WALL_H = 0.8, 3
+local function buildLowWall(parent: Instance)
+	local wall = Instance.new("Model")
+	wall.Name = "LowWall"
+	wall.Parent = parent
+	local brick = STAND_BRICK
+	local stone = Color3.fromRGB(206, 196, 176)
+	local t = LOW_WALL_T / 2
+	local function run(x0: number, x1: number, z0: number, z1: number)
+		local size = Vector3.new(x1 - x0, LOW_WALL_H, z1 - z0)
+		local mid = Vector3.new((x0 + x1) / 2, DECK_Y + LOW_WALL_H / 2, (z0 + z1) / 2)
+		box("LowWall", size, mid, brick, Enum.Material.Brick, wall)
+		-- coping overhanging both faces, not the ends
+		local alongX = x1 - x0 > z1 - z0
+		local cope = Vector3.new(size.X + (if alongX then 0 else 0.3), 0.3, size.Z + (if alongX then 0.3 else 0))
+		box("LowWallCoping", cope, mid + Vector3.new(0, LOW_WALL_H / 2 + 0.15, 0), stone, Enum.Material.Concrete, wall)
+	end
+	-- the ends run the full width; the sides fit between them
+	for _, zSign in { -1, 1 } do
+		local z = zSign * LOW_WALL_Z
+		run(-LOW_WALL_X - t, LOW_WALL_X + t, z - t, z + t)
+	end
+	local inner = LOW_WALL_Z - t
+	run(LOW_WALL_X - t, LOW_WALL_X + t, -inner, inner)
+	run(-LOW_WALL_X - t, -LOW_WALL_X + t, -inner, -LOW_WALL_GAP)
+	run(-LOW_WALL_X - t, -LOW_WALL_X + t, LOW_WALL_GAP, inner)
+end
+
 -- Two dugouts on the west hardstanding, flanking the tunnel mouth and set back
 -- from the boards the way real ones are.
 --
@@ -591,7 +625,9 @@ end
 -- Scoreboard: on two posts on the paving by the open north-east corner,
 -- angled at the centre circle. Deliberately a cheap non-league board for now
 -- (painted panel, no video) with room for a proper screen later.
-local SCOREBOARD_POS = Vector3.new(100, 0, -(Pitch.GRASS_EDGE_Z + 9))
+-- #20: 3 further back than the spec's (100, -162), so its east post clears
+-- the corner of the low wall behind the ad boards (x 108, z -158)
+local SCOREBOARD_POS = Vector3.new(100, 0, -(Pitch.GRASS_EDGE_Z + 12))
 
 local function scoreLabel(parent: Instance, name: string, pos: UDim2, size: UDim2, text: string, colour: Color3, align: Enum.TextXAlignment?)
 	local label = Instance.new("TextLabel")
@@ -2493,6 +2529,7 @@ function WorldBuilder.build(standLevels: { [string]: number }, amenityLevel: num
 	buildHardstanding(club)
 	buildPerimeter(club)
 	buildAdBoards(club)
+	buildLowWall(club) -- #20
 	buildDugouts(club)
 	buildScoreboard(club)
 	buildForecourt(club)
