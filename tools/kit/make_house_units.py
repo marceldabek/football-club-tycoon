@@ -79,9 +79,13 @@ def parse_recipes():
     def chimney(x, once=False):
         return piece("Chimney_A", x, 2 * M + 4.2, 0, 0, "chimney", scale=1.4, once=once)
 
+    back_windows = [(name, {"H": H, "-H": -H}[x.replace(" ", "")], float(storey)) for name, x, storey in
+                    re.findall(r'\{ piece = "(\w+)", x = (-?H), storey = (\d) \}', table("BACK_WINDOWS"))]
+    assert len(back_windows) == 4, "expected four BACK_WINDOWS in HouseRecipes.luau"
+
     def shell():
-        return [
-            piece("Wall_A", 0, 0, M, 180, "back", scale=2),
+        backs = [piece(name, x, storey * M, M - brick_plane.get(name, 0.0), 180, "back") for name, x, storey in back_windows]
+        return backs + [
             piece("Roof_A", 0, 2 * M, -H - 0.17, 0, "roof", stretch=2),
             piece("Roof_A", 0, 2 * M, H + 0.17, 180, "roof", stretch=2),
         ]
@@ -116,7 +120,7 @@ def parse_recipes():
                     p["x"] += shift
                     p["shiftX"] = shift
         if ends:
-            pieces += end_cap(-1, True) + end_cap(1, False)
+            pieces += end_cap(-1, True) + end_cap(1, True)
         recipes.append({"id": rid, "kind": kind, "pieces": pieces})
 
     env = {"front": front, "door": door, "canopy": canopy, "chimney": chimney, "recipe": recipe, "H": H, "true": True, "false": False}

@@ -318,8 +318,11 @@ local function buildLot(ctx: Ctx, lot: Lot, origin: CFrame)
 	local trim = HouseRecipes.trimFor(lot.id)
 	local isTerrace = lot.use == "terraced row"
 	local isRow = HouseRecipes.USE_KIND[lot.use] ~= "detached"
-	-- Windowed gables only where a terrace meets a junction; a semi's side faces its neighbour.
-	local windowedEnds = lot.corner and detail.cornerEnds and isTerrace
+	-- Module by module, windowed gables only where a terrace meets a junction (5 parts an end
+	-- instead of 2). Merged, a windowed cap costs nothing extra, so every row end gets one (#32:
+	-- sides were blank brick).
+	local cornerEnds = lot.corner and detail.cornerEnds and isTerrace
+	local windowedEnds = cornerEnds or (detail.merged and detail.cornerEnds)
 
 	-- Merged unit meshes for the whole lot or for none of it: a row's roof and back wall are
 	-- either inside every unit or stretched along the row.
@@ -332,6 +335,9 @@ local function buildLot(ctx: Ctx, lot: Lot, origin: CFrame)
 			end
 			merged = merged and ready
 		end
+	end
+	if not merged then
+		windowedEnds = cornerEnds
 	end
 
 	-- One core per run of bodies that touch: a whole terrace or semi pair, or one detached house.
